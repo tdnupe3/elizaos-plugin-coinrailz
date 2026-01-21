@@ -21,6 +21,8 @@ interface Pilot {
   startDate: string;
   notes: string;
   contactEmail: string;
+  accountId?: string;
+  contactName?: string;
 }
 
 export default function PilotTrackingPage() {
@@ -39,7 +41,9 @@ export default function PilotTrackingPage() {
     revenue: 0,
     startDate: new Date().toISOString().split("T")[0],
     notes: "",
-    contactEmail: ""
+    contactEmail: "",
+    contactName: "",
+    accountId: ""
   });
 
   useSEO({
@@ -91,7 +95,9 @@ export default function PilotTrackingPage() {
           revenue: 0,
           startDate: new Date().toISOString().split("T")[0],
           notes: "",
-          contactEmail: ""
+          contactEmail: "",
+          contactName: "",
+          accountId: ""
         });
       } else {
         toast({ title: "Error", description: "Failed to add pilot" });
@@ -258,12 +264,28 @@ export default function PilotTrackingPage() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label>Contact Name</Label>
+                    <Input
+                      value={newPilot.contactName}
+                      onChange={(e) => setNewPilot({ ...newPilot, contactName: e.target.value })}
+                      placeholder="John Smith"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <Label>Contact Email</Label>
                     <Input
                       type="email"
                       value={newPilot.contactEmail}
                       onChange={(e) => setNewPilot({ ...newPilot, contactEmail: e.target.value })}
                       placeholder="ops@acme.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Account ID (optional)</Label>
+                    <Input
+                      value={newPilot.accountId}
+                      onChange={(e) => setNewPilot({ ...newPilot, accountId: e.target.value })}
+                      placeholder="iot_acc_xxxxx"
                     />
                   </div>
                   <div className="space-y-2">
@@ -359,8 +381,15 @@ export default function PilotTrackingPage() {
                           </div>
                           <div>
                             <h3 className="font-semibold">{pilot.companyName}</h3>
-                            <p className="text-sm text-muted-foreground">{pilot.contactEmail}</p>
-                            <p className="text-sm mt-1">{pilot.notes}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {pilot.contactName && `${pilot.contactName} • `}{pilot.contactEmail}
+                            </p>
+                            {pilot.accountId && (
+                              <p className="text-xs text-emerald-600 font-mono mt-1">
+                                Account: {pilot.accountId}
+                              </p>
+                            )}
+                            {pilot.notes && <p className="text-sm mt-1">{pilot.notes}</p>}
                             <div className="flex items-center gap-4 mt-2 text-sm">
                               <span>{pilot.deviceCount} devices</span>
                               <span>${pilot.revenue} revenue</span>

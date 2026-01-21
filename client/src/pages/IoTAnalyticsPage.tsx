@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useQuery } from "@tanstack/react-query";
 import { 
   ArrowLeft, 
   Users, 
@@ -29,6 +29,8 @@ interface Pilot {
   revenue: number;
   startDate: string;
   contactEmail: string;
+  accountId?: string;
+  contactName?: string;
 }
 
 interface AnalyticsData {
@@ -45,29 +47,11 @@ interface AnalyticsData {
 
 export default function IoTAnalyticsPage() {
   const [, setLocation] = useLocation();
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch("/api/iot/pilots");
-        if (res.ok) {
-          const result = await res.json();
-          setData(result);
-        } else {
-          setError("Failed to load analytics data");
-        }
-      } catch (err) {
-        console.error("Failed to fetch analytics:", err);
-        setError("Network error - please try again");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const { data, isLoading, error } = useQuery<AnalyticsData>({
+    queryKey: ['/api/iot/pilots'],
+    staleTime: 30000
+  });
 
   const calculateConversionRate = () => {
     if (!data || data.stats.total === 0) return 0;
@@ -110,7 +94,7 @@ export default function IoTAnalyticsPage() {
         <Card className="max-w-md">
           <CardHeader>
             <CardTitle className="text-red-600">Error Loading Analytics</CardTitle>
-            <CardDescription>{error}</CardDescription>
+            <CardDescription>{error instanceof Error ? error.message : "Failed to load data"}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={() => window.location.reload()}>Try Again</Button>

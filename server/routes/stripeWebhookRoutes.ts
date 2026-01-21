@@ -2,8 +2,8 @@ import { Router } from 'express';
 import express from 'express';
 import Stripe from 'stripe';
 import { db } from '../db';
-import { sdkLicenseSubscriptions } from '../../shared/schema';
-import { eq, and } from 'drizzle-orm';
+import { sdkLicenseSubscriptions, iotAccounts, iotTopups } from '../../shared/schema';
+import { eq, and, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import crypto from 'crypto';
 import { fulfillAcpOrder } from './acpRoutes';
@@ -248,11 +248,11 @@ async function sendLicenseActivationEmail(email: string, licenseKey: string, tie
 }
 
 /**
- * Handle checkout.session.completed for ACP orders
+ * Handle checkout.session.completed for ACP orders and IoT topups
  */
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
-  const orderId = session.metadata?.orderId;
   const source = session.metadata?.source;
+  const orderId = session.metadata?.orderId;
 
   if (source === 'acp_checkout' && orderId) {
     console.log(`🛒 ACP Checkout completed for order ${orderId}`);
@@ -264,8 +264,46 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     } else {
       console.error(`❌ ACP Fulfillment failed for ${orderId}: ${result.error}`);
     }
+  } else if (source === 'iot_payments_topup') {
+    const { accountId, packId, credits, topupId } = session.metadata || {};
+    
+    if (!accountId || !credits) {
+      console.error('❌ IoT topup missing metadata:', session.metadata);
+      return;
+    }
+
+    console.log(`💰 IoT Topup checkout completed: ${accountId}, ${credits} credits`);
+    
+    try {
+      const creditsAmount = parseInt(credits);
+      const amountPaid = (session.amount_total || 0) / 100;
+      
+      await db.transaction(async (tx) => {
+        await tx.execute(
+          sql`UPDATE iot_accounts 
+              SET credits_balance = credits_balance + ${creditsAmount * 0.005}::numeric,
+                  total_deposited = total_deposited + ${amountPaid}::numeric,
+                  updated_at = NOW()
+              WHERE id = ${accountId}`
+        );
+
+        await tx.insert(iotTopups).values({
+          id: topupId || `iot_topup_${nanoid(16)}`,
+          accountId,
+          amount: amountPaid.toString(),
+          credits: creditsAmount.toString(),
+          paymentMethod: 'stripe',
+          stripePaymentId: session.payment_intent as string,
+          status: 'completed',
+        });
+      });
+
+      console.log(`✅ IoT Topup fulfilled: ${accountId} received ${creditsAmount} credits ($${amountPaid})`);
+    } catch (error: any) {
+      console.error(`❌ IoT Topup fulfillment failed: ${error.message}`);
+    }
   } else {
-    console.log(`🔔 Checkout session completed (non-ACP): ${session.id}`);
+    console.log(`🔔 Checkout session completed (unknown source): ${session.id}`);
   }
 }
 

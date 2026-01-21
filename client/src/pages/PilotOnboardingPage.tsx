@@ -93,8 +93,10 @@ export default function PilotOnboardingPage() {
           deviceCount: parseInt(data.estimatedDevices) || 0,
           revenue: 500,
           startDate: new Date().toISOString().split("T")[0],
-          notes: `Use case: ${data.useCase}. Contact: ${data.contactName}. AccountId: ${accountId}`,
+          notes: `Use case: ${data.useCase}`,
           contactEmail: data.contactEmail,
+          accountId: accountId,
+          contactName: data.contactName,
         })
       });
 

@@ -1092,10 +1092,59 @@ router.post('/topup', requiredAuth, async (req: Request, res: Response) => {
       }
 
       if (!stripePaymentMethodId) {
-        return res.status(400).json({
-          success: false,
-          error: 'stripePaymentMethodId required for Stripe payments',
-        });
+        try {
+          const baseUrl = process.env.REPLIT_DOMAINS 
+            ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
+            : 'http://localhost:5000';
+          
+          const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+              price_data: {
+                currency: 'usd',
+                product_data: {
+                  name: `IoT Credits: ${pack.name}`,
+                  description: `${pack.credits.toLocaleString()} credits for IoT device metering`,
+                },
+                unit_amount: Math.round(pack.priceUSD * 100),
+              },
+              quantity: 1,
+            }],
+            mode: 'payment',
+            metadata: {
+              accountId,
+              packId,
+              credits: pack.credits.toString(),
+              source: 'iot_payments_topup',
+              topupId,
+            },
+            success_url: `${baseUrl}/iot/dashboard?topup=success&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${baseUrl}/iot/dashboard?topup=cancelled`,
+          });
+
+          console.log(`📦 Stripe checkout session created for IoT topup: ${session.id}`);
+
+          return res.status(200).json({
+            success: true,
+            status: 'checkout_required',
+            checkoutUrl: session.url,
+            sessionId: session.id,
+            pack: {
+              id: packId,
+              name: pack.name,
+              priceUSD: pack.priceUSD,
+              credits: pack.credits,
+            },
+            message: 'Redirect to Stripe Checkout to complete payment',
+          });
+        } catch (checkoutError: any) {
+          console.error('❌ Stripe checkout session creation failed:', checkoutError);
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to create checkout session',
+            message: checkoutError.message,
+          });
+        }
       }
 
       try {
@@ -1500,6 +1549,8 @@ const PilotSchema = z.object({
   startDate: z.string(),
   notes: z.string().optional(),
   contactEmail: z.string().email(),
+  accountId: z.string().optional(),
+  contactName: z.string().optional(),
 });
 
 router.post('/pilots', async (req: Request, res: Response) => {

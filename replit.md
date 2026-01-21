@@ -66,6 +66,10 @@ The Coin Railz platform adopts a USDC-first strategy, utilizing Coinbase CDP for
   - Pilot Tracking: `/admin/pilots` (CRM for pilot customers, status pipeline, CRUD API).
   - Case Studies: `/case-studies` (customer success story templates, filtering by vertical).
   - API Routes: `/api/iot/partners/*`, `/api/iot/pilots/*` for partner applications and pilot management.
+- **IoT Operations & Onboarding (January 2026)**:
+  - IoT Hub: `/iot` (central navigation hub linking all IoT pivot pages).
+  - Analytics Dashboard: `/iot/analytics` (KPIs for pilots, conversions, revenue, device metrics).
+  - Pilot Onboarding: `/pilot/onboard` (self-serve 3-step pilot signup with account creation, API key generation).
 - **A2A Protocol Outreach System**: Production-grade autonomous outreach to AI agents using Google's A2A Protocol, featuring:
   - Registry sync from a2aregistry.org.
   - High-value agent prioritization and reachability verification.

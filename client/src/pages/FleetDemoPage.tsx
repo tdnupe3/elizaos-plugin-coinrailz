@@ -127,7 +127,6 @@ export default function FleetDemoPage() {
       
       let meterResult = null;
       let meterErrors = 0;
-      const apiKey = accountData.apiKey;
       for (const event of events) {
         const meterRes = await fetch('/api/iot/meter', {
           method: 'POST',

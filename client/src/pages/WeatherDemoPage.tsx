@@ -128,6 +128,7 @@ export default function WeatherDemoPage() {
       ];
       
       let meterResult = null;
+      let meterErrors = 0;
       for (const reading of readings) {
         const meterRes = await fetch('/api/iot/meter', {
           method: 'POST',
@@ -144,11 +145,18 @@ export default function WeatherDemoPage() {
         
         if (meterRes.ok) {
           meterResult = await meterRes.json();
+        } else {
+          meterErrors++;
+          console.error('Meter event failed:', await meterRes.text());
         }
         await new Promise(r => setTimeout(r, 200));
       }
       
-      updateStep(3, { status: 'completed', result: { readingsPushed: readings.length, ...meterResult } });
+      if (meterErrors === readings.length) {
+        throw new Error('All sensor readings failed to meter');
+      }
+      
+      updateStep(3, { status: 'completed', result: { readingsPushed: readings.length - meterErrors, errors: meterErrors, ...meterResult } });
       
       await new Promise(r => setTimeout(r, 500));
       

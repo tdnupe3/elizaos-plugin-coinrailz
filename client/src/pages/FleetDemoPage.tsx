@@ -126,6 +126,7 @@ export default function FleetDemoPage() {
       ];
       
       let meterResult = null;
+      let meterErrors = 0;
       const apiKey = accountData.apiKey;
       for (const event of events) {
         const meterRes = await fetch('/api/iot/meter', {
@@ -143,11 +144,18 @@ export default function FleetDemoPage() {
         
         if (meterRes.ok) {
           meterResult = await meterRes.json();
+        } else {
+          meterErrors++;
+          console.error('Meter event failed:', await meterRes.text());
         }
         await new Promise(r => setTimeout(r, 200));
       }
       
-      updateStep(3, { status: 'completed', result: { eventsMetered: events.length, ...meterResult } });
+      if (meterErrors === events.length) {
+        throw new Error('All metering events failed');
+      }
+      
+      updateStep(3, { status: 'completed', result: { eventsMetered: events.length - meterErrors, errors: meterErrors, ...meterResult } });
       
       await new Promise(r => setTimeout(r, 500));
       

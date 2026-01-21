@@ -17,8 +17,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 // Webhook endpoint secret for signature verification
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-if (!webhookSecret) {
-  console.warn('⚠️ STRIPE_WEBHOOK_SECRET not configured - webhook signature verification disabled');
+const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+
+if (!webhookSecret && isProduction) {
+  console.error('🚨 CRITICAL: STRIPE_WEBHOOK_SECRET not configured in production - webhooks will be rejected');
+} else if (!webhookSecret) {
+  console.warn('⚠️ STRIPE_WEBHOOK_SECRET not configured - webhook signature verification disabled in development');
 }
 
 /**
@@ -36,10 +40,14 @@ router.post('/stripe-webhooks',
     if (webhookSecret) {
       // Verify webhook signature for security
       event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } else if (isProduction) {
+      // SECURITY: Reject unsigned webhooks in production
+      console.error('🚨 SECURITY: Rejecting webhook - no signature verification in production');
+      return res.status(401).json({ error: 'Webhook signature verification required in production' });
     } else {
-      // Parse webhook without signature verification
+      // Development only: Parse webhook without signature verification
       event = JSON.parse(req.body.toString());
-      console.warn('⚠️ Processing webhook without signature verification');
+      console.warn('⚠️ DEV ONLY: Processing webhook without signature verification');
     }
     console.log(`🔔 Stripe webhook received: ${event.type}`);
   } catch (err) {

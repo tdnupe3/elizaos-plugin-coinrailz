@@ -3,18 +3,23 @@
  * Real autonomous AI agent payments using Coinbase CDP + Alchemy verification
  * 
  * Features:
- * ✅ Real Coinbase CDP wallet creation on Base Chain
+ * ✅ Real Coinbase CDP wallet creation on Base Chain (migrated to v2 SDK - Jan 2026)
  * ✅ Real Alchemy RPC blockchain verification
  * ✅ Rate limiting (100 req/15min)
  * ✅ Zod input validation
  * ✅ Database transaction support for atomic operations
+ * 
+ * MIGRATION NOTE (January 2026):
+ * - Migrated from @coinbase/coinbase-sdk (v1) to @coinbase/cdp-sdk (v2)
+ * - Now uses shared CoinbaseCDPService for wallet operations
+ * - See docs/CDP_V1_TO_V2_MIGRATION_PLAN.md for details
  */
 
 import { db } from '../db';
 import { x402Payments, aiMarketplaceOrders } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
+import { CoinbaseCDPService } from './coinbaseCDPService';
 import { getTokenConfig, getRpcUrl } from '../config/currencyNetworkConfig';
 
 export interface X402PaymentRequest {
@@ -48,37 +53,39 @@ export class X402PaymentService {
   private readonly DEFAULT_NETWORK = 'base';
   private readonly DEFAULT_CURRENCY = 'USDC';
   private readonly PAYMENT_TIMEOUT_MINUTES = 15;
-  private coinbaseClient: typeof Coinbase | null = null;
+  private cdpService: CoinbaseCDPService | null = null;
+  private cdpInitialized = false;
   
   constructor() {
-    // Initialize Coinbase SDK with existing CDP credentials
-    this.initializeCoinbaseClient();
+    this.initializeCDPService();
   }
 
-  private initializeCoinbaseClient() {
+  private initializeCDPService() {
     try {
-      // Check if credentials are available
       if (!process.env.CDP_API_KEY_ID || !process.env.CDP_PRIVATE_KEY) {
-        console.warn('⚠️ CDP credentials not found - x402 payments will not work');
-        this.coinbaseClient = null;
+        console.warn('⚠️ CDP credentials not found - x402 wallet creation will use platform address');
+        this.cdpService = null;
         return;
       }
 
-      // Configure Coinbase SDK globally
-      Coinbase.configure({
-        apiKeyName: process.env.CDP_API_KEY_ID,
-        privateKey: process.env.CDP_PRIVATE_KEY,
-      });
-
-      // Verify configuration by creating a marker instance
-      // The SDK is now globally configured and ready for Wallet.create() calls
-      this.coinbaseClient = Coinbase; // Store reference to configured SDK
-      
-      console.log('✅ Coinbase CDP initialized for x402 payments');
+      this.cdpService = CoinbaseCDPService.getInstance();
+      this.cdpInitialized = true;
+      console.log('✅ Coinbase CDP v2 initialized for x402 payments');
     } catch (error) {
-      console.error('❌ Failed to initialize Coinbase CDP:', error);
-      this.coinbaseClient = null;
+      console.error('❌ Failed to initialize Coinbase CDP v2:', error);
+      this.cdpService = null;
     }
+  }
+
+  private mapNetworkToChain(network: string): string {
+    const networkMap: Record<string, string> = {
+      'base': 'base-mainnet',
+      'ethereum': 'ethereum-mainnet',
+      'polygon': 'polygon-mainnet',
+      'arbitrum': 'arbitrum-mainnet',
+      'near': 'base-mainnet',
+    };
+    return networkMap[network] || 'base-mainnet';
   }
   
   /**
@@ -313,29 +320,34 @@ export class X402PaymentService {
   }
 
   /**
-   * Generate REAL payment wallet address using Coinbase CDP
+   * Generate REAL payment wallet address using Coinbase CDP v2
+   * Migrated from v1 Wallet.create() to v2 CoinbaseCDPService.createWallet()
+   * 
+   * Note: CoinbaseCDPService.createWallet(userId, network) creates an EVM account.
+   * The network parameter is stored as metadata (CDP v2 evm.createAccount() is chain-agnostic).
+   * We use a unique identifier for tracking purposes.
    */
   private async generatePaymentWallet(network: string): Promise<string> {
-    if (!this.coinbaseClient) {
-      throw new Error('Coinbase client not initialized - CDP credentials missing');
+    if (!this.cdpService || !this.cdpInitialized) {
+      throw new Error('CDP v2 service not initialized - credentials missing');
     }
 
     try {
-      // Create actual Base Chain wallet using Coinbase CDP
-      const wallet = await Wallet.create({ networkId: 'base-mainnet' });
-      const address = await wallet.getDefaultAddress();
+      const chainId = this.mapNetworkToChain(network);
+      const userId = `x402-payment:${nanoid(8)}`; // Semantic: user/purpose identifier for tracking
       
-      if (!address) {
-        throw new Error('Failed to get wallet address from Coinbase CDP');
+      const wallet = await this.cdpService.createWallet(userId, chainId);
+      
+      if (!wallet?.address) {
+        throw new Error('Failed to get wallet address from CDP v2');
       }
 
-      const walletAddress = address.getId();
-      console.log(`✅ REAL Coinbase CDP wallet created: ${walletAddress}`);
+      console.log(`✅ CDP v2 wallet created for x402 payment: ${wallet.address} (network: ${chainId})`);
       
-      return walletAddress;
+      return wallet.address;
     } catch (error) {
-      console.error('❌ Failed to create Coinbase CDP wallet:', error);
-      throw new Error(`Coinbase wallet creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('❌ Failed to create CDP v2 wallet:', error);
+      throw new Error(`CDP v2 wallet creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

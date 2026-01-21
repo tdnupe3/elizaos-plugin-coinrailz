@@ -101,6 +101,7 @@ The Coin Railz platform adopts a USDC-first strategy, utilizing Coinbase CDP for
 - **Google's A2A Protocol:** For autonomous outreach to AI agents.
 
 ## Recent Changes (January 21, 2026)
+- **CDP v1 to v2 Migration**: Migrated `x402PaymentService.ts` from deprecated `@coinbase/coinbase-sdk` (v1) to `@coinbase/cdp-sdk` (v2). Now uses shared `CoinbaseCDPService` for wallet operations. Migration plan documented in `docs/CDP_V1_TO_V2_MIGRATION_PLAN.md`. Deadline: Jan 31, 2026.
 - **CTA Updates**: All "Book Pilot"/"Start Pilot" buttons across Fleet/Weather landing and demo pages now route to `/pilot/onboard` (internal self-serve onboarding) instead of external Calendly links.
 - **Demo API Alignment**: Demo pages updated to use correct API contracts (accountName, tier for accounts; deviceId, accountId, deviceName, deviceType, spendingLimit for devices; x-api-key authentication headers).
 - **Production Hardening**: Verified STRIPE_WEBHOOK_SECRET configured, Stripe webhook handles IoT payment topups via checkout completion events.

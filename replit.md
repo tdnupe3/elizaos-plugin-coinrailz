@@ -54,6 +54,12 @@ The Coin Railz platform adopts a USDC-first strategy, utilizing Coinbase CDP for
   - Seller credits: Device owners receive 85% of sales as account credits.
   - Discovery: Products exposed via catalog with per-product network info.
   - API Routes: `/api/iot/products/*`, `/api/iot/data/*`, `/api/iot/catalog`, `/api/iot/sales/*`.
+- **IoT Vertical Landing Pages (January 2026)**:
+  - Fleet Telematics: `/fleet` (landing), `/fleet/demo` (interactive simulator). Pricing: $19-49/vehicle/month.
+  - Weather Data: `/weather` (landing), `/weather/demo` (interactive simulator with A2D purchase). Pricing: $49-199/month.
+  - IoT Dashboard: `/iot/dashboard` (usage monitoring, CSV export, catalog view).
+  - Credits Ledger Proof: `/credits/proof` (balance breakdown, transaction history, audit trail).
+  - API Documentation: `docs/IOT_API_DOCUMENTATION.md`.
 - **A2A Protocol Outreach System**: Production-grade autonomous outreach to AI agents using Google's A2A Protocol, featuring:
   - Registry sync from a2aregistry.org.
   - High-value agent prioritization and reachability verification.

@@ -22,14 +22,14 @@ export default function FleetTelematicsPage() {
   const [, setLocation] = useLocation();
 
   useSEO({
-    title: "Fleet Telematics Billing | Usage-Based Vehicle Data Monetization | Coin Railz",
-    description: "Monetize fleet telematics data with usage-based billing. $19-49/vehicle/month or per-event pricing. GPS, diagnostics, driver behavior. Sell to insurers, logistics, smart city buyers.",
-    keywords: "fleet telematics billing, vehicle data monetization, GPS billing, ELD compliance billing, telematics reseller, fleet management payments, connected car data, driver behavior data, insurance telematics, logistics data",
+    title: "Fleet Telematics Data | Reduce Claims, Improve ETAs | Coin Railz",
+    description: "Access fleet telematics data to reduce insurance claims 3-8% and improve ETA accuracy 15-25%. Usage-based pricing - pay only for the data you use. GPS, driver behavior, diagnostics.",
+    keywords: "fleet telematics data, insurance loss ratio, UBI data, usage-based insurance data, fleet ETA optimization, telematics for insurers, logistics route data, driver behavior analytics, fleet risk assessment",
     canonical: "https://coinrailz.com/fleet",
-    ogTitle: "Fleet Telematics Billing | Monetize Vehicle Data | Coin Railz",
-    ogDescription: "Usage-based billing for fleet telematics. $19-49/vehicle/month. GPS, diagnostics, driver behavior. Sell to insurers and logistics companies.",
-    twitterTitle: "Fleet Telematics Billing | Coin Railz",
-    twitterDescription: "Monetize fleet telematics data. Usage-based billing for GPS, diagnostics, ELD compliance. 85% revenue share.",
+    ogTitle: "Fleet Telematics Data | Reduce Claims, Improve ETAs",
+    ogDescription: "Access real-time fleet data to cut claims loss ratios and optimize logistics. Pay only for data you use.",
+    twitterTitle: "Fleet Telematics Data | Coin Railz",
+    twitterDescription: "Insurance underwriters cut loss ratios 3-8%. Logistics teams improve ETA accuracy 15-25%. Usage-based fleet data.",
     structuredData: {
       "@context": "https://schema.org/",
       "@type": "SoftwareApplication",
@@ -115,10 +115,10 @@ export default function FleetTelematicsPage() {
   ];
 
   const pilotSteps = [
-    { step: 1, title: "Register Devices", description: "Add up to 50 vehicles via our API in under 5 minutes" },
-    { step: 2, title: "Connect Telemetry", description: "Push GPS, engine, and driver data to our metering endpoint" },
-    { step: 3, title: "Credits Flow", description: "Events are metered, credits deducted, revenue tracked in real-time" },
-    { step: 4, title: "Sell to Buyers", description: "List your data in our catalog or bring your own buyers" }
+    { step: 1, title: "Define Your Outcome", description: "Tell us what you're trying to improve: claims loss, ETA, route efficiency" },
+    { step: 2, title: "Access Data Feed", description: "Connect to real-time GPS, driver behavior, and diagnostic data" },
+    { step: 3, title: "Pay Per Use", description: "Only pay for the data points you actually consume - no contracts" },
+    { step: 4, title: "Measure Results", description: "Track your improvement metrics over the 30-day pilot period" }
   ];
 
   const apiEndpoints = [
@@ -167,16 +167,16 @@ export default function FleetTelematicsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-16">
-          <Badge className="mb-4 bg-blue-100 text-blue-800">Fleet Telematics</Badge>
+          <Badge className="mb-4 bg-blue-100 text-blue-800">For Fleet Data Buyers</Badge>
           <h1 className="text-5xl font-bold text-gray-900 mb-6">
-            Monetize Your Fleet Data
+            Reduce Claims. Improve ETAs. Pay Only for Data You Use.
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-4">
-            Usage-based billing for GPS, diagnostics, and driver behavior data. 
-            Connect your telematics and start earning from every vehicle.
+            Access real-time fleet telematics from thousands of vehicles. 
+            Usage-based pricing means you pay per data point, not per contract.
           </p>
           <p className="text-lg text-blue-700 max-w-2xl mx-auto mb-8">
-            Insurers, logistics companies, and smart cities are paying $10K-500K/year for fleet data.
+            Insurance underwriters cut loss ratios 3-8%. Logistics teams improve ETA accuracy 15-25%.
           </p>
           <div className="flex justify-center space-x-4">
             <Button 
@@ -198,7 +198,27 @@ export default function FleetTelematicsPage() {
         </div>
 
         <div className="mb-16">
-          <h2 className="text-3xl font-bold text-center mb-8">Data Types We Meter</h2>
+          <h2 className="text-3xl font-bold text-center mb-8">Who Uses This Data?</h2>
+          <div className="grid md:grid-cols-2 gap-6 mb-12">
+            {buyers.map((buyer, index) => (
+              <Card key={index} className="hover:shadow-md transition-shadow border-l-4 border-l-blue-500">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    {buyer.title}
+                    <Badge variant="secondary" className="bg-green-100 text-green-800">{buyer.budget}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600 mb-2">{buyer.description}</p>
+                  <p className="text-sm text-gray-400">{buyer.examples}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-16">
+          <h2 className="text-3xl font-bold text-center mb-8">Data Types Available</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {dataTypes.map((type, index) => (
               <Card key={index} className="text-center hover:shadow-md transition-shadow">
@@ -260,25 +280,6 @@ export default function FleetTelematicsPage() {
           </p>
         </div>
 
-        <div className="mb-16">
-          <h2 className="text-3xl font-bold text-center mb-8">Who Buys Fleet Data?</h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            {buyers.map((buyer, index) => (
-              <Card key={index} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    {buyer.title}
-                    <Badge variant="secondary">{buyer.budget}</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 mb-2">{buyer.description}</p>
-                  <p className="text-sm text-gray-400">{buyer.examples}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
 
         <div className="mb-16">
           <h2 className="text-3xl font-bold text-center mb-8">How the Pilot Works</h2>
@@ -315,14 +316,14 @@ export default function FleetTelematicsPage() {
         </div>
 
         <div className="text-center py-12 bg-blue-600 rounded-2xl text-white">
-          <h2 className="text-3xl font-bold mb-4">Ready to Monetize Your Fleet?</h2>
+          <h2 className="text-3xl font-bold mb-4">Ready to Improve Your Outcomes?</h2>
           <p className="text-xl mb-8 opacity-90">
-            30-day pilot. Up to 50 vehicles. $500 pilot fee or credits top-up.
+            30-day pilot. Real fleet data. Measure your actual claims reduction or ETA improvement.
           </p>
           <div className="flex justify-center items-center space-x-4 mb-6">
-            <Badge className="bg-white/20 text-white">85% Revenue Share</Badge>
-            <Badge className="bg-white/20 text-white">No Lock-in</Badge>
-            <Badge className="bg-white/20 text-white">EU Data Act Compliant</Badge>
+            <Badge className="bg-white/20 text-white">Pay Per Data Point</Badge>
+            <Badge className="bg-white/20 text-white">No Contracts</Badge>
+            <Badge className="bg-white/20 text-white">Cancel Anytime</Badge>
           </div>
           <Button 
             size="lg" 

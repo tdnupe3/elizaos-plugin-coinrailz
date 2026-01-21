@@ -25,13 +25,13 @@ export default function PartnerProgramPage() {
   });
 
   useSEO({
-    title: "Partner Program - List Your Device Data | Coin Railz",
-    description: "Join the Coin Railz Partner Program. List your IoT device data feeds, reach enterprise buyers, and earn 85% revenue share on every sale.",
-    keywords: "IoT partner program, device data monetization, sensor data marketplace, telematics revenue share, weather data partner",
-    ogTitle: "Partner Program - Monetize Your Device Data",
-    ogDescription: "List your IoT data feeds. We bring buyers. You keep 85% of revenue.",
-    twitterTitle: "Coin Railz Partner Program",
-    twitterDescription: "Turn your device data into recurring revenue with our 85/15 revenue share model.",
+    title: "Get Paid for Fleet & Weather Data | Enterprise Buyers Waiting | Coin Railz",
+    description: "Enterprise buyers are spending $10K-500K/year on fleet and weather data. Share your device data and earn 85% of every sale. No upfront costs.",
+    keywords: "sell fleet data, sell weather data, IoT data revenue, telematics data buyers, sensor data monetization, device data income",
+    ogTitle: "Enterprise Buyers Want Your Fleet & Weather Data",
+    ogDescription: "Insurers, logistics, and agtech firms pay $10K-500K/year for device data. You keep 85%.",
+    twitterTitle: "Get Paid for Your Device Data | Coin Railz",
+    twitterDescription: "Enterprise buyers want fleet and weather data. Share yours, earn 85% per sale.",
     structuredData: {
       "@context": "https://schema.org",
       "@type": "WebPage",
@@ -87,42 +87,42 @@ export default function PartnerProgramPage() {
 
   const benefits = [
     {
+      icon: Users,
+      title: "Buyers Already Waiting",
+      description: "Enterprise buyers actively seeking fleet and weather data. You supply, they pay."
+    },
+    {
       icon: DollarSign,
       title: "85% Revenue Share",
-      description: "You keep 85% of every sale. We handle payments, billing, and buyer acquisition."
-    },
-    {
-      icon: Users,
-      title: "Access to Buyers",
-      description: "We bring enterprise buyers: insurers, logistics companies, agtech firms, and more."
-    },
-    {
-      icon: Shield,
-      title: "Secure Infrastructure",
-      description: "x402 protocol payments, USDC settlement, and complete audit trails."
+      description: "You keep 85% of every sale. We handle payments, billing, and buyer matching."
     },
     {
       icon: Zap,
-      title: "Simple Integration",
-      description: "REST API integration in hours, not weeks. Push data, we handle the rest."
+      title: "Demand-Driven Income",
+      description: "Earn because buyers need your data - not because you hope someone will find it."
+    },
+    {
+      icon: Shield,
+      title: "Proven Buyer Budgets",
+      description: "Insurance, logistics, agtech companies spend $10K-500K/year on this data."
     },
     {
       icon: BarChart3,
-      title: "Real-time Analytics",
-      description: "Track sales, monitor usage, and export reports from your dashboard."
+      title: "Real-time Sales Tracking",
+      description: "See exactly who's buying, how much you're earning, and export reports."
     },
     {
       icon: Globe,
-      title: "Global Reach",
-      description: "Multi-chain payments on 8 blockchains. Buyers worldwide can purchase instantly."
+      title: "Zero Upfront Cost",
+      description: "No setup fees, no monthly minimums. Only pay when you earn."
     }
   ];
 
   const howItWorks = [
-    { step: 1, title: "Apply", description: "Submit your application with device details and data types" },
-    { step: 2, title: "Integrate", description: "Connect your devices via our REST API" },
-    { step: 3, title: "List", description: "Create data products with your pricing in our catalog" },
-    { step: 4, title: "Earn", description: "We bring buyers, process payments, and send you 85%" }
+    { step: 1, title: "Tell Us What You Have", description: "Submit device details - we'll match you with active buyer demand" },
+    { step: 2, title: "We Find Your Buyers", description: "Our buyer network sees your data and expresses purchase intent" },
+    { step: 3, title: "Connect & Earn", description: "Push your data via API, buyers pay per use, you get 85%" },
+    { step: 4, title: "Scale With Demand", description: "More buyers = more revenue. We grow your income together." }
   ];
 
   const partnerTypes = [
@@ -146,9 +146,12 @@ export default function PartnerProgramPage() {
 
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold mb-4">Partner Program</h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              List your device data. We bring buyers. You keep 85%.
+            <h1 className="text-4xl font-bold mb-4">Enterprise Buyers Want Your Data</h1>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
+              Insurers, logistics companies, and agtech firms are spending $10K-500K/year on fleet and weather data.
+            </p>
+            <p className="text-lg text-primary font-medium">
+              Get paid for sharing data they already want. You keep 85%.
             </p>
           </div>
 
@@ -168,8 +171,8 @@ export default function PartnerProgramPage() {
 
           <Card className="mb-16">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">How It Works</CardTitle>
-              <CardDescription>From signup to revenue in 4 simple steps</CardDescription>
+              <CardTitle className="text-2xl">From Your Data to Buyer Revenue</CardTitle>
+              <CardDescription>We connect your devices to paying enterprise customers</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-4 gap-8">
@@ -242,8 +245,8 @@ export default function PartnerProgramPage() {
 
           <Card id="apply">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Apply to Partner Program</CardTitle>
-              <CardDescription>Tell us about your devices and data</CardDescription>
+              <CardTitle className="text-2xl">Match Your Data to Buyer Demand</CardTitle>
+              <CardDescription>Tell us what you have - we'll find buyers who want it</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="max-w-xl mx-auto space-y-6">

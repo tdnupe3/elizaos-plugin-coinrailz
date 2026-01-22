@@ -91,9 +91,10 @@ export default function PilotCreditsSuccessPage() {
           });
         } else if (data.status === 'failed' || data.status === 'expired') {
           if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-          setError(data.status === 'expired' 
-            ? "Payment window expired. Please try again." 
-            : "Payment verification failed. Please contact support.");
+          // Use server-provided failure reason which includes recovery instructions
+          setError(data.failureReason || (data.status === 'expired' 
+            ? "Payment window expired. If you already sent funds, please contact support@coinrailz.com with your payment ID." 
+            : "Payment verification failed. Please contact support@coinrailz.com."));
         }
       } catch (err: any) {
         console.error("Status check error:", err);

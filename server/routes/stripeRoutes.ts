@@ -783,9 +783,13 @@ router.post('/pilot-credits/crypto-intent', async (req, res) => {
       const wallet = await cdpService.createWallet(email, chain);
       depositAddress = wallet.address;
     } catch (walletError: any) {
+      // SECURITY: Fail fast - do not fallback to shared platform wallet
+      // Shared addresses could lead to cross-user payment confusion
       console.error('Failed to create deposit wallet:', walletError);
-      const platformWallet = await cdpService.getOrCreatePlatformWallet();
-      depositAddress = platformWallet.address;
+      return res.status(503).json({ 
+        error: 'Payment service temporarily unavailable. Please try again or use card payment.',
+        code: 'WALLET_CREATION_FAILED'
+      });
     }
 
     const paymentId = `pilot_pay_${nanoid(16)}`;

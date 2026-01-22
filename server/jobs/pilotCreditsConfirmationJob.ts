@@ -120,7 +120,8 @@ export class PilotCreditsConfirmationJob {
           token as 'USDC' | 'USDT',
           payment.expectedAmount,
           payment.depositAddress,
-          payment.tokenContract
+          payment.tokenContract,
+          payment.createdAt // SECURITY: Pass createdAt to validate tx timestamp
         )
       : await this.scanDepositAddress(
           chain,
@@ -152,7 +153,8 @@ export class PilotCreditsConfirmationJob {
     token: 'USDC' | 'USDT',
     expectedAmount: string | null,
     depositAddress: string,
-    tokenContract: string
+    tokenContract: string,
+    createdAt: Date | null
   ): Promise<VerificationResult> {
     try {
       const rpcUrl = this.RPC_URLS[chain];
@@ -169,6 +171,21 @@ export class PilotCreditsConfirmationJob {
 
       if (receipt.status === 0) {
         return { status: 'failed', failureReason: 'Transaction reverted on-chain' };
+      }
+
+      // SECURITY: Validate transaction was made AFTER payment intent creation
+      // This prevents reusing old transactions to claim free credits
+      if (createdAt) {
+        const block = await provider.getBlock(receipt.blockNumber);
+        if (block && block.timestamp) {
+          const txTime = new Date(block.timestamp * 1000);
+          if (txTime < createdAt) {
+            return {
+              status: 'failed',
+              failureReason: 'Transaction predates payment intent. Cannot be used for this payment.'
+            };
+          }
+        }
       }
 
       const transferTopic = ethers.id('Transfer(address,address,uint256)');
@@ -416,11 +433,11 @@ export class PilotCreditsConfirmationJob {
     await db.update(pilotCreditsPayments)
       .set({
         status: 'expired',
-        failureReason: 'Payment window expired',
+        failureReason: 'Payment window expired. If you sent funds after expiry, contact support@coinrailz.com with your payment ID for manual processing.',
         lastCheckedAt: new Date(),
       })
       .where(eq(pilotCreditsPayments.id, payment.id));
 
-    console.log(`⏰ Pilot payment ${payment.id} expired`);
+    console.log(`⏰ Pilot payment ${payment.id} expired - user notified of recovery path`);
   }
 }

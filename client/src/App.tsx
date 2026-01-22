@@ -169,6 +169,8 @@ const IoTDashboardPage = lazy(() => import("@/pages/IoTDashboardPage"));
 const IoTHubPage = lazy(() => import("@/pages/IoTHubPage"));
 const IoTAnalyticsPage = lazy(() => import("@/pages/IoTAnalyticsPage"));
 const PilotOnboardingPage = lazy(() => import("@/pages/PilotOnboardingPage"));
+const PilotCreditsPage = lazy(() => import("@/pages/PilotCreditsPage"));
+const PilotCreditsSuccessPage = lazy(() => import("@/pages/PilotCreditsSuccessPage"));
 const EmergencyConsulting = lazy(() => import("@/pages/EmergencyConsulting"));
 const Whitepaper = lazy(() => import("@/pages/Whitepaper"));
 const DevelopersPage = lazy(() => import("@/pages/DevelopersPage"));
@@ -371,6 +373,12 @@ function Router() {
       </Route>
       <Route path="/pilot/onboard">
         {() => <LazyLoadWrapper><PilotOnboardingPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/pilots/buy">
+        {() => <LazyLoadWrapper><PilotCreditsPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/pilots/success">
+        {() => <LazyLoadWrapper><PilotCreditsSuccessPage /></LazyLoadWrapper>}
       </Route>
       <Route path="/fleet">
         {() => <LazyLoadWrapper><FleetTelematicsPage /></LazyLoadWrapper>}

@@ -604,6 +604,11 @@ export default function PilotCreditsPage() {
                 Expires in 30 minutes
               </div>
 
+              <div className="flex items-center justify-between text-xs text-slate-500 bg-slate-800/50 rounded px-3 py-2">
+                <span>Payment ID:</span>
+                <code className="font-mono text-slate-400">{cryptoPayment.paymentId}</code>
+              </div>
+
               <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-lg p-4 text-sm text-emerald-300">
                 <p className="font-semibold mb-2">How it works:</p>
                 <ol className="list-decimal list-inside space-y-1">

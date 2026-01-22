@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import {
   CreditCard,
   Zap,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Clock
 } from "lucide-react";
 
 interface PurchaseResult {
@@ -24,53 +25,148 @@ interface PurchaseResult {
   transactionId?: string;
 }
 
+interface CryptoStatus {
+  status: 'pending' | 'confirming' | 'completed' | 'failed' | 'expired';
+  chain?: string;
+  token?: string;
+  credits?: number;
+  expectedAmount?: string;
+}
+
 export default function PilotCreditsSuccessPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [result, setResult] = useState<PurchaseResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cryptoStatus, setCryptoStatus] = useState<CryptoStatus | null>(null);
+  const [isCryptoPayment, setIsCryptoPayment] = useState(false);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const confirmPurchase = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const sessionId = urlParams.get("session_id");
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentType = urlParams.get("payment");
+    const cryptoPaymentId = urlParams.get("id");
+    const sessionId = urlParams.get("session_id");
 
-      if (!sessionId) {
-        setError("No session ID found. Please try your purchase again.");
-        setIsLoading(false);
-        return;
+    if (paymentType === "crypto" && cryptoPaymentId) {
+      setIsCryptoPayment(true);
+      pollCryptoStatus(cryptoPaymentId);
+    } else if (sessionId) {
+      confirmStripePurchase(sessionId);
+    } else {
+      setError("No payment information found. Please try your purchase again.");
+      setIsLoading(false);
+    }
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
       }
+    };
+  }, []);
 
+  const pollCryptoStatus = async (paymentId: string) => {
+    const checkStatus = async () => {
       try {
-        const response = await fetch("/api/stripe/pilot-credits/confirm", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId })
-        });
-
-        if (!response.ok) {
-          const err = await response.json().catch(() => ({}));
-          throw new Error(err.error || "Failed to confirm purchase");
-        }
-
+        const response = await fetch(`/api/stripe/pilot-credits/crypto-status/${paymentId}`);
+        if (!response.ok) throw new Error("Failed to check payment status");
+        
         const data = await response.json();
-        setResult(data);
-      } catch (err: any) {
-        console.error("Confirmation error:", err);
-        setError(err.message || "Failed to confirm your purchase. Please contact support.");
-      } finally {
+        setCryptoStatus(data);
         setIsLoading(false);
+
+        if (data.status === 'completed') {
+          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+          setResult({
+            success: true,
+            credits: data.credits,
+            amount: parseFloat(data.expectedAmount || '0'),
+            tierId: 'crypto',
+            transactionId: paymentId
+          });
+          toast({
+            title: "Payment Confirmed!",
+            description: `${data.credits} credits have been added to your account.`
+          });
+        } else if (data.status === 'failed' || data.status === 'expired') {
+          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+          setError(data.status === 'expired' 
+            ? "Payment window expired. Please try again." 
+            : "Payment verification failed. Please contact support.");
+        }
+      } catch (err: any) {
+        console.error("Status check error:", err);
       }
     };
 
-    confirmPurchase();
-  }, []);
+    await checkStatus();
+    pollIntervalRef.current = setInterval(checkStatus, 10000); // Poll every 10 seconds
+  };
+
+  const confirmStripePurchase = async (sessionId: string) => {
+    try {
+      const response = await fetch("/api/stripe/pilot-credits/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId })
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to confirm purchase");
+      }
+
+      const data = await response.json();
+      setResult(data);
+    } catch (err: any) {
+      console.error("Confirmation error:", err);
+      setError(err.message || "Failed to confirm your purchase. Please contact support.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copied", description: `${label} copied to clipboard` });
   };
+
+  // Crypto payment pending state - show waiting UI
+  if (isCryptoPayment && cryptoStatus && (cryptoStatus.status === 'pending' || cryptoStatus.status === 'confirming')) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <Card className="bg-slate-800/50 border-slate-700 max-w-md w-full mx-4">
+          <CardContent className="py-12 text-center">
+            <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center mx-auto mb-6">
+              <Clock className="w-8 h-8 text-amber-400 animate-pulse" />
+            </div>
+            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 mb-4">
+              {cryptoStatus.status === 'confirming' ? 'Confirming Transaction' : 'Waiting for Payment'}
+            </Badge>
+            <h2 className="text-xl font-semibold text-white mb-2">
+              {cryptoStatus.status === 'confirming' ? 'Transaction Detected!' : 'Watching for Your Payment'}
+            </h2>
+            <p className="text-slate-400 mb-6">
+              {cryptoStatus.status === 'confirming' 
+                ? 'We found your transaction and are confirming it on-chain...' 
+                : `We're automatically scanning for your ${cryptoStatus.token || 'USDC'} transfer...`}
+            </p>
+            <div className="bg-slate-700/50 rounded-lg p-4 mb-6">
+              <div className="text-sm text-slate-400 mb-1">Expected Amount</div>
+              <div className="text-2xl font-bold text-white">
+                {cryptoStatus.expectedAmount} {cryptoStatus.token || 'USDC'}
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-slate-500 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Checking every 10 seconds...
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

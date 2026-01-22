@@ -6,7 +6,7 @@
 
 import { db } from '../db';
 import { pilotCreditsPayments } from '@shared/schema';
-import { eq, and, lte, isNotNull, sql, or } from 'drizzle-orm';
+import { eq, and, lte, or } from 'drizzle-orm';
 import { CoinbaseCDPService } from '../services/coinbaseCDPService';
 import { unifiedCreditsService } from '../services/unifiedCreditsService';
 import { ethers } from 'ethers';
@@ -19,6 +19,7 @@ interface VerificationResult {
   status: 'completed' | 'pending' | 'failed' | 'amount_mismatch' | 'expired';
   verifiedAmount?: string;
   sender?: string;
+  txHash?: string;
   failureReason?: string;
 }
 
@@ -71,7 +72,6 @@ export class PilotCreditsConfirmationJob {
               eq(pilotCreditsPayments.status, 'pending'),
               eq(pilotCreditsPayments.status, 'confirming')
             ),
-            isNotNull(pilotCreditsPayments.txHash),
             lte(pilotCreditsPayments.nextCheckAt, new Date())
           )
         )
@@ -105,23 +105,39 @@ export class PilotCreditsConfirmationJob {
   private static async verifyAndProcessPayment(payment: any) {
     const chain = payment.chain;
     const token = payment.token;
-    const txHash = payment.txHash;
 
     if (payment.expiresAt && new Date(payment.expiresAt) < new Date()) {
       await this.markExpired(payment);
       return;
     }
 
-    const result = await this.verifyTransactionOnChain(
-      txHash,
-      chain,
-      token as 'USDC' | 'USDT',
-      payment.expectedAmount,
-      payment.depositAddress,
-      payment.tokenContract
-    );
+    // If txHash is provided, verify that specific transaction
+    // Otherwise, scan the deposit address for incoming transfers
+    const result = payment.txHash
+      ? await this.verifyTransactionOnChain(
+          payment.txHash,
+          chain,
+          token as 'USDC' | 'USDT',
+          payment.expectedAmount,
+          payment.depositAddress,
+          payment.tokenContract
+        )
+      : await this.scanDepositAddress(
+          chain,
+          token as 'USDC' | 'USDT',
+          payment.expectedAmount,
+          payment.depositAddress,
+          payment.tokenContract,
+          payment.createdAt
+        );
 
     if (result.status === 'completed') {
+      // Store the discovered txHash if we found it via scanning
+      if (result.txHash && !payment.txHash) {
+        await db.update(pilotCreditsPayments)
+          .set({ txHash: result.txHash })
+          .where(eq(pilotCreditsPayments.id, payment.id));
+      }
       await this.creditUserAndComplete(payment, result.verifiedAmount!, result.sender);
     } else if (result.status === 'pending') {
       await this.scheduleRetry(payment);
@@ -194,6 +210,103 @@ export class PilotCreditsConfirmationJob {
       return { status: 'pending' };
     } catch (error: any) {
       console.error(`Error verifying transaction ${txHash}:`, error.message);
+      return { status: 'pending' };
+    }
+  }
+
+  /**
+   * Scan deposit address for incoming ERC20 transfers
+   * This enables automatic payment detection without user providing txHash
+   */
+  private static async scanDepositAddress(
+    chain: string,
+    token: 'USDC' | 'USDT',
+    expectedAmount: string | null,
+    depositAddress: string,
+    tokenContract: string,
+    createdAt: Date | null
+  ): Promise<VerificationResult> {
+    try {
+      const rpcUrl = this.RPC_URLS[chain];
+      if (!rpcUrl) {
+        return { status: 'failed', failureReason: `Unsupported chain: ${chain}` };
+      }
+
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const currentBlock = await provider.getBlockNumber();
+      
+      // Scan last ~45 minutes of blocks to fully cover 30-minute payment window + buffer
+      // Block time estimates: Base/Arbitrum/Polygon ~2s, Ethereum ~12s
+      // 45 min = 2700s → 1350 blocks at 2s/block, 225 blocks at 12s/block
+      const blocksToScan = chain === 'ethereum-mainnet' ? 250 : 1500;
+      const fromBlock = Math.max(0, currentBlock - blocksToScan);
+      
+      // Fallback for missing createdAt - use 1 hour ago
+      const paymentCreatedAt = createdAt || new Date(Date.now() - 3600000);
+
+      const transferTopic = ethers.id('Transfer(address,address,uint256)');
+      const paddedAddress = '0x' + depositAddress.slice(2).toLowerCase().padStart(64, '0');
+
+      // Query for Transfer events TO the deposit address
+      const logs = await provider.getLogs({
+        address: tokenContract,
+        topics: [
+          transferTopic,
+          null, // from (any)
+          paddedAddress // to (our deposit address)
+        ],
+        fromBlock,
+        toBlock: currentBlock
+      });
+
+      if (logs.length === 0) {
+        return { status: 'pending' };
+      }
+
+      // Process transfers and find matching amount
+      for (const log of logs) {
+        const fromAddress = '0x' + log.topics[1].slice(26);
+        const amountBigInt = BigInt(log.data);
+        const amountFormatted = ethers.formatUnits(amountBigInt, 6);
+
+        // Get transaction timestamp to verify it's after payment intent was created
+        const block = await provider.getBlock(log.blockNumber);
+        if (block && block.timestamp) {
+          const txTime = new Date(block.timestamp * 1000);
+          if (txTime < paymentCreatedAt) {
+            continue; // Skip transfers before payment was created
+          }
+        }
+
+        if (expectedAmount) {
+          const expectedFloat = parseFloat(expectedAmount);
+          const receivedFloat = parseFloat(amountFormatted);
+          const tolerance = 0.01;
+
+          if (Math.abs(receivedFloat - expectedFloat) <= tolerance) {
+            console.log(`🔍 Found matching transfer to ${depositAddress}: ${amountFormatted} ${token}`);
+            return {
+              status: 'completed',
+              verifiedAmount: amountFormatted,
+              sender: fromAddress,
+              txHash: log.transactionHash
+            };
+          }
+        } else {
+          // No expected amount specified, accept any transfer
+          console.log(`🔍 Found transfer to ${depositAddress}: ${amountFormatted} ${token}`);
+          return {
+            status: 'completed',
+            verifiedAmount: amountFormatted,
+            sender: fromAddress,
+            txHash: log.transactionHash
+          };
+        }
+      }
+
+      return { status: 'pending' };
+    } catch (error: any) {
+      console.error(`Error scanning deposit address ${depositAddress}:`, error.message);
       return { status: 'pending' };
     }
   }

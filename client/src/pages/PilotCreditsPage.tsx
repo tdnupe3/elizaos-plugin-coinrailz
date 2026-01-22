@@ -121,8 +121,6 @@ export default function PilotCreditsPage() {
   const [cryptoModalOpen, setCryptoModalOpen] = useState(false);
   const [cryptoPayment, setCryptoPayment] = useState<CryptoPaymentIntent | null>(null);
   const [selectedTier, setSelectedTier] = useState<CreditsTier | null>(null);
-  const [txHash, setTxHash] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useSEO({
     title: "Buy Pilot Credits | IoT Data for AI Agents | Coin Railz",
@@ -235,53 +233,6 @@ export default function PilotCreditsPage() {
       title: "Copied!",
       description: "Address copied to clipboard",
     });
-  };
-
-  const handleSubmitTxHash = async () => {
-    if (!cryptoPayment || !txHash) {
-      toast({
-        title: "Transaction Hash Required",
-        description: "Please enter the transaction hash from your wallet.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const response = await fetch("/api/stripe/pilot-credits/crypto-confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          paymentId: cryptoPayment.paymentId,
-          txHash: txHash.trim()
-        })
-      });
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to submit transaction");
-      }
-
-      toast({
-        title: "Transaction Submitted!",
-        description: "We're verifying your payment. Credits will be added within 2-5 minutes.",
-      });
-
-      setCryptoModalOpen(false);
-      setCryptoPayment(null);
-      setTxHash('');
-      setLocation('/pilots/success?payment=crypto');
-    } catch (error: any) {
-      console.error("Submit txHash error:", error);
-      toast({
-        title: "Submission Failed",
-        description: error.message || "Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   return (
@@ -653,42 +604,24 @@ export default function PilotCreditsPage() {
                 Expires in 30 minutes
               </div>
 
-              <div className="bg-blue-900/30 border border-blue-500/30 rounded-lg p-4 text-sm text-blue-300">
-                <p className="font-semibold mb-2">After sending:</p>
+              <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-lg p-4 text-sm text-emerald-300">
+                <p className="font-semibold mb-2">How it works:</p>
                 <ol className="list-decimal list-inside space-y-1">
-                  <li>Copy the transaction hash from your wallet</li>
-                  <li>Paste it below to confirm your payment</li>
-                  <li>Credits will be added within 2-5 minutes</li>
+                  <li>Send the exact amount to the address above</li>
+                  <li>We automatically detect your payment (2-5 min)</li>
+                  <li>Credits are added to your account instantly</li>
                 </ol>
               </div>
 
-              <div>
-                <Label className="text-slate-300 mb-2 block">Transaction Hash:</Label>
-                <Input
-                  type="text"
-                  placeholder="0x..."
-                  value={txHash}
-                  onChange={(e) => setTxHash(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white font-mono text-sm"
-                />
-              </div>
-
               <Button
-                onClick={handleSubmitTxHash}
-                disabled={isSubmitting || !txHash}
+                onClick={() => {
+                  setCryptoModalOpen(false);
+                  setLocation(`/pilots/success?payment=crypto&id=${cryptoPayment.paymentId}`);
+                }}
                 className="w-full bg-emerald-600 hover:bg-emerald-700"
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Verifying...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Confirm Payment
-                  </>
-                )}
+                <CheckCircle className="w-4 h-4 mr-2" />
+                I've Sent the Payment
               </Button>
 
               <Button
@@ -696,7 +629,6 @@ export default function PilotCreditsPage() {
                 onClick={() => {
                   setCryptoPayment(null);
                   setCryptoModalOpen(false);
-                  setTxHash('');
                 }}
                 className="w-full text-slate-400 hover:text-white"
               >

@@ -158,9 +158,14 @@ export default function PilotCreditsSuccessPage() {
                 {cryptoStatus.expectedAmount} {cryptoStatus.token || 'USDC'}
               </div>
             </div>
-            <div className="flex items-center justify-center gap-2 text-slate-500 text-sm">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Checking every 10 seconds...
+            <div className="text-center space-y-2">
+              <div className="flex items-center justify-center gap-2 text-slate-400 text-sm">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Checking for your payment...
+              </div>
+              <p className="text-slate-500 text-xs">
+                Verification can take up to 5 minutes. You can leave this page - we'll credit your account automatically.
+              </p>
             </div>
           </CardContent>
         </Card>

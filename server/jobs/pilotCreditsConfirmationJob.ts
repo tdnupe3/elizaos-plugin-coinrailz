@@ -185,19 +185,41 @@ export class PilotCreditsConfirmationJob {
         const amountBigInt = BigInt(log.data);
         const amountFormatted = ethers.formatUnits(amountBigInt, 6);
 
-        if (expectedAmount) {
-          const expectedFloat = parseFloat(expectedAmount);
-          const receivedFloat = parseFloat(amountFormatted);
-          const tolerance = 0.01;
-
-          if (Math.abs(receivedFloat - expectedFloat) > tolerance) {
-            return {
-              status: 'amount_mismatch',
-              verifiedAmount: amountFormatted,
-              sender: fromAddress,
-              failureReason: `Expected ${expectedAmount}, received ${amountFormatted}`
-            };
-          }
+        // SECURITY: Strict amount validation to prevent underpayment attacks
+        // Example: $0.01 sent should NOT credit $2500 package
+        if (!expectedAmount) {
+          // No expected amount = reject (should never happen for pilot credits)
+          return {
+            status: 'failed',
+            failureReason: 'Missing expected amount in payment intent'
+          };
+        }
+        
+        const expectedFloat = parseFloat(expectedAmount);
+        const receivedFloat = parseFloat(amountFormatted);
+        
+        // Tolerance: $0.01 fixed (sufficient for stablecoins with 6 decimals)
+        // This handles minor rounding differences only
+        const tolerance = 0.01;
+        
+        // Reject underpayment - critical security check
+        if (receivedFloat < expectedFloat - tolerance) {
+          return {
+            status: 'amount_mismatch',
+            verifiedAmount: amountFormatted,
+            sender: fromAddress,
+            failureReason: `Underpayment: expected $${expectedAmount}, received $${amountFormatted}`
+          };
+        }
+        
+        // Reject significant overpayment (could indicate wrong transaction)
+        if (receivedFloat > expectedFloat + tolerance) {
+          return {
+            status: 'amount_mismatch',
+            verifiedAmount: amountFormatted,
+            sender: fromAddress,
+            failureReason: `Overpayment: expected $${expectedAmount}, received $${amountFormatted}. Contact support.`
+          };
         }
 
         return {
@@ -278,23 +300,22 @@ export class PilotCreditsConfirmationJob {
           }
         }
 
-        if (expectedAmount) {
-          const expectedFloat = parseFloat(expectedAmount);
-          const receivedFloat = parseFloat(amountFormatted);
-          const tolerance = 0.01;
-
-          if (Math.abs(receivedFloat - expectedFloat) <= tolerance) {
-            console.log(`🔍 Found matching transfer to ${depositAddress}: ${amountFormatted} ${token}`);
-            return {
-              status: 'completed',
-              verifiedAmount: amountFormatted,
-              sender: fromAddress,
-              txHash: log.transactionHash
-            };
-          }
-        } else {
-          // No expected amount specified, accept any transfer
-          console.log(`🔍 Found transfer to ${depositAddress}: ${amountFormatted} ${token}`);
+        // SECURITY: Strict amount validation - require expectedAmount for all payments
+        if (!expectedAmount) {
+          console.log(`⚠️ Skipping transfer to ${depositAddress}: no expected amount set`);
+          continue;
+        }
+        
+        const expectedFloat = parseFloat(expectedAmount);
+        const receivedFloat = parseFloat(amountFormatted);
+        
+        // Tolerance: $0.01 fixed (handles minor rounding only)
+        const tolerance = 0.01;
+        
+        // Only accept if within tolerance (both under and over)
+        if (receivedFloat >= expectedFloat - tolerance && 
+            receivedFloat <= expectedFloat + tolerance) {
+          console.log(`🔍 Found matching transfer to ${depositAddress}: ${amountFormatted} ${token}`);
           return {
             status: 'completed',
             verifiedAmount: amountFormatted,
@@ -302,6 +323,8 @@ export class PilotCreditsConfirmationJob {
             txHash: log.transactionHash
           };
         }
+        // Log mismatches for debugging but continue scanning for correct transfer
+        console.log(`⚠️ Amount mismatch for ${depositAddress}: expected $${expectedAmount}, got $${amountFormatted}`);
       }
 
       return { status: 'pending' };

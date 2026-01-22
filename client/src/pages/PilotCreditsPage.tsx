@@ -607,10 +607,13 @@ export default function PilotCreditsPage() {
               <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-lg p-4 text-sm text-emerald-300">
                 <p className="font-semibold mb-2">How it works:</p>
                 <ol className="list-decimal list-inside space-y-1">
-                  <li>Send the exact amount to the address above</li>
-                  <li>We automatically detect your payment (2-5 min)</li>
-                  <li>Credits are added to your account instantly</li>
+                  <li>Send the <strong>exact amount</strong> to the address above</li>
+                  <li>We automatically detect your payment</li>
+                  <li>Credits are added within 5 minutes</li>
                 </ol>
+                <p className="text-xs text-emerald-400/70 mt-2">
+                  Note: Sending a different amount will not be credited automatically.
+                </p>
               </div>
 
               <Button

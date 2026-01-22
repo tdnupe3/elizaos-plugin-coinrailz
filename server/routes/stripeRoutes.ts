@@ -7,6 +7,7 @@ import { handlePaymentIntentSucceeded, handleGptPurchaseWebhook } from './gptCre
 import { db } from '../db';
 import { paymentIntentTracking } from '@shared/schema';
 import { creditsService } from '../services/creditsService';
+import { unifiedCreditsService } from '../services/unifiedCreditsService';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -493,5 +494,164 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
 
   res.json({ received: true });
 }
+
+// ==========================================
+// PILOT CREDITS PACKAGE ENDPOINTS
+// ==========================================
+
+const PILOT_TIERS = {
+  starter: { credits: 500, price: 500, name: 'Starter Pilot' },
+  growth: { credits: 1000, price: 1000, name: 'Growth Pilot' },
+  enterprise: { credits: 2500, price: 2500, name: 'Enterprise Pilot' }
+} as const;
+
+router.post('/pilot-credits', async (req, res) => {
+  try {
+    const { tierId, credits, amount, successUrl, cancelUrl } = req.body;
+
+    if (!tierId || !credits || !amount) {
+      return res.status(400).json({ error: 'Missing required fields: tierId, credits, amount' });
+    }
+
+    const tier = PILOT_TIERS[tierId as keyof typeof PILOT_TIERS];
+    if (!tier) {
+      return res.status(400).json({ error: 'Invalid tier ID' });
+    }
+
+    if (tier.price !== amount || tier.credits !== credits) {
+      return res.status(400).json({ error: 'Price or credits mismatch' });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: `${tier.name} - IoT Data Credits`,
+            description: `$${tier.credits} prepaid credits for IoT device data access`,
+          },
+          unit_amount: tier.price * 100,
+        },
+        quantity: 1,
+      }],
+      mode: 'payment',
+      metadata: {
+        type: 'pilot_credits',
+        tierId,
+        credits: String(tier.credits),
+        platform: 'coin-railz-iot'
+      },
+      success_url: successUrl || `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://coinrailz.com'}/pilots/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl || `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://coinrailz.com'}/pilots/buy`,
+    });
+
+    console.log(`💳 Created pilot credits checkout session: ${session.id} for ${tier.name}`);
+
+    res.json({
+      success: true,
+      checkoutUrl: session.url,
+      sessionId: session.id
+    });
+  } catch (error: any) {
+    console.error('Pilot credits checkout error:', error);
+    res.status(500).json({
+      error: 'Failed to create checkout session',
+      message: error.message
+    });
+  }
+});
+
+router.post('/pilot-credits/confirm', async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Missing sessionId' });
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (session.payment_status !== 'paid') {
+      return res.status(400).json({
+        success: false,
+        error: 'Payment not completed',
+        status: session.payment_status
+      });
+    }
+
+    const metadata = session.metadata || {};
+    if (metadata.type !== 'pilot_credits') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid session type'
+      });
+    }
+
+    const credits = parseInt(metadata.credits || '0');
+    const tierId = metadata.tierId || 'unknown';
+
+    if (credits <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid credits amount in session'
+      });
+    }
+
+    const idempotencyKey = `pilot_credits_${sessionId}`;
+    
+    const customerEmail = session.customer_details?.email || session.customer_email;
+    const userId = customerEmail || `stripe_${session.id}`;
+
+    try {
+      const result = await unifiedCreditsService.addCredits(
+        'user',
+        userId,
+        credits,
+        'stripe',
+        {
+          referenceType: 'pilot_credits',
+          referenceId: sessionId,
+          description: `Pilot credits purchase: ${tierId} ($${credits})`,
+          idempotencyKey
+        }
+      );
+
+      const balance = await unifiedCreditsService.getBalance('user', userId);
+
+      console.log(`✅ Pilot credits added: $${credits} to user ${userId} (session: ${sessionId})`);
+
+      res.json({
+        success: true,
+        credits,
+        amount: credits,
+        tierId,
+        userId,
+        balance,
+        transactionId: result.transactionId
+      });
+    } catch (creditsError: any) {
+      if (creditsError.message?.includes('Idempotency')) {
+        const balance = await unifiedCreditsService.getBalance('user', userId);
+        return res.json({
+          success: true,
+          credits,
+          amount: credits,
+          tierId,
+          userId,
+          balance,
+          message: 'Credits already added for this session'
+        });
+      }
+      throw creditsError;
+    }
+  } catch (error: any) {
+    console.error('Pilot credits confirmation error:', error);
+    res.status(500).json({
+      error: 'Failed to confirm purchase',
+      message: error.message
+    });
+  }
+});
 
 export default router;

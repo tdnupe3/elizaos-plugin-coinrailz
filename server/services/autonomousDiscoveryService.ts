@@ -292,6 +292,21 @@ class AutonomousDiscoveryService {
         { path: '/solana/payments', priority: '0.8' },
         { path: '/solana-pay', priority: '0.8' },
         
+        // IoT & Device Payments (Jan 2026)
+        { path: '/iot', priority: '0.9' },
+        { path: '/iot/dashboard', priority: '0.7' },
+        { path: '/iot/analytics', priority: '0.7' },
+        { path: '/fleet', priority: '0.9' },
+        { path: '/fleet/demo', priority: '0.7' },
+        { path: '/weather', priority: '0.9' },
+        { path: '/weather/demo', priority: '0.7' },
+        { path: '/pilots/buy', priority: '0.9' },
+        { path: '/pilot/onboard', priority: '0.7' },
+        { path: '/partners', priority: '0.8' },
+        { path: '/integrate', priority: '0.8' },
+        { path: '/case-studies', priority: '0.7' },
+        { path: '/credits/proof', priority: '0.6' },
+        
         // Legal & Company Info
         { path: '/about', priority: '0.5' },
         { path: '/privacy', priority: '0.5' },

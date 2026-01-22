@@ -41,49 +41,50 @@ interface CreditsTier {
 const creditsTiers: CreditsTier[] = [
   {
     id: "starter",
-    name: "Starter Pilot",
+    name: "14-Day Proof of Value",
     credits: 500,
     price: 500,
     pricePerCredit: "$1.00",
-    description: "Test the platform with real IoT data",
+    description: "Validate IoT data quality for your use case",
     features: [
-      "$500 in prepaid credits",
-      "~50,000 weather queries",
-      "~10,000 fleet data points",
-      "API key + dashboard access",
-      "Email support"
+      "Up to 5 connected data sources",
+      "~50,000 weather or ~10,000 fleet queries",
+      "Full API access + analytics dashboard",
+      "Onboarding call + email support",
+      "Weekly usage report"
     ]
   },
   {
     id: "growth",
-    name: "Growth Pilot",
+    name: "30-Day Integration Pilot",
     credits: 1000,
     price: 1000,
     pricePerCredit: "$1.00",
-    description: "Scale your AI agent's data consumption",
+    description: "Build and test your production integration",
     features: [
-      "$1,000 in prepaid credits",
-      "~100,000 weather queries",
-      "~20,000 fleet data points",
-      "Priority API access",
-      "Slack support channel"
+      "Up to 20 connected data sources",
+      "~100,000 weather or ~20,000 fleet queries",
+      "Priority API with higher rate limits",
+      "Dedicated Slack channel",
+      "Bi-weekly review calls",
+      "Integration support"
     ],
     popular: true
   },
   {
     id: "enterprise",
-    name: "Enterprise Pilot",
+    name: "60-Day Production Trial",
     credits: 2500,
     price: 2500,
     pricePerCredit: "$1.00",
-    description: "Full integration with dedicated support",
+    description: "Full production deployment with SLA",
     features: [
-      "$2,500 in prepaid credits",
-      "~250,000 weather queries",
-      "~50,000 fleet data points",
+      "Unlimited data sources",
+      "~250,000 weather or ~50,000 fleet queries",
       "Dedicated account manager",
-      "Custom data feeds",
-      "SLA guarantee"
+      "Custom data feeds on request",
+      "99.9% uptime SLA",
+      "Weekly executive reports"
     ]
   }
 ];
@@ -123,12 +124,12 @@ export default function PilotCreditsPage() {
   const [selectedTier, setSelectedTier] = useState<CreditsTier | null>(null);
 
   useSEO({
-    title: "Buy Pilot Credits | IoT Data for AI Agents | Coin Railz",
-    description: "Purchase prepaid credits to access real-time IoT data for your AI agents. Fleet telematics, weather sensors, and more. Pay only for what you use.",
-    keywords: "AI agent data, IoT data API, fleet telematics API, weather data API, machine-to-machine payments, x402 protocol",
+    title: "Run a Paid IoT Data Pilot | Fleet & Weather APIs | Coin Railz",
+    description: "Validate real-time IoT data for your analytics, insurance, or logistics use case. Fixed-budget pilots with fleet telematics and weather sensor APIs. Start in 14 days.",
+    keywords: "IoT data pilot, fleet telematics API, weather data API, analytics data, insurtech data, agtech sensors, machine data trial",
     canonical: "https://coinrailz.com/pilots/buy",
-    ogTitle: "Buy Pilot Credits | IoT Data for AI Agents",
-    ogDescription: "Prepaid credits for AI agents to access real-time IoT device data. Fleet, weather, and sensor data on-demand."
+    ogTitle: "Run a Paid IoT Data Pilot in 14 Days",
+    ogDescription: "Fixed-budget pilots with real fleet telematics and weather data. Validate data quality before scaling. Start from $500."
   });
 
   const calculateCost = (queries: number): { weatherCost: string; fleetCost: string } => {
@@ -250,15 +251,20 @@ export default function PilotCreditsPage() {
         <div className="text-center mb-12">
           <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 mb-4">
             <Zap className="w-3 h-3 mr-1" />
-            Prepaid Credits
+            Fixed-Budget Pilots
           </Badge>
           <h1 className="text-4xl font-bold text-white mb-4">
-            IoT Data for AI Agents
+            Validate IoT Data Value in 14 Days
           </h1>
-          <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-            Buy prepaid credits to access real-time fleet telematics, weather sensors, 
-            and device data. Your AI agents pay per-query via x402 protocol.
+          <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-6">
+            Run a controlled pilot with real fleet telematics and weather sensor data. 
+            Fixed budget, clear deliverables, no surprises.
           </p>
+          <div className="flex flex-wrap justify-center gap-4 text-sm text-slate-500">
+            <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4 text-emerald-500" /> Analytics & Insurtech</span>
+            <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4 text-emerald-500" /> Logistics & Fleet</span>
+            <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4 text-emerald-500" /> Agtech & Weather</span>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 mb-12">
@@ -339,9 +345,12 @@ export default function PilotCreditsPage() {
           </CardContent>
         </Card>
 
-        <h2 className="text-2xl font-bold text-white text-center mb-4">
-          Choose Your Pilot Package
+        <h2 className="text-2xl font-bold text-white text-center mb-2">
+          Select Your Pilot Duration
         </h2>
+        <p className="text-slate-400 text-center mb-6 text-sm">
+          All pilots include onboarding support, API access, and usage analytics. Pay by card or stablecoin.
+        </p>
 
         <div className="flex justify-center gap-4 mb-8">
           <Button
@@ -433,7 +442,7 @@ export default function PilotCreditsPage() {
                   ) : (
                     <>
                       <CreditCard className="w-4 h-4 mr-2" />
-                      Buy Now
+                      Start Pilot
                     </>
                   )}
                 </Button>

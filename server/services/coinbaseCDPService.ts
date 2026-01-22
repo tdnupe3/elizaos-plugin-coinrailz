@@ -670,6 +670,90 @@ export class CoinbaseCDPService {
       return '0';
     }
   }
+
+  /**
+   * Sweep tokens from a CDP deposit wallet to the platform wallet
+   * Uses CDP Server Wallet v2 to sign transactions from deposit addresses
+   */
+  async sweepDepositWallet(params: {
+    depositAddress: string;
+    token: 'USDC' | 'USDT';
+    chain: string;
+    destinationAddress: string;
+    amount?: string; // If not specified, sweeps full balance
+  }): Promise<{ txHash: string; status: 'completed' | 'failed'; amount: string; error?: string }> {
+    this.ensureInitialized();
+
+    if (!this.cdpClient) {
+      return { txHash: '', status: 'failed', amount: '0', error: 'CDP Client not initialized' };
+    }
+
+    try {
+      const tokenAddress = CoinbaseCDPService.getTokenAddress(params.token, params.chain);
+      if (!tokenAddress) {
+        return { txHash: '', status: 'failed', amount: '0', error: `${params.token} not supported on ${params.chain}` };
+      }
+
+      // Get current balance if amount not specified
+      const balance = await this.getTokenBalance(params.depositAddress, params.token, params.chain);
+      const sweepAmount = params.amount || balance;
+
+      if (parseFloat(sweepAmount) <= 0) {
+        return { txHash: '', status: 'failed', amount: '0', error: 'No balance to sweep' };
+      }
+
+      console.log(`🧹 Sweeping ${sweepAmount} ${params.token} from ${params.depositAddress} to ${params.destinationAddress} on ${params.chain}`);
+
+      // Encode ERC-20 transfer call
+      const iface = new ethers.Interface(CoinbaseCDPService.ERC20_TRANSFER_ABI);
+      const decimals = 6; // USDC/USDT are 6 decimals
+      const amountUnits = ethers.parseUnits(sweepAmount, decimals);
+      const transferData = iface.encodeFunctionData('transfer', [params.destinationAddress, amountUnits]);
+
+      // Map chain to CDP network identifier
+      const networkMap: Record<string, string> = {
+        'base-mainnet': 'base',
+        'polygon-mainnet': 'polygon',
+        'arbitrum-mainnet': 'arbitrum-one',
+        'ethereum-mainnet': 'ethereum',
+      };
+      const network = networkMap[params.chain] || 'base';
+
+      // Use CDP SDK v2 to send transaction FROM the deposit address
+      const txResult = await this.cdpClient.evm.sendTransaction({
+        address: params.depositAddress as `0x${string}`,
+        network: network,
+        transaction: {
+          to: tokenAddress as `0x${string}`,
+          data: transferData as `0x${string}`,
+        },
+      });
+
+      console.log(`✅ Sweep transaction sent: ${txResult.transactionHash}`);
+
+      return {
+        txHash: txResult.transactionHash,
+        status: 'completed',
+        amount: sweepAmount,
+      };
+    } catch (error: any) {
+      console.error(`❌ Sweep failed for ${params.depositAddress}:`, error.message);
+      return { txHash: '', status: 'failed', amount: '0', error: error.message };
+    }
+  }
+
+  /**
+   * Get platform wallet address for a specific chain
+   */
+  static getPlatformWalletAddress(chain: string = 'base-mainnet'): string {
+    // The platform wallet uses the same address across all EVM chains
+    // Derived from EVM_PRIVATE_KEY
+    if (!process.env.EVM_PRIVATE_KEY) {
+      throw new Error('EVM_PRIVATE_KEY not configured');
+    }
+    const wallet = new ethers.Wallet(process.env.EVM_PRIVATE_KEY);
+    return wallet.address;
+  }
   
   /**
    * Create a new EVM wallet for an IoT account

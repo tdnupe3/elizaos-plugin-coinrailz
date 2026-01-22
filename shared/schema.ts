@@ -6294,11 +6294,19 @@ export const pilotCreditsPayments = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     completedAt: timestamp("completed_at"),
     idempotencyKey: varchar("idempotency_key").notNull(), // For credits deduplication
+    // Sweep tracking for fund consolidation to platform wallet
+    sweepStatus: varchar("sweep_status").default("pending"), // pending, completed, failed, skipped
+    sweepTxHash: varchar("sweep_tx_hash"), // Transaction hash of sweep to platform wallet
+    sweepAmount: decimal("sweep_amount", { precision: 18, scale: 6 }), // Actual amount swept
+    sweepDestination: varchar("sweep_destination"), // Platform wallet that received funds
+    sweptAt: timestamp("swept_at"), // When sweep was executed
+    sweepError: varchar("sweep_error"), // Error message if sweep failed
   },
   (table) => [
     index("IDX_pilot_payments_user").on(table.userId),
     index("IDX_pilot_payments_status").on(table.status),
     index("IDX_pilot_payments_nextcheck").on(table.nextCheckAt),
+    index("IDX_pilot_payments_sweep").on(table.sweepStatus),
     uniqueIndex("UQ_pilot_payments_txhash").on(table.txHash),
     uniqueIndex("UQ_pilot_payments_idempotency").on(table.idempotencyKey),
   ],

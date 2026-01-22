@@ -276,6 +276,13 @@ router.post('/confirm-report-purchase', async (req, res) => {
   }
 });
 
+// Pilot tiers configuration - used by both webhook and API endpoints
+const PILOT_TIERS = {
+  starter: { credits: 500, price: 500, name: 'Starter Pilot' },
+  growth: { credits: 1000, price: 1000, name: 'Growth Pilot' },
+  enterprise: { credits: 2500, price: 2500, name: 'Enterprise Pilot' }
+} as const;
+
 // Exported webhook handler for mounting BEFORE express.json() in server/index.ts
 // CRITICAL: Must receive raw body (Buffer) for Stripe signature verification
 export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
@@ -486,6 +493,67 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
           console.error('Failed to create order after payment:', orderError);
         }
       }
+      // Handle pilot credits purchases via webhook (server-side crediting)
+      else if (session.metadata?.type === 'pilot_credits' && session.metadata?.tierId) {
+        try {
+          // Verify payment is complete
+          if (session.payment_status !== 'paid') {
+            console.log(`⚠️ Pilot credits webhook: Session ${session.id} not paid yet (status: ${session.payment_status})`);
+            return res.json({ received: true, status: 'pending' });
+          }
+          
+          // Verify currency
+          if (session.currency !== 'usd') {
+            console.error(`❌ Pilot credits webhook: Invalid currency ${session.currency}`);
+            return res.status(400).json({ error: 'Invalid currency' });
+          }
+          
+          const tierId = session.metadata.tierId as keyof typeof PILOT_TIERS;
+          const tier = PILOT_TIERS[tierId];
+          
+          if (!tier) {
+            console.error(`❌ Invalid pilot tier in webhook: ${tierId}`);
+            return res.status(400).json({ error: 'Invalid pilot tier' });
+          }
+          
+          const credits = parseInt(session.metadata.credits || '0');
+          const expectedAmountCents = tier.price * 100;
+          
+          if (session.amount_total !== expectedAmountCents) {
+            console.error(`❌ Pilot credits amount mismatch: expected ${expectedAmountCents}, got ${session.amount_total}`);
+            return res.status(400).json({ error: 'Amount mismatch' });
+          }
+          
+          const customerEmail = session.customer_details?.email || session.customer_email;
+          const userId = customerEmail || `stripe_${session.id}`;
+          const idempotencyKey = `pilot_credits_${session.id}`;
+          
+          try {
+            await unifiedCreditsService.addCredits(
+              'user',
+              userId,
+              credits,
+              'stripe',
+              {
+                referenceType: 'pilot_credits',
+                referenceId: session.id,
+                description: `Pilot credits purchase: ${tierId} ($${credits})`,
+                idempotencyKey
+              }
+            );
+            console.log(`✅ Pilot credits webhook: Added $${credits} to user ${userId} (session: ${session.id})`);
+          } catch (creditsError: any) {
+            if (creditsError.message?.includes('Idempotency')) {
+              console.log(`⚠️ Pilot credits webhook: Session ${session.id} already processed - ignoring duplicate`);
+            } else {
+              throw creditsError;
+            }
+          }
+        } catch (pilotError: any) {
+          console.error('❌ Failed to process pilot credits webhook:', pilotError);
+          return res.status(500).json({ error: 'Failed to credit pilot balance - will retry' });
+        }
+      }
       break;
       
     default:
@@ -498,12 +566,6 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
 // ==========================================
 // PILOT CREDITS PACKAGE ENDPOINTS
 // ==========================================
-
-const PILOT_TIERS = {
-  starter: { credits: 500, price: 500, name: 'Starter Pilot' },
-  growth: { credits: 1000, price: 1000, name: 'Growth Pilot' },
-  enterprise: { credits: 2500, price: 2500, name: 'Enterprise Pilot' }
-} as const;
 
 router.post('/pilot-credits', async (req, res) => {
   try {
@@ -589,12 +651,36 @@ router.post('/pilot-credits/confirm', async (req, res) => {
     }
 
     const credits = parseInt(metadata.credits || '0');
-    const tierId = metadata.tierId || 'unknown';
+    const tierId = metadata.tierId as keyof typeof PILOT_TIERS;
 
     if (credits <= 0) {
       return res.status(400).json({
         success: false,
         error: 'Invalid credits amount in session'
+      });
+    }
+
+    const tier = PILOT_TIERS[tierId];
+    if (!tier) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid tier in session metadata'
+      });
+    }
+
+    const expectedAmountCents = tier.price * 100;
+    if (session.amount_total !== expectedAmountCents) {
+      console.error(`❌ Amount mismatch: expected ${expectedAmountCents}, got ${session.amount_total}`);
+      return res.status(400).json({
+        success: false,
+        error: 'Payment amount does not match tier price'
+      });
+    }
+
+    if (session.currency !== 'usd') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid currency'
       });
     }
 

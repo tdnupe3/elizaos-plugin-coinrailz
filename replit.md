@@ -1,9 +1,9 @@
 # Coin Railz - Multi-Chain Payment Infrastructure
 
 ## Overview
-Coin Railz is developing a universal payment layer for the AI agent economy. It facilitates cross-platform payment routing across 8 blockchains (7 EVM + Solana), primarily settling in USDC. The platform offers a multi-chain payment SDK, x402 protocol micropayments, agent-to-agent commerce infrastructure, DEX aggregation, and P2P payment routing. The project aims to become the crypto-native complement to fiat-based agentic commerce protocols.
+Coin Railz is building a universal payment layer for the AI agent economy, facilitating cross-platform payment routing across 8 blockchains (7 EVM + Solana), primarily settling in USDC. The platform provides a multi-chain payment SDK, x402 protocol micropayments, agent-to-agent commerce infrastructure, DEX aggregation, and P2P payment routing. It aims to be the crypto-native complement to fiat-based agentic commerce protocols.
 
-The platform has expanded into IoT, offering a production-grade device payment infrastructure for IoT and DePIN networks, enabling AI agents to pay IoT devices for data via the x402 protocol. This includes dedicated landing pages and demo UIs for Fleet Telematics and Weather Data verticals, alongside a unified credits system for both AI agents and IoT devices.
+The platform also offers production-grade device payment infrastructure for IoT and DePIN networks, enabling AI agents to pay IoT devices for data via the x402 protocol. This includes dedicated landing pages and demo UIs for Fleet Telematics and Weather Data verticals, alongside a unified credits system for both AI agents and IoT devices.
 
 ## User Preferences
 - **⚠️ ABSOLUTE HONESTY COMMITMENT**: NEVER LIE TO USER. Always report actual results, failures, and truth. User has been financially harmed by previous dishonest claims about outreach success when systems actually failed.
@@ -17,76 +17,53 @@ The platform has expanded into IoT, offering a production-grade device payment i
 - **OPTIMIZATION SAFETY RULE**: Only conservative optimizations until post-deployment
 
 ## System Architecture
-The Coin Railz platform adopts a USDC-first strategy, utilizing Coinbase CDP for wallet management, enabling unified payment processing, an AI marketplace, and real-time revenue management.
+Coin Railz utilizes a USDC-first strategy, leveraging Coinbase CDP for wallet management, unified payment processing, an AI marketplace, and real-time revenue management.
 
 **Core Architectural Patterns & Decisions:**
-- **AI Agent Marketplace:** Leverages the x402 protocol for HTTP 402 payments on Base Chain, with Coinbase CDP for wallet creation and Alchemy RPC for verification. ERC-8004 Blockchain Identity is used for agent identities.
+- **AI Agent Marketplace:** Uses the x402 protocol for HTTP 402 payments on Base Chain, Coinbase CDP for wallet creation, and Alchemy RPC for verification. ERC-8004 Blockchain Identity is used for agent identities.
 - **Authentication:** Supports Coinbase OAuth, Replit OAuth, and email/password, with PostgreSQL as the backend.
 - **x402 Microservices**: 44 production services compatible with Coinbase Bazaar and x402scan, adhering to `x402Version: 2`.
-- **Discovery Engine**: A multi-layer mechanism with 9 active methods for identifying AI agents, including Coinbase Bazaar indexing via `server/discovery/bazaarRegistrar.ts`.
-- **Payment Intent Ledger**: A durable ledger providing state transitions and replay protection for payment intents.
+- **Discovery Engine**: Multi-layer mechanism with 9 active methods for identifying AI agents, including Coinbase Bazaar indexing.
+- **Payment Intent Ledger**: Durable ledger for state transitions and replay protection of payment intents.
 - **Hybrid Facilitator**: Dynamically uses CDP facilitator if available, otherwise falls back to x402.org for payment processing.
 - **Crypto Checkout Architecture**: Endpoints for creating pending orders and verifying on-chain payments, tracked with `x402_payment_intents`, `x402_payments`, and `marketplace_orders` tables.
 - **Multi-chain Capability**: Supports payment acceptance on 8 chains with same-chain settlement.
 - **ACP Integration**: Endpoints (`/acp/v1/*`) for catalog, checkout, and order management, integrating with Stripe for digital product fulfillment.
 - **Farcaster Frame Integration**: Provides Farcaster Frame endpoints exposing 6 curated x402 services.
-- **Cloudflare Worker Gateway**: A Cloudflare Worker template for x402 proxy, enabling AI agents to access Coin Railz x402 services.
-- **MCP Payments Kit v1.5.0**: Single-call checkout endpoint for AI agents with three payment methods: Stripe (fiat), Credits (pre-purchased balance), and x402 (on-chain USDC). Features include multi-wallet lookup, true ACID transactions via Neon WebSocket driver, refund idempotency, rate limiting, and a full audit trail.
-- **M2M Onboarding**: Single-call onboarding for IoT devices and AI agents, orchestrating device registration, API key generation, and wallet provisioning.
+- **Cloudflare Worker Gateway**: A Cloudflare Worker template for x402 proxy.
+- **MCP Payments Kit v1.5.0**: Single-call checkout endpoint for AI agents with three payment methods: Stripe (fiat), Credits (pre-purchased balance), and x402 (on-chain USDC). Features include multi-wallet lookup, true ACID transactions, refund idempotency, rate limiting, and a full audit trail.
+- **M2M Onboarding**: Single-call onboarding for IoT devices and AI agents.
 - **IoT Payments System v1.1.0**: Production-grade device payment infrastructure for IoT and DePIN networks, featuring:
-  - Account management: Create IoT accounts to organize device fleets.
-  - Device registry: Register devices with spending limits and payment permissions.
-  - Credits system (v1.1): Pre-purchase credits with volume pricing ($0.005/event base, scaling down).
-  - Billable event metering: $0.005/message default.
-  - D2D transfers: Device-to-device payments with 2% + $0.02 fee extraction.
-  - USDC on-chain: Non-custodial wallet-to-wallet transfers via CDP.
-  - Payment methods: Stripe (card) and PayPal (2-step flow) for credit topups.
-  - Multi-chain: Base, Ethereum, Polygon, Arbitrum, Solana support.
-  - Full audit trail: `iot_billable_events`, `iot_transfers`, `iot_topups` tables.
-  - API Routes: `/api/iot/*` for account, register, balance, meter, transfer, topup, transactions, packs.
+  - Account management and device registry with spending limits.
+  - Credits system (v1.1) with volume pricing.
+  - Billable event metering.
+  - D2D transfers with fee extraction.
+  - Non-custodial USDC on-chain transfers via CDP.
+  - Stripe and PayPal for credit topups.
+  - Multi-chain support (Base, Ethereum, Polygon, Arbitrum, Solana).
+  - Full audit trail (`iot_billable_events`, `iot_transfers`, `iot_topups`).
+  - API Routes: `/api/iot/*`.
   - SDK: `@coinrailz/iot-payments` npm package.
 - **A2D (Agent-to-Device) x402 Payments v1.1.0**: Enables AI agents to pay IoT devices for data via x402 protocol, featuring:
-  - Device data products: IoT devices can register monetizable data products (sensor readings, streams, API calls).
-  - Multi-chain support: Products specify `expectedNetwork` (Base, Ethereum, Polygon, Arbitrum).
-  - x402-protected endpoints: Data access requires HTTP 402 payment verification on the correct network.
-  - Strict Payment verification: Mandatory `x402PaymentId`, product binding, network matching, recipient/currency checks, replay protection.
-  - Access tokens: Short-lived tokens (15 min) for authenticated data retrieval.
-  - Seller credits: Device owners receive 85% of sales as account credits.
-  - Discovery: Products exposed via catalog with per-product network info.
+  - Device data products with multi-chain support.
+  - x402-protected endpoints requiring HTTP 402 payment verification.
+  - Strict payment verification and replay protection.
+  - Short-lived access tokens for data retrieval.
+  - Seller credits for device owners.
+  - Product discovery via catalog.
   - API Routes: `/api/iot/products/*`, `/api/iot/data/*`, `/api/iot/catalog`, `/api/iot/sales/*`.
-- **IoT Vertical Landing Pages (January 2026)**:
-  - Fleet Telematics: `/fleet` (landing), `/fleet/demo` (interactive simulator). Pricing: $19-49/vehicle/month.
-  - Weather Data: `/weather` (landing), `/weather/demo` (interactive simulator with A2D purchase). Pricing: $49-199/month.
-  - IoT Dashboard: `/iot/dashboard` (usage monitoring, CSV export, catalog view).
-  - Credits Ledger Proof: `/credits/proof` (balance breakdown, transaction history, audit trail).
-  - API Documentation: `docs/IOT_API_DOCUMENTATION.md`.
-- **IoT Partner & Sales Tools (January 2026)**:
-  - Partner Program: `/partners` (device owner signup, 85/15 revenue split, application form with backend API).
-  - Integration Guide: `/integrate` (step-by-step checklist, code examples, SDK samples, mark-complete).
-  - Pilot Tracking: `/admin/pilots` (CRM for pilot customers, status pipeline, CRUD API).
-  - Case Studies: `/case-studies` (customer success story templates, filtering by vertical).
-  - API Routes: `/api/iot/partners/*`, `/api/iot/pilots/*` for partner applications and pilot management.
-- **IoT Operations & Onboarding (January 2026)**:
-  - IoT Hub: `/iot` (central navigation hub linking all IoT pivot pages).
-  - Analytics Dashboard: `/iot/analytics` (KPIs for pilots, conversions, revenue, device metrics).
-  - Pilot Onboarding: `/pilot/onboard` (self-serve 3-step pilot signup with account creation, API key generation).
-- **A2A Protocol Outreach System**: Production-grade autonomous outreach to AI agents using Google's A2A Protocol, featuring:
-  - Registry sync from a2aregistry.org.
-  - High-value agent prioritization and reachability verification.
-  - Rate limiting and circuit breaker with exponential backoff.
-  - JSON-RPC 2.0 compliant task sending.
-  - Pipeline tracking in `a2a_outreach_logs` table.
-  - Webhook endpoint for async responses (`/api/a2a/responses`).
-- **Unified Credits System v1.0.1**: Shared credits pool for both MCP (AI agents) and IoT devices, featuring:
-  - Single balance: One credits pool spanning `user` and `iot_account` owner types.
-  - ACID transactions: Balance guards prevent overdraft, idempotency keys for safe retries.
-  - Full audit trail: `unified_credits_transactions` ledger.
-  - Opt-in migration: `/migrate` endpoint consolidates legacy balances.
-  - Security: Admin API key or internal service secret for mutations, ownership verification for queries.
-  - Linked accounts: View all unified accounts linked to a user.
-  - New: Credits Proof View (`/api/credits/unified/proof/:ownerType/:ownerId`) for balance breakdown.
-  - New: Dispute Handling (`/api/credits/unified/dispute`) for admin refunds and `dispute-policy` endpoint.
-  - API Routes: `/api/credits/unified/*` (add, deduct, balance, transactions, migrate, linked, proof, dispute, dispute-policy).
+- **IoT Vertical Landing Pages**: `/fleet` (Fleet Telematics), `/weather` (Weather Data), `/iot/dashboard` (IoT Dashboard), `/credits/proof` (Credits Ledger Proof).
+- **IoT Partner & Sales Tools**: `/partners` (Partner Program), `/integrate` (Integration Guide), `/admin/pilots` (Pilot Tracking CRM), `/case-studies` (Case Studies).
+- **IoT Operations & Onboarding**: `/iot` (IoT Hub), `/iot/analytics` (Analytics Dashboard), `/pilot/onboard` (Pilot Onboarding), `/pilots/buy` (Pilot Credits Purchase with Stripe integration).
+- **A2A Protocol Outreach System**: Autonomous outreach to AI agents using Google's A2A Protocol, with registry sync, prioritization, rate limiting, and pipeline tracking.
+- **Unified Credits System v1.0.1**: Shared credits pool for both MCP (AI agents) and IoT devices with ACID transactions, audit trail, and security features. Includes Credits Proof View and Dispute Handling.
+- **On-Chain Payment Infrastructure v1.1.0 (Multi-Token)**: Production-grade on-chain payment support for USDC and USDT across 4 mainnet chains (Ethereum, Base, Polygon, Arbitrum). Includes multi-token methods in CDP service, `usdc_onchain` and `usdt_onchain` payment methods, CDP wallet provisioning, credits-to-wallet withdrawal, and on-chain topup.
+- **Atomic DB Transactions**: D2D on-chain transfers and withdrawals use `db.transaction()` for robust credit debit/rollback patterns.
+- **Async Topup Confirmation Job**: Background job for confirming on-chain topups with exponential backoff and state machine.
+- **Enhanced Validation & Security**: Includes token support checks, platform wallet validation, unique `txHash` constraint, sender address filtering, amount tolerance enforcement, and exact token contract verification.
+- **Demo Data Isolation**: `isDemo` flag for `iot_accounts` and `iot_device_registry` tables to separate demo data from production metrics.
+- **CDP v1 to v2 Migration**: Migration from `@coinbase/coinbase-sdk` (v1) to `@coinbase/cdp-sdk` (v2) for shared wallet operations.
+- **Production Hardening**: Stripe webhook handles IoT payment topups.
 
 ## External Dependencies
 - **Coinbase CDP:** Wallet creation, management, and transaction execution.
@@ -99,35 +76,3 @@ The Coin Railz platform adopts a USDC-first strategy, utilizing Coinbase CDP for
 - **OpenAI GPT Store:** Monetized Coin Railz GPT with custom actions.
 - **Farcaster Frames:** For Farcaster Frame deployment.
 - **Google's A2A Protocol:** For autonomous outreach to AI agents.
-
-## Recent Changes (January 21, 2026)
-- **On-Chain Payment Infrastructure v1.1.0 (Multi-Token)**: Production-grade on-chain payment support:
-  - **USDT Support Added**: Token registry now supports both USDC and USDT with addresses for 4 mainnet chains.
-  - **Multi-token Methods**: New `sendToken()` and `getTokenBalance()` methods in CDP service handle both stablecoins.
-  - **Payment Methods**: `usdc_onchain` and `usdt_onchain` now supported in D2D transfers, withdrawals, and topups.
-  - **USDT Contract Addresses**: Ethereum, Base, Polygon, Arbitrum mainnet support.
-  - CDP wallet provisioning: `provisionWallet: true` creates a Base mainnet CDP wallet for accounts.
-  - Credits-to-wallet withdrawal: `/api/iot/withdraw` endpoint with 1% + $0.50 fee structure.
-  - On-chain topup: `/api/iot/topup/onchain` endpoint to convert USDC/USDT deposits to credits.
-  - Get topup wallet: `/api/iot/topup/wallet/:accountId` returns deposit address for on-chain topups.
-  - Schema updates: Added `cdp_wallet_address`, `cdp_wallet_chain`, `cdp_wallet_status` to `iot_accounts`.
-  - **Supported Chains**: base-mainnet, ethereum-mainnet, polygon-mainnet, arbitrum-mainnet.
-- **Atomic DB Transactions**: D2D on-chain transfers and withdrawals refactored to use `db.transaction()` with proper credit debit/rollback patterns; prevents race conditions and partial state under concurrent requests.
-- **Async Topup Confirmation Job**: Background job with exponential backoff (1min to 1hr), sender/amount validation, 24hr expiry, auto-crediting on confirmation. Runs every 5 minutes (conservative for platform stability) processing up to 50 pending topups. State machine: pending → confirming → completed/failed/amount_mismatch/expired.
-- **Enhanced Validation & Security**:
-  - Token support checks per chain via `isTokenSupported()` and `getSupportedChains()` methods.
-  - Platform wallet validation before transfers.
-  - **Unique txHash Constraint**: DB unique index `UQ_iot_topups_txhash` prevents duplicate transaction processing.
-  - Sender address filtering in ERC20 log parsing.
-  - Amount tolerance (0.01) enforcement for on-chain verification.
-  - On-chain topup verification validates exact token contract per chain, recipient address matching.
-- **Schema Extended for Async Confirmation**: Added 10 fields to `iot_topups`: token, chain, expectedAmount, sender, verificationAttempts, lastCheckedAt, nextCheckAt, failureReason, expiresAt, verifiedAmount.
-- **Demo Data Isolation**: Added `isDemo` boolean flag to `iot_accounts` and `iot_device_registry` tables. Demo pages pass `isDemo: true` to API calls, preventing demo data from corrupting production metrics.
-- **CDP v1 to v2 Migration**: Migrated `x402PaymentService.ts` from deprecated `@coinbase/coinbase-sdk` (v1) to `@coinbase/cdp-sdk` (v2). Now uses shared `CoinbaseCDPService` for wallet operations. Migration plan documented in `docs/CDP_V1_TO_V2_MIGRATION_PLAN.md`.
-- **CTA Updates**: All "Book Pilot"/"Start Pilot" buttons across Fleet/Weather landing and demo pages now route to `/pilot/onboard` (internal self-serve onboarding).
-- **Production Hardening**: Stripe webhook handles IoT payment topups via checkout completion events.
-
-## Test Isolation Guidelines
-- **Demo Data**: Use `isDemo: true` when creating test accounts/devices. This tags records in the database for exclusion from production analytics.
-- **E2E Testing**: API tests should create resources with `isDemo: true` to prevent pollution of production metrics.
-- **Analytics Filtering**: All production analytics/reporting endpoints should include `WHERE is_demo = false` to exclude demo data.

@@ -5,9 +5,12 @@ import { storage } from '../storage';
 import { isAuthenticated } from '../replitAuth';
 import { handlePaymentIntentSucceeded, handleGptPurchaseWebhook } from './gptCreditsRoutes';
 import { db } from '../db';
-import { paymentIntentTracking } from '@shared/schema';
+import { paymentIntentTracking, pilotCreditsPayments } from '@shared/schema';
 import { creditsService } from '../services/creditsService';
 import { unifiedCreditsService } from '../services/unifiedCreditsService';
+import { eq } from 'drizzle-orm';
+import { CoinbaseCDPService } from '../services/coinbaseCDPService';
+import { nanoid } from 'nanoid';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -735,6 +738,187 @@ router.post('/pilot-credits/confirm', async (req, res) => {
     console.error('Pilot credits confirmation error:', error);
     res.status(500).json({
       error: 'Failed to confirm purchase',
+      message: error.message
+    });
+  }
+});
+
+// ==========================================
+// PILOT CREDITS CRYPTO PAYMENT ENDPOINTS
+// ==========================================
+
+const SUPPORTED_CHAINS = ['base-mainnet', 'polygon-mainnet', 'arbitrum-mainnet'] as const;
+const SUPPORTED_TOKENS = ['USDC', 'USDT'] as const;
+
+router.post('/pilot-credits/crypto-intent', async (req, res) => {
+  try {
+    const { tierId, chain, token, email } = req.body;
+
+    if (!tierId || !chain || !token || !email) {
+      return res.status(400).json({ error: 'Missing required fields: tierId, chain, token, email' });
+    }
+
+    const tier = PILOT_TIERS[tierId as keyof typeof PILOT_TIERS];
+    if (!tier) {
+      return res.status(400).json({ error: 'Invalid tier ID' });
+    }
+
+    if (!SUPPORTED_CHAINS.includes(chain)) {
+      return res.status(400).json({ error: `Unsupported chain. Supported: ${SUPPORTED_CHAINS.join(', ')}` });
+    }
+
+    if (!SUPPORTED_TOKENS.includes(token)) {
+      return res.status(400).json({ error: `Unsupported token. Supported: ${SUPPORTED_TOKENS.join(', ')}` });
+    }
+
+    const tokenContract = CoinbaseCDPService.getTokenAddress(token as 'USDC' | 'USDT', chain);
+    if (!tokenContract) {
+      return res.status(400).json({ error: `${token} not supported on ${chain}` });
+    }
+
+    const cdpService = CoinbaseCDPService.getInstance();
+    
+    let depositAddress: string;
+    try {
+      const wallet = await cdpService.createWallet(email, chain);
+      depositAddress = wallet.address;
+    } catch (walletError: any) {
+      console.error('Failed to create deposit wallet:', walletError);
+      const platformWallet = await cdpService.getOrCreatePlatformWallet();
+      depositAddress = platformWallet.address;
+    }
+
+    const paymentId = `pilot_pay_${nanoid(16)}`;
+    const idempotencyKey = `pilot_crypto_${paymentId}`;
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    const nextCheckAt = new Date(Date.now() + 2 * 60 * 1000);
+
+    await db.insert(pilotCreditsPayments).values({
+      id: paymentId,
+      userId: email,
+      tierId,
+      credits: tier.credits,
+      amountUsd: String(tier.price),
+      chain,
+      token,
+      depositAddress,
+      tokenContract,
+      expectedAmount: String(tier.price),
+      status: 'pending',
+      verificationAttempts: 0,
+      nextCheckAt,
+      expiresAt,
+      idempotencyKey,
+    });
+
+    console.log(`🔗 Created crypto payment intent: ${paymentId} for ${tier.name} (${token} on ${chain})`);
+
+    res.json({
+      success: true,
+      paymentId,
+      depositAddress,
+      chain,
+      token,
+      tokenContract,
+      amount: tier.price,
+      credits: tier.credits,
+      expiresAt: expiresAt.toISOString(),
+      instructions: `Send exactly ${tier.price} ${token} to ${depositAddress} on ${chain.replace('-mainnet', '')}`,
+    });
+  } catch (error: any) {
+    console.error('Crypto payment intent error:', error);
+    res.status(500).json({
+      error: 'Failed to create crypto payment intent',
+      message: error.message
+    });
+  }
+});
+
+router.get('/pilot-credits/crypto-status/:paymentId', async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+
+    const [payment] = await db.select()
+      .from(pilotCreditsPayments)
+      .where(eq(pilotCreditsPayments.id, paymentId))
+      .limit(1);
+
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+
+    res.json({
+      success: true,
+      paymentId: payment.id,
+      status: payment.status,
+      chain: payment.chain,
+      token: payment.token,
+      depositAddress: payment.depositAddress,
+      expectedAmount: payment.expectedAmount,
+      verifiedAmount: payment.verifiedAmount,
+      txHash: payment.txHash,
+      credits: payment.credits,
+      expiresAt: payment.expiresAt,
+      failureReason: payment.failureReason,
+    });
+  } catch (error: any) {
+    console.error('Crypto status check error:', error);
+    res.status(500).json({
+      error: 'Failed to check payment status',
+      message: error.message
+    });
+  }
+});
+
+router.post('/pilot-credits/crypto-confirm', async (req, res) => {
+  try {
+    const { paymentId, txHash } = req.body;
+
+    if (!paymentId || !txHash) {
+      return res.status(400).json({ error: 'Missing required fields: paymentId, txHash' });
+    }
+
+    const [payment] = await db.select()
+      .from(pilotCreditsPayments)
+      .where(eq(pilotCreditsPayments.id, paymentId))
+      .limit(1);
+
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+
+    if (payment.status === 'completed') {
+      const balance = await unifiedCreditsService.getBalance('user', payment.userId);
+      return res.json({
+        success: true,
+        message: 'Payment already confirmed',
+        status: 'completed',
+        balance,
+        credits: payment.credits,
+      });
+    }
+
+    await db.update(pilotCreditsPayments)
+      .set({ 
+        txHash, 
+        status: 'confirming',
+        nextCheckAt: new Date(),
+      })
+      .where(eq(pilotCreditsPayments.id, paymentId));
+
+    console.log(`📝 Updated payment ${paymentId} with txHash ${txHash}, queued for verification`);
+
+    res.json({
+      success: true,
+      message: 'Transaction submitted for verification',
+      status: 'confirming',
+      paymentId,
+      txHash,
+    });
+  } catch (error: any) {
+    console.error('Crypto confirm error:', error);
+    res.status(500).json({
+      error: 'Failed to submit transaction',
       message: error.message
     });
   }

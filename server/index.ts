@@ -3746,6 +3746,11 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       const { TopupConfirmationJob } = await import('./jobs/topupConfirmationJob');
       TopupConfirmationJob.start(300000); // Run every 5 minutes - conservative for platform stability
       console.log('✅ Topup confirmation job started');
+      
+      // Start pilot credits crypto confirmation job
+      const { PilotCreditsConfirmationJob } = await import('./jobs/pilotCreditsConfirmationJob');
+      PilotCreditsConfirmationJob.start(300000); // Run every 5 minutes
+      console.log('✅ Pilot credits crypto confirmation job started');
     } catch (error) {
       console.error('❌ Route registration failed:', error);
     }

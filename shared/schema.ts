@@ -6265,3 +6265,50 @@ export const unifiedCreditsLinksInsertSchema = createInsertSchema(unifiedCredits
 export type UnifiedCreditsLink = typeof unifiedCreditsLinks.$inferSelect;
 export type InsertUnifiedCreditsLink = z.infer<typeof unifiedCreditsLinksInsertSchema>;
 
+/**
+ * Pilot Credits Crypto Payments - On-chain USDC/USDT payments for pilot credit packages
+ * Supports Base, Polygon, and Arbitrum chains
+ */
+export const pilotCreditsPayments = pgTable(
+  "pilot_credits_payments",
+  {
+    id: varchar("id").primaryKey(), // pilot_pay_<nanoid>
+    userId: varchar("user_id").notNull(), // Email or user identifier
+    tierId: varchar("tier_id").notNull(), // starter, growth, enterprise
+    credits: integer("credits").notNull(), // Credits amount (500, 1000, 2500)
+    amountUsd: decimal("amount_usd", { precision: 12, scale: 2 }).notNull(), // Price in USD
+    chain: varchar("chain").notNull(), // base-mainnet, polygon-mainnet, arbitrum-mainnet
+    token: varchar("token").notNull(), // USDC or USDT
+    depositAddress: varchar("deposit_address").notNull(), // CDP-generated wallet address
+    tokenContract: varchar("token_contract").notNull(), // Token contract address for verification
+    expectedAmount: decimal("expected_amount", { precision: 18, scale: 6 }).notNull(), // Expected token amount (6 decimals)
+    txHash: varchar("tx_hash"), // Verified transaction hash
+    sender: varchar("sender"), // Sender wallet address (verified)
+    verifiedAmount: decimal("verified_amount", { precision: 18, scale: 6 }), // Actual received amount
+    status: varchar("status").notNull().default("pending"), // pending, confirming, completed, failed, expired
+    verificationAttempts: integer("verification_attempts").default(0),
+    lastCheckedAt: timestamp("last_checked_at"),
+    nextCheckAt: timestamp("next_check_at"),
+    failureReason: varchar("failure_reason"),
+    expiresAt: timestamp("expires_at").notNull(), // 30 min TTL for pending payments
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    completedAt: timestamp("completed_at"),
+    idempotencyKey: varchar("idempotency_key").notNull(), // For credits deduplication
+  },
+  (table) => [
+    index("IDX_pilot_payments_user").on(table.userId),
+    index("IDX_pilot_payments_status").on(table.status),
+    index("IDX_pilot_payments_nextcheck").on(table.nextCheckAt),
+    uniqueIndex("UQ_pilot_payments_txhash").on(table.txHash),
+    uniqueIndex("UQ_pilot_payments_idempotency").on(table.idempotencyKey),
+  ],
+);
+
+export const pilotCreditsPaymentsInsertSchema = createInsertSchema(pilotCreditsPayments).omit({
+  createdAt: true,
+  completedAt: true,
+  lastCheckedAt: true,
+});
+export type PilotCreditsPayment = typeof pilotCreditsPayments.$inferSelect;
+export type InsertPilotCreditsPayment = z.infer<typeof pilotCreditsPaymentsInsertSchema>;
+

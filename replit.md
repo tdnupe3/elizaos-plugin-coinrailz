@@ -54,7 +54,13 @@ Coin Railz utilizes a USDC-first strategy, leveraging Coinbase CDP for wallet ma
   - API Routes: `/api/iot/products/*`, `/api/iot/data/*`, `/api/iot/catalog`, `/api/iot/sales/*`.
 - **IoT Vertical Landing Pages**: `/fleet` (Fleet Telematics), `/weather` (Weather Data), `/iot/dashboard` (IoT Dashboard), `/credits/proof` (Credits Ledger Proof).
 - **IoT Partner & Sales Tools**: `/partners` (Partner Program), `/integrate` (Integration Guide), `/admin/pilots` (Pilot Tracking CRM), `/case-studies` (Case Studies).
-- **IoT Operations & Onboarding**: `/iot` (IoT Hub), `/iot/analytics` (Analytics Dashboard), `/pilot/onboard` (Pilot Onboarding), `/pilots/buy` (Pilot Credits Purchase with Stripe integration).
+- **IoT Operations & Onboarding**: `/iot` (IoT Hub), `/iot/analytics` (Analytics Dashboard), `/pilot/onboard` (Pilot Onboarding).
+- **Pilot Credits Purchase**: `/pilots/buy` with multi-payment support:
+  - Tiers: Starter ($500), Growth ($1000), Enterprise ($2500).
+  - Card payments via Stripe checkout with webhook crediting.
+  - Crypto payments: USDC/USDT on Base, Polygon, Arbitrum (multi-chain for DePIN networks).
+  - API Routes: `/api/stripe/pilot-credits/*` (create checkout, crypto-intent, crypto-status, confirm).
+  - Background Job: `PilotCreditsConfirmationJob` polls pending crypto payments every 5 minutes.
 - **A2A Protocol Outreach System**: Autonomous outreach to AI agents using Google's A2A Protocol, with registry sync, prioritization, rate limiting, and pipeline tracking.
 - **Unified Credits System v1.0.1**: Shared credits pool for both MCP (AI agents) and IoT devices with ACID transactions, audit trail, and security features. Includes Credits Proof View and Dispute Handling.
 - **On-Chain Payment Infrastructure v1.1.0 (Multi-Token)**: Production-grade on-chain payment support for USDC and USDT across 4 mainnet chains (Ethereum, Base, Polygon, Arbitrum). Includes multi-token methods in CDP service, `usdc_onchain` and `usdt_onchain` payment methods, CDP wallet provisioning, credits-to-wallet withdrawal, and on-chain topup.

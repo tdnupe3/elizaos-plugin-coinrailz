@@ -4,11 +4,6 @@ import { db } from '../db';
 import { discoveredAgents } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
-const USDC_BASE_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-const BASE_CHAIN_ID = 8453;
-const ALCHEMY_BASE_RPC = 'https://base-mainnet.g.alchemy.com/v2';
-const TRANSFER_EVENT_SIGNATURE = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-
 interface X402Transaction {
   senderAddress: string;
   recipientAddress: string;

@@ -30,7 +30,8 @@
  *   - 'completed' - Payment and fulfillment succeeded
  *   - 'stripe_failed' - Stripe payment failed
  *   - 'x402_redirected' - Redirected to on-chain payment
- *   - 'credits_not_implemented' - Credits payment not yet available
+ *   - 'credits_no_account' - User has no credits account registered
+ *   - 'credits_insufficient' - User has insufficient credits balance
  *   - 'fulfillment_failed_credited' - Service failed, credits ACTUALLY added to user account
  *   - 'fulfillment_failed_pending' - Service failed, no user found, pending claim recorded
  *   - 'fulfillment_failed' - Service failed, credit refund also failed (contact support)

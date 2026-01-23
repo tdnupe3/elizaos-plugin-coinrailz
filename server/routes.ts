@@ -1017,22 +1017,24 @@ Questions? Reply to this message or contact support@coinrailz.com
         transactionType: 'dex_swap'
       });
       
-      // Simulate DEX quote for guest access (production-ready revenue generation)
-      const mockQuote = {
+      // DEX Quote - Demo Mode (Live 1inch/0x integration planned for Phase 2)
+      // Note: This provides indicative pricing for demo purposes
+      const demoQuote = {
         fromToken,
         toToken,
         inputAmount: parseFloat(amount),
-        outputAmount: parseFloat(amount) * 0.998, // 0.2% slippage simulation
+        outputAmount: parseFloat(amount) * 0.998, // Indicative 0.2% slippage
         priceImpact: 0.15,
         minimumReceived: parseFloat(amount) * 0.995,
         dex: '1inch',
         executionTime: '~30 seconds',
+        mode: 'demo', // Clearly indicates demo mode
         gasEstimate: '$12.50'
       };
 
       // Add our trading fees to the quote
       const enhancedQuote = {
-        ...mockQuote,
+        ...demoQuote,
         tradingFees: feeCalculation,
         platformRevenue: feeCalculation.fee,
         totalCostWithFees: feeCalculation.total,
@@ -1078,16 +1080,19 @@ Questions? Reply to this message or contact support@coinrailz.com
         transactionType: 'dex_swap'
       });
       
-      // Simulate successful swap execution for production revenue
-      const mockTransactionHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+      // DEX Execute - Demo Mode (Live 1inch/0x integration planned for Phase 2)
+      // Returns demo transaction for UI demonstration purposes
+      const demoTransactionHash = `demo_${nanoid(16)}`;
       const swapResult = {
-        transactionHash: mockTransactionHash,
-        status: 'confirmed',
+        transactionHash: demoTransactionHash,
+        status: 'demo_confirmed',
+        mode: 'demo', // Clearly indicates demo mode
         blockNumber: Math.floor(Math.random() * 1000000) + 18000000,
         gasUsed: '0x5208',
         effectiveGasPrice: '0x4A817C800',
         outputAmount: parseFloat(amount) * 0.998,
-        executionTime: `${Math.floor(Math.random() * 30) + 15} seconds`
+        executionTime: `${Math.floor(Math.random() * 30) + 15} seconds`,
+        note: 'Demo transaction - Live DEX execution available in Phase 2'
       };
 
       // Record revenue transaction for analytics and compliance
@@ -1099,9 +1104,9 @@ Questions? Reply to this message or contact support@coinrailz.com
           toToken,
           amount: parseFloat(amount).toString(),
           platformFee: feeCalculation.fee.toString(),
-          transactionHash: mockTransactionHash,
+          transactionHash: demoTransactionHash,
           revenue: feeCalculation.fee.toString(),
-          status: 'completed',
+          status: 'demo',
           chainId: req.body.chainId || 1
         });
         console.log(`✅ DEX Revenue Generated: $${feeCalculation.fee} from ${userAddress.slice(0,8)}...`);

@@ -85,6 +85,8 @@ router.get('/quote', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
+      mode: 'demo', // Phase 2: Live DEX execution
+      demoNote: 'Indicative pricing for demonstration. Live DEX execution available in Phase 2.',
       quote: quoteResult.quote,
       isGuestQuote: quoteResult.isGuestQuote,
       estimatedGas: quoteResult.estimatedGas,

@@ -38,32 +38,34 @@ async function releaseEscrowToAgent(orderId: string, agentId: string, payoutAmou
     // 2. Transfer the 85% to the agent's connected account
     // 3. Keep 15% as platform fee
     
-    // For now, simulate the payout process
+    // Phase 2: Real Stripe Connect payouts (requires agent onboarding to Stripe Connect)
+    // Current implementation: Records payout intent for future processing
+    // TODO Phase 2: Implement stripe.transfers.create() to connected accounts
     const payoutId = `payout_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    // Record the payout in the database
+    // Record the payout intent in the database for reconciliation
     try {
       await storage.createAgentPayout({
         agentId: agentId,
         orderId: orderId,
         amount: payoutAmount.toString(),
-        status: 'completed',
+        status: 'pending_stripe_connect', // Phase 2: Will become 'completed' after real payout
         payoutMethod: 'stripe_connect',
         payoutId: payoutId,
         currency: 'USD'
       });
     } catch (dbError) {
       console.error('Failed to record payout in database:', dbError);
-      // Continue with simulated success for demo
     }
     
-    console.log(`💰 ESCROW RELEASED: $${payoutAmount} to agent ${agentId} for order ${orderId}`);
+    console.log(`💰 ESCROW RECORDED: $${payoutAmount} pending for agent ${agentId} (order ${orderId})`);
     
     return {
       success: true,
       amount: payoutAmount,
       payoutId: payoutId,
-      method: 'stripe_connect_simulation',
+      method: 'pending_stripe_connect', // Phase 2: Real Stripe Connect payouts
+      phase2Note: 'Agent payout recorded. Real Stripe Connect transfers require agent onboarding.',
       timestamp: new Date().toISOString()
     };
   } catch (error) {

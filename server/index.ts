@@ -812,6 +812,11 @@ app.use(stripePaymentRoutes);
 console.log('✅ Fast Revenue routes registered - Immediate revenue generation active');
 console.log('✅ Stripe Payment routes registered - Enterprise payment processing active');
 
+// === PILOT CREDITS & MARKETPLACE STRIPE ROUTES ===
+import stripeMarketplaceRoutes from './routes/stripeRoutes.js';
+app.use('/api/stripe', stripeMarketplaceRoutes);
+console.log('✅ Stripe pilot credits routes registered at /api/stripe/*');
+
 // === AI AGENT PRODUCT STORE ===
 import aiAgentProductRoutes from './routes/aiAgentProductRoutes.js';
 app.use('/api/ai-products', aiAgentProductRoutes);
@@ -2770,7 +2775,7 @@ app.get('/api/xrp/network-status', (req, res) => {
   });
 });
 
-// DEX functionality endpoints
+// DEX functionality endpoints - Demo Mode (Live 1inch/0x integration planned for Phase 2)
 app.post('/api/dex/quote', async (req, res) => {
   try {
     const { fromToken, toToken, amount, chainId, slippage } = req.body;
@@ -2795,6 +2800,8 @@ app.post('/api/dex/quote', async (req, res) => {
     
     res.json({
       success: true,
+      mode: 'demo', // Phase 2: Live 1inch/0x integration
+      demoNote: 'Indicative pricing for demonstration. Live DEX execution available in Phase 2.',
       quote: aggregatedQuote
     });
   } catch (error: any) {

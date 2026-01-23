@@ -61,7 +61,7 @@ export default function Landing() {
   };
 
   const handleGuestAccess = () => {
-    setLocation("/demo-dashboard");
+    setLocation("/iot");
   };
 
   const handleSendMoney = () => {

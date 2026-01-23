@@ -134,7 +134,7 @@ export default function HumanReferralSignup() {
               </Button>
               
               <Button 
-                onClick={() => setLocation("/buy-sell")}
+                onClick={() => setLocation("/swap")}
                 variant="outline"
                 className="w-full"
               >

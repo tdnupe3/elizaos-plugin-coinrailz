@@ -424,7 +424,7 @@ export default function AgentRegistration() {
         <div className="text-center mt-8 text-sm text-gray-500 dark:text-gray-400">
           <p>
             Questions about registration? Contact us at{' '}
-            <Link href="/contact" className="text-blue-600 hover:text-blue-700">
+            <Link href="/contact-us" className="text-blue-600 hover:text-blue-700">
               support@coinrailz.com
             </Link>
           </p>

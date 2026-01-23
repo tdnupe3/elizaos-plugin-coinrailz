@@ -152,7 +152,7 @@ export default function PlatformIntegrationPage() {
         'Service delivery system',
         'Revenue validation proven'
       ],
-      link: '/marketplace',
+      link: '/ai-marketplace',
       icon: Users,
       gradient: 'bg-gradient-to-br from-purple-600 via-violet-600 to-fuchsia-700'
     },
@@ -303,19 +303,19 @@ export default function PlatformIntegrationPage() {
                   <span className="text-xs">DEX Trading</span>
                 </Button>
               </Link>
-              <Link href="/xrp">
+              <Link href="/xrp-ecosystem">
                 <Button className="w-full h-16 flex flex-col gap-1" variant="outline">
                   <Globe className="h-5 w-5" />
                   <span className="text-xs">XRP Hub</span>
                 </Button>
               </Link>
-              <Link href="/marketplace">
+              <Link href="/ai-marketplace">
                 <Button className="w-full h-16 flex flex-col gap-1" variant="outline">
                   <Users className="h-5 w-5" />
                   <span className="text-xs">AI Agents</span>
                 </Button>
               </Link>
-              <Link href="/production-dashboard">
+              <Link href="/dashboard">
                 <Button className="w-full h-16 flex flex-col gap-1" variant="outline">
                   <TrendingUp className="h-5 w-5" />
                   <span className="text-xs">Analytics</span>

@@ -62,7 +62,7 @@ export default function CoinbaseConnectionSection() {
             </Link>
           </Button>
           <Button variant="outline" className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-3" asChild>
-            <Link href="/coinbase-defi">
+            <Link href="/coinbase-cdp">
               <ExternalLink className="w-4 h-4 mr-2" />
               DeFi Integration
             </Link>

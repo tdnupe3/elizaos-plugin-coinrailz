@@ -407,7 +407,7 @@ client.meter(
                 View Dashboard
               </Button>
               <Button variant="outline" asChild>
-                <a href="/api-docs" target="_blank" rel="noopener noreferrer">
+                <a href="/documentation" target="_blank" rel="noopener noreferrer">
                   API Reference <ExternalLink className="w-4 h-4 ml-2" />
                 </a>
               </Button>

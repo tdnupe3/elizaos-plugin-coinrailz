@@ -38,7 +38,7 @@ const navigationItems: NavigationItem[] = [
   { label: 'Marketplace Analytics', href: '/marketplace-dashboard', icon: BarChart3, category: 'marketplace' },
   
   // Crypto Services
-  { label: 'Buy/Sell Crypto', href: '/buy-sell', icon: CreditCard, category: 'crypto' },
+  { label: 'Buy/Sell Crypto', href: '/swap', icon: CreditCard, category: 'crypto' },
   { label: 'Crypto Swap', href: '/swap', icon: CreditCard, category: 'crypto' },
   { label: 'XRP Ecosystem', href: '/xrp-ecosystem', icon: Wallet, category: 'crypto' },
   { label: 'USDC Services', href: '/usdc-ecosystem', icon: CreditCard, category: 'crypto' },

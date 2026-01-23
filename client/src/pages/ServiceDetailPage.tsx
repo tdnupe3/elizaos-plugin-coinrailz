@@ -291,7 +291,7 @@ print(data)`;
                     Get API Key ($1)
                   </Button>
                 </Link>
-                <Link href="/x402-docs">
+                <Link href="/documentation">
                   <Button variant="outline" className="w-full" data-testid="button-view-docs">
                     <ExternalLink className="mr-2 h-4 w-4" />
                     View Full Documentation

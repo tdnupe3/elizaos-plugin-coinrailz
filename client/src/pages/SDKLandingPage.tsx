@@ -385,7 +385,7 @@ export default function SDKLandingPage() {
                 </Link>
               </Button>
               <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600" data-testid="button-contact-sales">
-                <Link href="/contact-enterprise-sales">
+                <Link href="/contact-us">
                   Contact Sales <Users className="ml-2 h-4 w-4" />
                 </Link>
               </Button>

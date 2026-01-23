@@ -28,6 +28,12 @@ interface AgentSpendingProfile {
 export class X402ScanAgentDiscovery {
   private baseUrl = 'https://www.x402scan.com';
   
+  /**
+   * NOTE: x402scan migrated to v2 (Next.js client-side rendering) in late 2025.
+   * HTML table scraping no longer works. This method now returns empty gracefully.
+   * TODO: Integrate with x402scan API when they expose public endpoints, or
+   * query on-chain data directly from facilitator contracts.
+   */
   async scrapeTransactions(limit: number = 100): Promise<X402Transaction[]> {
     console.log(`🔍 Starting x402scan transaction scrape (limit: ${limit})`);
     
@@ -42,17 +48,32 @@ export class X402ScanAgentDiscovery {
       const html = response.data;
       const transactions: X402Transaction[] = [];
       
+      // Detect Next.js v2 migration (client-side rendered, no HTML tables)
+      const isNextJsApp = html.includes('/_next/static/chunks') || html.includes('__NEXT_DATA__');
+      if (isNextJsApp) {
+        console.log(`⚠️ x402scan v2 detected (Next.js client-side rendering)`);
+        console.log(`📋 HTML scraping deprecated - x402scan no longer serves server-rendered tables`);
+        console.log(`💡 Agent discovery continues via A2A Registry, on-chain lookups, and Coinbase Bazaar`);
+        return []; // Graceful empty return - other discovery methods still work
+      }
+      
       const tableRowRegex = /<tr[^>]*>[\s\S]*?<\/tr>/g;
       const rows = html.match(tableRowRegex) || [];
       
       console.log(`📊 Found ${rows.length} table rows`);
       
+      // If no rows found but not detected as Next.js, log warning
+      if (rows.length === 0) {
+        console.log(`⚠️ No table rows found - x402scan may have changed structure`);
+        return [];
+      }
+      
       for (const row of rows.slice(0, limit)) {
         if (!row.includes('Sender') && row.includes('0x')) {
           const senderMatch = row.match(/0x[a-fA-F0-9]{4}\.{3}[a-fA-F0-9]{6}/);
           const amountMatch = row.match(/\$(\d+\.?\d*)/);
-          const chainMatch = row.match(/Base|Solana|Ethereum/i);
-          const facilitatorMatch = row.match(/Coinbase|Daydreams|PayAI|OpenX402|CodeNut|X402rs/i);
+          const chainMatch = row.match(/Base|Solana|Ethereum|Polygon|Arbitrum/i);
+          const facilitatorMatch = row.match(/Coinbase|Daydreams|PayAI|OpenX402|CodeNut|X402rs|AceData|ChaosChain/i);
           const serverMatch = row.match(/href="\/server\/[^"]*">([^<]+)</);
           
           if (senderMatch) {
@@ -75,9 +96,11 @@ export class X402ScanAgentDiscovery {
       console.log(`✅ Parsed ${transactions.length} transactions`);
       return transactions;
       
-    } catch (error) {
-      console.error('❌ Error scraping x402scan:', error);
-      throw error;
+    } catch (error: any) {
+      // Graceful error handling - don't break discovery pipeline
+      console.error('⚠️ x402scan scrape unavailable:', error?.message || 'Unknown error');
+      console.log(`💡 Continuing with other discovery methods (A2A Registry, on-chain, Bazaar)`);
+      return []; // Return empty instead of throwing
     }
   }
   

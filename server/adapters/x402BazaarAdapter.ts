@@ -12,33 +12,37 @@ import { BaseDiscoveryAdapter } from './baseAdapter';
 import { DiscoveredAgentRaw } from '../services/agentDiscoveryService';
 import crypto from 'crypto';
 
-interface X402BazaarResource {
-  id: string;
-  url: string;
-  name: string;
+interface X402BazaarAccepts {
+  asset: string;
   description?: string;
-  facilitator: {
-    id: string;
-    network: string;
-    status: 'active' | 'inactive';
-  };
-  pricing: {
-    scheme: 'exact' | 'upto' | 'deferred';
-    amount: string;
-    currency: string;
-  };
-  discoverable: boolean;
-  capabilities?: string[];
-  endpoints?: Record<string, string>;
+  extra?: Record<string, any>;
+  maxAmountRequired: string;
+  maxTimeoutSeconds?: number;
+  mimeType?: string;
+  network: string;
+  outputSchema?: Record<string, any>;
+  payTo: string;
+  resource: string;
+  scheme: string;
+}
+
+interface X402BazaarResource {
+  accepts: X402BazaarAccepts[];
+  lastUpdated: string;
   metadata?: Record<string, any>;
+  resource: string;
+  type: string;
+  x402Version: number;
 }
 
 interface BazaarResponse {
-  resources: X402BazaarResource[];
+  items: X402BazaarResource[];
   pagination?: {
-    cursor?: string;
-    hasMore: boolean;
+    limit: number;
+    offset: number;
+    total: number;
   };
+  x402Version?: number;
 }
 
 export class X402BazaarAdapter extends BaseDiscoveryAdapter {
@@ -52,58 +56,61 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
   async discover(options: { maxPages?: number } = {}): Promise<DiscoveredAgentRaw[]> {
     console.log(`🎯 Starting Coinbase x402 Bazaar discovery (REAL paying agents)...`);
     
-    // Verify credentials
-    if (!this.hasValidCredentials()) {
-      console.error('❌ CDP credentials not configured - cannot access Bazaar');
-      return [];
-    }
+    // Discovery endpoint is PUBLIC - no credentials required
+    // (Only payment verification needs CDP auth)
 
     const discoveredAgents: DiscoveredAgentRaw[] = [];
-    // Make maxPages configurable via options or env (default: 10 to capture more agents)
+    const LIMIT = 100; // Items per page
     const maxPages = options.maxPages || 
-                     parseInt(process.env.X402_BAZAAR_MAX_PAGES || '10', 10);
+                     parseInt(process.env.X402_BAZAAR_MAX_PAGES || '50', 10);
     let currentPage = 0;
-    let cursor: string | undefined;
+    let offset = 0;
+    let hasMore = true;
 
     try {
-      do {
+      while (hasMore && currentPage < maxPages) {
         // Check rate limit
         if (!this.checkRateLimit()) {
           await this.waitForRateLimit();
         }
 
-        // Fetch page of resources from Bazaar
-        const response = await this.fetchBazaarPage(cursor);
+        // Fetch page of resources from Bazaar (offset-based pagination)
+        const response = await this.fetchBazaarPage(offset, LIMIT);
         
         if (!response) {
           console.log('⚠️ No response from Bazaar - stopping pagination');
           break;
         }
 
-        // Process resources
-        const resources = response.resources || [];
-        console.log(`📦 Processing page ${currentPage + 1}: ${resources.length} resources`);
+        // Process items (API returns 'items', not 'resources')
+        const items = response.items || [];
+        console.log(`📦 Processing page ${currentPage + 1}: ${items.length} resources (offset ${offset})`);
 
-        for (const resource of resources) {
-          // Only include discoverable agents with active facilitators
-          if (resource.discoverable && resource.facilitator.status === 'active') {
-            const agent = this.normalizeAgent(resource, 'x402-bazaar');
-            if (agent) {
-              discoveredAgents.push(agent);
-            }
+        for (const item of items) {
+          // Normalize and add agent
+          const agent = this.normalizeAgent(item, 'x402-bazaar');
+          if (agent) {
+            discoveredAgents.push(agent);
           }
         }
 
-        // Update pagination
-        cursor = response.pagination?.cursor;
+        // Update pagination (offset-based)
+        const pagination = response.pagination;
+        if (pagination) {
+          offset += LIMIT;
+          hasMore = offset < pagination.total;
+          console.log(`   Progress: ${offset}/${pagination.total} (${Math.min(100, Math.round(offset / pagination.total * 100))}%)`);
+        } else {
+          hasMore = false;
+        }
+        
         currentPage++;
 
         // Respect rate limits (wait between pages)
-        if (cursor && currentPage < maxPages) {
-          await this.sleep(6000); // 6 seconds = 10 req/min
+        if (hasMore && currentPage < maxPages) {
+          await this.sleep(500); // 500ms delay - discovery is public, less rate-limited
         }
-
-      } while (cursor && currentPage < maxPages);
+      }
 
       console.log(`✅ Bazaar discovery complete: ${discoveredAgents.length} REAL agents from ${currentPage} pages`);
       
@@ -115,21 +122,21 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
   }
 
   /**
-   * Fetch a single page from Coinbase Bazaar with CDP authentication
-   * Includes retry logic with exponential backoff for transient failures
+   * Fetch a single page from Coinbase Bazaar
+   * Discovery endpoint is PUBLIC - no authentication required
+   * Uses offset-based pagination (limit/offset, not cursor)
    */
-  private async fetchBazaarPage(cursor?: string): Promise<BazaarResponse | null> {
+  private async fetchBazaarPage(offset: number, limit: number): Promise<BazaarResponse | null> {
     return this.retryWithBackoff(async () => {
-      const url = cursor 
-        ? `${this.bazaarEndpoint}?cursor=${cursor}&limit=50`
-        : `${this.bazaarEndpoint}?limit=50`;
+      const url = `${this.bazaarEndpoint}?limit=${limit}&offset=${offset}`;
 
-      // Generate CDP HMAC authentication headers
-      const headers = this.generateCDPAuthHeaders('GET', url);
-
+      // No authentication needed for discovery endpoint (it's public)
       const response = await this.safeFetch(url, {
         method: 'GET',
-        headers
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'CoinRailz-x402-Platform/1.0'
+        }
       }, 30000);
 
       if (!response.ok) {
@@ -142,10 +149,6 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
           console.warn(`⏰ Rate limit hit (429) - will retry with backoff`);
           throw new Error('Rate limit exceeded');
         }
-        if (response.status === 401 || response.status === 403) {
-          console.error(`🔒 Authentication failed - check CDP credentials`);
-          return null;
-        }
         if (response.status >= 500) {
           console.warn(`🔄 Server error (${response.status}) - will retry`);
           throw new Error(`Server error: ${response.status}`);
@@ -155,8 +158,8 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
 
       const data = await this.safeJsonParse(response);
       console.log(`✅ Bazaar API response: HTTP ${response.status}`);
-      console.log(`   Resources count: ${data?.resources?.length || 0}`);
-      console.log(`   Has cursor: ${!!data?.pagination?.cursor}`);
+      console.log(`   Items count: ${data?.items?.length || 0}`);
+      console.log(`   Total available: ${data?.pagination?.total || 'unknown'}`);
       return data;
       
     }, 3, 2000); // 3 retries, 2-second base delay
@@ -205,35 +208,45 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
 
   /**
    * Normalize Bazaar resource into DiscoveredAgentRaw format
+   * Updated for x402 v2 API response format (items with accepts array)
    */
   protected normalizeAgent(rawData: X402BazaarResource, source: string): DiscoveredAgentRaw | null {
     try {
+      if (!rawData.resource || !rawData.accepts || rawData.accepts.length === 0) {
+        return null;
+      }
+
+      // Extract primary payment config from accepts array
+      const primaryAccept = rawData.accepts[0];
+      
+      // Extract wallet address from payTo
+      const wallet = primaryAccept.payTo;
+
       const agent: DiscoveredAgentRaw = {
-        url: rawData.url,
+        url: rawData.resource,
         source,
         channels: this.extractChannels(rawData),
-        wallet: undefined, // Bazaar doesn't expose wallet addresses directly
+        wallet,
         capabilities: {
           x402: true,
-          pricing: rawData.pricing,
-          facilitator: rawData.facilitator.network
+          x402Version: rawData.x402Version,
+          pricing: {
+            scheme: primaryAccept.scheme,
+            maxAmount: primaryAccept.maxAmountRequired,
+            network: primaryAccept.network,
+            asset: primaryAccept.asset
+          },
+          networks: rawData.accepts.map(a => a.network)
         },
         metadata: {
-          bazaarId: rawData.id,
-          name: rawData.name,
-          description: rawData.description,
-          facilitator: {
-            id: rawData.facilitator.id,
-            network: rawData.facilitator.network,
-            status: rawData.facilitator.status
-          },
-          pricing: {
-            scheme: rawData.pricing.scheme,
-            amount: rawData.pricing.amount,
-            currency: rawData.pricing.currency
-          },
-          discoverable: rawData.discoverable,
-          endpoints: rawData.endpoints,
+          description: primaryAccept.description,
+          lastUpdated: rawData.lastUpdated,
+          type: rawData.type,
+          mimeType: primaryAccept.mimeType,
+          payTo: primaryAccept.payTo,
+          assetInfo: primaryAccept.extra,
+          outputSchema: primaryAccept.outputSchema,
+          allAccepts: rawData.accepts.length > 1 ? rawData.accepts : undefined,
           ...rawData.metadata
         }
       };
@@ -249,35 +262,25 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
    * Extract communication channels from Bazaar resource
    */
   protected extractChannels(rawData: X402BazaarResource): any {
-    const channels: any = {
-      x402: rawData.url // Primary x402 endpoint
+    return {
+      x402: rawData.resource // Primary x402 endpoint
     };
-
-    // Add additional endpoints if available
-    if (rawData.endpoints) {
-      Object.assign(channels, rawData.endpoints);
-    }
-
-    return channels;
   }
 
   /**
    * Extract agent URL from Bazaar resource
    */
   protected extractAgentUrl(rawData: X402BazaarResource): string {
-    return rawData.url;
+    return rawData.resource;
   }
 
   async healthCheck(): Promise<boolean> {
     try {
-      if (!this.hasValidCredentials()) {
-        return false;
-      }
-
-      // Try to fetch first page without storing results
-      const response = await this.fetchBazaarPage();
-      return !!response;
+      // Discovery endpoint is public - just verify API is reachable
+      const response = await this.fetchBazaarPage(0, 1);
+      return !!response && (response.items?.length > 0 || response.pagination?.total > 0);
     } catch (error) {
+      console.error(`❌ Bazaar health check failed:`, error);
       return false;
     }
   }

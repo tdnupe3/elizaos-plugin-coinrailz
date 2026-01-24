@@ -602,8 +602,15 @@ export class AgentDiscoveryService {
     chunk: DiscoveredAgentRaw[],
     adapterId: string
   ): Promise<{ newAgents: number; duplicates: number }> {
+    // FIX: Deduplicate chunk by URL to prevent "ON CONFLICT DO UPDATE cannot affect row a second time"
+    // When multiple agents have the same URL, keep the one with highest score/most metadata
+    const deduplicatedChunk = this.deduplicateAgentsByUrl(chunk);
+    if (deduplicatedChunk.length < chunk.length) {
+      console.log(`🔄 Deduplicated ${chunk.length} → ${deduplicatedChunk.length} agents (removed ${chunk.length - deduplicatedChunk.length} intra-chunk duplicates)`);
+    }
+    
     // PHASE 1: Pre-select existing URLs for reliable accounting (replaces xmax trick)
-    const urls = chunk.map(agent => this.normalizeUrl(agent.url));
+    const urls = deduplicatedChunk.map(agent => this.normalizeUrl(agent.url));
     const existingAgents = await db
       .select({ url: discoveredAgents.url })
       .from(discoveredAgents)
@@ -612,7 +619,7 @@ export class AgentDiscoveryService {
     const existingUrls = new Set(existingAgents.map(agent => agent.url));
     
     // Separate true source from adapterId for analytics
-    const agentDataArray = chunk.map(rawAgent => {
+    const agentDataArray = deduplicatedChunk.map(rawAgent => {
       const normalizedUrl = this.normalizeUrl(rawAgent.url);
       const trueSource = this.extractTrueSource(rawAgent, adapterId);
       
@@ -697,6 +704,34 @@ export class AgentDiscoveryService {
       // If URL parsing fails, return original
       return url.toLowerCase().trim();
     }
+  }
+
+  /**
+   * DEDUPLICATE AGENTS BY URL within a batch
+   * Prevents "ON CONFLICT DO UPDATE cannot affect row a second time" error
+   * When duplicates exist, keeps the agent with most metadata/highest implied quality
+   */
+  private deduplicateAgentsByUrl(agents: DiscoveredAgentRaw[]): DiscoveredAgentRaw[] {
+    const urlMap = new Map<string, DiscoveredAgentRaw>();
+    
+    for (const agent of agents) {
+      const normalizedUrl = this.normalizeUrl(agent.url);
+      const existing = urlMap.get(normalizedUrl);
+      
+      if (!existing) {
+        urlMap.set(normalizedUrl, agent);
+      } else {
+        // Keep the agent with more metadata (better quality data)
+        const existingMetadataCount = Object.keys(existing.metadata || {}).length;
+        const newMetadataCount = Object.keys(agent.metadata || {}).length;
+        
+        if (newMetadataCount > existingMetadataCount) {
+          urlMap.set(normalizedUrl, agent);
+        }
+      }
+    }
+    
+    return Array.from(urlMap.values());
   }
 
   /**

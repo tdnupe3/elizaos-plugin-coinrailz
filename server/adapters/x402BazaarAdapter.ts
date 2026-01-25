@@ -106,9 +106,11 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
         
         currentPage++;
 
-        // Respect rate limits (wait between pages)
+        // Respect rate limits with adaptive delay to avoid 429s
         if (hasMore && currentPage < maxPages) {
-          await this.sleep(500); // 500ms delay - discovery is public, less rate-limited
+          // Use longer delay (2s) to harvest more pages without hitting rate limits
+          // Coinbase allows ~3 pages at 500ms, but 15+ pages at 2s delay
+          await this.sleep(2000);
         }
       }
 
@@ -146,6 +148,15 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
         console.error(`   Response: ${responseText.substring(0, 500)}`);
         
         if (response.status === 429) {
+          // Parse retry-after header for smarter backoff
+          const retryAfter = response.headers.get('retry-after');
+          if (retryAfter) {
+            const waitSeconds = parseInt(retryAfter, 10);
+            if (!isNaN(waitSeconds)) {
+              console.warn(`⏰ Rate limit hit - waiting ${waitSeconds}s (from retry-after header)`);
+              await this.sleep(waitSeconds * 1000);
+            }
+          }
           console.warn(`⏰ Rate limit hit (429) - will retry with backoff`);
           throw new Error('Rate limit exceeded');
         }
@@ -278,7 +289,9 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
     try {
       // Discovery endpoint is public - just verify API is reachable
       const response = await this.fetchBazaarPage(0, 1);
-      return !!response && (response.items?.length > 0 || response.pagination?.total > 0);
+      const hasItems = response?.items && response.items.length > 0;
+      const hasTotal = response?.pagination?.total && response.pagination.total > 0;
+      return hasItems || hasTotal;
     } catch (error) {
       console.error(`❌ Bazaar health check failed:`, error);
       return false;

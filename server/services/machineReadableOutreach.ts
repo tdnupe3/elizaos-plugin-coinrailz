@@ -93,14 +93,14 @@ export class MachineReadableOutreach {
         contact: 'support@coinrailz.com'
       },
       services: {
-        count: 42,
-        catalog_url: 'https://coinrailz.com/api/discovery/resources',
+        count: 44,
+        catalog_url: 'https://coinrailz.com/x402/catalog',
         pricing_range_usd: '$0.01-$0.25',
         facilitator: 'coinbase-cdp',
         networks: ['base', 'ethereum', 'polygon', 'arbitrum']
       },
       action: {
-        discover: 'https://coinrailz.com/api/discovery/resources',
+        discover: 'https://coinrailz.com/x402/catalog',
         ping: 'https://coinrailz.com/x402/ping',
         docs: 'https://coinrailz.com/docs/x402'
       },
@@ -129,8 +129,8 @@ export class MachineReadableOutreach {
       v: 2,
       t: 's',
       s: PLATFORM_WALLET,  // Sender for verification against tx.from
-      c: 'https://coinrailz.com/api/discovery/resources',
-      n: 42,
+      c: 'https://coinrailz.com/x402/catalog',
+      n: 44,
       $: '0.01-0.25',
       f: 'cdp',
       x: trackingId || this.generateTrackingId(),

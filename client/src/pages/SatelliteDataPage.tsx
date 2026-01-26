@@ -50,9 +50,9 @@ export default function SatelliteDataPage() {
       "offers": {
         "@type": "AggregateOffer",
         "priceCurrency": "USD",
-        "lowPrice": "0.02",
+        "lowPrice": "0.05",
         "highPrice": "0.15",
-        "description": "$0.02-0.15 per API request"
+        "description": "$0.05-0.15 per API request"
       }
     }
   });
@@ -74,7 +74,7 @@ export default function SatelliteDataPage() {
       icon: <CloudSun className="w-6 h-6 text-blue-500" />,
       name: "Weather Satellite Imagery", 
       description: "Current cloud cover and atmospheric conditions",
-      price: "$0.02",
+      price: "$0.05",
       unit: "request",
       source: "NASA GIBS",
       features: ["250m resolution", "Daily updates", "Multiple layers"],
@@ -96,7 +96,7 @@ export default function SatelliteDataPage() {
       icon: <Droplets className="w-6 h-6 text-cyan-500" />,
       name: "Flood Detection", 
       description: "Surface water extent and flood risk monitoring",
-      price: "$0.08",
+      price: "$0.10",
       unit: "request",
       source: "ESA Sentinel-1 SAR",
       features: ["Sees through clouds", "Day/night operation", "Change detection"],
@@ -183,8 +183,8 @@ export default function SatelliteDataPage() {
 
   const creditPacks = [
     { amount: "$50", requests: "500+", perRequest: "~$0.10 avg" },
-    { amount: "$200", requests: "2,500+", perRequest: "~$0.08 avg" },
-    { amount: "$500", requests: "7,500+", perRequest: "~$0.07 avg" }
+    { amount: "$200", requests: "2,000+", perRequest: "~$0.10 avg" },
+    { amount: "$500", requests: "5,000+", perRequest: "~$0.10 avg" }
   ];
 
   return (
@@ -259,6 +259,18 @@ export default function SatelliteDataPage() {
               Buy Credits
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
+          </div>
+          
+          <div className="mt-8 inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-6 py-3">
+            <span className="text-white/60 text-sm">API Pricing:</span>
+            <div className="flex items-center gap-2">
+              <span className="text-green-400 font-semibold">$0.05</span>
+              <span className="text-white/40">-</span>
+              <span className="text-green-400 font-semibold">$0.15</span>
+              <span className="text-white/60 text-sm">per request</span>
+            </div>
+            <span className="text-white/30">|</span>
+            <span className="text-indigo-400 text-sm font-medium">Pay-per-call via USDC</span>
           </div>
         </div>
 

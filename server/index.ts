@@ -3718,6 +3718,11 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     app.use('/api/m2m', m2mOnboardingRoutes);
     console.log('✅ M2M Onboarding routes registered (pre-Vite)');
     
+    // Register Analytics Hit Tracking routes BEFORE Vite for production compatibility
+    const { setupAnalyticsRoutes } = await import('./routes/analytics');
+    setupAnalyticsRoutes(app);
+    console.log('✅ Analytics hit tracking routes registered (pre-Vite)');
+    
     // NOTE: Solana Pay routes are now registered pre-static for BOTH environments (see above)
     
     try {

@@ -12,8 +12,11 @@ import {
   Zap,
   Copy,
   ExternalLink,
-  Clock
+  Clock,
+  Check,
+  Shield
 } from "lucide-react";
+import { storeApiKey, hasStoredApiKey } from "@/lib/apiKeyStorage";
 
 interface PurchaseResult {
   success: boolean;
@@ -121,6 +124,16 @@ export default function PilotCreditsSuccessPage() {
       }
 
       const data = await response.json();
+      
+      // Auto-store API key for seamless future use
+      if (data.apiKey && data.keyPrefix) {
+        storeApiKey(data.apiKey, data.keyPrefix, data.userId);
+        toast({
+          title: "API Key Saved!",
+          description: "Your API key is now automatically included in all API calls."
+        });
+      }
+      
       setResult(data);
     } catch (err: any) {
       console.error("Confirmation error:", err);
@@ -301,39 +314,53 @@ export default function PilotCreditsSuccessPage() {
           <Card className="bg-emerald-900/30 border-emerald-500/50 mb-6">
             <CardHeader>
               <CardTitle className="text-emerald-400 flex items-center gap-2">
-                <Zap className="w-5 h-5" />
-                Your API Key (Ready to Use!)
+                <Shield className="w-5 h-5" />
+                API Key Saved & Ready!
               </CardTitle>
               <CardDescription className="text-slate-300">
-                This key is automatically generated and linked to your credits. Save it securely - you'll need it to access satellite and IoT data APIs.
+                Your API key is automatically saved to your browser and will be included in all API calls. No manual configuration needed!
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-slate-900/80 rounded-lg p-4 font-mono text-sm break-all">
-                <div className="flex items-center justify-between gap-4">
-                  <code className="text-emerald-300 flex-1">{result.apiKey}</code>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleCopy(result.apiKey!, "API Key")}
-                    className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/20 flex-shrink-0"
-                  >
-                    <Copy className="w-4 h-4 mr-1" />
-                    Copy
-                  </Button>
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                    <Check className="w-6 h-6 text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-emerald-300 font-medium">Automatic Authentication Enabled</p>
+                    <p className="text-slate-400 text-sm">All API calls from this browser will use your key automatically</p>
+                  </div>
                 </div>
               </div>
-              <p className="text-amber-400/80 text-sm mt-3 flex items-center gap-2">
-                <span className="text-lg">⚠️</span>
-                Save this key now! For security, we cannot show it again.
-              </p>
-              <div className="mt-4 p-3 bg-slate-700/30 rounded-lg">
-                <p className="text-slate-300 text-sm font-medium mb-2">Quick Start:</p>
-                <code className="text-xs text-slate-400 block">
-                  curl -H "X-API-Key: {result.apiKey?.slice(0, 15)}..." \<br/>
-                  &nbsp;&nbsp;https://coinrailz.com/api/satellite/fire-alerts
-                </code>
-              </div>
+              
+              <details className="group">
+                <summary className="cursor-pointer text-slate-400 text-sm hover:text-slate-300 flex items-center gap-2">
+                  <span>View or copy your API key for external use</span>
+                  <span className="text-xs">(optional)</span>
+                </summary>
+                <div className="mt-3 bg-slate-900/80 rounded-lg p-4 font-mono text-sm break-all">
+                  <div className="flex items-center justify-between gap-4">
+                    <code className="text-emerald-300 flex-1">{result.apiKey}</code>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopy(result.apiKey!, "API Key")}
+                      className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/20 flex-shrink-0"
+                    >
+                      <Copy className="w-4 h-4 mr-1" />
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+                <div className="mt-3 p-3 bg-slate-700/30 rounded-lg">
+                  <p className="text-slate-300 text-sm font-medium mb-2">For external tools (cURL, Postman, etc.):</p>
+                  <code className="text-xs text-slate-400 block">
+                    curl -H "X-API-Key: {result.apiKey?.slice(0, 15)}..." \<br/>
+                    &nbsp;&nbsp;https://coinrailz.com/api/satellite/fire-alerts
+                  </code>
+                </div>
+              </details>
             </CardContent>
           </Card>
         )}
@@ -347,38 +374,36 @@ export default function PilotCreditsSuccessPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-start gap-4 p-4 bg-slate-700/30 rounded-lg">
-                <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-emerald-400 font-bold">1</span>
+              <div className="flex items-start gap-4 p-4 bg-emerald-700/20 rounded-lg border border-emerald-500/30">
+                <div className="w-8 h-8 rounded-full bg-emerald-500/30 flex items-center justify-center flex-shrink-0">
+                  <Check className="w-5 h-5 text-emerald-400" />
                 </div>
                 <div>
-                  <h3 className="text-white font-medium mb-1">{result?.apiKey ? "Copy Your API Key (Above)" : "Get Your API Key"}</h3>
+                  <h3 className="text-emerald-300 font-medium mb-1">API Key Saved Automatically</h3>
                   <p className="text-slate-400 text-sm">
-                    {result?.apiKey 
-                      ? "Your API key is ready to use - copy it from the green box above" 
-                      : "Visit the dashboard to generate your API key"}
+                    Your key is stored securely and used automatically for all API calls from this browser
                   </p>
                 </div>
               </div>
               <div className="flex items-start gap-4 p-4 bg-slate-700/30 rounded-lg">
                 <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-blue-400 font-bold">2</span>
+                  <span className="text-blue-400 font-bold">1</span>
                 </div>
                 <div>
-                  <h3 className="text-white font-medium mb-1">Make Your First API Call</h3>
+                  <h3 className="text-white font-medium mb-1">Browse Available APIs</h3>
                   <p className="text-slate-400 text-sm">
-                    Add X-API-Key header to access satellite, fleet, or weather data
+                    Explore satellite, fleet, and weather data endpoints - authentication is handled for you
                   </p>
                 </div>
               </div>
               <div className="flex items-start gap-4 p-4 bg-slate-700/30 rounded-lg">
                 <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-amber-400 font-bold">3</span>
+                  <span className="text-amber-400 font-bold">2</span>
                 </div>
                 <div>
-                  <h3 className="text-white font-medium mb-1">Monitor Usage</h3>
+                  <h3 className="text-white font-medium mb-1">Start Querying Data</h3>
                   <p className="text-slate-400 text-sm">
-                    Track your credit balance and API usage in the dashboard
+                    Click "Try it" on any endpoint - your credits are deducted automatically per request
                   </p>
                 </div>
               </div>

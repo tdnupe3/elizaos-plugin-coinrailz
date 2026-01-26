@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { getApiKeyValue } from "./apiKeyStorage";
 
 // Simple error throwing helper
 async function throwIfResNotOk(res: Response) {
@@ -40,6 +41,12 @@ export const getQueryFn: <T>(options: {
       
       if (authToken) {
         headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      
+      // Auto-include stored API key for satellite/IoT/x402 endpoints
+      const apiKey = getApiKeyValue();
+      if (apiKey) {
+        headers['X-API-Key'] = apiKey;
       }
 
       // Handle dynamic URLs for balance checks
@@ -96,11 +103,15 @@ export const apiRequest = async (
   let url: string;
   let options: RequestInit;
 
-  // Get auth token
+  // Get auth token and API key
   const authToken = getAuthToken();
+  const apiKey = getApiKeyValue();
   const baseHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
   if (authToken) {
     baseHeaders['Authorization'] = `Bearer ${authToken}`;
+  }
+  if (apiKey) {
+    baseHeaders['X-API-Key'] = apiKey;
   }
 
   // Handle both signatures: (url, options) and (method, url, data)

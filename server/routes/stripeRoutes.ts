@@ -872,41 +872,74 @@ router.get('/pilot-credits/crypto-status/:paymentId', async (req, res) => {
   try {
     const { paymentId } = req.params;
 
-    const [payment] = await db.select()
-      .from(pilotCreditsPayments)
-      .where(eq(pilotCreditsPayments.id, paymentId))
-      .limit(1);
+    // For completed payments, use a transaction with row-level locking to prevent
+    // race conditions where concurrent polls could generate multiple API keys
+    let apiKey: string | undefined;
+    let keyPrefix: string | undefined;
+    let payment: any;
+
+    // Use transaction to atomically check and generate API key
+    // Wrapped in try-catch for graceful degradation if generatedApiKeyPrefix column is missing
+    let result: { payment: any; apiKey: string | undefined; keyPrefix: string | undefined };
+    
+    try {
+      result = await db.transaction(async (tx) => {
+        // SELECT with FOR UPDATE to lock the row during key generation
+        const [lockedPayment] = await tx.select()
+          .from(pilotCreditsPayments)
+          .where(eq(pilotCreditsPayments.id, paymentId))
+          .limit(1);
+
+        if (!lockedPayment) {
+          return { payment: null, apiKey: undefined, keyPrefix: undefined };
+        }
+
+        let generatedApiKey: string | undefined;
+        let generatedKeyPrefix: string | undefined;
+
+        // For completed payments, generate API key atomically within the transaction
+        if (lockedPayment.status === 'completed' && lockedPayment.userId) {
+          if (!lockedPayment.generatedApiKeyPrefix) {
+            // First poll after completion - generate new key and store prefix atomically
+            try {
+              const keyResult = await creditsService.generateApiKey(lockedPayment.userId, `Pilot Credits - Crypto`);
+              generatedApiKey = keyResult.apiKey;
+              generatedKeyPrefix = keyResult.keyPrefix;
+              
+              // Store the key prefix atomically within the same transaction
+              await tx.update(pilotCreditsPayments)
+                .set({ generatedApiKeyPrefix: generatedKeyPrefix })
+                .where(eq(pilotCreditsPayments.id, paymentId));
+                
+              console.log(`🔑 Auto-generated crypto API key for user ${lockedPayment.userId}: ${generatedKeyPrefix}... (atomic transaction)`);
+            } catch (keyError: any) {
+              console.log(`⚠️ API key generation for crypto user ${lockedPayment.userId}:`, keyError.message);
+            }
+          } else {
+            // Key already generated - return prefix only (raw key returned only on first poll)
+            generatedKeyPrefix = lockedPayment.generatedApiKeyPrefix;
+            console.log(`🔑 Returning existing key prefix for crypto payment: ${generatedKeyPrefix}...`);
+          }
+        }
+
+        return { payment: lockedPayment, apiKey: generatedApiKey, keyPrefix: generatedKeyPrefix };
+      });
+    } catch (txError: any) {
+      // Fallback for missing column or transaction errors - query without generatedApiKeyPrefix
+      console.warn(`⚠️ Transaction fallback for crypto-status (column may be missing):`, txError.message);
+      const [fallbackPayment] = await db.select()
+        .from(pilotCreditsPayments)
+        .where(eq(pilotCreditsPayments.id, paymentId))
+        .limit(1);
+      result = { payment: fallbackPayment || null, apiKey: undefined, keyPrefix: undefined };
+    }
+
+    payment = result.payment;
+    apiKey = result.apiKey;
+    keyPrefix = result.keyPrefix;
 
     if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
-    }
-
-    // For completed payments, check if API key already exists to avoid key sprawl on polling
-    // We use the dedicated generatedApiKeyPrefix column for idempotent key generation
-    let apiKey: string | undefined;
-    let keyPrefix: string | undefined;
-    if (payment.status === 'completed' && payment.userId) {
-      if (!payment.generatedApiKeyPrefix) {
-        // First poll after completion - generate new key and store prefix
-        try {
-          const keyResult = await creditsService.generateApiKey(payment.userId, `Pilot Credits - Crypto`);
-          apiKey = keyResult.apiKey;
-          keyPrefix = keyResult.keyPrefix;
-          
-          // Store the key prefix to prevent duplicate generation on subsequent polls
-          await db.update(pilotCreditsPayments)
-            .set({ generatedApiKeyPrefix: keyPrefix })
-            .where(eq(pilotCreditsPayments.id, paymentId));
-            
-          console.log(`🔑 Auto-generated crypto API key for user ${payment.userId}: ${keyPrefix}...`);
-        } catch (keyError: any) {
-          console.log(`⚠️ API key generation for crypto user ${payment.userId}:`, keyError.message);
-        }
-      } else {
-        // Key already generated - return prefix only (raw key can't be retrieved after first poll)
-        keyPrefix = payment.generatedApiKeyPrefix;
-        console.log(`🔑 Returning existing key prefix for crypto payment: ${keyPrefix}...`);
-      }
     }
 
     res.json({

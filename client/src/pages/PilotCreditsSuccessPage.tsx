@@ -379,6 +379,34 @@ export default function PilotCreditsSuccessPage() {
           </Card>
         )}
 
+        {!result?.apiKey && result?.keyPrefix && !hasStoredApiKey() && (
+          <Card className="bg-amber-900/30 border-amber-500/50 mb-6">
+            <CardHeader>
+              <CardTitle className="text-amber-400 flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                API Key Already Generated
+              </CardTitle>
+              <CardDescription className="text-slate-300">
+                An API key was created for this purchase ({result.keyPrefix}...), but the raw key was only available on the first page load.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-4">
+                <p className="text-amber-200 text-sm mb-3">
+                  If you don't have your key saved, you can generate a new one from your dashboard:
+                </p>
+                <Button 
+                  onClick={() => setLocation("/iot/dashboard")}
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  Go to Dashboard to Generate New Key
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="bg-slate-800/50 border-slate-700 mb-6">
           <CardHeader>
             <CardTitle className="text-white">Next Steps</CardTitle>

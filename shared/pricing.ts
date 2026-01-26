@@ -65,7 +65,14 @@ export type ServiceName =
   | "stock-sentiment"
   | "forex-sentiment"
   // Solana DeFi vertical (Dialect integration)
-  | "solana-yield-finder";
+  | "solana-yield-finder"
+  // Satellite Data Services (NASA Earthdata + ESA Copernicus)
+  | "fire-alerts"
+  | "weather-imagery"
+  | "vegetation"
+  | "flood-detection"
+  | "air-quality"
+  | "land-use";
 
 /**
  * Type guard to check if a string is a valid ServiceName
@@ -156,6 +163,14 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   
   // VERTICAL EXPANSION - Solana DeFi Services (Dialect integration)
   "solana-yield-finder": 50000,        // $0.05 - Real-time Solana lending/yield rates via Dialect
+  
+  // SATELLITE DATA SERVICES (NASA Earthdata + ESA Copernicus)
+  "fire-alerts": 50000,                // $0.05 - NASA FIRMS active fire detection
+  "weather-imagery": 50000,            // $0.05 - NASA GIBS satellite imagery
+  "vegetation": 100000,                // $0.10 - NASA MODIS + ESA Sentinel-2 NDVI
+  "flood-detection": 100000,           // $0.10 - ESA Sentinel-1 SAR water detection
+  "air-quality": 50000,                // $0.05 - ESA Sentinel-5P TROPOMI air quality
+  "land-use": 150000,                  // $0.15 - NASA Landsat + ESA Sentinel-2 classification
 };
 
 /**
@@ -226,6 +241,14 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   
   // Solana DeFi vertical (Dialect integration)
   "solana-yield-finder": 0.05,
+  
+  // Satellite Data Services (NASA Earthdata + ESA Copernicus)
+  "fire-alerts": 0.05,
+  "weather-imagery": 0.05,
+  "vegetation": 0.10,
+  "flood-detection": 0.10,
+  "air-quality": 0.05,
+  "land-use": 0.15,
 };
 
 /**

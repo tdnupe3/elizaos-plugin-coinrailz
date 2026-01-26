@@ -1,0 +1,23 @@
+Developer Program: Yes – Otonomo launched a self-serve developer platform with open APIs and geofencing query tools. Developers or partners can sign up to access sample data and build applications (with billing plans for usage). This aligns closely with Coin Railz’s usage-based billing concept.
+
+Openness to Integration: Very strong on the enterprise side. Otonomo’s entire model is built on third-party integration: for example, Microsoft Maps uses Otonomo to enrich its services. They also integrate with AWS’s connected mobility solution. While Otonomo currently uses traditional billing, a pilot offering USDC micropayments for data queries (x402 payments) could be an enticing innovation for them to reach new customer segments or simplify cross-border transactions.
+
+Fleet Complete (Canada – Global Fleet Telematics): A major telematics and fleet management solution provider (now part of PowerFleet). Notably, Fleet Complete was an early telematics company to explore blockchain by joining BiTA in 2017.
+
+Data: Vehicle and asset telematics data – GPS tracking, engine diagnostics, driver behavior, etc. – from hundreds of thousands of vehicles worldwide. The platform is hardware-agnostic and integrates with many OEM systems and mobile apps.
+
+Contact: Fleet Complete has regional offices; partnership inquiries can be made via their website or LinkedIn. (No single email in sources, but being an established firm, they have a business dev team reachable through corporate contacts.)
+
+Developer Program: Fleet Complete offers a partner integration program and API/SDK for third parties. They have a marketplace of add-on apps, and documentation for custom integrations (e.g. fuel card data imports, IoT sensor add-ons).
+
+Openness to Integration: Moderate-to-high. Their CEO has publicly spoken about blockchain as “the future” for fleet transactions. By joining the Blockchain in Trucking Alliance, Fleet Complete signaled willingness to adopt new tech for payments and data sharing. A near-term pilot might involve using Coin Railz to enable instant payments for services (e.g. paying drivers or maintenance IoT devices) – aligning with Fleet Complete’s interest in “self-executing transactions… and immediate payments” in logistics. Given their scale, a pilot would require stakeholder buy-in but could quickly scale if successful.
+
+Decentralized Physical Infrastructure Networks (DePIN)
+
+Helium Network (USA/global – Decentralized Wireless): The largest decentralized wireless IoT network, known as “The People’s Network.” Helium uses community-hosted hotspots to provide LoRaWAN (IoT) and 5G cellular coverage, and rewards hosts in HNT tokens.
+
+Data: IoT device connectivity data – Helium carries sensor data (location pings, meter readings, etc.) for millions of IoT devices. Users (enterprises or hobbyists) purchase Data Credits (pegged to USD) to send data over the network. Essentially it monetizes network usage per packet.
+
+Contact: Helium encourages business use via its website: “Contact us to bring Helium to your business.”. Interested companies can also engage via the Helium Foundation (steward of the network) or Nova Labs (the company managing commercial efforts). The Helium Foundation site provides grants and has community channels for support.
+
+Developer Program: Open and thriving – Helium provides extensive documentation and open-source tools. There’s no gatekeeping: any developer can use the network by buying Data Credits. Helium has a console for IoT device onboarding and an API for network stats. They also run a Grants Program to fund integrations.

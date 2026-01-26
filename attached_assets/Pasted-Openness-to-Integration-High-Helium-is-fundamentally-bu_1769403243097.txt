@@ -1,0 +1,21 @@
+Openness to Integration: High. Helium is fundamentally built for external usage – e.g., companies like LoneStar tracking guardian dogs or cities deploying sensors have case studies on Helium. While Helium uses its own token/D.C. model, the fact that it’s decentralized and has an HTTP/mqtt integration means Coin Railz could potentially pilot stablecoin x402 payments as an alternative to Data Credits. Helium’s recent focus on enterprise (Helium Business, Helium “Plus” services) shows they are looking for new integration opportunities in the next 30-60 days and beyond.
+
+Hivemapper (USA/global – Decentralized Mapping): A drive-to-map platform where contributors use dashcams to build a real-time street-view map. Participants earn HONEY tokens, and map data users spend HONEY to query or use the maps.
+
+Data: Street-level imagery and map metadata (GPS traces, road features) from over 1 million km mapped in 40+ countries. The map updates in real-time as drivers contribute new imagery. Hivemapper offers this fresh geospatial data via its Bee Maps API for developers.
+
+Contact: General support is hi@hivemapper.com. For partnerships, Hivemapper’s spin-off Bee Maps site allows businesses to “Book a Demo,” implying openness to commercial inquiries. The non-profit Hivemapper Foundation also provides contact channels.
+
+Developer Program: Yes – Hivemapper provides developer tools and APIs (through Bee Maps) to access map tiles, geolocation services, and the Hivemapper data products. Developers need to use HONEY tokens to pay for map queries (e.g. fetching imagery or routes), effectively a usage-based crypto billing model. This aligns with Coin Railz’s micropayment approach.
+
+Openness to Integration: Very high. Hivemapper explicitly “builds with developers” in mind – their success relies on companies using the map instead of Google’s. They’ve touted that Lyft, NBCUniversal, Mapbox, Trimble and others trust their data. A pilot enabling multi-chain stablecoin payments for Hivemapper data (alongside HONEY) could interest them as it might broaden enterprise adoption. Hivemapper’s team is likely to engage quickly on integration that drives data utilization.
+
+NATIX Network (Germany – Camera/AI DePIN): A decentralized “internet of cameras” network that turns smartphones and cars into sensors collecting geospatial video data. NATIX focuses on enabling “Physical AI” – e.g., data for autonomous driving, smart cities – and rewards contributors in $NATIX tokens.
+
+Data: Crowdsourced street imagery and AI detections from drivers’ smartphone dashcam apps and Tesla cameras (via NATIX’s VX360 device). The network has mapped 1.9 million km in 170+ countries rapidly. NATIX provides use-case demos for things like mapping, traffic analysis, and AR/VR.
+
+Contact: NATIX engages the community through Discord and Telegram (support via carappsupport@natix.network for their device/app). For B2B data inquiries, their site invites you to “Explore our use cases” if “interested in NATIX data”, and one can assume direct outreach via their team (LinkedIn or the About page) is welcome.
+
+Developer Program: Under development – currently NATIX provides a coverage map and data console, plus an SDK (Drive& app) for collecting data. They have plans for APIs to allow developers to tap into the “camera network” data stream for applications like mapping, object detection, etc. The presence of a “Request data” option on their site suggests they are ready to work with pilot users of the data.
+
+Openness to Integration: High for pilot collaborations. NATIX has already partnered with companies like Valeo (a major auto parts firm) to leverage its camera data. The project being on Solana indicates they’re comfortable with crypto payments. A 30-60 day pilot using Coin Railz to facilitate payments for data tasks (or to reward users in stablecoins) could be mutually beneficial, as NATIX is actively expanding its ecosystem and incentivizing new use cases.

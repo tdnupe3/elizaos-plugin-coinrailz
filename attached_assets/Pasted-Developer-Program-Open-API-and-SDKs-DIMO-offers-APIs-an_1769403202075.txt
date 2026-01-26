@@ -1,0 +1,29 @@
+Developer Program: Open API and SDKs – DIMO offers APIs and a console for developers to integrate vehicle data. They launched a self-serve platform for third-party devs, with tools like webhooks and data ingestion servers for custom integrations.
+
+Openness to Integration: Very high. DIMO’s model centers on external developers subscribing to users’ data (with user consent). They even rolled out a program where developers pay for data subscriptions and users earn rewards – indicating immediate willingness to pilot usage-based payment schemes (potentially via Coin Railz’s crypto payment infrastructure).
+
+DriveChain (Germany – Automotive Blockchain Startup): A Web3 project focused on letting drivers and fleets monetize and verify vehicle data via blockchain. Currently in early launch (Indiegogo/backer phase).
+
+Data: Real-time vehicle metrics captured through OBD-II adapters or smartphones – e.g. driving behavior, mileage, maintenance records, CO₂ emissions. The data is stored on-chain, enabling tamper-proof logs and smart contracts (for usage-based services like insurance, tolls, etc.).
+
+Contact: [email protected] for info and partnerships. The project publicly provides this email and actively seeks collaborations.
+
+Developer/Partner Program: Not fully launched yet, but DriveChain emphasizes an open platform approach. They plan to issue a native token (DCT) and offer APIs for service providers (e.g. toll payments, parking, tax reporting) to integrate and trigger automated micropayments from vehicles.
+
+Openness to Integration: Strong. DriveChain explicitly markets itself as a way to “empower… service providers” with verified vehicle data. Given their stage, a 30–60 day pilot using Coin Railz’s payments for, say, pay-per-use insurance or maintenance payments, could be very attractive. The team’s public outreach for early adopters underscores this readiness.
+
+TruckPay (USA – Fleet Management with Crypto Payments): A fleet logistics platform (focused on industries like trucking, aggregates, recycling) that recently enabled cryptocurrency payments for fleet transactions.
+
+Data: Fleet operations data – digital tickets, load weights (via MyTruckScales), dispatch info, etc. – from trucks and job sites. TruckPay’s platform handles the end-to-end data of shipments and now the payments associated with those shipments.
+
+Contact: For demos or inquiries, Barry Honig (CEO) – [email protected] is provided. This indicates a direct line for partnership discussions.
+
+Developer Program: TruckPay is a closed platform for now, but its openness comes via multi-currency support and integrations. In 2020 they built a multi-metric, multi-lingual system; by 2021 they added Bitcoin, Ethereum, Stellar as payment options. This suggests an API or integration point for payment processing. They could potentially integrate stablecoin micropayments via an SDK.
+
+Openness to Integration: High, within its niche. TruckPay’s leadership explicitly noted crypto can help serve underbanked drivers in places like Latin America. This forward-looking stance means they’d likely welcome a pilot with Coin Railz to facilitate usage-based or on-demand payments (e.g. pay-per-load or equipment usage) using stablecoins – aligning with their multi-currency philosophy.
+
+Otonomo (Israel/USA – Automotive Data Marketplace): A leading vehicle data exchange platform that aggregates connected car data from many OEMs and provides it to service providers via a unified API. Otonomo effectively monetizes car data on behalf of automakers and drivers.
+
+Data: Connected car telemetry and sensor data from >50 million vehicles (as of recent counts) across 15+ OEM brands. This includes location, speed, EV battery status, and more, delivered through configurable APIs and a no-code query interface.
+
+Contact: [email protected] for general info. Otonomo’s website also has a self-serve sign-up for developers and a sales contact form.

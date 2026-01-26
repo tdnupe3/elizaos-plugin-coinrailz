@@ -1,0 +1,40 @@
+Potential Leads in Weather Data, Fleet Telematics, and DePIN Sectors
+Weather and Environmental Data Networks
+
+WeatherXM (Switzerland/Greece – Weather DePIN): A community-powered weather station network rewarding operators with $WXM tokens.
+
+Data: Crowdsourced hyperlocal weather observations (temperature, humidity, wind, etc.) from 9,500+ stations worldwide. WeatherXM offers a B2B API for integrating this data into other solutions.
+
+Contact: Public Data Partnerships form available on the website. Direct email: [email protected].
+
+Developer Program: WeatherXM Pro platform provides a REST API and console for partners (early access available). Also positioning as a Web3 weather oracle for blockchain apps.
+
+Openness to Integration: WeatherXM explicitly invites partners to “use our weather data” and join its Web3 ecosystem. The team has deployed thousands of stations via partnerships (e.g. SwissBorg), signaling readiness for pilot programs.
+
+PlanetWatch (France – Air Quality DePIN): A global decentralized network of air quality sensors on blockchain. Participants earn tokens by monitoring pollution.
+
+Data: Hyperlocal real-time air quality data (e.g. PM2.5, NO₂, CO₂ levels) from outdoor and indoor sensors across Europe, N. America, Asia, etc.. This data is sold to organizations for pollution tracking.
+
+Contact: business@planetwatch.io for business inquiries. The website provides “Contact Us – Business” links (leading to the above email).
+
+Developer/Partner Program: Offers a free demo of its data platform to interested parties. PlanetWatch emphasizes partnerships – for example, it partnered with UK firm Metrikus to integrate PlanetWatch’s air data into building management systems.
+
+Openness to Integration: Strong signals of collaboration – PlanetWatch’s CEO actively invites leverage of their “green data” and mentions that those seeing business opportunities can “contact us”. The network is now part of the Ambient ecosystem (a broader environmental DePIN alliance), showing interest in pilot programs that utilize its data.
+
+WeatherFlow–Tempest (USA – Commercial Weather IoT): A private-sector weather company with a large personal weather station network and proprietary forecasting tech. Sells the Tempest IoT weather stations and licenses data to enterprise.
+
+Data: High-resolution weather observations (rain, wind, lightning, etc.) from a global network of IoT stations, feeding into WeatherFlow’s Nearcast™ short-term forecast system. They generate a massive curated dataset for point-specific weather insights.
+
+Contact: [email protected] for inquiries. They also list offices in California and encourage businesses to reach out for solutions.
+
+Developer Program: Provides API services for third parties. WeatherFlow’s TempestOne platform is aimed at professional partners, offering API access and customized solutions for utilities, broadcasters, smart home partners, etc..
+
+Openness to Integration: The company actively courts integration partners – e.g. “Integrated Partners” and “Smart Home Partners” sections on their site. They appear on the U.S. National Weather Service’s list of approved private data providers, indicating readiness to monetize data. A potential pilot with WeatherFlow could leverage their usage-based APIs (they already support subscription models, which could be extended to micropayments).
+
+Fleet Telematics and Mobility Data Platforms
+
+DIMO (USA – Vehicle Data DePIN): A decentralized vehicle data platform enabling car owners to share and monetize their automotive telemetry. DIMO connects to 50+ car brands and rewards users with tokens for streaming data.
+
+Data: Connected car data (location, speed, fuel/Battery status, diagnostics, etc.) aggregated from user vehicles in real time. Developers can access this via open APIs to build mobility applications.
+
+Contact: No single email listed, but DIMO has an active developer hub and Discord community. Partnerships often via their website’s inquiry forms or through dev channels. (In 2025, DIMO partnered with DLP Labs to help users monetize data via an AI marketplace.)

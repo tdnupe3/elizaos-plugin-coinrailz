@@ -240,6 +240,30 @@ router.get('/fire-alerts', satellitePaymentMiddleware('sat_fire_alerts'), async 
 
     const days = Math.min(parseInt(req.query.days as string) || 1, 10);
     
+    // Demo mode returns SAMPLE data only - not real NASA data
+    if (isDemo) {
+      return res.json({
+        success: true,
+        paymentId,
+        isDemo: true,
+        demoNotice: "This is SAMPLE data showing API response structure. Purchase credits or pay via x402 for real NASA data.",
+        data: {
+          fires: [
+            { lat: 34.05, lon: -118.25, brightness: 325.4, confidence: 85, satellite: "VIIRS_SNPP", acqDate: "SAMPLE", acqTime: "SAMPLE" },
+            { lat: 34.12, lon: -118.30, brightness: 312.1, confidence: 72, satellite: "VIIRS_SNPP", acqDate: "SAMPLE", acqTime: "SAMPLE" }
+          ],
+          count: 2,
+          source: "SAMPLE DATA - Not Real",
+          dataDate: "SAMPLE",
+          bbox: { west: -125, south: 24, east: -66, north: 50 },
+          days: 1,
+        },
+        product: { id: product.id, name: product.name, price: `$${product.priceUsd}` },
+        poweredBy: 'NASA FIRMS (Sample)',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const data = await satelliteDataService.getFireAlerts(bbox.data, days);
 
     res.json({
@@ -291,6 +315,30 @@ router.get('/weather-imagery', satellitePaymentMiddleware('sat_weather_imagery')
 
     const layer = (req.query.layer as string) || 'MODIS_Terra_CorrectedReflectance_TrueColor';
     
+    // Demo mode returns SAMPLE data only - not real NASA imagery
+    if (isDemo) {
+      return res.json({
+        success: true,
+        paymentId,
+        isDemo: true,
+        demoNotice: "This is SAMPLE data showing API response structure. Purchase credits or pay via x402 for real NASA imagery.",
+        data: {
+          imageUrl: "SAMPLE_URL - Pay to access real NASA GIBS imagery",
+          thumbnailUrl: "SAMPLE_URL - Pay to access real thumbnails",
+          timestamp: new Date().toISOString(),
+          satellite: "MODIS Terra (Sample)",
+          resolution: "250m",
+          location: location.data,
+          layer,
+          bbox: { west: -76, south: 38.7, east: -72, north: 42.7 }
+        },
+        product: { id: product.id, name: product.name, price: `$${product.priceUsd}` },
+        availableLayers: satelliteDataService.getGIBSLayers().map(l => ({ id: l.id, name: l.name, category: l.category })),
+        poweredBy: 'NASA GIBS (Sample)',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const data = await satelliteDataService.getWeatherImagery(
       location.data.lat,
       location.data.lon,
@@ -350,6 +398,29 @@ router.get('/vegetation', satellitePaymentMiddleware('sat_vegetation_health'), a
       });
     }
 
+    // Demo mode returns SAMPLE data only
+    if (isDemo) {
+      return res.json({
+        success: true,
+        paymentId,
+        isDemo: true,
+        demoNotice: "This is SAMPLE data showing API response structure. Purchase credits or pay via x402 for real satellite data.",
+        data: {
+          ndvi: 0.65,
+          evi: 0.52,
+          healthStatus: "healthy",
+          trend: "stable",
+          areaKm2: "SAMPLE",
+          timestamp: new Date().toISOString(),
+          source: "SAMPLE DATA - Not Real",
+          bbox: bbox.data
+        },
+        product: { id: product.id, name: product.name, price: `$${product.priceUsd}/km²` },
+        poweredBy: 'NASA MODIS + ESA Sentinel-2 (Sample)',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const data = await satelliteDataService.getVegetationHealth(bbox.data);
 
     res.json({
@@ -399,6 +470,28 @@ router.get('/flood-detection', satellitePaymentMiddleware('sat_flood_monitoring'
       });
     }
 
+    // Demo mode returns SAMPLE data only
+    if (isDemo) {
+      return res.json({
+        success: true,
+        paymentId,
+        isDemo: true,
+        demoNotice: "This is SAMPLE data showing API response structure. Purchase credits or pay via x402 for real flood detection data.",
+        data: {
+          waterExtentKm2: "SAMPLE",
+          floodRisk: "moderate",
+          changeFromBaseline: "SAMPLE",
+          affectedAreaPercent: 12.5,
+          timestamp: new Date().toISOString(),
+          source: "SAMPLE DATA - Not Real",
+          bbox: bbox.data
+        },
+        product: { id: product.id, name: product.name, price: `$${product.priceUsd}` },
+        poweredBy: 'ESA Sentinel-1 SAR (Sample)',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const data = await satelliteDataService.getFloodDetection(bbox.data);
 
     res.json({
@@ -443,6 +536,31 @@ router.get('/air-quality', satellitePaymentMiddleware('sat_air_quality'), async 
         success: false,
         error: 'Invalid location',
         details: location.error.errors,
+      });
+    }
+
+    // Demo mode returns SAMPLE data only
+    if (isDemo) {
+      return res.json({
+        success: true,
+        paymentId,
+        isDemo: true,
+        demoNotice: "This is SAMPLE data showing API response structure. Purchase credits or pay via x402 for real air quality data.",
+        data: {
+          aqi: 75,
+          quality: "Moderate",
+          no2: "SAMPLE",
+          o3: "SAMPLE",
+          so2: "SAMPLE",
+          co: "SAMPLE",
+          pm25_estimate: "SAMPLE",
+          timestamp: new Date().toISOString(),
+          source: "SAMPLE DATA - Not Real",
+          location: location.data
+        },
+        product: { id: product.id, name: product.name, price: `$${product.priceUsd}` },
+        poweredBy: 'ESA Sentinel-5P TROPOMI (Sample)',
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -495,6 +613,27 @@ router.get('/land-use', satellitePaymentMiddleware('sat_land_use'), async (req: 
         success: false,
         error: 'Invalid bounding box',
         details: bbox.error.errors,
+      });
+    }
+
+    // Demo mode returns SAMPLE data only
+    if (isDemo) {
+      return res.json({
+        success: true,
+        paymentId,
+        isDemo: true,
+        demoNotice: "This is SAMPLE data showing API response structure. Purchase credits or pay via x402 for real land use classification.",
+        data: {
+          classes: { urban: "SAMPLE", forest: "SAMPLE", agriculture: "SAMPLE", water: "SAMPLE", barren: "SAMPLE" },
+          dominantType: "mixed",
+          accuracy: "SAMPLE",
+          timestamp: new Date().toISOString(),
+          source: "SAMPLE DATA - Not Real",
+          bbox: bbox.data
+        },
+        product: { id: product.id, name: product.name, price: `$${product.priceUsd}/km²` },
+        poweredBy: 'NASA Landsat + ESA Sentinel-2 (Sample)',
+        timestamp: new Date().toISOString(),
       });
     }
 

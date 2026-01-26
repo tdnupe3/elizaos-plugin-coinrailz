@@ -161,7 +161,7 @@ router.get('/catalog', async (req: Request, res: Response) => {
           sampleResponse: p.sampleResponse,
         })),
         totalProducts: products.length,
-        categories: [...new Set(products.map(p => p.category))],
+        categories: Array.from(new Set(products.map(p => p.category))),
         dataSources: {
           nasa: {
             name: 'NASA Earthdata',

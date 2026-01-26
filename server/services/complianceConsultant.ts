@@ -217,7 +217,7 @@ export async function generateComplianceReport(request: ComplianceRequest): Prom
     overallRisk,
     riskScore,
     findings,
-    recommendations: [...new Set(recommendations)], // Deduplicate
+    recommendations: Array.from(new Set(recommendations)), // Deduplicate
     requiredLicenses: licenses,
     regulatoryFrameworks: frameworks,
     nextSteps,

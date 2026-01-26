@@ -745,7 +745,7 @@ export class XMTPMessagingService {
       discoveredAgents.push(...xmtpCapableAgents);
       
       // Remove duplicates
-      const uniqueAgents = [...new Set(discoveredAgents)];
+      const uniqueAgents = Array.from(new Set(discoveredAgents));
       
       console.log(`✅ XMTP Network Discovery Complete:`);
       console.log(`📊 Total discovered XMTP-capable agents: ${uniqueAgents.length}`);

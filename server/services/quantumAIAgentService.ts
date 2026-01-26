@@ -235,7 +235,7 @@ P.S. We're particularly interested in quantum advantage demonstrations in financ
     const available = this.quantumAgents.filter(a => a.available).length;
     const highPriority = this.quantumAgents.filter(a => a.urgency === 'high').length;
     const allSpecializations = this.quantumAgents.flatMap(a => a.specialization);
-    const uniqueSpecializations = [...new Set(allSpecializations)];
+    const uniqueSpecializations = Array.from(new Set(allSpecializations));
 
     return {
       totalAgents: this.quantumAgents.length,

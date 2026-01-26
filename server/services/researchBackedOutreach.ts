@@ -150,7 +150,7 @@ export class ResearchBackedOutreach {
             sessionData.qualificationStatus = messageData.qualificationStatus;
           }
           if (messageData.objections && Array.isArray(messageData.objections)) {
-            sessionData.objections = [...new Set([...sessionData.objections, ...messageData.objections])];
+            sessionData.objections = Array.from(new Set([...sessionData.objections, ...messageData.objections]));
           }
           if (messageData.businessPotential && messageData.businessPotential !== 'low') {
             sessionData.businessPotential = messageData.businessPotential;
@@ -1286,7 +1286,7 @@ export class ResearchBackedOutreach {
       }
     }
     
-    return [...new Set(objections)]; // Remove duplicates
+    return Array.from(new Set(objections)); // Remove duplicates
   }
   
   private async triggerHumanFollowUp(session: OutreachSession): Promise<void> {

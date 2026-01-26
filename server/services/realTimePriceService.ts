@@ -144,7 +144,7 @@ export class RealTimePriceService {
     const prices: { [symbol: string]: number } = {};
     
     // Get unique CoinGecko IDs
-    const coinGeckoIds = [...new Set(symbols.map(s => this.TOKEN_ID_MAP[s.toUpperCase()]).filter(id => id))];
+    const coinGeckoIds = Array.from(new Set(symbols.map(s => this.TOKEN_ID_MAP[s.toUpperCase()]).filter(id => id)));
     
     if (coinGeckoIds.length === 0) {
       return prices;

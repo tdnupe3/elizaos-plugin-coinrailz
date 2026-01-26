@@ -286,7 +286,7 @@ export class CustomerSupportService {
       tags.push('urgent');
     }
 
-    return [...new Set(tags)]; // Remove duplicates
+    return Array.from(new Set(tags)); // Remove duplicates
   }
 
   /**

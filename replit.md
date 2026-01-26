@@ -52,7 +52,15 @@ Coin Railz utilizes a USDC-first strategy, leveraging Coinbase CDP for wallet ma
   - Seller credits for device owners.
   - Product discovery via catalog.
   - API Routes: `/api/iot/products/*`, `/api/iot/data/*`, `/api/iot/catalog`, `/api/iot/sales/*`.
-- **IoT Vertical Landing Pages**: `/fleet` (Fleet Telematics), `/weather` (Weather Data), `/iot/dashboard` (IoT Dashboard), `/credits/proof` (Credits Ledger Proof).
+- **Satellite Data Integration v1.0.0**: Production-grade x402-protected satellite data APIs powered by NASA Earthdata and ESA Copernicus:
+  - 6 Data Products: Fire Alerts ($0.05), Weather Imagery ($0.02), Vegetation Health ($0.10/km²), Flood Detection ($0.08), Air Quality ($0.05), Land Use ($0.15/km²).
+  - Data Sources: NASA GIBS, FIRMS, MODIS, Landsat; ESA Sentinel-1/2/5P (pending configuration).
+  - x402 Payment Verification: Uses hybridPaymentMiddleware for proper payment validation.
+  - Demo Mode: Environment-gated via SATELLITE_DEMO_MODE or NODE_ENV.
+  - API Routes: `/api/satellite/*` (catalog, status, layers, fire-alerts, weather-imagery, vegetation, flood-detection, air-quality, land-use).
+  - Landing Page: `/satellite` with space-themed UI, product showcase, and API reference.
+  - Strategic positioning: "Powered by NASA & ESA" for fundraising appeal with 100% margin on free data.
+- **IoT Vertical Landing Pages**: `/fleet` (Fleet Telematics), `/weather` (Weather Data), `/satellite` (Satellite Data), `/iot/dashboard` (IoT Dashboard), `/credits/proof` (Credits Ledger Proof).
 - **IoT Partner & Sales Tools**: `/partners` (Partner Program), `/integrate` (Integration Guide), `/admin/pilots` (Pilot Tracking CRM), `/case-studies` (Case Studies).
 - **IoT Operations & Onboarding**: `/iot` (IoT Hub), `/iot/analytics` (Analytics Dashboard), `/pilot/onboard` (Pilot Onboarding).
 - **Pilot Credits Purchase**: `/pilots/buy` with multi-payment support:

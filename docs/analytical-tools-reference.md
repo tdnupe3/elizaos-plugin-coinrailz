@@ -52,6 +52,47 @@ GROUP BY api_key_hash
 ORDER BY total_volume DESC LIMIT 10;
 ```
 
+### Endpoint Hit Tracking (NEW - Jan 2026)
+| Table | Purpose | Key Columns |
+|-------|---------|-------------|
+| `endpoint_hits` | All x402/IoT endpoint visits from outreach campaigns | endpoint, endpoint_type, resource_id, ip_hash, user_agent, wallet_address, method, status_code, response_time_ms, campaign_id, tracking_id, created_at |
+
+**Endpoint Hit Tracking** captures all visits to x402 and IoT endpoints, specifically designed to track responses from the on-chain outreach campaign (68 unique wallets contacted).
+
+**Example Hit Tracking Queries:**
+```sql
+-- Daily hit summary (last 7 days)
+SELECT DATE(created_at) as date,
+       COUNT(*) as total_hits,
+       COUNT(DISTINCT ip_hash) as unique_visitors,
+       COUNT(DISTINCT user_agent) as unique_agents
+FROM endpoint_hits
+WHERE created_at >= NOW() - INTERVAL '7 days'
+GROUP BY DATE(created_at)
+ORDER BY date DESC;
+
+-- AI agent identification (look for GPT, Claude, Eliza in user agents)
+SELECT user_agent, COUNT(*) as hits, MAX(created_at) as last_seen
+FROM endpoint_hits
+WHERE created_at >= NOW() - INTERVAL '7 days'
+GROUP BY user_agent
+ORDER BY hits DESC LIMIT 20;
+
+-- Track which endpoints are getting hit
+SELECT endpoint, endpoint_type, COUNT(*) as hits,
+       AVG(response_time_ms) as avg_response_ms
+FROM endpoint_hits
+WHERE created_at >= NOW() - INTERVAL '24 hours'
+GROUP BY endpoint, endpoint_type
+ORDER BY hits DESC;
+
+-- Campaign attribution (if tracking_id present)
+SELECT tracking_id, COUNT(*) as hits, COUNT(DISTINCT wallet_address) as unique_wallets
+FROM endpoint_hits
+WHERE tracking_id IS NOT NULL
+GROUP BY tracking_id;
+```
+
 ### Additional Tracking Tables
 | Table | Purpose | Key Columns |
 |-------|---------|-------------|
@@ -368,15 +409,37 @@ curl -s "https://coinrailz.com/api/x402-analytics/service/ping?days=7"
 
 ## Monitoring Checklist
 
-When asked to "use all analytical tools":
+When asked to "use all analytical tools" or perform daily checks:
 1. Run `refresh_all_logs` to get latest server activity
 2. Query `x402_interactions` for recent service requests
 3. Query `x402_payment_intents` for payment data
-4. Check unique user agents for new discovery bots
-5. Verify discovery endpoints are responding correctly
-6. Check for any error patterns in logs
-7. Use `/api/x402-analytics/hot-leads` to find potential customers
-8. Compare period-over-period metrics for trends
+4. **Query `endpoint_hits` for outreach campaign responses** (NEW)
+5. Check unique user agents for new discovery bots or AI agents
+6. Verify discovery endpoints are responding correctly
+7. Check for any error patterns in logs
+8. Use `/api/x402-analytics/hot-leads` to find potential customers
+9. Compare period-over-period metrics for trends
+
+### Quick Hit Tracking Check (Run Daily)
+```sql
+-- Check for new AI agent visits from outreach campaign
+SELECT 
+  COUNT(*) as total_hits,
+  COUNT(DISTINCT ip_hash) as unique_visitors,
+  COUNT(DISTINCT user_agent) as unique_agents,
+  COUNT(DISTINCT wallet_address) FILTER (WHERE wallet_address IS NOT NULL) as wallets_seen
+FROM endpoint_hits
+WHERE created_at >= NOW() - INTERVAL '24 hours';
+
+-- Identify AI agent user agents (key targets)
+SELECT user_agent, COUNT(*) as hits
+FROM endpoint_hits
+WHERE created_at >= NOW() - INTERVAL '7 days'
+  AND (user_agent ILIKE '%gpt%' OR user_agent ILIKE '%claude%' 
+       OR user_agent ILIKE '%eliza%' OR user_agent ILIKE '%agent%'
+       OR user_agent ILIKE '%bot%' OR user_agent ILIKE '%ai%')
+GROUP BY user_agent ORDER BY hits DESC;
+```
 
 ---
-Last Updated: December 20, 2025
+Last Updated: January 26, 2026

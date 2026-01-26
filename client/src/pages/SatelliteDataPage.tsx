@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,11 +20,32 @@ import {
   Eye,
   Database,
   Lock,
-  Code
+  Code,
+  Play,
+  RefreshCw,
+  ExternalLink,
+  CreditCard,
+  Wallet
 } from "lucide-react";
 
 export default function SatelliteDataPage() {
   const [, setLocation] = useLocation();
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [selectedPreview, setSelectedPreview] = useState<string | null>(null);
+
+  const fetchPreview = async (productId: string, endpoint: string) => {
+    setPreviewLoading(true);
+    setSelectedPreview(productId);
+    try {
+      const res = await fetch(`${endpoint}?demo=true`);
+      const data = await res.json();
+      setPreviewData(data);
+    } catch (err) {
+      setPreviewData({ error: "Failed to fetch preview" });
+    }
+    setPreviewLoading(false);
+  };
 
   useSEO({
     title: "Satellite Data APIs | NASA & ESA Space Intelligence | Coin Railz",
@@ -393,6 +415,197 @@ export default function SatelliteDataPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="mb-16">
+          <h2 className="text-2xl font-bold text-white text-center mb-8">
+            <Play className="w-6 h-6 inline mr-2 text-green-400" />
+            Live Preview - Try Before You Buy
+          </h2>
+          <Card className="bg-white/5 border-white/10 backdrop-blur">
+            <CardContent className="pt-6">
+              <p className="text-white/70 text-center mb-6">
+                Click any product below to see a live demo response. This is exactly what your API calls will return.
+              </p>
+              <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+                <Button
+                  variant={selectedPreview === 'fire' ? 'default' : 'outline'}
+                  className={selectedPreview === 'fire' ? 'bg-orange-600' : 'border-white/20 text-white hover:bg-white/10'}
+                  onClick={() => fetchPreview('fire', '/api/satellite/fire-alerts')}
+                  disabled={previewLoading}
+                >
+                  <Flame className="w-4 h-4 mr-2" />
+                  Fire Alerts
+                </Button>
+                <Button
+                  variant={selectedPreview === 'weather' ? 'default' : 'outline'}
+                  className={selectedPreview === 'weather' ? 'bg-blue-600' : 'border-white/20 text-white hover:bg-white/10'}
+                  onClick={() => fetchPreview('weather', '/api/satellite/weather-imagery')}
+                  disabled={previewLoading}
+                >
+                  <CloudSun className="w-4 h-4 mr-2" />
+                  Weather
+                </Button>
+                <Button
+                  variant={selectedPreview === 'vegetation' ? 'default' : 'outline'}
+                  className={selectedPreview === 'vegetation' ? 'bg-green-600' : 'border-white/20 text-white hover:bg-white/10'}
+                  onClick={() => fetchPreview('vegetation', '/api/satellite/vegetation?lat=40&lon=-74&radius=10')}
+                  disabled={previewLoading}
+                >
+                  <Leaf className="w-4 h-4 mr-2" />
+                  Vegetation
+                </Button>
+                <Button
+                  variant={selectedPreview === 'flood' ? 'default' : 'outline'}
+                  className={selectedPreview === 'flood' ? 'bg-cyan-600' : 'border-white/20 text-white hover:bg-white/10'}
+                  onClick={() => fetchPreview('flood', '/api/satellite/flood-detection?lat=29.5&lon=-95&radius=50')}
+                  disabled={previewLoading}
+                >
+                  <Droplets className="w-4 h-4 mr-2" />
+                  Flood
+                </Button>
+                <Button
+                  variant={selectedPreview === 'air' ? 'default' : 'outline'}
+                  className={selectedPreview === 'air' ? 'bg-purple-600' : 'border-white/20 text-white hover:bg-white/10'}
+                  onClick={() => fetchPreview('air', '/api/satellite/air-quality?lat=40&lon=-74')}
+                  disabled={previewLoading}
+                >
+                  <Wind className="w-4 h-4 mr-2" />
+                  Air Quality
+                </Button>
+                <Button
+                  variant={selectedPreview === 'land' ? 'default' : 'outline'}
+                  className={selectedPreview === 'land' ? 'bg-amber-600' : 'border-white/20 text-white hover:bg-white/10'}
+                  onClick={() => fetchPreview('land', '/api/satellite/land-use?lat=37.5&lon=-122.25&radius=25')}
+                  disabled={previewLoading}
+                >
+                  <Map className="w-4 h-4 mr-2" />
+                  Land Use
+                </Button>
+              </div>
+              
+              {previewLoading && (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="w-6 h-6 text-indigo-400 animate-spin" />
+                  <span className="ml-3 text-white/70">Fetching live data...</span>
+                </div>
+              )}
+              
+              {previewData && !previewLoading && (
+                <div className="bg-black/40 rounded-lg p-4 overflow-auto max-h-96">
+                  <div className="flex items-center justify-between mb-3">
+                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                      Live Demo Response
+                    </Badge>
+                    {previewData.data?.imageUrl && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-indigo-400 hover:text-indigo-300"
+                        onClick={() => window.open(previewData.data.imageUrl, '_blank')}
+                      >
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        View Image
+                      </Button>
+                    )}
+                  </div>
+                  <pre className="text-sm text-green-400 font-mono whitespace-pre-wrap">
+                    {JSON.stringify(previewData, null, 2)}
+                  </pre>
+                </div>
+              )}
+              
+              {!previewData && !previewLoading && (
+                <div className="text-center py-8 text-white/50">
+                  Click a product button above to see a live preview
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mb-16">
+          <h2 className="text-2xl font-bold text-white text-center mb-8">
+            How to Pay - Choose Your Method
+          </h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card className="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border-indigo-500/30">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-3">
+                  <CreditCard className="w-6 h-6 text-indigo-400" />
+                  Prepaid Credits
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-white/70 mb-4">
+                  Best for developers and enterprises. Buy credits upfront and use an API key for simple authentication.
+                </p>
+                <ul className="space-y-2 mb-4">
+                  <li className="flex items-center gap-2 text-white/80">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    Simple API key authentication
+                  </li>
+                  <li className="flex items-center gap-2 text-white/80">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    Pay with card or crypto
+                  </li>
+                  <li className="flex items-center gap-2 text-white/80">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    Usage dashboard & tracking
+                  </li>
+                  <li className="flex items-center gap-2 text-white/80">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    Volume discounts available
+                  </li>
+                </ul>
+                <Button 
+                  className="w-full bg-indigo-600 hover:bg-indigo-700"
+                  onClick={() => setLocation('/pilots/buy')}
+                >
+                  Buy Credits Package
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-cyan-600/20 to-blue-600/20 border-cyan-500/30">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-3">
+                  <Wallet className="w-6 h-6 text-cyan-400" />
+                  x402 Micropayments
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-white/70 mb-4">
+                  Best for AI agents and autonomous systems. Pay-per-call with on-chain USDC - no account needed.
+                </p>
+                <ul className="space-y-2 mb-4">
+                  <li className="flex items-center gap-2 text-white/80">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    Machine-readable HTTP 402
+                  </li>
+                  <li className="flex items-center gap-2 text-white/80">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    No onboarding required
+                  </li>
+                  <li className="flex items-center gap-2 text-white/80">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    Pay with USDC on Base chain
+                  </li>
+                  <li className="flex items-center gap-2 text-white/80">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    Perfect for agent-to-API calls
+                  </li>
+                </ul>
+                <Button 
+                  variant="outline"
+                  className="w-full border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10"
+                  onClick={() => window.open('/api/satellite/fire-alerts', '_blank')}
+                >
+                  See x402 Response Format
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         <div className="mb-16">

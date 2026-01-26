@@ -881,6 +881,34 @@ router.get('/pilot-credits/crypto-status/:paymentId', async (req, res) => {
       return res.status(404).json({ error: 'Payment not found' });
     }
 
+    // For completed payments, check if API key already exists to avoid key sprawl on polling
+    // We use the dedicated generatedApiKeyPrefix column for idempotent key generation
+    let apiKey: string | undefined;
+    let keyPrefix: string | undefined;
+    if (payment.status === 'completed' && payment.userId) {
+      if (!payment.generatedApiKeyPrefix) {
+        // First poll after completion - generate new key and store prefix
+        try {
+          const keyResult = await creditsService.generateApiKey(payment.userId, `Pilot Credits - Crypto`);
+          apiKey = keyResult.apiKey;
+          keyPrefix = keyResult.keyPrefix;
+          
+          // Store the key prefix to prevent duplicate generation on subsequent polls
+          await db.update(pilotCreditsPayments)
+            .set({ generatedApiKeyPrefix: keyPrefix })
+            .where(eq(pilotCreditsPayments.id, paymentId));
+            
+          console.log(`🔑 Auto-generated crypto API key for user ${payment.userId}: ${keyPrefix}...`);
+        } catch (keyError: any) {
+          console.log(`⚠️ API key generation for crypto user ${payment.userId}:`, keyError.message);
+        }
+      } else {
+        // Key already generated - return prefix only (raw key can't be retrieved after first poll)
+        keyPrefix = payment.generatedApiKeyPrefix;
+        console.log(`🔑 Returning existing key prefix for crypto payment: ${keyPrefix}...`);
+      }
+    }
+
     res.json({
       success: true,
       paymentId: payment.id,
@@ -894,6 +922,9 @@ router.get('/pilot-credits/crypto-status/:paymentId', async (req, res) => {
       credits: payment.credits,
       expiresAt: payment.expiresAt,
       failureReason: payment.failureReason,
+      userId: payment.userId,
+      apiKey,
+      keyPrefix,
     });
   } catch (error: any) {
     console.error('Crypto status check error:', error);

@@ -6290,6 +6290,7 @@ export const pilotCreditsPayments = pgTable(
     lastCheckedAt: timestamp("last_checked_at"),
     nextCheckAt: timestamp("next_check_at"),
     failureReason: varchar("failure_reason"),
+    generatedApiKeyPrefix: varchar("generated_api_key_prefix"), // Stores prefix of auto-generated API key (prevents duplicate generation)
     expiresAt: timestamp("expires_at").notNull(), // 30 min TTL for pending payments
     createdAt: timestamp("created_at").defaultNow().notNull(),
     completedAt: timestamp("completed_at"),

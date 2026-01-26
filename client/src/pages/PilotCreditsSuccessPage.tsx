@@ -83,12 +83,26 @@ export default function PilotCreditsSuccessPage() {
 
         if (data.status === 'completed') {
           if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+          
+          // Auto-store API key for seamless future use (crypto payments)
+          // Only store and toast if apiKey is provided (first poll after completion)
+          // Subsequent polls only get keyPrefix, so we skip storage
+          if (data.apiKey && data.keyPrefix && !hasStoredApiKey()) {
+            storeApiKey(data.apiKey, data.keyPrefix, data.userId);
+            toast({
+              title: "API Key Saved!",
+              description: "Your API key is now automatically included in all API calls."
+            });
+          }
+          
           setResult({
             success: true,
             credits: data.credits,
             amount: parseFloat(data.expectedAmount || '0'),
             tierId: 'crypto',
-            transactionId: paymentId
+            transactionId: paymentId,
+            apiKey: data.apiKey,
+            keyPrefix: data.keyPrefix
           });
           toast({
             title: "Payment Confirmed!",

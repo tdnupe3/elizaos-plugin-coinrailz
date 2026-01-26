@@ -18,6 +18,7 @@ import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
+import { trackX402Catalog, trackX402Service } from '../middleware/hitTracker';
 
 const router = express.Router();
 
@@ -32,6 +33,9 @@ const x402RateLimiter = rateLimit({
 
 // Apply rate limiting to all x402 routes
 router.use(x402RateLimiter);
+
+// Apply hit tracking to x402 routes
+router.use(trackX402Service);
 
 // Validation schemas
 const createPaymentSchema = z.object({

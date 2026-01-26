@@ -2,8 +2,9 @@ import type { Express } from "express";
 import { isAuthenticated } from "../replitAuth";
 import { db } from "../db";
 import { microserviceRequests } from "@shared/schema";
-import { gte, desc } from "drizzle-orm";
+import { gte, desc, sql } from "drizzle-orm";
 import { getUsageStats, detectSDK } from "../middleware/usageAnalyticsMiddleware";
+import { getHitStats } from "../middleware/hitTracker";
 
 interface PerformanceMetric {
   name: string;
@@ -29,6 +30,54 @@ const maxMetrics = 10000;
 const maxErrors = 5000;
 
 export function setupAnalyticsRoutes(app: Express) {
+  // Endpoint Hit Stats - tracks x402 and IoT endpoint visits
+  app.get("/api/analytics/hits", async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 7;
+      const endpointType = req.query.type as string;
+      
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const stats = await getHitStats({ 
+        endpointType, 
+        since,
+        limit: 20 
+      });
+      
+      res.json({
+        success: true,
+        period: `Last ${days} days`,
+        ...stats
+      });
+    } catch (error) {
+      console.error("Error getting hit stats:", error);
+      res.status(500).json({ error: "Failed to retrieve hit stats" });
+    }
+  });
+
+  // Recent hits for monitoring
+  app.get("/api/analytics/hits/recent", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+      
+      const hits = await db.execute(sql`
+        SELECT endpoint, endpoint_type, resource_id, user_agent, 
+               wallet_address, method, status_code, response_time_ms, created_at
+        FROM endpoint_hits
+        ORDER BY created_at DESC
+        LIMIT ${limit}
+      `);
+      
+      res.json({
+        success: true,
+        count: hits.rows.length,
+        hits: hits.rows
+      });
+    } catch (error) {
+      console.error("Error getting recent hits:", error);
+      res.status(500).json({ error: "Failed to retrieve recent hits" });
+    }
+  });
+
   // Store performance metrics
   app.post("/api/analytics/metrics", async (req, res) => {
     try {

@@ -35,10 +35,14 @@ import {
 } from '../../shared/schema';
 import { eq, and, sql, desc, or } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { trackIoTEndpoint } from '../middleware/hitTracker';
 
 const MAX_UNITS_PER_PURCHASE = 100;
 
 const router = Router();
+
+// Apply hit tracking to IoT A2D routes
+router.use(trackIoTEndpoint);
 
 const A2D_PLATFORM_FEE = 0.15;
 const DATA_ACCESS_TOKEN_EXPIRY_MINUTES = 15;

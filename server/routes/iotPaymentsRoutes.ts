@@ -36,6 +36,7 @@ import { nanoid } from 'nanoid';
 import rateLimit from 'express-rate-limit';
 import Stripe from 'stripe';
 import { CoinbaseCDPService } from '../services/coinbaseCDPService';
+import { trackIoTEndpoint } from '../middleware/hitTracker';
 import {
   iotAccounts,
   iotDeviceRegistry,
@@ -72,6 +73,9 @@ const iotRateLimiter = rateLimit({
 });
 
 router.use(iotRateLimiter);
+
+// Apply hit tracking to IoT payment routes
+router.use(trackIoTEndpoint);
 
 interface IoTAuthResult {
   valid: boolean;

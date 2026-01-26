@@ -6320,3 +6320,47 @@ export const pilotCreditsPaymentsInsertSchema = createInsertSchema(pilotCreditsP
 export type PilotCreditsPayment = typeof pilotCreditsPayments.$inferSelect;
 export type InsertPilotCreditsPayment = z.infer<typeof pilotCreditsPaymentsInsertSchema>;
 
+// Endpoint Hit Tracking - tracks all hits to x402 and IoT endpoints
+// Valuable for understanding which agents/devices are viewing which services
+export const endpointHits = pgTable(
+  "endpoint_hits",
+  {
+    id: serial("id").primaryKey(),
+    endpoint: varchar("endpoint").notNull(), // e.g., /x402/catalog, /api/iot/products/fleet-001
+    endpointType: varchar("endpoint_type").notNull(), // x402, iot, catalog, service
+    resourceId: varchar("resource_id"), // device ID, service name, etc.
+    
+    // Visitor identification (what we can capture)
+    ipHash: varchar("ip_hash"), // Hashed IP for privacy
+    userAgent: varchar("user_agent"), // AI agents often identify themselves
+    referer: varchar("referer"), // Where they came from
+    walletAddress: varchar("wallet_address"), // If provided in headers/params
+    
+    // Request metadata
+    method: varchar("method").default("GET"), // GET, POST, etc.
+    statusCode: integer("status_code"), // Response status
+    responseTimeMs: integer("response_time_ms"), // How long the request took
+    
+    // Tracking context
+    campaignId: varchar("campaign_id"), // If from our outreach campaign
+    trackingId: varchar("tracking_id"), // x402 tracking ID if present
+    
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_endpoint_hits_endpoint").on(table.endpoint),
+    index("IDX_endpoint_hits_type").on(table.endpointType),
+    index("IDX_endpoint_hits_resource").on(table.resourceId),
+    index("IDX_endpoint_hits_created").on(table.createdAt),
+    index("IDX_endpoint_hits_wallet").on(table.walletAddress),
+    index("IDX_endpoint_hits_useragent").on(table.userAgent),
+  ],
+);
+
+export const endpointHitsInsertSchema = createInsertSchema(endpointHits).omit({
+  id: true,
+  createdAt: true,
+});
+export type EndpointHit = typeof endpointHits.$inferSelect;
+export type InsertEndpointHit = z.infer<typeof endpointHitsInsertSchema>;
+

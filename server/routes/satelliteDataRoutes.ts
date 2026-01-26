@@ -26,11 +26,15 @@
  * - Land Use: $0.15/km²
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { satelliteDataService, SATELLITE_DATA_PRODUCTS } from '../services/satelliteDataService';
 import { trackX402Service } from '../middleware/hitTracker';
+import { hybridPaymentMiddleware } from '../middleware/hybridPaymentMiddleware';
 import { nanoid } from 'nanoid';
+
+// Demo mode only enabled in development unless explicitly overridden
+const DEMO_MODE_ENABLED = process.env.SATELLITE_DEMO_MODE === 'true' || process.env.NODE_ENV !== 'production';
 
 const router = Router();
 
@@ -82,19 +86,58 @@ function generateX402PaymentRequired(product: typeof SATELLITE_DATA_PRODUCTS[0],
   };
 }
 
-function verifyX402Payment(req: Request): { verified: boolean; paymentId?: string } {
-  const paymentHeader = req.headers['x-payment'] as string;
-  const paymentProof = req.headers['x-payment-proof'] as string;
+/**
+ * Check if demo mode is allowed for this request.
+ * Demo mode is only enabled in development or when SATELLITE_DEMO_MODE=true
+ */
+function isDemoModeAllowed(req: Request): boolean {
+  if (!DEMO_MODE_ENABLED) return false;
+  return req.query.demo === 'true' || req.headers['x-demo-mode'] === 'true';
+}
+
+/**
+ * Check if request has any payment credentials (API key or x-payment header)
+ */
+function hasPaymentCredentials(req: Request): boolean {
+  const xApiKey = req.headers["x-api-key"] as string | undefined;
+  const authHeader = req.headers["authorization"] as string | undefined;
+  const xPayment = req.headers["x-payment"] as string | undefined;
+  const xInternalAuth = req.headers["x-internal-auth"] as string | undefined;
   
-  if (paymentHeader || paymentProof) {
-    return { verified: true, paymentId: `sat_pay_${nanoid(12)}` };
-  }
-  
-  if (req.query.demo === 'true' || req.headers['x-demo-mode'] === 'true') {
-    return { verified: true, paymentId: `demo_${nanoid(8)}` };
-  }
-  
-  return { verified: false };
+  return !!(xApiKey || authHeader?.startsWith("Bearer ") || xPayment || xInternalAuth);
+}
+
+/**
+ * Middleware that checks for demo mode or valid payment credentials.
+ * For paid endpoints, this ensures proper x402 payment verification.
+ * Returns 402 with x402 payment info if no valid payment method is provided.
+ */
+function satellitePaymentMiddleware(productId: string) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    // Check if demo mode is allowed and requested
+    if (isDemoModeAllowed(req)) {
+      // Tag request as demo for downstream handlers
+      (req as any).paymentVerified = true;
+      (req as any).paymentId = `demo_${nanoid(8)}`;
+      (req as any).isDemo = true;
+      return next();
+    }
+    
+    // Get the product for pricing
+    const product = SATELLITE_DATA_PRODUCTS.find(p => p.id === productId);
+    if (!product) {
+      return res.status(500).json({ error: 'Product configuration error' });
+    }
+    
+    // If no payment credentials, return 402 with x402 payment info
+    if (!hasPaymentCredentials(req)) {
+      return res.status(402).json(generateX402PaymentRequired(product, req));
+    }
+    
+    // Has payment credentials - use hybrid payment middleware for verification
+    // This validates API keys, EIP-712 signatures, and on-chain transactions
+    return hybridPaymentMiddleware(req, res, next);
+  };
 }
 
 router.get('/catalog', async (req: Request, res: Response) => {
@@ -173,14 +216,11 @@ router.get('/status', async (req: Request, res: Response) => {
   });
 });
 
-router.get('/fire-alerts', async (req: Request, res: Response) => {
+router.get('/fire-alerts', satellitePaymentMiddleware('sat_fire_alerts'), async (req: Request, res: Response) => {
   try {
     const product = SATELLITE_DATA_PRODUCTS.find(p => p.id === 'sat_fire_alerts')!;
-    const payment = verifyX402Payment(req);
-    
-    if (!payment.verified) {
-      return res.status(402).json(generateX402PaymentRequired(product, req));
-    }
+    const paymentId = (req as any).paymentId || `pay_${nanoid(12)}`;
+    const isDemo = (req as any).isDemo || false;
 
     const bbox = bboxSchema.safeParse({
       west: req.query.west || req.query.bbox?.toString().split(',')[0] || -125,
@@ -204,7 +244,8 @@ router.get('/fire-alerts', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      paymentId: payment.paymentId,
+      paymentId,
+      isDemo,
       data: {
         ...data,
         bbox: bbox.data,
@@ -228,14 +269,11 @@ router.get('/fire-alerts', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/weather-imagery', async (req: Request, res: Response) => {
+router.get('/weather-imagery', satellitePaymentMiddleware('sat_weather_imagery'), async (req: Request, res: Response) => {
   try {
     const product = SATELLITE_DATA_PRODUCTS.find(p => p.id === 'sat_weather_imagery')!;
-    const payment = verifyX402Payment(req);
-    
-    if (!payment.verified) {
-      return res.status(402).json(generateX402PaymentRequired(product, req));
-    }
+    const paymentId = (req as any).paymentId || `pay_${nanoid(12)}`;
+    const isDemo = (req as any).isDemo || false;
 
     const location = locationSchema.safeParse({
       lat: req.query.lat || 40.7128,
@@ -261,7 +299,8 @@ router.get('/weather-imagery', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      paymentId: payment.paymentId,
+      paymentId,
+      isDemo,
       data: {
         ...data,
         location: location.data,
@@ -290,14 +329,11 @@ router.get('/weather-imagery', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/vegetation', async (req: Request, res: Response) => {
+router.get('/vegetation', satellitePaymentMiddleware('sat_vegetation_health'), async (req: Request, res: Response) => {
   try {
     const product = SATELLITE_DATA_PRODUCTS.find(p => p.id === 'sat_vegetation_health')!;
-    const payment = verifyX402Payment(req);
-    
-    if (!payment.verified) {
-      return res.status(402).json(generateX402PaymentRequired(product, req));
-    }
+    const paymentId = (req as any).paymentId || `pay_${nanoid(12)}`;
+    const isDemo = (req as any).isDemo || false;
 
     const bbox = bboxSchema.safeParse({
       west: req.query.west || -122.5,
@@ -318,7 +354,8 @@ router.get('/vegetation', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      paymentId: payment.paymentId,
+      paymentId,
+      isDemo,
       data: {
         ...data,
         bbox: bbox.data,
@@ -341,14 +378,11 @@ router.get('/vegetation', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/flood-detection', async (req: Request, res: Response) => {
+router.get('/flood-detection', satellitePaymentMiddleware('sat_flood_monitoring'), async (req: Request, res: Response) => {
   try {
     const product = SATELLITE_DATA_PRODUCTS.find(p => p.id === 'sat_flood_monitoring')!;
-    const payment = verifyX402Payment(req);
-    
-    if (!payment.verified) {
-      return res.status(402).json(generateX402PaymentRequired(product, req));
-    }
+    const paymentId = (req as any).paymentId || `pay_${nanoid(12)}`;
+    const isDemo = (req as any).isDemo || false;
 
     const bbox = bboxSchema.safeParse({
       west: req.query.west || -95.5,
@@ -369,7 +403,8 @@ router.get('/flood-detection', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      paymentId: payment.paymentId,
+      paymentId,
+      isDemo,
       data: {
         ...data,
         bbox: bbox.data,
@@ -392,14 +427,11 @@ router.get('/flood-detection', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/air-quality', async (req: Request, res: Response) => {
+router.get('/air-quality', satellitePaymentMiddleware('sat_air_quality'), async (req: Request, res: Response) => {
   try {
     const product = SATELLITE_DATA_PRODUCTS.find(p => p.id === 'sat_air_quality')!;
-    const payment = verifyX402Payment(req);
-    
-    if (!payment.verified) {
-      return res.status(402).json(generateX402PaymentRequired(product, req));
-    }
+    const paymentId = (req as any).paymentId || `pay_${nanoid(12)}`;
+    const isDemo = (req as any).isDemo || false;
 
     const location = locationSchema.safeParse({
       lat: req.query.lat || 34.0522,
@@ -421,7 +453,8 @@ router.get('/air-quality', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      paymentId: payment.paymentId,
+      paymentId,
+      isDemo,
       data: {
         ...data,
         location: location.data,
@@ -444,14 +477,11 @@ router.get('/air-quality', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/land-use', async (req: Request, res: Response) => {
+router.get('/land-use', satellitePaymentMiddleware('sat_land_use'), async (req: Request, res: Response) => {
   try {
     const product = SATELLITE_DATA_PRODUCTS.find(p => p.id === 'sat_land_use')!;
-    const payment = verifyX402Payment(req);
-    
-    if (!payment.verified) {
-      return res.status(402).json(generateX402PaymentRequired(product, req));
-    }
+    const paymentId = (req as any).paymentId || `pay_${nanoid(12)}`;
+    const isDemo = (req as any).isDemo || false;
 
     const bbox = bboxSchema.safeParse({
       west: req.query.west || -122.5,
@@ -472,7 +502,8 @@ router.get('/land-use', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      paymentId: payment.paymentId,
+      paymentId,
+      isDemo,
       data: {
         ...data,
         bbox: bbox.data,

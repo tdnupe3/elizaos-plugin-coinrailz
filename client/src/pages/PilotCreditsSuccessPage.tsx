@@ -23,6 +23,8 @@ interface PurchaseResult {
   userId?: string;
   balance?: number;
   transactionId?: string;
+  apiKey?: string;
+  keyPrefix?: string;
 }
 
 interface CryptoStatus {
@@ -295,6 +297,47 @@ export default function PilotCreditsSuccessPage() {
           </CardContent>
         </Card>
 
+        {result?.apiKey && (
+          <Card className="bg-emerald-900/30 border-emerald-500/50 mb-6">
+            <CardHeader>
+              <CardTitle className="text-emerald-400 flex items-center gap-2">
+                <Zap className="w-5 h-5" />
+                Your API Key (Ready to Use!)
+              </CardTitle>
+              <CardDescription className="text-slate-300">
+                This key is automatically generated and linked to your credits. Save it securely - you'll need it to access satellite and IoT data APIs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-slate-900/80 rounded-lg p-4 font-mono text-sm break-all">
+                <div className="flex items-center justify-between gap-4">
+                  <code className="text-emerald-300 flex-1">{result.apiKey}</code>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopy(result.apiKey!, "API Key")}
+                    className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/20 flex-shrink-0"
+                  >
+                    <Copy className="w-4 h-4 mr-1" />
+                    Copy
+                  </Button>
+                </div>
+              </div>
+              <p className="text-amber-400/80 text-sm mt-3 flex items-center gap-2">
+                <span className="text-lg">⚠️</span>
+                Save this key now! For security, we cannot show it again.
+              </p>
+              <div className="mt-4 p-3 bg-slate-700/30 rounded-lg">
+                <p className="text-slate-300 text-sm font-medium mb-2">Quick Start:</p>
+                <code className="text-xs text-slate-400 block">
+                  curl -H "X-API-Key: {result.apiKey?.slice(0, 15)}..." \<br/>
+                  &nbsp;&nbsp;https://coinrailz.com/api/satellite/fire-alerts
+                </code>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="bg-slate-800/50 border-slate-700 mb-6">
           <CardHeader>
             <CardTitle className="text-white">Next Steps</CardTitle>
@@ -309,9 +352,11 @@ export default function PilotCreditsSuccessPage() {
                   <span className="text-emerald-400 font-bold">1</span>
                 </div>
                 <div>
-                  <h3 className="text-white font-medium mb-1">Complete Onboarding</h3>
+                  <h3 className="text-white font-medium mb-1">{result?.apiKey ? "Copy Your API Key (Above)" : "Get Your API Key"}</h3>
                   <p className="text-slate-400 text-sm">
-                    Set up your company profile and get your API keys
+                    {result?.apiKey 
+                      ? "Your API key is ready to use - copy it from the green box above" 
+                      : "Visit the dashboard to generate your API key"}
                   </p>
                 </div>
               </div>
@@ -320,9 +365,9 @@ export default function PilotCreditsSuccessPage() {
                   <span className="text-blue-400 font-bold">2</span>
                 </div>
                 <div>
-                  <h3 className="text-white font-medium mb-1">Integrate the API</h3>
+                  <h3 className="text-white font-medium mb-1">Make Your First API Call</h3>
                   <p className="text-slate-400 text-sm">
-                    Use our SDK or REST API to query IoT device data
+                    Add X-API-Key header to access satellite, fleet, or weather data
                   </p>
                 </div>
               </div>
@@ -331,9 +376,9 @@ export default function PilotCreditsSuccessPage() {
                   <span className="text-amber-400 font-bold">3</span>
                 </div>
                 <div>
-                  <h3 className="text-white font-medium mb-1">Start Querying</h3>
+                  <h3 className="text-white font-medium mb-1">Monitor Usage</h3>
                   <p className="text-slate-400 text-sm">
-                    Your AI agents can now access fleet and weather data
+                    Track your credit balance and API usage in the dashboard
                   </p>
                 </div>
               </div>
@@ -343,10 +388,10 @@ export default function PilotCreditsSuccessPage() {
 
         <div className="flex flex-col sm:flex-row gap-4">
           <Button 
-            onClick={() => setLocation("/pilot/onboard")}
+            onClick={() => setLocation("/satellite")}
             className="flex-1 bg-emerald-600 hover:bg-emerald-700"
           >
-            Complete Onboarding
+            Explore Satellite APIs
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
           <Button 

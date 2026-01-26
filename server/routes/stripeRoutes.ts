@@ -710,6 +710,19 @@ router.post('/pilot-credits/confirm', async (req, res) => {
 
       console.log(`✅ Pilot credits added: $${credits} to user ${userId} (session: ${sessionId})`);
 
+      // Auto-generate API key for minimal friction
+      let apiKey: string | undefined;
+      let keyPrefix: string | undefined;
+      try {
+        const keyResult = await creditsService.generateApiKey(userId, `Pilot Credits - ${tierId}`);
+        apiKey = keyResult.apiKey;
+        keyPrefix = keyResult.keyPrefix;
+        console.log(`🔑 Auto-generated API key for user ${userId}: ${keyPrefix}...`);
+      } catch (keyError: any) {
+        console.warn(`⚠️ Failed to auto-generate API key for ${userId}:`, keyError.message);
+        // Continue without API key - user can generate later
+      }
+
       res.json({
         success: true,
         credits,
@@ -717,11 +730,26 @@ router.post('/pilot-credits/confirm', async (req, res) => {
         tierId,
         userId,
         balance,
-        transactionId: result.transactionId
+        transactionId: result.transactionId,
+        apiKey,
+        keyPrefix
       });
     } catch (creditsError: any) {
       if (creditsError.message?.includes('Idempotency')) {
         const balance = await unifiedCreditsService.getBalance('user', userId);
+        
+        // Try to get or generate API key even on idempotent retries
+        let apiKey: string | undefined;
+        let keyPrefix: string | undefined;
+        try {
+          const keyResult = await creditsService.generateApiKey(userId, `Pilot Credits - ${tierId}`);
+          apiKey = keyResult.apiKey;
+          keyPrefix = keyResult.keyPrefix;
+        } catch (keyError: any) {
+          // Already has key or generation failed - user can get from dashboard
+          console.log(`⚠️ Idempotent API key generation for ${userId}:`, keyError.message);
+        }
+        
         return res.json({
           success: true,
           credits,
@@ -729,6 +757,8 @@ router.post('/pilot-credits/confirm', async (req, res) => {
           tierId,
           userId,
           balance,
+          apiKey,
+          keyPrefix,
           message: 'Credits already added for this session'
         });
       }

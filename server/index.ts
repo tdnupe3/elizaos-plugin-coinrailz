@@ -90,6 +90,7 @@ import mcpServiceDiscoveryRoutes from './routes/mcpServiceDiscovery';
 import iotPaymentsRoutes from './routes/iotPaymentsRoutes';
 import a2dPaymentsRoutes from './routes/a2dPaymentsRoutes';
 import unifiedCreditsRoutes from './routes/unifiedCreditsRoutes';
+import satelliteDataRoutes from './routes/satelliteDataRoutes';
 import { createBazaarDiscoveryRouter, initializeBazaarDiscovery, isBazaarDiscoveryEnabled } from './discovery/bazaarRegistrar';
 import fastRevenueRoutes from './routes/fastRevenueRoutes.js';
 import stripePaymentRoutes from './routes/stripePaymentRoutes.js';
@@ -860,6 +861,12 @@ console.log('✅ A2D payment routes registered - AI agents can now buy IoT data 
 console.log('💰 Registering Unified Credits routes...');
 app.use('/api/credits/unified', unifiedCreditsRoutes);
 console.log('✅ Unified Credits routes registered at /api/credits/unified/*');
+
+// === SATELLITE DATA APIs ===
+// NASA Earthdata + ESA Copernicus integration - x402-protected space data
+console.log('🛰️ Registering Satellite Data routes...');
+app.use('/api/satellite', satelliteDataRoutes);
+console.log('✅ Satellite Data routes registered at /api/satellite/* (Powered by NASA & ESA)');
 
 // === x402 PROTOCOL SERVICES (MICROSERVICES + GATED ENTERPRISE SERVICES) ===
 // CRITICAL FIX: Mount more specific /x402/service BEFORE general /x402 route

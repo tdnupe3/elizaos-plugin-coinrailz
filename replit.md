@@ -78,6 +78,8 @@ Coin Railz utilizes a USDC-first strategy, leveraging Coinbase CDP for wallet ma
 - **Demo Data Isolation**: `isDemo` flag for `iot_accounts` and `iot_device_registry` tables to separate demo data from production metrics.
 - **CDP v1 to v2 Migration**: Migration from `@coinbase/coinbase-sdk` (v1) to `@coinbase/cdp-sdk` (v2) for shared wallet operations.
 - **Production Hardening**: Stripe webhook handles IoT payment topups.
+- **DEV_LITE_MODE**: Development optimization for Vite HMR stability. Skips heavy service initialization (Discord bot, XMTP client, outreach orchestrators) in development. Set `DEV_FULL_SERVICES=true` to enable all services. Key files: `server/buildModeDetection.ts`, `server/services/automatedOutreach.ts`, `server/services/realAgentOutreach.ts`, `server/services/xmtpMessagingService.ts`.
+- **Landing Page IoT Section**: Homepage now includes IoT/Satellite data value proposition with navigation links to `/satellite`, `/fleet`, `/weather`, `/iot` and pilot credits CTA.
 
 ## External Dependencies
 - **Coinbase CDP:** Wallet creation, management, and transaction execution.

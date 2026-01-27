@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import sgMail from '@sendgrid/mail';
 import { CoinbaseCDPService } from './coinbaseCDPService';
 import { campaignTemplateService, CampaignType } from './campaignTemplateService';
+import { DEV_LITE_MODE } from '../buildModeDetection';
 
 export interface XMTPMessage {
   id: string;
@@ -41,6 +42,13 @@ export class XMTPMessagingService {
   private constructor() {
     XMTPMessagingService.initializationCount++;
     console.log(`🔧 XMTPMessagingService instantiation #${XMTPMessagingService.initializationCount}`);
+    // Skip heavy XMTP initialization in DEV_LITE_MODE to keep Vite HMR stable
+    if (DEV_LITE_MODE) {
+      console.log('🧪 XMTPMessagingService: Skipping XMTP client init in DEV_LITE_MODE');
+      this.cdpService = CoinbaseCDPService.getInstance();
+      this.initialized = true; // Mark as initialized to prevent retry
+      return;
+    }
     this.cdpService = CoinbaseCDPService.getInstance();
     this.initPromise = this.initialize();
   }
@@ -306,6 +314,20 @@ export class XMTPMessagingService {
     agentId?: string,
     productId?: string
   ): Promise<XMTPMessage> {
+    // Guard: Return disabled response in DEV_LITE_MODE
+    if (DEV_LITE_MODE) {
+      console.log('🧪 XMTPMessagingService.sendMessageToAgent: Skipped in DEV_LITE_MODE');
+      return {
+        id: `dev_lite_${Date.now()}`,
+        content: message,
+        timestamp: new Date().toISOString(),
+        senderAddress: 'dev-lite-mode',
+        conversationId: `dev_lite_${agentWalletAddress}`,
+        status: 'failed',
+        reason: 'XMTP disabled in DEV_LITE_MODE'
+      };
+    }
+    
     // Ensure service is ready before attempting send
     await this.ensureReady();
     

@@ -2,6 +2,7 @@ import { XMTPMessagingService } from './xmtpMessagingService';
 import { onChainMessagingService } from './onchainMessagingService';
 import { VERIFIED_AGENT_TARGETS, AGENT_SOCIAL_CONTACTS } from './verifiedAgentTargets';
 import { Client, GatewayIntentBits } from 'discord.js';
+import { DEV_LITE_MODE } from '../buildModeDetection';
 
 interface OutreachResult {
   agent: string;
@@ -16,11 +17,17 @@ interface OutreachResult {
 }
 
 export class RealAgentOutreach {
-  private xmtpService: XMTPMessagingService;
+  private xmtpService: XMTPMessagingService | null = null;
   private discordClient: Client | null = null;
   private discordReady = false;
+  private devLiteMode = false;
 
   constructor() {
+    if (DEV_LITE_MODE) {
+      console.log('🧪 RealAgentOutreach: Skipping heavy services in DEV_LITE_MODE');
+      this.devLiteMode = true;
+      return;
+    }
     this.xmtpService = XMTPMessagingService.getInstance();
     this.initializeDiscord();
   }
@@ -67,6 +74,21 @@ export class RealAgentOutreach {
       manual_contact_required: number;
     };
   }> {
+    // Guard: Return empty results in DEV_LITE_MODE
+    if (this.devLiteMode) {
+      console.log('🧪 RealAgentOutreach.messageDiscoveredAgents: Skipped in DEV_LITE_MODE');
+      return {
+        results: [],
+        summary: {
+          total_agents: 0,
+          xmtp_attempted: 0,
+          xmtp_successful: 0,
+          xmtp_failed: 0,
+          manual_contact_required: 0
+        }
+      };
+    }
+    
     console.log('🚀 Starting REAL outreach to discovered AI agents...');
     
     const results: OutreachResult[] = [];

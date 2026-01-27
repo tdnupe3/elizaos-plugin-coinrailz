@@ -526,6 +526,109 @@ export default function Landing() {
             </div>
           </div>
 
+          {/* IOT & SATELLITE DATA SECTION - DEVICE DATA MONETIZATION */}
+          <div className="mb-12 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 rounded-2xl p-8 text-white">
+            <div className="text-center mb-8">
+              <div className="flex justify-center mb-4">
+                <div className="bg-white/10 rounded-full p-4">
+                  <Globe className="w-12 h-12 text-cyan-400" />
+                </div>
+              </div>
+              <h2 className="text-3xl font-bold mb-3">IoT & Satellite Data Payments</h2>
+              <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-4">
+                Production-grade device payment infrastructure. AI agents pay IoT devices for data via x402 micropayments.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+                <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/50">Powered by NASA Earthdata</Badge>
+                <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/50">ESA Copernicus</Badge>
+                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/50">Multi-Chain USDC</Badge>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <Link href="/satellite">
+                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="bg-cyan-500/20 rounded-lg p-2">
+                        <Globe className="w-5 h-5 text-cyan-400" />
+                      </div>
+                      <CardTitle className="text-white text-base">Satellite Data</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-300 text-sm mb-2">Fire alerts, weather imagery, vegetation health</p>
+                    <Badge className="bg-green-500/20 text-green-300">From $0.02/call</Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/fleet">
+                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="bg-orange-500/20 rounded-lg p-2">
+                        <Activity className="w-5 h-5 text-orange-400" />
+                      </div>
+                      <CardTitle className="text-white text-base">Fleet Telematics</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-300 text-sm mb-2">Vehicle tracking, fuel analytics, route optimization</p>
+                    <Badge className="bg-green-500/20 text-green-300">From $0.01/event</Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/weather">
+                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="bg-blue-500/20 rounded-lg p-2">
+                        <Network className="w-5 h-5 text-blue-400" />
+                      </div>
+                      <CardTitle className="text-white text-base">Weather Stations</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-300 text-sm mb-2">Real-time environmental sensor data feeds</p>
+                    <Badge className="bg-green-500/20 text-green-300">From $0.005/reading</Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/iot">
+                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="bg-purple-500/20 rounded-lg p-2">
+                        <Zap className="w-5 h-5 text-purple-400" />
+                      </div>
+                      <CardTitle className="text-white text-base">IoT Hub</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-300 text-sm mb-2">Device registry, credits system, D2D transfers</p>
+                    <Badge className="bg-green-500/20 text-green-300">Full Dashboard</Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
+
+            <div className="text-center">
+              <Link href="/pilots/buy">
+                <Button 
+                  className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-8 py-4 text-lg font-medium shadow-lg"
+                  size="lg"
+                >
+                  <CreditCard className="w-5 h-5 mr-2" />
+                  Purchase Pilot Credits - From $500
+                </Button>
+              </Link>
+              <p className="text-sm text-gray-400 mt-3">Multi-payment: Stripe card + Crypto USDC/USDT on Base, Polygon, Arbitrum</p>
+            </div>
+          </div>
+
           {/* Streamlined Core Features - Only Working Features */}
           <div className="text-center mb-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Full Platform Features</h2>

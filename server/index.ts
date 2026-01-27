@@ -13,7 +13,7 @@ import { setupVite, serveStatic } from "./vite";
 import { setupSimpleRoutes } from "./simpleRoutes";
 
 // CRITICAL: Import nuclear build mode detection
-import { DISABLE_BACKGROUND_SERVICES } from './buildModeDetection';
+import { DISABLE_BACKGROUND_SERVICES, DISABLE_HEAVY_SERVICES, DEV_LITE_MODE } from './buildModeDetection';
 import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogicRoutes";
 // NOTE: Heavy background services moved to lazy imports in post-listen block:
 // - initializeAutomatedOutreach -> dynamically imported
@@ -3955,9 +3955,10 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   console.log('🤖 Initializing Telegram Trading Bot...');
   console.log('✅ Telegram Trading Bot ready');
   
-  // 🚨 EMERGENCY REVENUE GENERATION MODE 🚨
-  if (!DISABLE_BACKGROUND_SERVICES) {
-    console.log('💰 EMERGENCY: Re-enabling ZERO-COST outreach for immediate revenue generation');
+  // 🚨 HEAVY SERVICES - DISABLED IN DEV LITE MODE FOR STABLE VITE HMR 🚨
+  // These services (Discord, XMTP, discovery, outreach) block the event loop during init
+  if (!DISABLE_HEAVY_SERVICES) {
+    console.log('💰 PRODUCTION: Enabling full outreach and discovery services');
     console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
     console.log(`${process.env.SOLANA_PRIVATE_KEY ? '✅' : '❌'} SOL transactions: ${process.env.SOLANA_PRIVATE_KEY ? 'ENABLED' : 'DISABLED'}`);
     
@@ -3988,7 +3989,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
         console.log('✅ Emergency outreach orchestrator started');
       }).catch(err => console.error('❌ Failed to initialize automated outreach:', err));
       
-      console.log('🎯 EMERGENCY ZERO-COST REVENUE GENERATION ACTIVE');
+      console.log('🎯 PRODUCTION REVENUE GENERATION ACTIVE');
       console.log('📞 Targeting trading bot operators, AI developers, profitable traders');
       console.log('💳 Payment systems ready for immediate revenue collection');
       
@@ -4000,8 +4001,12 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       }).catch(err => console.error('❌ Failed to bootstrap A2A failover:', err));
       
     } catch (error) {
-      console.error('❌ Failed to initialize emergency outreach:', error);
+      console.error('❌ Failed to initialize production outreach:', error);
     }
+  } else if (DEV_LITE_MODE) {
+    console.log('🧪 DEV LITE: Heavy services (Discord/XMTP/Discovery/Outreach) disabled for stable HMR');
+    console.log('   Core APIs and payment routes are still functional');
+    console.log('   Set DEV_FULL_SERVICES=true to enable all services');
   } else {
     console.log('🚫 BUILD MODE: All revenue generation services disabled');
   }

@@ -3,10 +3,13 @@ import { XMTPMessagingService } from './xmtpMessagingService.js';
 import { Client as DiscordClient, GatewayIntentBits, EmbedBuilder } from 'discord.js';
 import { db } from '../db';
 import { outreachLogs } from '../../shared/schema';
+import { DEV_LITE_MODE } from '../buildModeDetection';
 
 /**
  * AUTOMATED OUTREACH SERVICE - REAL CAMPAIGNS USING ACTUAL APIS
  * Uses Discord Bot, Telegram Bot, and XMTP for immediate outreach
+ * 
+ * DEV LITE MODE: In development, these services are disabled to keep Vite HMR stable.
  */
 export class AutomatedOutreachService {
   private telegramBot?: TelegramBot;
@@ -14,6 +17,10 @@ export class AutomatedOutreachService {
   private xmtpService?: XMTPMessagingService;
 
   constructor() {
+    if (DEV_LITE_MODE) {
+      console.log('🧪 AutomatedOutreachService: Skipping in DEV_LITE_MODE');
+      return;
+    }
     this.initializeServices();
   }
 

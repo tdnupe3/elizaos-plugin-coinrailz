@@ -76,20 +76,6 @@ export default function Landing() {
     setLocation("/p2p-transfer");
   };
 
-  // Network stats completely removed to prevent excessive API calls
-  const networkStats = {
-    success: true,
-    networkStats: {
-      totalAgents: 150,
-      activeAgents: 85,
-      totalTransactions: 2847,
-      transactionVolume: "$1.2M",
-      platformFees: "$4,800",
-      networkHealth: 0.95,
-      supportedCurrencies: ["USD", "BTC", "ETH", "USDT"]
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Top Navigation Bar */}
@@ -438,11 +424,6 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Coinbase Integration Section - Positioned right after demo mode */}
-          <div className="mb-12">
-            <CoinbaseConnectionSection />
-          </div>
-
           {/* 18 x402 SERVICES PRICING - REVENUE DRIVER */}
           <div className="text-center mb-12">
             <div className="mb-8">
@@ -720,55 +701,17 @@ export default function Landing() {
             </Card>
           </div>
 
-          {/* Success Stories & Trust Signals */}
-          <div className="text-center space-y-6 mb-12">
-            <h2 className="text-3xl font-bold text-gray-900">Trusted by Global Users</h2>
-            <p className="text-lg text-gray-600 mb-8">Join thousands sending money and trading crypto worldwide</p>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <Card className="text-center">
-                <CardHeader>
-                  <div className="text-3xl font-bold text-green-600">$1.2M+</div>
-                  <CardTitle className="text-lg">Transaction Volume</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600">Processed securely</p>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center">
-                <CardHeader>
-                  <div className="text-3xl font-bold text-blue-600">2,847</div>
-                  <CardTitle className="text-lg">Global Transfers</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600">Completed successfully</p>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center">
-                <CardHeader>
-                  <div className="text-3xl font-bold text-purple-600">95%</div>
-                  <CardTitle className="text-lg">Success Rate</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600">Network uptime</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="mt-6">
-              <Link href="/contact-us">
-                <Button 
-                  variant="outline"
-                  className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-3 text-base font-medium"
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  Get Support
-                </Button>
-              </Link>
-            </div>
-
+          {/* Support Section */}
+          <div className="text-center mb-12">
+            <Link href="/contact-us">
+              <Button 
+                variant="outline"
+                className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-3 text-base font-medium"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Get Support
+              </Button>
+            </Link>
           </div>
 
           {/* Key Benefits */}
@@ -906,69 +849,41 @@ export default function Landing() {
               </Card>
             </div>
 
-            {/* Live Network Statistics */}
-            {networkStats && (
-              <Card className="border-purple-200 bg-purple-50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-xl text-purple-800">
-                    <Network className="w-6 h-6" />
-                    Live Marketplace Statistics
-                    <Badge className="ml-2 bg-purple-100 text-purple-800">Real-time</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
-                    <div className="bg-white border border-purple-200 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-purple-700">{networkStats.networkStats?.totalAgents || 0}</div>
-                      <div className="text-sm text-purple-600">AI Agents</div>
+            {/* How AI Marketplace Works */}
+            <Card className="border-purple-200 bg-purple-50">
+              <CardContent className="pt-6">
+                <div className="bg-white border border-purple-200 rounded-lg p-4">
+                  <h4 className="font-medium text-purple-900 mb-3">How It Works</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
+                    <div>
+                      <span className="font-medium text-purple-800">1. Browse:</span>
+                      <span className="text-purple-700"> Find the perfect AI agent for your needs</span>
                     </div>
-                    <div className="bg-white border border-purple-200 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-green-700">{networkStats.networkStats?.activeAgents || 0}</div>
-                      <div className="text-sm text-green-600">Available Now</div>
+                    <div>
+                      <span className="font-medium text-purple-800">2. Hire:</span>
+                      <span className="text-purple-700"> Place order with secure escrow payment</span>
                     </div>
-                    <div className="bg-white border border-purple-200 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-blue-700">{networkStats.networkStats?.totalTransactions || 0}</div>
-                      <div className="text-sm text-blue-600">Jobs Completed</div>
+                    <div>
+                      <span className="font-medium text-purple-800">3. Receive:</span>
+                      <span className="text-purple-700"> Get your work delivered on time</span>
                     </div>
-                    <div className="bg-white border border-purple-200 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-orange-700">24/7</div>
-                      <div className="text-sm text-orange-600">Support</div>
+                    <div>
+                      <span className="font-medium text-purple-800">4. Pay:</span>
+                      <span className="text-purple-700"> Release payment when satisfied</span>
                     </div>
                   </div>
-
-                  <div className="mt-6 bg-white border border-purple-200 rounded-lg p-4">
-                    <h4 className="font-medium text-purple-900 mb-3">How It Works</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
-                      <div>
-                        <span className="font-medium text-purple-800">1. Browse:</span>
-                        <span className="text-purple-700"> Find the perfect AI agent for your needs</span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-purple-800">2. Hire:</span>
-                        <span className="text-purple-700"> Place order with secure escrow payment</span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-purple-800">3. Receive:</span>
-                        <span className="text-purple-700"> Get your work delivered on time</span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-purple-800">4. Pay:</span>
-                        <span className="text-purple-700"> Release payment when satisfied</span>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <Button 
-                        onClick={() => setLocation("/ai-marketplace")}
-                        className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 text-lg font-medium"
-                      >
-                        <Bot className="w-5 h-5 mr-2" />
-                        Explore AI Marketplace
-                      </Button>
-                    </div>
+                  <div className="text-center">
+                    <Button 
+                      onClick={() => setLocation("/ai-marketplace")}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 text-lg font-medium"
+                    >
+                      <Bot className="w-5 h-5 mr-2" />
+                      Explore AI Marketplace
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Coinbase Integration Section */}

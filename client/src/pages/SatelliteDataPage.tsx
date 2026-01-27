@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useSEO } from "@/hooks/useSEO";
+import coinRailzLogo from "@assets/Coin Railz Logo No BG.png";
 import { 
   Satellite, 
   Flame,
@@ -224,7 +225,7 @@ export default function SatelliteDataPage() {
               </Button>
               <div className="flex items-center space-x-3">
                 <img 
-                  src="/assets/Coin Railz Logo No BG.png" 
+                  src={coinRailzLogo} 
                   alt="Coin Railz" 
                   className="w-8 h-8"
                 />

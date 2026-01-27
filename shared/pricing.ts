@@ -72,7 +72,13 @@ export type ServiceName =
   | "vegetation"
   | "flood-detection"
   | "air-quality"
-  | "land-use";
+  | "land-use"
+  // IoT/DePIN Services (Device Data Monetization)
+  | "fleet-telematics"
+  | "weather-station-data"
+  | "iot-sensor-reading"
+  | "iot-device-stream"
+  | "iot-bulk-data";
 
 /**
  * Type guard to check if a string is a valid ServiceName
@@ -171,6 +177,13 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   "flood-detection": 100000,           // $0.10 - ESA Sentinel-1 SAR water detection
   "air-quality": 50000,                // $0.05 - ESA Sentinel-5P TROPOMI air quality
   "land-use": 150000,                  // $0.15 - NASA Landsat + ESA Sentinel-2 classification
+  
+  // IoT/DePIN VERTICAL - Device Data Monetization
+  "fleet-telematics": 100000,          // $0.10 - GPS, fuel, driver behavior
+  "weather-station-data": 50000,       // $0.05 - Temperature, humidity, pressure
+  "iot-sensor-reading": 25000,         // $0.025 - Single sensor reading
+  "iot-device-stream": 250000,         // $0.25 - Real-time data stream (per minute)
+  "iot-bulk-data": 500000,             // $0.50 - Bulk historical data export
 };
 
 /**
@@ -249,6 +262,13 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   "flood-detection": 0.10,
   "air-quality": 0.05,
   "land-use": 0.15,
+  
+  // IoT/DePIN Services - Device Data Monetization
+  "fleet-telematics": 0.10,
+  "weather-station-data": 0.05,
+  "iot-sensor-reading": 0.025,
+  "iot-device-stream": 0.25,
+  "iot-bulk-data": 0.50,
 };
 
 /**

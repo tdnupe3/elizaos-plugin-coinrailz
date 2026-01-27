@@ -65,7 +65,9 @@ const CATEGORY_ORDER = [
   'prediction-markets',
   'traditional-markets',
   'solana-defi',
-  'sdk-payments'
+  'sdk-payments',
+  'satellite-data',
+  'iot-depin'
 ];
 
 export class ServiceCatalogService {
@@ -580,6 +582,129 @@ export class ServiceCatalogService {
         capabilities: ['payments', 'sol-transfer', 'usdc-transfer', 'agent-payments', 'non-custodial', 'solana'],
         x402Compatible: false,
         stripeCompatible: false
+      },
+      // SATELLITE DATA SERVICES (NASA Earthdata + ESA Copernicus) - 6 services
+      {
+        id: 'fire-alerts',
+        name: 'Fire Alert Detection',
+        description: 'Real-time active fire detection from NASA FIRMS satellite data. Get fire hotspots by region with confidence levels.',
+        endpoint: '/api/satellite/fire-alerts',
+        network: 'eip155:8453',
+        category: 'satellite-data',
+        capabilities: ['fire-detection', 'nasa-firms', 'satellite-imagery', 'emergency-response'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'weather-imagery',
+        name: 'Satellite Weather Imagery',
+        description: 'High-resolution weather satellite imagery from NASA GIBS. Cloud cover, precipitation, and atmospheric data.',
+        endpoint: '/api/satellite/weather-imagery',
+        network: 'eip155:8453',
+        category: 'satellite-data',
+        capabilities: ['weather', 'nasa-gibs', 'satellite-imagery', 'precipitation'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'vegetation',
+        name: 'Vegetation Health Analysis',
+        description: 'NDVI vegetation health indices from NASA MODIS and ESA Sentinel-2. Agriculture and forestry monitoring.',
+        endpoint: '/api/satellite/vegetation',
+        network: 'eip155:8453',
+        category: 'satellite-data',
+        capabilities: ['ndvi', 'vegetation', 'agriculture', 'sentinel-2', 'modis'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'flood-detection',
+        name: 'Flood Detection',
+        description: 'SAR-based flood extent mapping from ESA Sentinel-1. All-weather, day/night flood monitoring.',
+        endpoint: '/api/satellite/flood-detection',
+        network: 'eip155:8453',
+        category: 'satellite-data',
+        capabilities: ['flood-detection', 'sar', 'sentinel-1', 'disaster-response'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'air-quality',
+        name: 'Air Quality Monitoring',
+        description: 'Atmospheric pollutant concentrations from ESA Sentinel-5P TROPOMI. NO2, SO2, CO, and aerosol data.',
+        endpoint: '/api/satellite/air-quality',
+        network: 'eip155:8453',
+        category: 'satellite-data',
+        capabilities: ['air-quality', 'pollution', 'tropomi', 'sentinel-5p'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'land-use',
+        name: 'Land Use Classification',
+        description: 'Land cover classification from NASA Landsat and ESA Sentinel-2. Urban, forest, agriculture, water body detection.',
+        endpoint: '/api/satellite/land-use',
+        network: 'eip155:8453',
+        category: 'satellite-data',
+        capabilities: ['land-use', 'classification', 'landsat', 'sentinel-2', 'urban-planning'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      // IoT/DePIN SERVICES - Device Data Monetization - 5 services
+      {
+        id: 'fleet-telematics',
+        name: 'Fleet Telematics Data',
+        description: 'Real-time fleet data: GPS location, fuel consumption, driver behavior, engine diagnostics. For logistics and fleet management.',
+        endpoint: '/api/iot/data/fleet-telematics',
+        network: 'eip155:8453',
+        category: 'iot-depin',
+        capabilities: ['fleet-management', 'gps-tracking', 'telematics', 'logistics', 'driver-behavior'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'weather-station-data',
+        name: 'Weather Station Data',
+        description: 'Hyperlocal weather data from IoT weather stations. Temperature, humidity, pressure, wind, precipitation readings.',
+        endpoint: '/api/iot/data/weather-station',
+        network: 'eip155:8453',
+        category: 'iot-depin',
+        capabilities: ['weather', 'iot-sensors', 'hyperlocal', 'meteorology'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'iot-sensor-reading',
+        name: 'IoT Sensor Reading',
+        description: 'Single sensor reading from registered IoT devices. Temperature, humidity, motion, air quality, or custom sensors.',
+        endpoint: '/api/iot/data/sensor-reading',
+        network: 'eip155:8453',
+        category: 'iot-depin',
+        capabilities: ['iot-sensors', 'sensor-data', 'real-time', 'device-data'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'iot-device-stream',
+        name: 'IoT Device Stream',
+        description: 'Real-time data stream from IoT devices. Continuous sensor readings for monitoring and analytics. Per-minute pricing.',
+        endpoint: '/api/iot/data/device-stream',
+        network: 'eip155:8453',
+        category: 'iot-depin',
+        capabilities: ['streaming', 'real-time', 'continuous-monitoring', 'iot-analytics'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'iot-bulk-data',
+        name: 'IoT Bulk Data Export',
+        description: 'Historical data export from IoT devices. Bulk download of sensor readings for analysis and machine learning.',
+        endpoint: '/api/iot/data/bulk-export',
+        network: 'eip155:8453',
+        category: 'iot-depin',
+        capabilities: ['bulk-data', 'historical-data', 'data-export', 'ml-datasets'],
+        x402Compatible: true,
+        stripeCompatible: true
       }
     ];
 

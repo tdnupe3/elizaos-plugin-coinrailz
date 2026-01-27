@@ -135,7 +135,7 @@ export default function Landing() {
             </h1>
             
             <p className="text-xl sm:text-2xl text-gray-600 mb-6 sm:mb-8 px-4 max-w-3xl mx-auto">
-              Two payment rails, one platform. x402/USDC for autonomous agents. Stripe prepaid credits for TradFi teams. 44 x402 services from crypto to stock & forex sentiment.
+              Two payment rails, one platform. x402/USDC for autonomous agents. Stripe prepaid credits for TradFi teams. 55 x402 services from crypto to satellite data & IoT.
             </p>
             
             {/* Trust Badges - Dual Rail Focus with Crypto Proof */}

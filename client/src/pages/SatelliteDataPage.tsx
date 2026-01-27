@@ -222,9 +222,13 @@ export default function SatelliteDataPage() {
               >
                 ← Back
               </Button>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3">
                 <Satellite className="w-6 h-6 text-indigo-400" />
-                <span className="text-xl font-bold text-white">Satellite Data APIs</span>
+                <div className="flex items-center">
+                  <span className="text-xl font-bold text-white">Coin Railz</span>
+                  <span className="text-white/40 mx-2">|</span>
+                  <span className="text-lg text-white/80">Satellite Data APIs</span>
+                </div>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -529,7 +533,7 @@ export default function SatelliteDataPage() {
             How to Pay - Choose Your Method
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
-            <Card className="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border-indigo-500/30">
+            <Card className="bg-gradient-to-br from-indigo-900/80 to-purple-900/80 border-indigo-400/50 shadow-lg">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-3">
                   <CreditCard className="w-6 h-6 text-indigo-400" />
@@ -567,7 +571,7 @@ export default function SatelliteDataPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-cyan-600/20 to-blue-600/20 border-cyan-500/30">
+            <Card className="bg-gradient-to-br from-cyan-900/80 to-blue-900/80 border-cyan-400/50 shadow-lg">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-3">
                   <Wallet className="w-6 h-6 text-cyan-400" />
@@ -631,7 +635,7 @@ export default function SatelliteDataPage() {
           </div>
         </div>
 
-        <Card className="bg-gradient-to-r from-indigo-600/20 to-cyan-600/20 border-indigo-500/30">
+        <Card className="bg-gradient-to-r from-indigo-900/80 to-cyan-900/80 border-indigo-400/50 shadow-lg">
           <CardContent className="py-12 text-center">
             <h2 className="text-3xl font-bold text-white mb-4">
               Ready to Access Space Data?

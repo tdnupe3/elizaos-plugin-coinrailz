@@ -221,7 +221,7 @@ export default function IoTHubPage() {
           </section>
 
           <section>
-            <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
+            <Card className="bg-gradient-to-r from-primary/30 to-primary/20 border-primary/40 shadow-md">
               <CardContent className="py-8">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                   <div>

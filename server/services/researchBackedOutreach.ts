@@ -1611,13 +1611,19 @@ export class ResearchBackedOutreach {
   }
 }
 
+import { DISABLE_HEAVY_SERVICES, DEV_LITE_MODE } from '../buildModeDetection';
+
 // Create service instance
 export const researchBackedOutreach = new ResearchBackedOutreach();
 
-// Auto-start comprehensive outreach after 10 seconds
-setTimeout(() => {
-  console.log('🚀 Starting automated research-backed outreach...');
-  researchBackedOutreach.executeComprehensiveOutreach().catch(error => {
-    console.error('❌ Automated outreach failed:', error);
-  });
-}, 10000);
+// Auto-start comprehensive outreach after 10 seconds (skip in DEV_LITE_MODE)
+if (!DISABLE_HEAVY_SERVICES) {
+  setTimeout(() => {
+    console.log('🚀 Starting automated research-backed outreach...');
+    researchBackedOutreach.executeComprehensiveOutreach().catch(error => {
+      console.error('❌ Automated outreach failed:', error);
+    });
+  }, 10000);
+} else if (DEV_LITE_MODE) {
+  console.log('🧪 ResearchBackedOutreach: Skipping auto-start in DEV_LITE_MODE');
+}

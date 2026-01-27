@@ -286,9 +286,23 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
   const isRawTxHash = /^0x[a-fA-F0-9]{64}$/.test(txHash);
   
   if (!isRawTxHash) {
-    // Not a valid tx hash - pass to x402-express for EIP-712 verification
-    console.log("🔄 X-PAYMENT detected - passing to x402-express for EIP-712 verification");
-    return next();
+    // Not a valid tx hash format - check if it's a potential EIP-712 signature (Base64 encoded)
+    // EIP-712 signatures are typically longer and Base64 encoded
+    const isPotentialEIP712 = xPayment.length > 100 && /^[A-Za-z0-9+/=]+$/.test(xPayment);
+    
+    if (isPotentialEIP712) {
+      // Pass to x402-express for EIP-712 verification
+      console.log("🔄 X-PAYMENT detected as EIP-712 - passing to x402-express for verification");
+      return next();
+    }
+    
+    // Invalid payment proof format - reject with 400
+    console.log(`❌ Invalid X-PAYMENT format (not txHash or EIP-712): ${txHash.substring(0, 50)}...`);
+    return res.status(400).json({
+      error: "Invalid payment proof format",
+      message: "X-PAYMENT must be a valid 0x-prefixed transaction hash (66 chars) or EIP-712 signature",
+      hint: "For on-chain payments, provide the full transaction hash starting with 0x"
+    });
   }
 
   // This is a raw transaction hash - verify it on-chain

@@ -884,9 +884,19 @@ export default function Landing() {
             <p className="text-sm text-gray-600 mb-2">
               Coin Railz - Secure cross-platform financial services for global users
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 mb-3">
               Supporting both human users and autonomous AI agents worldwide
             </p>
+            <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500">
+              <span className="flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                Money Transmitter Licensed
+              </span>
+              <span className="flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                AML/KYC Compliant
+              </span>
+            </div>
           </div>
 
           {/* Legal Links */}

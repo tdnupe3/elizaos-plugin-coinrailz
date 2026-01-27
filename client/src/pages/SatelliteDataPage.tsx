@@ -211,7 +211,7 @@ export default function SatelliteDataPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900">
-      <div className="bg-black/20 border-b border-white/10">
+      <div className="bg-black/30 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -222,9 +222,16 @@ export default function SatelliteDataPage() {
               >
                 ← Back
               </Button>
-              <div className="flex items-center space-x-2">
-                <Satellite className="w-6 h-6 text-indigo-400" />
-                <span className="text-xl font-bold text-white">Satellite Data APIs</span>
+              <div className="flex items-center space-x-3">
+                <img 
+                  src="/assets/Coin Railz Logo No BG.png" 
+                  alt="Coin Railz" 
+                  className="w-8 h-8"
+                />
+                <span className="text-xl font-bold text-white">Coin Railz</span>
+                <span className="text-white/40">|</span>
+                <Satellite className="w-5 h-5 text-indigo-400" />
+                <span className="text-lg text-white/90">Satellite Data</span>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -529,15 +536,15 @@ export default function SatelliteDataPage() {
             How to Pay - Choose Your Method
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
-            <Card className="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border-indigo-500/30">
+            <Card className="bg-gradient-to-br from-indigo-600/40 to-purple-600/40 border-2 border-indigo-400/60 shadow-lg shadow-indigo-500/20">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-3">
-                  <CreditCard className="w-6 h-6 text-indigo-400" />
+                  <CreditCard className="w-6 h-6 text-indigo-300" />
                   Prepaid Credits
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-white/70 mb-4">
+                <p className="text-white/80 mb-4">
                   Best for developers and enterprises. Buy credits upfront and use an API key for simple authentication.
                 </p>
                 <ul className="space-y-2 mb-4">
@@ -567,15 +574,15 @@ export default function SatelliteDataPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-cyan-600/20 to-blue-600/20 border-cyan-500/30">
+            <Card className="bg-gradient-to-br from-cyan-600/40 to-blue-600/40 border-2 border-cyan-400/60 shadow-lg shadow-cyan-500/20">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-3">
-                  <Wallet className="w-6 h-6 text-cyan-400" />
+                  <Wallet className="w-6 h-6 text-cyan-300" />
                   x402 Micropayments
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-white/70 mb-4">
+                <p className="text-white/80 mb-4">
                   Best for AI agents and autonomous systems. Pay-per-call with on-chain USDC - no account needed.
                 </p>
                 <ul className="space-y-2 mb-4">

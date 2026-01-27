@@ -105,23 +105,12 @@ export default function Landing() {
               {isAuthenticated ? (
                 <UserAuthMenu />
               ) : (
-                <>
-                  <Button 
-                    onClick={handleSignIn}
-                    variant="outline"
-                    className="border-blue-600 text-blue-600 hover:bg-blue-50 text-xs sm:text-sm px-2 sm:px-4"
-                    size="sm"
-                  >
-                    {t('auth.signIn')}
-                  </Button>
-                  <Button 
-                    onClick={handleSignUp}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm px-2 sm:px-4"
-                    size="sm"
-                  >
-                    {t('auth.signUp')}
-                  </Button>
-                </>
+                <button 
+                  onClick={handleSignIn}
+                  className="text-gray-600 hover:text-blue-600 text-xs sm:text-sm"
+                >
+                  {t('auth.signIn')}
+                </button>
               )}
             </div>
           </div>
@@ -146,7 +135,7 @@ export default function Landing() {
             </h1>
             
             <p className="text-xl sm:text-2xl text-gray-600 mb-6 sm:mb-8 px-4 max-w-3xl mx-auto">
-              Two payment rails, one platform. x402/USDC for autonomous agents. Stripe prepaid credits for TradFi teams. 38+ microservices from crypto to stock & forex sentiment.
+              Two payment rails, one platform. x402/USDC for autonomous agents. Stripe prepaid credits for TradFi teams. 44 x402 services from crypto to stock & forex sentiment.
             </p>
             
             {/* Trust Badges - Dual Rail Focus with Crypto Proof */}
@@ -165,32 +154,32 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Stripe Credits CTA - TradFi Entry Point */}
+            {/* PRIMARY CTA - Pilot Credits for IoT/DePIN (60-day revenue goal) */}
             <div className="max-w-md mx-auto mb-6">
-              <Link href="/credits">
+              <Link href="/pilots/buy">
                 <Card 
-                  className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white hover:shadow-lg transition-shadow cursor-pointer"
-                  data-testid="card-stripe-credits"
+                  className="border-2 border-cyan-400 bg-gradient-to-br from-cyan-50 to-blue-50 hover:shadow-lg transition-shadow cursor-pointer"
+                  data-testid="card-pilot-credits"
                   onClick={() => {
-                    trackEvent('click', 'landing_stripe_cta', 'purchase_credits');
-                    trackBusinessEvent('stripe_credit_purchase_intent', { payment_method: 'stripe', user_type: 'tradfi_team' });
+                    trackEvent('click', 'landing_pilot_cta', 'purchase_pilot_credits');
+                    trackBusinessEvent('pilot_credit_purchase_intent', { payment_method: 'stripe_or_crypto', user_type: 'iot_depin' });
                   }}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                          <CreditCard className="w-4 h-4 text-blue-600" />
+                        <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center">
+                          <CreditCard className="w-4 h-4 text-cyan-600" />
                         </div>
-                        <CardTitle className="text-base font-semibold text-blue-900">Stripe Prepaid Credits</CardTitle>
+                        <CardTitle className="text-base font-semibold text-cyan-900">IoT/DePIN Pilot Credits</CardTitle>
                       </div>
-                      <Badge className="bg-blue-100 text-blue-800 font-medium">No Wallet</Badge>
+                      <Badge className="bg-cyan-100 text-cyan-800 font-medium">Multi-Chain</Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <p className="text-sm text-blue-700 mb-3">Pay with card. Start using APIs in minutes.</p>
+                    <p className="text-sm text-cyan-700 mb-3">Start your pilot program with prepaid credits. Card or USDC/USDT.</p>
                     <Button 
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white"
                       size="sm"
                       data-testid="button-stripe-purchase"
                     >
@@ -229,11 +218,11 @@ export default function Landing() {
               </Card>
             </div>
             
-            {/* Key Stats */}
+            {/* Key Stats - Verified counts only */}
             <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-6 sm:mb-8">
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600">38+</div>
-                <div className="text-xs sm:text-sm text-gray-600">Microservices</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600">44</div>
+                <div className="text-xs sm:text-sm text-gray-600">x402 Services</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl sm:text-3xl font-bold text-green-600">2</div>
@@ -264,82 +253,39 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Primary Action: Sign Up Options */}
+            {/* Secondary Action: Existing Users */}
             <div className="mb-6 sm:mb-8 max-w-md mx-auto px-4 sm:px-0">
-              <Button 
-                onClick={handleSignUp}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-4 sm:py-6 text-lg sm:text-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 mb-3"
-                size="lg"
-              >
-                🚀 Get Started Now - It's Free!
-              </Button>
-              
-              
-              <p className="text-center text-sm text-gray-500 mt-3">
-                Already have an account? <button onClick={handleSignIn} className="text-blue-600 hover:text-blue-800 font-medium underline">Sign In</button>
+              <p className="text-center text-sm text-gray-500">
+                Existing user? <button onClick={handleSignIn} className="text-blue-600 hover:text-blue-800 font-medium underline">Sign In</button>
+                {' '} or {' '}
+                <button onClick={handleGuestAccess} className="text-gray-600 hover:text-gray-800 font-medium underline">Try Demo</button>
               </p>
             </div>
 
-            {/* TELEGRAM MINI-APP CTA - PRIMARY REVENUE DRIVER */}
-            <div className="mb-8 max-w-3xl mx-auto">
-              <Card className="border-2 border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-xl">
-                <CardHeader className="text-center pb-4">
-                  <div className="flex justify-center mb-3">
-                    <div className="bg-blue-600 text-white rounded-full w-16 h-16 flex items-center justify-center text-3xl shadow-lg">
-                      🎮
-                    </div>
-                  </div>
-                  <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-                    Try Instantly on Telegram
-                  </CardTitle>
-                  <p className="text-lg text-gray-700 font-medium">
-                    Get <span className="text-green-600 font-bold">$1 FREE credits</span> • No signup required
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="bg-white rounded-lg p-4 border border-blue-200">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center mb-4">
-                      <div className="flex items-center justify-center space-x-2">
-                        <Zap className="w-5 h-5 text-blue-600" />
-                        <span className="text-sm font-medium text-gray-700">18 AI Services</span>
-                      </div>
-                      <div className="flex items-center justify-center space-x-2">
-                        <DollarSign className="w-5 h-5 text-green-600" />
-                        <span className="text-sm font-medium text-gray-700">$0.10-$5.00/use</span>
-                      </div>
-                      <div className="flex items-center justify-center space-x-2">
-                        <Globe className="w-5 h-5 text-purple-600" />
-                        <span className="text-sm font-medium text-gray-700">12 Languages</span>
-                      </div>
-                    </div>
-                    <a 
-                      href="https://t.me/coinrailz_bot" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      data-testid="telegram-bot-link"
-                      onClick={() => {
-                        trackEvent('click', 'telegram_bot_cta', 'main_landing_section');
-                        trackBusinessEvent('telegram_bot_click', {
-                          service_type: 'telegram_miniapp',
-                          user_type: 'prospective_customer',
-                          value: 1
-                        });
-                      }}
-                    >
-                      <Button 
-                        className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white py-5 sm:py-6 text-lg sm:text-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
-                        size="lg"
-                      >
-                        <Send className="w-5 h-5 sm:w-6 sm:h-6 mr-3" />
-                        Open Telegram Bot → Get $1 Free
-                      </Button>
-                    </a>
-                  </div>
-                  <p className="text-center text-sm text-gray-600">
-                    🤖 AI contract scanning • 📊 Token price feeds • ⛽ Gas oracle • 🔍 Wallet risk analysis • And 14 more services
-                  </p>
-                </CardContent>
-              </Card>
+            {/* TELEGRAM MINI-APP - Secondary option for trying services */}
+            <div className="mb-6 max-w-lg mx-auto">
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                <p className="text-sm text-gray-600 mb-2">
+                  Want to try the APIs first?
+                </p>
+                <a 
+                  href="https://t.me/coinrailz_bot" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  data-testid="telegram-bot-link"
+                  onClick={() => {
+                    trackEvent('click', 'telegram_bot_cta', 'main_landing_section');
+                    trackBusinessEvent('telegram_bot_click', {
+                      service_type: 'telegram_miniapp',
+                      user_type: 'prospective_customer',
+                      value: 1
+                    });
+                  }}
+                  className="text-blue-600 hover:text-blue-800 font-medium underline"
+                >
+                  Try our Telegram Bot with $1 free credits →
+                </a>
+              </div>
             </div>
 
             {/* Secondary Actions - All Functional */}
@@ -404,31 +350,24 @@ export default function Landing() {
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:gap-4">
-                <Button 
-                  onClick={handleSendMoney}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 sm:py-4 text-base sm:text-lg font-medium"
-                  size="lg"
-                >
-                  <Send className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                  Send Money
-                </Button>
-                <Button 
-                  onClick={handleGuestAccess}
-                  variant="outline"
-                  className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-4 text-lg font-medium"
-                  size="lg"
-                >
-                  👁️ Demo Mode
-                </Button>
+                <Link href="/pilots/buy" className="w-full">
+                  <Button 
+                    className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white py-3 sm:py-4 text-base sm:text-lg font-medium"
+                    size="lg"
+                  >
+                    <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                    Get Pilot Credits
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
 
-          {/* 18 x402 SERVICES PRICING - REVENUE DRIVER */}
+          {/* x402 SERVICES PRICING - REVENUE DRIVER */}
           <div className="text-center mb-12">
             <div className="mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-3">18 Pay-Per-Use AI Services</h2>
-              <p className="text-lg text-gray-600 mb-2">Available instantly via Telegram • Try with your $1 free credits</p>
+              <h2 className="text-3xl font-bold text-gray-900 mb-3">Pay-Per-Use AI Services</h2>
+              <p className="text-lg text-gray-600 mb-2">Available via Telegram, x402, or Stripe Credits</p>
               <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">No subscription • Pay only for what you use</Badge>
             </div>
 
@@ -670,33 +609,33 @@ export default function Landing() {
 
 
 
-          {/* Platform Statistics */}
+          {/* Platform Statistics - Verified claims only */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
             <Card className="text-center">
               <CardContent className="pt-6">
                 <div className="text-2xl font-bold text-blue-600">24/7</div>
-                <p className="text-sm text-gray-600">Global Availability</p>
+                <p className="text-sm text-gray-600">API Availability</p>
               </CardContent>
             </Card>
 
             <Card className="text-center">
               <CardContent className="pt-6">
-                <div className="text-2xl font-bold text-green-600">150+</div>
-                <p className="text-sm text-gray-600">Supported Countries</p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <div className="text-2xl font-bold text-purple-600">15+</div>
+                <div className="text-2xl font-bold text-green-600">8</div>
                 <p className="text-sm text-gray-600">Blockchain Networks</p>
               </CardContent>
             </Card>
 
             <Card className="text-center">
               <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-purple-600">USDC</div>
+                <p className="text-sm text-gray-600">Primary Settlement</p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardContent className="pt-6">
                 <div className="text-2xl font-bold text-orange-600">XRP</div>
-                <p className="text-sm text-gray-600">FULLY Integrated</p>
+                <p className="text-sm text-gray-600">Integrated</p>
               </CardContent>
             </Card>
           </div>
@@ -900,28 +839,31 @@ export default function Landing() {
             <CoinbaseWalletIntegration />
           </div>
 
-          {/* Simple Call to Action */}
-          <div className="text-center bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg p-8 mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Get Started?</h2>
+          {/* Primary CTA - Pilot Credits (60-day revenue goal) */}
+          <div className="text-center bg-gradient-to-r from-cyan-100 to-blue-100 rounded-lg p-8 mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Integrate IoT Payments?</h2>
             <p className="text-lg text-gray-600 mb-6">
-              Join thousands using Coin Railz for secure global payments and trading
+              Start with prepaid credits for your pilot program. Multi-chain USDC settlement.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
-              <Button 
-                onClick={handleSignUp}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-medium"
-                size="lg"
-              >
-                Create Account
-              </Button>
-              <Button 
-                onClick={handleGuestAccess}
-                variant="outline"
-                className="border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-3 text-lg font-medium"
-                size="lg"
-              >
-                Try Demo
-              </Button>
+              <Link href="/pilots/buy">
+                <Button 
+                  className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white px-8 py-3 text-lg font-medium"
+                  size="lg"
+                >
+                  <CreditCard className="w-5 h-5 mr-2" />
+                  Purchase Pilot Credits
+                </Button>
+              </Link>
+              <Link href="/contact-us">
+                <Button 
+                  variant="outline"
+                  className="border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-3 text-lg font-medium"
+                  size="lg"
+                >
+                  Schedule Demo
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -974,14 +916,10 @@ export default function Landing() {
             </div>
             <div className="text-center mt-4 space-y-2">
               <p className="text-xs text-gray-500">
-                <span className="font-medium">Coin Railz™</span> is a trademark of Kellogg Holdings LLC. 
-                P2P interoperability and AI Agent Marketplace are patent protected.
-              </p>
-              <p className="text-xs text-gray-500">
-                FinCEN Money Services Business (MSB) Registered • Active Money Transmitter License • AML/KYC Compliant
+                <span className="font-medium">Coin Railz™</span> is a trademark of Kellogg Holdings LLC.
               </p>
               <p className="text-xs text-gray-400">
-                © 2025 Kellogg Holdings LLC. All rights reserved. Violations of our terms may result in account suspension or termination.
+                © 2025 Kellogg Holdings LLC. All rights reserved.
               </p>
             </div>
           </div>

@@ -3746,13 +3746,18 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     console.log('🔄 Starting post-listen background initialization...');
     
     // INITIALIZE SERVICE DELIVERY FRAMEWORK - deferred to post-listen for faster health checks
-    try {
-      console.log('🔧 Initializing Service Delivery Framework...');
-      const { initializeServiceHandlers } = await import('./services/handlers');
-      initializeServiceHandlers();
-      console.log('✅ Service Delivery Framework initialized');
-    } catch (error) {
-      console.error('❌ Service Delivery Framework failed:', error);
+    // Skip in DEV_LITE_MODE to prevent Vite HMR drops
+    if (!DEV_LITE_MODE) {
+      try {
+        console.log('🔧 Initializing Service Delivery Framework...');
+        const { initializeServiceHandlers } = await import('./services/handlers');
+        initializeServiceHandlers();
+        console.log('✅ Service Delivery Framework initialized');
+      } catch (error) {
+        console.error('❌ Service Delivery Framework failed:', error);
+      }
+    } else {
+      console.log('🧪 DEV LITE: Service Delivery Framework deferred');
     }
     
     try {
@@ -3919,14 +3924,18 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     res.status(500).json({ error: 'Internal server error' });
   });
   
-  // Initialize provider capabilities
-  console.log('🔥 Warming up provider capabilities for model validation...');
-  try {
-    const capabilityService = ProviderCapabilityService.getInstance();
-    await capabilityService.warmupAllProviders();
-    console.log('✅ Provider capabilities initialized successfully');
-  } catch (error) {
-    console.warn('⚠️ Provider capability warmup failed:', error);
+  // Initialize provider capabilities - Skip in DEV_LITE_MODE to prevent Vite HMR drops
+  if (!DEV_LITE_MODE) {
+    console.log('🔥 Warming up provider capabilities for model validation...');
+    try {
+      const capabilityService = ProviderCapabilityService.getInstance();
+      await capabilityService.warmupAllProviders();
+      console.log('✅ Provider capabilities initialized successfully');
+    } catch (error) {
+      console.warn('⚠️ Provider capability warmup failed:', error);
+    }
+  } else {
+    console.log('🧪 DEV LITE: Provider capability warmup deferred');
   }
   
   // Notify AI agent indexers that we're back online (production only)
@@ -4012,13 +4021,16 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   }
   
   // Initialize Bazaar Discovery (register services with @x402/extensions resource server)
-  if (isBazaarDiscoveryEnabled()) {
+  // Skip in DEV_LITE_MODE - heavy logging and catalog building blocks event loop
+  if (isBazaarDiscoveryEnabled() && !DEV_LITE_MODE) {
     try {
       console.log('📡 Initializing Bazaar Discovery service registration...');
       await initializeBazaarDiscovery();
     } catch (error) {
       console.error('❌ Bazaar Discovery initialization failed:', error);
     }
+  } else if (DEV_LITE_MODE) {
+    console.log('🧪 DEV LITE: Bazaar Discovery deferred');
   }
   
   console.log('✅ Post-listen initialization complete');

@@ -125,7 +125,8 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
     responseIntercepted = true;
     
     const latencyMs = Date.now() - startTime;
-    const serviceId = extractServiceId(req.path) || extractServiceId(req.originalUrl || '');
+    // Check originalUrl first for mounted routers (satellite/IoT), then fall back to req.path
+    const serviceId = extractServiceId(req.originalUrl || '') || extractServiceId(req.path);
     if (!serviceId) {
       console.log(`⚠️  Could not extract service ID from path: ${req.path} (originalUrl: ${req.originalUrl})`);
       return;
@@ -314,14 +315,26 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
 function extractServiceId(path: string): string | null {
   // FIX: Updated for new path structure without /service/ prefix
   // Path patterns: /multi-chain-balance (req.path) or /x402/multi-chain-balance (req.originalUrl)
+  // Also handles satellite/IoT endpoints: /api/satellite/fire-alerts, /api/iot/catalog
   const patterns = [
     /\/x402\/([^\/\?]+)/, // Full path: /x402/multi-chain-balance
+    /\/api\/satellite\/([^\/\?]+)/, // Satellite endpoints: /api/satellite/fire-alerts
+    /\/api\/iot\/([^\/\?]+)/, // IoT endpoints: /api/iot/catalog
     /^\/([^\/\?]+)$/, // Relative path: /multi-chain-balance
   ];
   
   for (const pattern of patterns) {
     const match = path.match(pattern);
-    if (match) return match[1];
+    if (match) {
+      // For satellite/IoT, prefix the service ID for clarity
+      if (path.includes('/api/satellite/')) {
+        return `satellite-${match[1]}`;
+      }
+      if (path.includes('/api/iot/')) {
+        return `iot-${match[1]}`;
+      }
+      return match[1];
+    }
   }
   
   return null;

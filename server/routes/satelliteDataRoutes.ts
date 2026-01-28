@@ -31,6 +31,7 @@ import { z } from 'zod';
 import { satelliteDataService, SATELLITE_DATA_PRODUCTS } from '../services/satelliteDataService';
 import { trackX402Service } from '../middleware/hitTracker';
 import { hybridPaymentMiddleware } from '../middleware/hybridPaymentMiddleware';
+import { x402TrackingMiddleware } from '../middleware/x402TrackingMiddleware';
 import { nanoid } from 'nanoid';
 
 // Demo mode only enabled in development unless explicitly overridden
@@ -38,7 +39,10 @@ const DEMO_MODE_ENABLED = process.env.SATELLITE_DEMO_MODE === 'true' || process.
 
 const router = Router();
 
+// Track hits in endpoint_hits table (existing analytics)
 router.use(trackX402Service);
+// Also track in x402_interactions table for unified analytics dashboard
+router.use(x402TrackingMiddleware);
 
 const bboxSchema = z.object({
   west: z.coerce.number().min(-180).max(180),

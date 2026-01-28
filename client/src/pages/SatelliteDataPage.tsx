@@ -254,7 +254,7 @@ export default function SatelliteDataPage() {
           </h1>
           <p className="text-xl text-white/70 max-w-3xl mx-auto mb-6">
             Access satellite data from <span className="text-indigo-400 font-semibold">NASA Earthdata</span> and{" "}
-            <span className="text-cyan-400 font-semibold">ESA Copernicus</span> via x402 micropayments.
+            <span className="text-cyan-400 font-semibold">ESA Copernicus</span>.
             Pay only for what you use.
           </p>
           <div className="flex flex-wrap justify-center gap-4 mb-8">
@@ -284,7 +284,7 @@ export default function SatelliteDataPage() {
               size="lg" 
               variant="outline"
               onClick={() => setLocation('/pilots/buy')}
-              className="border-white/30 text-white hover:bg-white/10"
+              className="border-white/40 text-white bg-white/10 hover:bg-white/20"
             >
               Buy Credits
               <ArrowRight className="w-4 h-4 ml-2" />
@@ -438,7 +438,7 @@ export default function SatelliteDataPage() {
               <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
                 <Button
                   variant={selectedPreview === 'fire' ? 'default' : 'outline'}
-                  className={selectedPreview === 'fire' ? 'bg-orange-600' : 'border-white/20 text-white hover:bg-white/10'}
+                  className={selectedPreview === 'fire' ? 'bg-orange-600' : 'border-white/30 text-white bg-white/10 hover:bg-white/20'}
                   onClick={() => fetchPreview('fire', '/api/satellite/fire-alerts')}
                   disabled={previewLoading}
                 >
@@ -447,7 +447,7 @@ export default function SatelliteDataPage() {
                 </Button>
                 <Button
                   variant={selectedPreview === 'weather' ? 'default' : 'outline'}
-                  className={selectedPreview === 'weather' ? 'bg-blue-600' : 'border-white/20 text-white hover:bg-white/10'}
+                  className={selectedPreview === 'weather' ? 'bg-blue-600' : 'border-white/30 text-white bg-white/10 hover:bg-white/20'}
                   onClick={() => fetchPreview('weather', '/api/satellite/weather-imagery')}
                   disabled={previewLoading}
                 >
@@ -456,7 +456,7 @@ export default function SatelliteDataPage() {
                 </Button>
                 <Button
                   variant={selectedPreview === 'vegetation' ? 'default' : 'outline'}
-                  className={selectedPreview === 'vegetation' ? 'bg-green-600' : 'border-white/20 text-white hover:bg-white/10'}
+                  className={selectedPreview === 'vegetation' ? 'bg-green-600' : 'border-white/30 text-white bg-white/10 hover:bg-white/20'}
                   onClick={() => fetchPreview('vegetation', '/api/satellite/vegetation?lat=40&lon=-74&radius=10')}
                   disabled={previewLoading}
                 >
@@ -465,7 +465,7 @@ export default function SatelliteDataPage() {
                 </Button>
                 <Button
                   variant={selectedPreview === 'flood' ? 'default' : 'outline'}
-                  className={selectedPreview === 'flood' ? 'bg-cyan-600' : 'border-white/20 text-white hover:bg-white/10'}
+                  className={selectedPreview === 'flood' ? 'bg-cyan-600' : 'border-white/30 text-white bg-white/10 hover:bg-white/20'}
                   onClick={() => fetchPreview('flood', '/api/satellite/flood-detection?lat=29.5&lon=-95&radius=50')}
                   disabled={previewLoading}
                 >
@@ -474,7 +474,7 @@ export default function SatelliteDataPage() {
                 </Button>
                 <Button
                   variant={selectedPreview === 'air' ? 'default' : 'outline'}
-                  className={selectedPreview === 'air' ? 'bg-purple-600' : 'border-white/20 text-white hover:bg-white/10'}
+                  className={selectedPreview === 'air' ? 'bg-purple-600' : 'border-white/30 text-white bg-white/10 hover:bg-white/20'}
                   onClick={() => fetchPreview('air', '/api/satellite/air-quality?lat=40&lon=-74')}
                   disabled={previewLoading}
                 >
@@ -483,7 +483,7 @@ export default function SatelliteDataPage() {
                 </Button>
                 <Button
                   variant={selectedPreview === 'land' ? 'default' : 'outline'}
-                  className={selectedPreview === 'land' ? 'bg-amber-600' : 'border-white/20 text-white hover:bg-white/10'}
+                  className={selectedPreview === 'land' ? 'bg-amber-600' : 'border-white/30 text-white bg-white/10 hover:bg-white/20'}
                   onClick={() => fetchPreview('land', '/api/satellite/land-use?lat=37.5&lon=-122.25&radius=25')}
                   disabled={previewLoading}
                 >
@@ -537,7 +537,7 @@ export default function SatelliteDataPage() {
             How to Pay - Choose Your Method
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
-            <Card className="bg-gradient-to-br from-indigo-600/40 to-purple-600/40 border-2 border-indigo-400/60 shadow-lg shadow-indigo-500/20">
+            <Card className="bg-gradient-to-br from-indigo-600/60 to-purple-600/60 border-2 border-indigo-400/80 shadow-lg shadow-indigo-500/20">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-3">
                   <CreditCard className="w-6 h-6 text-indigo-300" />
@@ -575,7 +575,7 @@ export default function SatelliteDataPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-cyan-600/40 to-blue-600/40 border-2 border-cyan-400/60 shadow-lg shadow-cyan-500/20">
+            <Card className="bg-gradient-to-br from-cyan-600/60 to-blue-600/60 border-2 border-cyan-400/80 shadow-lg shadow-cyan-500/20">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-3">
                   <Wallet className="w-6 h-6 text-cyan-300" />

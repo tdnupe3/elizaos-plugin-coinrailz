@@ -1,4 +1,60 @@
-console.log('🚀 SERVER STARTUP - VERSION v2-fix-replit-domains');
+// ============================================================================
+// CRITICAL: FAST STARTUP FOR HEALTH CHECK COMPLIANCE
+// ============================================================================
+// Cloud Run/Autoscale requires / to respond with 200 within seconds.
+// We MUST start listening BEFORE loading heavy modules.
+// ============================================================================
+
+import express, { Router } from "express";
+import http from "http";
+
+// Create Express app and HTTP server IMMEDIATELY
+const app = express();
+const port = parseInt(process.env.PORT || '5000', 10);
+const httpServer = http.createServer(app);
+
+// CRITICAL: Health check endpoints FIRST - before ANY other code
+app.get('/healthz', (_req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get('/', (req, res, next) => {
+  const userAgent = req.headers['user-agent'] || '';
+  const acceptHeader = req.headers['accept'] || '';
+  
+  // Health check detection - return 200 immediately for non-browser requests
+  const isBrowserRequest = acceptHeader.includes('text/html') && 
+                           !userAgent.includes('curl') && 
+                           !userAgent.includes('health') && 
+                           !userAgent.includes('kube') && 
+                           !userAgent.includes('Replit') &&
+                           !userAgent.includes('Uptime') &&
+                           !userAgent.includes('Monitor');
+  
+  if (!isBrowserRequest) {
+    return res.status(200).json({ 
+      status: 'ok', 
+      service: 'Coin Railz', 
+      timestamp: new Date().toISOString(),
+      version: '1.0.0'
+    });
+  }
+  
+  // For browser requests, continue to next handler (Vite frontend)
+  next();
+});
+
+// START LISTENING IMMEDIATELY - before loading heavy modules
+httpServer.listen(port, '0.0.0.0', () => {
+  console.log(`🚀 SERVER LISTENING ON PORT ${port} - Health checks now responding`);
+  console.log('🔄 Loading application modules in background...');
+});
+
+// ============================================================================
+// NOW load the rest of the application (after server is already listening)
+// ============================================================================
+
+console.log('🚀 SERVER STARTUP - VERSION v3-fast-health-check');
 console.log('🔧 ENV CHECK:', { 
   NODE_ENV: process.env.NODE_ENV, 
   REPLIT_DEPLOYMENT: process.env.REPLIT_DEPLOYMENT,
@@ -6,7 +62,6 @@ console.log('🔧 ENV CHECK:', {
   HAS_REPLIT_DOMAINS: !!process.env.REPLIT_DOMAINS
 });
 
-import express, { Router } from "express";
 import path from "path";
 import fs from "fs";
 import { setupVite, serveStatic } from "./vite";
@@ -147,44 +202,8 @@ import { validateProductionReadiness } from './healthChecks';
 validateProductionReadiness();
 // ============= END BOOT-TIME VALIDATION =============
 
-const app = express();
-const port = parseInt(process.env.PORT || '5000', 10);
-
-// CRITICAL: Health check endpoint MUST be first - before ALL middleware
-// This ensures Replit autoscale Promote health checks pass immediately
-app.get('/healthz', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Also respond to root health check with 200 immediately (before any paywall middleware)
-app.get('/', (req, res, next) => {
-  const userAgent = req.headers['user-agent'] || '';
-  const acceptHeader = req.headers['accept'] || '';
-  
-  // PRODUCTION HEALTH CHECK: Replit autoscaler sends requests to / and expects 200 quickly
-  // Return 200 JSON for ANY non-browser request (health checks, curl, monitoring, etc.)
-  // Only proceed to Vite for browser requests that explicitly want HTML
-  const isBrowserRequest = acceptHeader.includes('text/html') && 
-                           !userAgent.includes('curl') && 
-                           !userAgent.includes('health') && 
-                           !userAgent.includes('kube') && 
-                           !userAgent.includes('Replit') &&
-                           !userAgent.includes('Uptime') &&
-                           !userAgent.includes('Monitor');
-  
-  if (!isBrowserRequest) {
-    // Fast health check response for ALL non-browser requests
-    return res.status(200).json({ 
-      status: 'ok', 
-      service: 'Coin Railz', 
-      timestamp: new Date().toISOString(),
-      version: '1.0.0'
-    });
-  }
-  
-  // For browser requests, continue to next handler (Vite frontend)
-  next();
-});
+// NOTE: app, port, and health check routes are now defined at the very top of the file
+// for fast startup compliance. See lines 1-50.
 
 // CLEAN SHORT URL REDIRECT - /pay/:sessionId for GPT credit purchase (before other middleware)
 // For Elements mode sessions, let frontend handle. For Checkout mode, redirect to Stripe.
@@ -3490,11 +3509,10 @@ console.log('✅ Gas Station routes included in setupSimpleRoutes');
 app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
 
 // Wrap main setup in async function
+// NOTE: httpServer is already created and listening at the top of file for fast health checks
 (async () => {
-  // CRITICAL FIX: Create httpServer FIRST and start listening IMMEDIATELY
-  // This ensures the port opens within the 60-second workflow timeout
-  const { createServer } = await import('http');
-  const httpServer = createServer(app);
+  // httpServer is already created at the top of the file and listening for health checks
+  // We just need to continue with route registration and heavy initialization
   
   const isProduction = process.env.NODE_ENV === 'production' || !!process.env.REPLIT_DEPLOYMENT;
   
@@ -3674,14 +3692,10 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     console.log('✅ Static file serving configured');
   }
   
-  // Start listening FIRST - before any route registration or heavy initialization
-  await new Promise<void>((resolve) => {
-    httpServer.listen(port, '0.0.0.0', () => {
-      console.log(`${isProduction ? 'Production' : 'Development'} server running on 0.0.0.0:${port}`);
-      console.log('🚀 PORT OPEN - continuing with initialization in background...');
-      resolve();
-    });
-  });
+  // NOTE: Server is already listening from the top of file (fast health check pattern)
+  // We just continue with route registration here
+  console.log(`${isProduction ? 'Production' : 'Development'} server running on 0.0.0.0:${port}`);
+  console.log('🚀 PORT OPEN - continuing with initialization in background...');
   
   // Setup Vite for development mode AFTER server is listening
   if (!isProduction) {

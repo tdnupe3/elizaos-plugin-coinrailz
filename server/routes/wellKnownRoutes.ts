@@ -1402,6 +1402,175 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
         },
         pricing: { amount: SERVICE_PRICING_USD["forex-sentiment"], currency: "USD" },
         category: "traditional-markets"
+      },
+      // Satellite Data Services (6 services) - NASA Earthdata + ESA Copernicus
+      {
+        id: "fire_alerts",
+        name: "Fire Alert Detection",
+        description: "Real-time active fire detection from NASA FIRMS satellite data. Use when user asks 'active fires', 'fire hotspots', 'wildfire detection', 'FIRMS data', or 'fire alerts near me'.",
+        inputSchema: {
+          type: "object",
+          title: "Fire Alert Request",
+          additionalProperties: false,
+          properties: {
+            lat: { type: "number", title: "Latitude", description: "Latitude coordinate" },
+            lon: { type: "number", title: "Longitude", description: "Longitude coordinate" },
+            radius: { type: "number", title: "Search Radius (km)", description: "Search radius in kilometers" }
+          },
+          required: ["lat", "lon"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "Fire Alert Response",
+          additionalProperties: false,
+          properties: {
+            fires: { type: "array", title: "Active Fires" },
+            count: { type: "number", title: "Fire Count" },
+            source: { type: "string", title: "Data Source" }
+          }
+        },
+        pricing: { amount: SERVICE_PRICING_USD["fire-alerts"], currency: "USD" },
+        category: "satellite-data"
+      },
+      {
+        id: "weather_imagery",
+        name: "Satellite Weather Imagery",
+        description: "High-resolution weather satellite imagery from NASA GIBS. Use when user asks 'satellite weather', 'cloud cover', 'weather imagery', 'GIBS data', or 'atmospheric conditions'.",
+        inputSchema: {
+          type: "object",
+          title: "Weather Imagery Request",
+          additionalProperties: false,
+          properties: {
+            lat: { type: "number", title: "Latitude" },
+            lon: { type: "number", title: "Longitude" },
+            layer: { type: "string", title: "Imagery Layer", description: "Specific layer type" }
+          },
+          required: ["lat", "lon"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "Weather Imagery Response",
+          additionalProperties: false,
+          properties: {
+            imagery: { type: "object", title: "Imagery Data" },
+            timestamp: { type: "string", title: "Data Timestamp" },
+            source: { type: "string", title: "Data Source" }
+          }
+        },
+        pricing: { amount: SERVICE_PRICING_USD["weather-imagery"], currency: "USD" },
+        category: "satellite-data"
+      },
+      {
+        id: "vegetation_health",
+        name: "Vegetation Health Analysis",
+        description: "NDVI vegetation health indices from NASA MODIS and ESA Sentinel-2. Use when user asks 'vegetation health', 'NDVI', 'crop monitoring', 'forest health', or 'agriculture satellite data'.",
+        inputSchema: {
+          type: "object",
+          title: "Vegetation Health Request",
+          additionalProperties: false,
+          properties: {
+            lat: { type: "number", title: "Latitude" },
+            lon: { type: "number", title: "Longitude" },
+            area_km2: { type: "number", title: "Area (km²)", description: "Area in square kilometers" }
+          },
+          required: ["lat", "lon"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "Vegetation Health Response",
+          additionalProperties: false,
+          properties: {
+            ndvi: { type: "number", title: "NDVI Value" },
+            healthStatus: { type: "string", title: "Health Status" },
+            source: { type: "string", title: "Data Source" }
+          }
+        },
+        pricing: { amount: SERVICE_PRICING_USD["vegetation"], currency: "USD" },
+        category: "satellite-data"
+      },
+      {
+        id: "flood_detection",
+        name: "Flood Detection",
+        description: "ESA Sentinel-1 SAR-based flood and water body detection. Use when user asks 'flood monitoring', 'flood detection', 'water extent', 'flood mapping', or 'disaster response satellite'.",
+        inputSchema: {
+          type: "object",
+          title: "Flood Detection Request",
+          additionalProperties: false,
+          properties: {
+            lat: { type: "number", title: "Latitude" },
+            lon: { type: "number", title: "Longitude" },
+            radius: { type: "number", title: "Detection Radius (km)" }
+          },
+          required: ["lat", "lon"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "Flood Detection Response",
+          additionalProperties: false,
+          properties: {
+            floodExtent: { type: "object", title: "Flood Extent Data" },
+            riskLevel: { type: "string", title: "Risk Level" },
+            source: { type: "string", title: "Data Source" }
+          }
+        },
+        pricing: { amount: SERVICE_PRICING_USD["flood-detection"], currency: "USD" },
+        category: "satellite-data"
+      },
+      {
+        id: "air_quality",
+        name: "Air Quality Analysis",
+        description: "ESA Sentinel-5P TROPOMI air quality data including NO2, SO2, CO, and aerosols. Use when user asks 'air quality', 'pollution levels', 'air pollution satellite', 'TROPOMI data', or 'atmospheric quality'.",
+        inputSchema: {
+          type: "object",
+          title: "Air Quality Request",
+          additionalProperties: false,
+          properties: {
+            lat: { type: "number", title: "Latitude" },
+            lon: { type: "number", title: "Longitude" },
+            pollutant: { type: "string", title: "Pollutant Type", description: "Specific pollutant (NO2, SO2, CO, etc.)" }
+          },
+          required: ["lat", "lon"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "Air Quality Response",
+          additionalProperties: false,
+          properties: {
+            aqi: { type: "number", title: "Air Quality Index" },
+            pollutants: { type: "object", title: "Pollutant Levels" },
+            source: { type: "string", title: "Data Source" }
+          }
+        },
+        pricing: { amount: SERVICE_PRICING_USD["air-quality"], currency: "USD" },
+        category: "satellite-data"
+      },
+      {
+        id: "land_use",
+        name: "Land Use Classification",
+        description: "NASA Landsat + ESA Sentinel-2 land use classification. Use when user asks 'land use', 'land classification', 'urban detection', 'forest cover', or 'land cover satellite'.",
+        inputSchema: {
+          type: "object",
+          title: "Land Use Request",
+          additionalProperties: false,
+          properties: {
+            lat: { type: "number", title: "Latitude" },
+            lon: { type: "number", title: "Longitude" },
+            area_km2: { type: "number", title: "Area (km²)" }
+          },
+          required: ["lat", "lon"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "Land Use Response",
+          additionalProperties: false,
+          properties: {
+            classification: { type: "object", title: "Land Classification" },
+            landTypes: { type: "array", title: "Land Types" },
+            source: { type: "string", title: "Data Source" }
+          }
+        },
+        pricing: { amount: SERVICE_PRICING_USD["land-use"], currency: "USD" },
+        category: "satellite-data"
       }
     ],
     

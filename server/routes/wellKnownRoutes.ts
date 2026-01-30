@@ -2831,6 +2831,73 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         status: "healthy",
         category: "prediction-markets",
         input_schema: { type: "object", properties: { eventId: { type: "string" }, marketType: { type: "string" } }, required: ["eventId"] }
+      },
+      // Satellite Data Services (6 services) - NASA Earthdata + ESA Copernicus
+      {
+        path: "/api/satellite/fire-alerts",
+        methods: ["GET", "POST"],
+        price_usd: 0.05,
+        auth: "x402",
+        name: "Fire Alert Detection",
+        description: "Real-time active fire detection from NASA FIRMS satellite data. Get fire hotspots by region with confidence levels.",
+        status: "healthy",
+        category: "satellite-data",
+        input_schema: { type: "object", properties: { lat: { type: "number", description: "Latitude" }, lon: { type: "number", description: "Longitude" }, radius: { type: "number", description: "Search radius in km (optional)" } }, required: ["lat", "lon"] }
+      },
+      {
+        path: "/api/satellite/weather-imagery",
+        methods: ["GET", "POST"],
+        price_usd: 0.05,
+        auth: "x402",
+        name: "Satellite Weather Imagery",
+        description: "High-resolution weather satellite imagery from NASA GIBS. Cloud cover, precipitation, and atmospheric data.",
+        status: "healthy",
+        category: "satellite-data",
+        input_schema: { type: "object", properties: { lat: { type: "number", description: "Latitude" }, lon: { type: "number", description: "Longitude" }, layer: { type: "string", description: "Imagery layer (optional)" } }, required: ["lat", "lon"] }
+      },
+      {
+        path: "/api/satellite/vegetation",
+        methods: ["GET", "POST"],
+        price_usd: 0.10,
+        auth: "x402",
+        name: "Vegetation Health Analysis",
+        description: "NDVI vegetation health indices from NASA MODIS and ESA Sentinel-2. Agriculture and forestry monitoring.",
+        status: "healthy",
+        category: "satellite-data",
+        input_schema: { type: "object", properties: { lat: { type: "number", description: "Latitude" }, lon: { type: "number", description: "Longitude" }, area_km2: { type: "number", description: "Area in square kilometers (optional)" } }, required: ["lat", "lon"] }
+      },
+      {
+        path: "/api/satellite/flood-detection",
+        methods: ["GET", "POST"],
+        price_usd: 0.10,
+        auth: "x402",
+        name: "Flood Detection",
+        description: "ESA Sentinel-1 SAR-based flood and water body detection. Emergency response and climate monitoring.",
+        status: "healthy",
+        category: "satellite-data",
+        input_schema: { type: "object", properties: { lat: { type: "number", description: "Latitude" }, lon: { type: "number", description: "Longitude" }, radius: { type: "number", description: "Detection radius in km (optional)" } }, required: ["lat", "lon"] }
+      },
+      {
+        path: "/api/satellite/air-quality",
+        methods: ["GET", "POST"],
+        price_usd: 0.05,
+        auth: "x402",
+        name: "Air Quality Analysis",
+        description: "ESA Sentinel-5P TROPOMI air quality data. NO2, SO2, CO, and aerosol measurements.",
+        status: "healthy",
+        category: "satellite-data",
+        input_schema: { type: "object", properties: { lat: { type: "number", description: "Latitude" }, lon: { type: "number", description: "Longitude" }, pollutant: { type: "string", description: "Pollutant type (optional)" } }, required: ["lat", "lon"] }
+      },
+      {
+        path: "/api/satellite/land-use",
+        methods: ["GET", "POST"],
+        price_usd: 0.15,
+        auth: "x402",
+        name: "Land Use Classification",
+        description: "NASA Landsat + ESA Sentinel-2 land use classification. Urban, agriculture, forest, water body detection.",
+        status: "healthy",
+        category: "satellite-data",
+        input_schema: { type: "object", properties: { lat: { type: "number", description: "Latitude" }, lon: { type: "number", description: "Longitude" }, area_km2: { type: "number", description: "Area in square kilometers (optional)" } }, required: ["lat", "lon"] }
       }
     ],
     x402: {
@@ -2850,8 +2917,8 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       discovery_enabled: true
     },
     commerce: {
-      total_services: 41,
-      categories: ["discovery", "trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence", "prediction-markets", "traditional-markets"],
+      total_services: 47,
+      categories: ["discovery", "trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence", "prediction-markets", "traditional-markets", "satellite-data"],
       platform_commission: 15,
       minimum_payment: 0.10,
       maximum_payment: 10000

@@ -157,6 +157,7 @@ This is the most important table for tracking x402 activity. Full schema:
 | `/.well-known/x402.json` | GET | x402 protocol discovery manifest (35 endpoints) |
 | `/.well-known/agent.json` | GET | A2A protocol agent card |
 | `/.well-known/agent-card.json` | GET | A2A v0.3 compliant agent card (35 skills) |
+| `/.well-known/agent-instructions.json` | GET | Machine-readable onboarding guide for AI agents (wallet setup, payment methods, quickstart) |
 | `/api/discovery/resources` | GET | Bazaar catalog (41 services) |
 | `/mcp/services` | GET | MCP service discovery |
 | `/x402/catalog` | GET | Full x402 service catalog |
@@ -460,7 +461,7 @@ FROM endpoint_hits
 WHERE endpoint_type = 'discovery'
   AND created_at >= NOW() - INTERVAL '7 days'
 GROUP BY resource_id;
--- Expected resource_ids: agent.json, x402.json, agent-card.json
+-- Expected resource_ids: agent.json, x402.json, agent-card.json, agent-instructions.json
 ```
 
 ---

@@ -8,8 +8,16 @@
 import { Router, Request, Response } from 'express';
 import { SERVICE_PRICING_USD } from '@shared/pricing';
 import { getFacilitatorUrl } from '../utils/facilitatorHelper';
+import { trackDiscovery } from '../middleware/hitTracker';
 
 const router = Router();
+
+router.use((req, res, next) => {
+  if (req.path.startsWith('/.well-known')) {
+    return trackDiscovery(req, res, next);
+  }
+  next();
+});
 
 // Get base URL for the platform
 const getBaseUrl = (req?: any) => {

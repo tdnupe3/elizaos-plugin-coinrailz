@@ -12,7 +12,7 @@ import { sql } from 'drizzle-orm';
 import crypto from 'crypto';
 
 interface HitTrackerOptions {
-  endpointType: 'x402' | 'iot' | 'catalog' | 'service';
+  endpointType: 'x402' | 'iot' | 'catalog' | 'service' | 'discovery';
   extractResourceId?: (req: Request) => string | undefined;
 }
 
@@ -82,6 +82,17 @@ export const trackX402Service = createHitTracker({
 export const trackIoTEndpoint = createHitTracker({
   endpointType: 'iot',
   extractResourceId: (req) => req.params.deviceId || req.params.productId,
+});
+
+export const trackDiscovery = createHitTracker({
+  endpointType: 'discovery',
+  extractResourceId: (req) => {
+    const path = req.path;
+    if (path.includes('agent.json')) return 'agent.json';
+    if (path.includes('agent-card.json')) return 'agent-card.json';
+    if (path.includes('x402.json')) return 'x402.json';
+    return path.split('/').pop();
+  },
 });
 
 export async function getHitStats(options?: {

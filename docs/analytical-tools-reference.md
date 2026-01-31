@@ -413,12 +413,13 @@ When asked to "use all analytical tools" or perform daily checks:
 1. Run `refresh_all_logs` to get latest server activity
 2. Query `x402_interactions` for recent service requests
 3. Query `x402_payment_intents` for payment data
-4. **Query `endpoint_hits` for outreach campaign responses** (NEW)
-5. Check unique user agents for new discovery bots or AI agents
-6. Verify discovery endpoints are responding correctly
-7. Check for any error patterns in logs
-8. Use `/api/x402-analytics/hot-leads` to find potential customers
-9. Compare period-over-period metrics for trends
+4. **Query `endpoint_hits` for outreach campaign responses**
+5. **Query `endpoint_hits` WHERE endpoint_type='discovery' for manifest fetches** (NEW - Jan 31 2026)
+6. Check unique user agents for new discovery bots or AI agents
+7. Verify discovery endpoints are responding correctly
+8. Check for any error patterns in logs
+9. Use `/api/x402-analytics/hot-leads` to find potential customers
+10. Compare period-over-period metrics for trends
 
 ### Quick Hit Tracking Check (Run Daily)
 ```sql
@@ -441,5 +442,26 @@ WHERE created_at >= NOW() - INTERVAL '7 days'
 GROUP BY user_agent ORDER BY hits DESC;
 ```
 
+### Discovery Manifest Tracking (NEW - Jan 31 2026)
+```sql
+-- Check how often agents are fetching discovery manifests
+SELECT endpoint, resource_id, COUNT(*) as hits, 
+       COUNT(DISTINCT ip_hash) as unique_visitors,
+       MAX(created_at) as last_fetch
+FROM endpoint_hits
+WHERE endpoint_type = 'discovery'
+  AND created_at >= NOW() - INTERVAL '24 hours'
+GROUP BY endpoint, resource_id
+ORDER BY hits DESC;
+
+-- Breakdown by manifest type
+SELECT resource_id, COUNT(*) as fetches
+FROM endpoint_hits
+WHERE endpoint_type = 'discovery'
+  AND created_at >= NOW() - INTERVAL '7 days'
+GROUP BY resource_id;
+-- Expected resource_ids: agent.json, x402.json, agent-card.json
+```
+
 ---
-Last Updated: January 26, 2026
+Last Updated: January 31, 2026

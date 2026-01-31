@@ -88,8 +88,9 @@ export const trackDiscovery = createHitTracker({
   endpointType: 'discovery',
   extractResourceId: (req) => {
     const path = req.path;
-    if (path.includes('agent.json')) return 'agent.json';
+    if (path.includes('agent-instructions.json')) return 'agent-instructions.json';
     if (path.includes('agent-card.json')) return 'agent-card.json';
+    if (path.includes('agent.json')) return 'agent.json';
     if (path.includes('x402.json')) return 'x402.json';
     return path.split('/').pop();
   },

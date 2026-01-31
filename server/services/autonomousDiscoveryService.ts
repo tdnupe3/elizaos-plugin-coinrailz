@@ -105,6 +105,8 @@ class AutonomousDiscoveryService {
         '/api/x402/create-payment',
         '/.well-known/x402.json',
         '/.well-known/agent.json',
+        '/.well-known/agent-card.json',
+        '/.well-known/agent-instructions.json',
         // x402 ping service
         '/x402/ping',
         '/x402',

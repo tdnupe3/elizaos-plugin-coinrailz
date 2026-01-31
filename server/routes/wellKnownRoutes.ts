@@ -69,6 +69,9 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
     // A2A v0.3 service endpoint
     serviceUrl: `${baseUrl}/x402`,
     
+    // Machine-readable onboarding instructions for AI agents
+    instructions: `${baseUrl}/.well-known/agent-instructions.json`,
+    
     // A2A v0.3 capabilities object (required for Google A2A compliance)
     capabilities: {
       streaming: false,
@@ -1710,6 +1713,200 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /.well-known/agent-instructions.json
+ * 
+ * Machine-readable onboarding instructions for AI agents
+ * Explains how to create wallets, fund them, and purchase services
+ * This endpoint helps agents understand the complete business flow
+ */
+router.get('/.well-known/agent-instructions.json', async (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  
+  const instructions = {
+    title: "How to Do Business with Coin Railz",
+    version: "1.0.0",
+    lastUpdated: "2026-01-31",
+    summary: "Step-by-step guide for AI agents to purchase blockchain analytics and trading services via x402 micropayments or prepaid credits.",
+    
+    quickStart: {
+      description: "Get started in 3 steps",
+      steps: [
+        {
+          step: 1,
+          action: "Get a Wallet",
+          description: "Create a free agent wallet or use your own EVM wallet with USDC on Base",
+          endpoint: `${baseUrl}/x402/wallet/free`,
+          method: "POST",
+          example: { agentId: "your-agent-id", purpose: "payments" }
+        },
+        {
+          step: 2,
+          action: "Fund with USDC",
+          description: "Send USDC to your wallet on Base mainnet (Chain ID 8453)",
+          network: "Base Mainnet",
+          chainId: 8453,
+          token: {
+            symbol: "USDC",
+            address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            decimals: 6
+          },
+          bridges: [
+            { name: "Base Bridge", url: "https://bridge.base.org" },
+            { name: "Across Protocol", url: "https://app.across.to" },
+            { name: "Stargate", url: "https://stargate.finance" }
+          ]
+        },
+        {
+          step: 3,
+          action: "Call Any Service",
+          description: "Make a request to any x402 service. You'll receive a 402 response with payment instructions. Pay via x402 facilitator and receive your data.",
+          facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+          exampleService: `${baseUrl}/x402/ping`,
+          examplePrice: "$0.25 USDC"
+        }
+      ]
+    },
+    
+    walletOptions: {
+      description: "Three ways to get a wallet for payments",
+      options: [
+        {
+          id: "free-wallet",
+          name: "Free Agent Wallet",
+          description: "Instant wallet creation via Coinbase CDP - no cost, ready in seconds",
+          endpoint: `${baseUrl}/x402/wallet/free`,
+          method: "POST",
+          cost: "Free",
+          features: ["Instant creation", "CDP-managed", "Base mainnet ready"]
+        },
+        {
+          id: "instant-agent-wallet",
+          name: "Premium Agent Wallet",
+          description: "Enhanced wallet with additional features via x402 payment",
+          endpoint: `${baseUrl}/x402/instant-agent-wallet`,
+          method: "POST",
+          cost: "$1.00 USDC",
+          features: ["Priority support", "Analytics dashboard", "Multi-chain ready"]
+        },
+        {
+          id: "self-custody",
+          name: "Self-Custody Wallet",
+          description: "Use any existing EVM wallet (MetaMask, Rainbow, etc.)",
+          requirements: ["EVM wallet with Base network support", "USDC on Base mainnet"],
+          cost: "Free (you manage keys)"
+        }
+      ]
+    },
+    
+    paymentMethods: {
+      description: "Multiple ways to pay for services",
+      methods: [
+        {
+          id: "x402",
+          name: "x402 Micropayments",
+          description: "Pay-per-call USDC payments via HTTP 402 protocol",
+          howItWorks: [
+            "1. Make request to any service endpoint",
+            "2. Receive 402 Payment Required response with payment details",
+            "3. Sign and submit USDC payment via facilitator",
+            "4. Retry request with X-PAYMENT header containing tx hash",
+            "5. Receive service response"
+          ],
+          facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+          platformWallet: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+          network: "eip155:8453",
+          token: "USDC"
+        },
+        {
+          id: "credits",
+          name: "Prepaid Credits",
+          description: "Buy credits in bulk for discounted access",
+          endpoint: `${baseUrl}/api/credits`,
+          dashboard: `${baseUrl}/credits`,
+          benefits: ["Volume discounts", "No per-transaction signing", "Usage tracking"]
+        },
+        {
+          id: "sdk",
+          name: "SDK Integration",
+          description: "Use our SDK packages for seamless payment handling",
+          packages: {
+            npm: "@coinrailz/agent-payments",
+            npmSolana: "@coinrailz/agent-payments-solana",
+            python: "coinrailz",
+            pythonSolana: "coinrailz-solana",
+            docker: "tdnupe3/agent-payments"
+          },
+          documentation: `${baseUrl}/docs/sdk`
+        }
+      ]
+    },
+    
+    pricing: {
+      description: "Service pricing ranges from $0.05 to $10.00 USDC per call",
+      pricingTiers: [
+        { tier: "Basic", range: "$0.05 - $0.25", examples: ["ping", "gas-price-oracle", "fire-alerts"] },
+        { tier: "Standard", range: "$0.25 - $1.00", examples: ["multi-chain-balance", "wallet-risk", "trade-signals"] },
+        { tier: "Premium", range: "$1.00 - $5.00", examples: ["instant-agent-wallet", "verified-agent-identity"] },
+        { tier: "Enterprise", range: "$5.00 - $10.00", examples: ["smart-contract-audit", "compliance-consultation"] }
+      ],
+      fullCatalog: `${baseUrl}/x402/catalog`,
+      paymentDocs: `${baseUrl}/x402/payment-docs`
+    },
+    
+    troubleshooting: {
+      commonIssues: [
+        {
+          issue: "402 Payment Required but payment not recognized",
+          solutions: [
+            "Verify transaction was sent to correct wallet: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+            "Confirm transaction is on Base mainnet (not Ethereum or other chains)",
+            "Ensure payment is in USDC (not ETH or other tokens)",
+            "Wait for transaction confirmation (1-2 blocks)"
+          ]
+        },
+        {
+          issue: "Insufficient funds error",
+          solutions: [
+            "Bridge USDC to Base via bridge.base.org or across.to",
+            "Minimum recommended balance: $5 USDC for testing",
+            "Consider buying prepaid credits for bulk usage"
+          ]
+        },
+        {
+          issue: "Wallet creation failed",
+          solutions: [
+            "Use unique agentId for each wallet request",
+            "Check /x402/wallet/free endpoint is accessible",
+            "Contact support if issue persists"
+          ]
+        }
+      ],
+      support: {
+        statusEndpoint: `${baseUrl}/x402/payment-status`,
+        documentation: `${baseUrl}/x402/payment-docs`,
+        contact: "support@coinrailz.com"
+      }
+    },
+    
+    links: {
+      serviceCatalog: `${baseUrl}/x402/catalog`,
+      paymentDocs: `${baseUrl}/x402/payment-docs`,
+      agentCard: `${baseUrl}/.well-known/agent.json`,
+      x402Manifest: `${baseUrl}/.well-known/x402.json`,
+      apiDiscovery: `${baseUrl}/api/discovery/resources`,
+      mcpServices: `${baseUrl}/mcp/services`,
+      freeWallet: `${baseUrl}/x402/wallet/free`,
+      credits: `${baseUrl}/credits`,
+      documentation: `${baseUrl}/docs`
+    }
+  };
+  
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.status(200).json(instructions);
+});
+
+/**
  * GET /.well-known/agent-card.json
  * 
  * A2A Protocol v0.3.0 compliant agent card for registry submission
@@ -1728,6 +1925,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
     description: "Multi-chain x402 micropayment infrastructure for AI agents. 41 pay-per-call API services for crypto analytics, trading signals, security audits, real estate, banking, market intelligence, prediction markets, and traditional markets. Pay with USDC on Base chain - prices from $0.10 to $10.00 per request.",
     url: baseUrl,
     version: "3.0.0",
+    instructions: `${baseUrl}/.well-known/agent-instructions.json`,
     
     capabilities: {
       streaming: true,
@@ -2418,6 +2616,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     contact: "support@coinrailz.com",
     description: "AI agent marketplace with x402 autonomous payment endpoints, A2A 2.0 discovery, SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker), and multi-chain support across 8 networks (7 EVM + Solana). Processing fee: 1.5% + $0.01 per transaction.",
     version: "x402-2.1",
+    instructions: `${baseUrl}/.well-known/agent-instructions.json`,
     sdk: {
       npm: "@coinrailz/agent-payments",
       npmSolana: "@coinrailz/agent-payments-solana",

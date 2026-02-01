@@ -34,7 +34,9 @@ const INDEXER_TARGETS = [
       urlList: [
         `${BASE_URL}/`,
         `${BASE_URL}/x402/catalog`,
+        `${BASE_URL}/.well-known/agent.json`,
         `${BASE_URL}/.well-known/agent-card.json`,
+        `${BASE_URL}/.well-known/agent-instructions.json`,
         `${BASE_URL}/sitemap.xml`,
         `${BASE_URL}/robots.txt`
       ]

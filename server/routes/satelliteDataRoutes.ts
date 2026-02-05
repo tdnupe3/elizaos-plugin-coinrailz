@@ -33,6 +33,8 @@ import { trackX402Service } from '../middleware/hitTracker';
 import { hybridPaymentMiddleware } from '../middleware/hybridPaymentMiddleware';
 import { x402TrackingMiddleware } from '../middleware/x402TrackingMiddleware';
 import { nanoid } from 'nanoid';
+import { buildBazaarDiscoveryMetadata } from '../discovery/officialBazaarIntegration';
+import { serviceCatalogService } from '../services/serviceCatalogService';
 
 // Demo mode only enabled in development unless explicitly overridden
 const DEMO_MODE_ENABLED = process.env.SATELLITE_DEMO_MODE === 'true' || process.env.NODE_ENV !== 'production';
@@ -61,6 +63,40 @@ function generateX402PaymentRequired(product: typeof SATELLITE_DATA_PRODUCTS[0],
     ? `https://${process.env.REPLIT_DEV_DOMAIN}`
     : 'https://coinrailz.com';
   
+  // Look up catalog entry for Bazaar metadata
+  const catalog = serviceCatalogService.getCatalog();
+  const catalogEntry = catalog.services.find(s => 
+    s.endpoint === product.endpoint || 
+    s.id === product.id ||
+    s.slug === product.id
+  );
+  
+  // Build Bazaar discovery metadata for facilitator indexing
+  let bazaarMetadata: any = null;
+  if (catalogEntry) {
+    try {
+      bazaarMetadata = buildBazaarDiscoveryMetadata(catalogEntry, 'GET');
+    } catch (e) {
+      // Silently continue if metadata build fails
+    }
+  }
+  // Fallback Bazaar metadata if no catalog entry
+  if (!bazaarMetadata) {
+    bazaarMetadata = {
+      input: {
+        type: "http" as const,
+        method: "GET" as const,
+        bodyType: "none" as const,
+        headers: { 'Accept': 'application/json' }
+      },
+      output: {
+        type: "application/json",
+        format: "json",
+        example: { success: true, data: product.sampleResponse }
+      }
+    };
+  }
+  
   return {
     x402Version: '2',
     accepts: [
@@ -78,6 +114,10 @@ function generateX402PaymentRequired(product: typeof SATELLITE_DATA_PRODUCTS[0],
           name: `Coin Railz - ${product.name}`,
           version: '2.0',
         },
+        extensions: {
+          bazaar: bazaarMetadata
+        },
+        discoverable: true,
       },
     ],
     error: 'Payment required to access satellite data',

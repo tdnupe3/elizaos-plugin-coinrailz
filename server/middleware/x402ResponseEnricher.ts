@@ -19,6 +19,7 @@ import { db } from "../db";
 import { x402PaymentIntents } from "@shared/schema";
 import { sql, gte, eq } from "drizzle-orm";
 import { getFacilitatorUrl, NETWORK_LEGACY, NETWORK_CAIP2 } from "../utils/facilitatorHelper";
+import { buildBazaarDiscoveryMetadata } from "../discovery/officialBazaarIntegration";
 
 const CANONICAL_BASE_URL = process.env.PUBLIC_URL || 'https://coinrailz.com';
 // FIXED (Jan 11, 2026): Call getFacilitatorUrl() per-request, not at module load
@@ -263,6 +264,16 @@ export function x402ResponseEnricher() {
           note: "Other autonomous agents have successfully used this payment flow."
         };
         
+        // Look up service from catalog for Bazaar metadata
+        const servicePath = endpoint.replace(/^\/x402\/service\//, '').replace(/^\/x402\//, '').replace(/^\/service\//, '').replace(/^\//, '').replace(/\/$/, '');
+        const catalog = serviceCatalogService.getCatalog();
+        const matchedService = catalog.services.find(s => 
+          s.endpoint === endpoint || 
+          s.endpoint?.endsWith(servicePath) ||
+          s.id === servicePath ||
+          s.slug === servicePath
+        );
+        
         body.accepts = body.accepts.map((paymentReq: any) => {
           const enriched = { ...paymentReq };
           
@@ -272,6 +283,20 @@ export function x402ResponseEnricher() {
           
           enriched.resource = normalizeResourceUrl(paymentReq.resource, endpoint);
           enriched.discoverable = true;
+          
+          // Add official Bazaar extensions for facilitator indexing (Feb 2026 fix)
+          // Format: extensions.bazaar with inputSchema/outputSchema per @x402/extensions/bazaar v2.0.0
+          if (matchedService && matchedService.x402Compatible !== false) {
+            try {
+              const bazaarMetadata = buildBazaarDiscoveryMetadata(matchedService, 'POST');
+              enriched.extensions = {
+                ...(enriched.extensions || {}),
+                bazaar: bazaarMetadata
+              };
+            } catch (e) {
+              // Silently continue if metadata build fails - don't break the 402 response
+            }
+          }
           
           // CRITICAL FIX: Add backward-compatible legacy network format for x402-fetch v0.7.3
           // x402-fetch uses Zod validation that only accepts legacy names ("base", "polygon")

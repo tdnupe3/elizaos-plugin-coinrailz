@@ -102,17 +102,23 @@ function generateX402PaymentRequired(product: typeof SATELLITE_DATA_PRODUCTS[0],
     accepts: [
       {
         scheme: 'exact',
-        network: 'base',
+        network: 'eip155:8453',
+        networkLegacy: 'base',
+        x402Network: 'eip155:8453',
+        amount: Math.ceil(product.priceUsd * 1000000).toString(),
         maxAmountRequired: Math.ceil(product.priceUsd * 1000000).toString(),
         resource: `${baseUrl}${product.endpoint}`,
         description: product.description,
         mimeType: 'application/json',
         payTo: process.env.COINRAILZ_WALLET || '0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91',
         maxTimeoutSeconds: 300,
-        asset: 'eip155:8453/erc20:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+        asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
         extra: {
           name: `Coin Railz - ${product.name}`,
           version: '2.0',
+          decimals: 6,
+          chainId: 8453,
+          chainName: 'Base',
         },
         extensions: {
           bazaar: bazaarMetadata

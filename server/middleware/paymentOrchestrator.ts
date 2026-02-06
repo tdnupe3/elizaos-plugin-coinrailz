@@ -2110,8 +2110,10 @@ function generate402Response(
     // Base Chain - USDC (primary)
     {
       scheme: "exact",
-      network: "base",
+      network: "eip155:8453",
+      networkLegacy: "base",
       x402Network: "eip155:8453",
+      amount: requiredAmount.toString(),
       maxAmountRequired: requiredAmount.toString(),
       maxAmountRequiredUSD: priceUsd,
       resource: resource,
@@ -2138,8 +2140,10 @@ function generate402Response(
     // Base Chain - USDT
     {
       scheme: "exact",
-      network: "base",
+      network: "eip155:8453",
+      networkLegacy: "base",
       x402Network: "eip155:8453",
+      amount: requiredAmount.toString(),
       maxAmountRequired: requiredAmount.toString(),
       maxAmountRequiredUSD: priceUsd,
       resource: resource,
@@ -2160,8 +2164,10 @@ function generate402Response(
     // Solana - USDC
     {
       scheme: "exact",
-      network: "solana",
+      network: "solana:mainnet",
+      networkLegacy: "solana",
       x402Network: "solana:mainnet",
+      amount: requiredAmount.toString(),
       maxAmountRequired: requiredAmount.toString(),
       maxAmountRequiredUSD: priceUsd,
       resource: resource,
@@ -2181,8 +2187,10 @@ function generate402Response(
     // Solana - USDT
     {
       scheme: "exact",
-      network: "solana",
+      network: "solana:mainnet",
+      networkLegacy: "solana",
       x402Network: "solana:mainnet",
+      amount: requiredAmount.toString(),
       maxAmountRequired: requiredAmount.toString(),
       maxAmountRequiredUSD: priceUsd,
       resource: resource,

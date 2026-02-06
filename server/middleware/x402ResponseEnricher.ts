@@ -169,7 +169,8 @@ function createPaymentInstructions() {
       { method: "raw-transaction-hash", tokens: ["USDC", "USDT"], description: "Direct transfer verified on-chain" },
       { method: "api-key", tokens: ["prepaid-credits"], description: "Use prepaid credits with X-API-KEY header (no blockchain required)" }
     ],
-    network: "base",
+    network: "eip155:8453",
+    networkLegacy: "base",
     x402Network: "eip155:8453",
     chainId: 8453,
     acceptedTokens: [
@@ -298,15 +299,20 @@ export function x402ResponseEnricher() {
             }
           }
           
-          // CRITICAL FIX: Add backward-compatible legacy network format for x402-fetch v0.7.3
-          // x402-fetch uses Zod validation that only accepts legacy names ("base", "polygon")
-          // but x402 V2 spec requires CAIP-2 format ("eip155:8453")
-          // Solution: Include BOTH formats for maximum compatibility
-          // - network: "base" (legacy format for x402-fetch and older clients)
-          // - x402Network: "eip155:8453" (V2 format for spec compliance)
-          if (enriched.network === 'eip155:8453' || !enriched.network) {
-            enriched.network = 'base'; // Legacy format for x402-fetch compatibility
-            enriched.x402Network = 'eip155:8453'; // V2 CAIP-2 format for compliance
+          // x402scan requires CAIP-2 format in the `network` field and requires `amount` field
+          // Keep networkLegacy for older x402-fetch clients that need "base"/"solana"
+          if (enriched.network === 'base' || !enriched.network) {
+            enriched.network = 'eip155:8453';
+            enriched.networkLegacy = enriched.networkLegacy || 'base';
+            enriched.x402Network = 'eip155:8453';
+          }
+          if (enriched.network === 'solana') {
+            enriched.network = 'solana:mainnet';
+            enriched.networkLegacy = enriched.networkLegacy || 'solana';
+            enriched.x402Network = 'solana:mainnet';
+          }
+          if (enriched.maxAmountRequired && !enriched.amount) {
+            enriched.amount = enriched.maxAmountRequired;
           }
           
           if (paymentReq.maxAmountRequired && !paymentReq.maxAmountRequiredUSD) {

@@ -1663,6 +1663,21 @@ router.use((req: Request, res: Response, next) => {
             .replace(/https:\/\/[^\/]+\.replit\.dev\//, `${publicBaseUrl}/`);
         }
         
+        // x402scan requires CAIP-2 network format and amount field
+        if (enriched.network === 'base' || !enriched.network) {
+          enriched.network = 'eip155:8453';
+          enriched.networkLegacy = enriched.networkLegacy || 'base';
+          enriched.x402Network = 'eip155:8453';
+        }
+        if (enriched.network === 'solana') {
+          enriched.network = 'solana:mainnet';
+          enriched.networkLegacy = enriched.networkLegacy || 'solana';
+          enriched.x402Network = 'solana:mainnet';
+        }
+        if (enriched.maxAmountRequired && !enriched.amount) {
+          enriched.amount = enriched.maxAmountRequired;
+        }
+        
         // Add maxAmountRequiredUSD if not present (convert from micro units)
         if (paymentReq.maxAmountRequired && !paymentReq.maxAmountRequiredUSD) {
           const microUnits = parseInt(paymentReq.maxAmountRequired, 10);
@@ -1699,8 +1714,9 @@ router.use((req: Request, res: Response, next) => {
           step4: "Retry the request with X-PAYMENT header",
           alternativeStep3: "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC",
           supportedMethods: ["eip3009-authorization", "raw-transaction-hash"],
-          network: "base", // Legacy format for x402-fetch compatibility
-          x402Network: "eip155:8453", // V2 CAIP-2 format for spec compliance
+          network: "eip155:8453",
+          networkLegacy: "base",
+          x402Network: "eip155:8453",
           chainId: 8453,
           token: "USDC",
           tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"

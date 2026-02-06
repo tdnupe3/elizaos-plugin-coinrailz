@@ -1860,6 +1860,34 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       metadata: {}
     }],
     facilitatorUrl: getFacilitatorUrl(),
+    inputSchema: config.inputSchema ? {
+      type: "object",
+      description: `Input schema for ${config.name || serviceKey}`,
+      properties: Object.fromEntries(
+        Object.entries(config.inputSchema.bodyFields || {}).map(([k, v]: [string, any]) => [
+          k,
+          { type: v?.type || "string", description: v?.description || k, ...(v?.required ? { required: v.required } : {}) }
+        ])
+      ),
+      required: Object.entries(config.inputSchema.bodyFields || {})
+        .filter(([_, v]: [string, any]) => v?.required === true)
+        .map(([k]: [string, any]) => k),
+      httpMethod: canonicalMethod,
+      contentType: "application/json"
+    } : config.schema?.input ? {
+      type: config.schema.input.type || "object",
+      description: `Input schema for ${config.name || serviceKey}`,
+      properties: config.schema.input.properties || {},
+      required: config.schema.input.required || [],
+      httpMethod: canonicalMethod,
+      contentType: "application/json"
+    } : {
+      type: "object",
+      description: `Input schema for ${config.name || serviceKey}`,
+      properties: {},
+      httpMethod: canonicalMethod,
+      contentType: "application/json"
+    },
     paymentInstructions: {
       step1: "Obtain USDC on Base chain (chainId: 8453)",
       step2: "Sign EIP-3009 authorization for the exact amount",

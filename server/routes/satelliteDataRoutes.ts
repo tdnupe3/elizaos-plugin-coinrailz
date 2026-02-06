@@ -127,6 +127,25 @@ function generateX402PaymentRequired(product: typeof SATELLITE_DATA_PRODUCTS[0],
       },
     ],
     error: 'Payment required to access satellite data',
+    inputSchema: {
+      type: "object",
+      description: `Input schema for ${product.name}`,
+      properties: {
+        west: { type: "number", description: "Western longitude boundary (-180 to 180)" },
+        south: { type: "number", description: "Southern latitude boundary (-90 to 90)" },
+        east: { type: "number", description: "Eastern longitude boundary (-180 to 180)" },
+        north: { type: "number", description: "Northern latitude boundary (-90 to 90)" },
+        ...(product.id === 'sat_weather_imagery' ? {
+          layer: { type: "string", description: "GIBS layer ID (e.g., MODIS_Terra_CorrectedReflectance_TrueColor)" }
+        } : {}),
+        ...(product.id === 'sat_fire_alerts' ? {
+          days: { type: "number", description: "Number of days to look back (default: 1)" }
+        } : {})
+      },
+      required: ["west", "south", "east", "north"],
+      httpMethod: "GET",
+      contentType: "none"
+    },
     product: {
       id: product.id,
       name: product.name,

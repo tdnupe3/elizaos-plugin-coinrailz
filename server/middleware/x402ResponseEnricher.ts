@@ -339,10 +339,62 @@ export function x402ResponseEnricher() {
           return enriched;
         });
         
+        if (!body.inputSchema) {
+          const method = (req.method || 'GET').toUpperCase();
+          if (matchedService) {
+            const bazaarExt = body.accepts?.[0]?.extensions?.bazaar;
+            if (bazaarExt?.input?.body) {
+              body.inputSchema = {
+                type: "object",
+                description: `Input schema for ${matchedService.name}`,
+                properties: Object.fromEntries(
+                  Object.entries(bazaarExt.input.body).map(([k, v]: [string, any]) => [
+                    k,
+                    typeof v === 'object' ? v : { type: typeof v === 'number' ? 'number' : 'string', example: v }
+                  ])
+                ),
+                required: Object.entries(bazaarExt.input.body)
+                  .filter(([_, v]: [string, any]) => v?.required === true)
+                  .map(([k]: [string, any]) => k),
+                httpMethod: bazaarExt.input.method || method,
+                contentType: bazaarExt.input.bodyType === 'json' ? 'application/json' : 'application/json'
+              };
+            } else if (bazaarExt?.input?.queryParams) {
+              body.inputSchema = {
+                type: "object",
+                description: `Input schema for ${matchedService.name}`,
+                properties: Object.fromEntries(
+                  Object.entries(bazaarExt.input.queryParams).map(([k, v]: [string, any]) => [
+                    k,
+                    typeof v === 'object' ? v : { type: 'string', example: v }
+                  ])
+                ),
+                httpMethod: bazaarExt.input.method || method,
+                contentType: 'none'
+              };
+            } else {
+              body.inputSchema = {
+                type: "object",
+                description: `Input schema for ${matchedService.name}`,
+                properties: {},
+                httpMethod: method,
+                contentType: method === 'GET' ? 'none' : 'application/json'
+              };
+            }
+          } else {
+            body.inputSchema = {
+              type: "object",
+              description: `API input for ${endpoint}`,
+              properties: {},
+              httpMethod: method,
+              contentType: method === 'GET' ? 'none' : 'application/json'
+            };
+          }
+        }
+        
         if (!body.paymentInstructions) {
           body.paymentInstructions = createPaymentInstructions();
         } else {
-          // Always add SDK examples to existing paymentInstructions
           const fullInstructions = createPaymentInstructions();
           body.paymentInstructions.sdkExamples = body.paymentInstructions.sdkExamples || fullInstructions.sdkExamples;
         }

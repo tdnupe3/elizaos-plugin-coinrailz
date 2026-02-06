@@ -2252,6 +2252,16 @@ function generate402Response(
     totalServicesAvailable: 38,
     requestId: requestId,
     
+    inputSchema: {
+      type: "object",
+      description: `Input schema for ${serviceName}`,
+      properties: {
+        query: { type: "string", description: "Query parameter for the service" }
+      },
+      httpMethod: "POST",
+      contentType: "application/json"
+    },
+    
     // FIRST-CALL FREE promotion
     firstCallFree: {
       eligible: FIRST_CALL_FREE_SERVICES.includes(serviceName),

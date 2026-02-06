@@ -57,17 +57,71 @@ export class A2AMassDiscoveryService {
       'https://virtuals.io',
       'https://fereai.xyz',
       
+      // x402 Ecosystem - Active Payment Services (Feb 2026)
+      'https://x402.org',
+      'https://www.x402scan.com',
+      'https://x402station.com',
+      'https://x402.dev',
+      'https://fluora.xyz',
+      'https://relai.network',
+      'https://openclaw.com',
+      'https://agentlisa.com',
+      'https://payai.network',
+      'https://slamai.xyz',
+      'https://kobaru.xyz',
+      'https://bond.credit',
+      'https://heurist.ai',
+      'https://aimo.network',
+      'https://slinkylayer.com',
+      'https://cybercentry.com',
+      'https://eigencloud.io',
+      
+      // Coinbase & Base Ecosystem
+      'https://agentkit.coinbase.com',
+      'https://bazaar.coinbase.com',
+      'https://base.org',
+      'https://docs.base.org',
+      
+      // Google AP2 & A2A Protocol Hubs
+      'https://google.com',
+      'https://cloud.google.com',
+      
+      // Cloudflare x402
+      'https://cloudflare.com',
+      'https://workers.cloudflare.com',
+      
+      // Vercel x402 ecosystem
+      'https://vercel.com',
+      
+      // Major AI Agent Platforms
+      'https://anthropic.com',
+      'https://openai.com',
+      
+      // DePIN / IoT Agent Networks
+      'https://fetch.ai',
+      'https://singularitynet.io',
+      'https://ocean.protocol',
+      'https://render.com',
+      
+      // x402 Hackathon Winners & Active Builders
+      'https://zuplo.com',
+      'https://jetpay.xyz',
+      
       // Google Cloud Run patterns (common A2A deployment)
       'https://pizza-agent.run.app',
       'https://burger-agent.run.app',
       'https://demo-agent.run.app',
       'https://ai-agent.run.app',
       'https://chat-agent.run.app',
+      'https://x402-agent.run.app',
+      'https://payment-agent.run.app',
+      'https://agentkit-agent.run.app',
       
       // Vercel deployments
       'https://agent.vercel.app',
       'https://ai-agent.vercel.app',
       'https://chat-agent.vercel.app',
+      'https://x402-agent.vercel.app',
       
       // Common hosting platforms
       'https://agent.fly.io',

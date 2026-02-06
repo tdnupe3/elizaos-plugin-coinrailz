@@ -1859,6 +1859,27 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       type: "http",
       metadata: {}
     }],
+    resource: {
+      url: resourceUrl,
+      description: config.description || `x402 service: ${servicePath}`,
+      mimeType: config.mimeType || "application/json"
+    },
+    extensions: {
+      bazaar: {
+        info: {
+          input: bazaarMetadata?.input || { type: "http", method: canonicalMethod },
+          output: bazaarMetadata?.output || undefined
+        },
+        schema: config.inputSchema ? {
+          type: "object",
+          properties: Object.fromEntries(
+            Object.entries(config.inputSchema.bodyFields || {}).map(([k, v]: [string, any]) => [
+              k, { type: v?.type || "string", description: v?.description || k }
+            ])
+          )
+        } : config.schema?.input || undefined
+      }
+    },
     facilitatorUrl: getFacilitatorUrl(),
     inputSchema: config.inputSchema ? {
       type: "object",

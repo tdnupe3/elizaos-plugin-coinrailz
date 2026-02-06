@@ -339,57 +339,30 @@ export function x402ResponseEnricher() {
           return enriched;
         });
         
-        if (!body.inputSchema) {
-          const method = (req.method || 'GET').toUpperCase();
-          if (matchedService) {
-            const bazaarExt = body.accepts?.[0]?.extensions?.bazaar;
-            if (bazaarExt?.input?.body) {
-              body.inputSchema = {
-                type: "object",
-                description: `Input schema for ${matchedService.name}`,
-                properties: Object.fromEntries(
-                  Object.entries(bazaarExt.input.body).map(([k, v]: [string, any]) => [
-                    k,
-                    typeof v === 'object' ? v : { type: typeof v === 'number' ? 'number' : 'string', example: v }
-                  ])
-                ),
-                required: Object.entries(bazaarExt.input.body)
-                  .filter(([_, v]: [string, any]) => v?.required === true)
-                  .map(([k]: [string, any]) => k),
-                httpMethod: bazaarExt.input.method || method,
-                contentType: bazaarExt.input.bodyType === 'json' ? 'application/json' : 'application/json'
-              };
-            } else if (bazaarExt?.input?.queryParams) {
-              body.inputSchema = {
-                type: "object",
-                description: `Input schema for ${matchedService.name}`,
-                properties: Object.fromEntries(
-                  Object.entries(bazaarExt.input.queryParams).map(([k, v]: [string, any]) => [
-                    k,
-                    typeof v === 'object' ? v : { type: 'string', example: v }
-                  ])
-                ),
-                httpMethod: bazaarExt.input.method || method,
-                contentType: 'none'
-              };
-            } else {
-              body.inputSchema = {
-                type: "object",
-                description: `Input schema for ${matchedService.name}`,
-                properties: {},
-                httpMethod: method,
-                contentType: method === 'GET' ? 'none' : 'application/json'
-              };
+        const firstAccept = body.accepts?.[0];
+        if (!body.resource && firstAccept) {
+          body.resource = {
+            url: firstAccept.resource || normalizeResourceUrl('', endpoint),
+            description: firstAccept.description || matchedService?.description || `x402 service at ${endpoint}`,
+            mimeType: firstAccept.mimeType || 'application/json'
+          };
+        }
+        
+        if (!body.extensions) {
+          const bazaarExt = firstAccept?.extensions?.bazaar;
+          const inputSchemaFromBody = body.inputSchema;
+          body.extensions = {
+            bazaar: {
+              info: {
+                input: bazaarExt?.input || inputSchemaFromBody || { type: "http", method: "POST" },
+                output: bazaarExt?.output || undefined
+              },
+              schema: inputSchemaFromBody || (firstAccept?.outputSchema ? {
+                input: firstAccept.outputSchema.input,
+                output: firstAccept.outputSchema.output
+              } : undefined)
             }
-          } else {
-            body.inputSchema = {
-              type: "object",
-              description: `API input for ${endpoint}`,
-              properties: {},
-              httpMethod: method,
-              contentType: method === 'GET' ? 'none' : 'application/json'
-            };
-          }
+          };
         }
         
         if (!body.paymentInstructions) {

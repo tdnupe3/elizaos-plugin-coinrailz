@@ -1,0 +1,217 @@
+{
+  "x402Version": 2,
+  "error": "X-PAYMENT header is required",
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "eip155:8453",
+      "x402Network": "eip155:8453",
+      "maxAmountRequired": "250000",
+      "maxAmountRequiredUSD": "$0.25",
+      "resource": "https://coinrailz.com/x402/ping",
+      "description": "Lowest-cost test endpoint to verify x402 payment flow. Returns platform info and echoes your message.",
+      "payTo": "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "maxTimeoutSeconds": 30,
+      "mimeType": "application/json",
+      "discoverable": true,
+      "category": "API Access",
+      "tags": [
+        "Crypto",
+        "Blockchain",
+        "AI",
+        "x402",
+        "USDC"
+      ],
+      "extra": {
+        "name": "USD Coin",
+        "version": "2",
+        "decimals": 6,
+        "chainId": 8453,
+        "chainName": "Base"
+      },
+      "extensions": {
+        "bazaar": {
+          "input": {
+            "type": "http",
+            "method": "POST",
+            "bodyType": "json",
+            "body": {
+              "query": "example query parameter"
+            },
+            "headers": {
+              "Content-Type": "application/json",
+              "Accept": "application/json"
+            }
+          },
+          "output": {
+            "type": "application/json",
+            "format": "json",
+            "example": {
+              "success": true,
+              "timestamp": "2026-02-06T17:36:34.158Z",
+              "service": "ping",
+              "result": "Service executed successfully"
+            }
+          }
+        }
+      },
+      "outputSchema": {
+        "input": {
+          "type": "http",
+          "method": "POST",
+          "discoverable": true,
+          "bodyType": "json",
+          "bodyFields": {
+            "message": {
+              "type": "string",
+              "description": "Optional message to echo back"
+            }
+          }
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean",
+              "description": "Request success status"
+            },
+            "service": {
+              "type": "string",
+              "description": "Platform name"
+            },
+            "version": {
+              "type": "string",
+              "description": "API version"
+            },
+            "echo": {
+              "type": "string",
+              "description": "Echoed message or 'pong'"
+            },
+            "servicesAvailable": {
+              "type": "number",
+              "description": "Number of x402 services available"
+            }
+          }
+        }
+      },
+      "type": "http",
+      "metadata": {},
+      "networkLegacy": "base",
+      "amount": "250000"
+    }
+  ],
+  "facilitatorUrl": "https://api.cdp.coinbase.com/platform/v2/x402",
+  "inputSchema": {
+    "type": "object",
+    "description": "Input schema for Ping/Echo Service",
+    "properties": {
+      "message": {
+        "type": "string",
+        "description": "Optional message to echo back"
+      }
+    },
+    "required": [],
+    "httpMethod": "POST",
+    "contentType": "application/json"
+  },
+  "paymentInstructions": {
+    "step1": "Obtain USDC on Base chain (chainId: 8453)",
+    "step2": "Sign EIP-3009 authorization for the exact amount",
+    "step3": "Include Base64-encoded authorization in X-PAYMENT header",
+    "step4": "Retry the request with X-PAYMENT header",
+    "alternativeStep3": "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC",
+    "supportedMethods": [
+      "eip3009-authorization",
+      "raw-transaction-hash",
+      "api-key"
+    ],
+    "network": "base",
+    "x402Network": "eip155:8453",
+    "chainId": 8453,
+    "token": "USDC",
+    "tokenAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "sdkExamples": {
+      "nodejs": {
+        "install": "npm install @coinrailz/agent-payments",
+        "code": "import { AgentPayments } from '@coinrailz/agent-payments';\n\nconst agent = new AgentPayments({\n  privateKey: process.env.PRIVATE_KEY,\n  network: 'base'\n});\n\nconst result = await agent.payAndCall({\n  url: 'https://coinrailz.com/x402/gas-price-oracle',\n  method: 'POST',\n  body: { chains: ['base', 'ethereum'] }\n});\nconsole.log(result.data);"
+      },
+      "python": {
+        "install": "pip install coinrailz",
+        "code": "import os\nfrom coinrailz import AgentPayments\n\nagent = AgentPayments(\n    private_key=os.environ['PRIVATE_KEY'],\n    network='base'\n)\n\nresult = agent.pay_and_call(\n    url='https://coinrailz.com/x402/gas-price-oracle',\n    method='POST',\n    body={'chains': ['base', 'ethereum']}\n)\nprint(result['data'])"
+      },
+      "curl": {
+        "description": "For testing or simple integrations",
+        "code": "# Step 1: Get a free wallet (if needed)\ncurl -X POST https://coinrailz.com/x402/wallet/free \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"agent_id\": \"my-agent\", \"chain\": \"base-mainnet\"}'\n\n# Step 2: Or use prepaid credits (easiest)\ncurl -X POST https://coinrailz.com/x402/gas-price-oracle \\\n  -H \"Content-Type: application/json\" \\\n  -H \"X-API-KEY: your-api-key\" \\\n  -d '{\"chains\": [\"base\"]}'"
+      },
+      "quickStart": "Fastest path: Buy credits at https://coinrailz.com/credits with credit card, then use X-API-KEY header (no blockchain required)"
+    }
+  },
+  "alternativePaymentMethods": {
+    "apiKey": {
+      "description": "Use prepaid credits with an API key (EASIEST - no blockchain required)",
+      "howToGet": "Purchase credits at https://coinrailz.com/credits with Stripe (credit card) or USDC",
+      "usage": "Include X-API-KEY header or Authorization: Bearer <api-key> header",
+      "benefits": [
+        "No blockchain knowledge required",
+        "Instant setup with credit card",
+        "Single API key for all 38 services",
+        "50-70% higher conversion than manual USDC"
+      ],
+      "getStarted": "https://coinrailz.com/credits",
+      "example": "curl -X GET \"https://coinrailz.com/x402/ping\" -H \"X-API-KEY: your-api-key-here\""
+    },
+    "rawTransaction": {
+      "description": "Send USDC directly to platform wallet, include tx hash in X-PAYMENT header",
+      "usage": "X-PAYMENT: 0x... (raw transaction hash)",
+      "platformWallet": "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91"
+    }
+  },
+  "freeWalletOffer": {
+    "message": "Need a wallet? Get one FREE to start using x402 services!",
+    "endpoint": "https://coinrailz.com/x402/wallet/free",
+    "method": "POST",
+    "body": {
+      "agent_id": "your-unique-agent-id",
+      "purpose": "persistent",
+      "chain": "base-mainnet"
+    },
+    "supportedChains": [
+      "base-mainnet",
+      "ethereum-mainnet",
+      "polygon-mainnet",
+      "arbitrum-mainnet",
+      "solana-mainnet"
+    ],
+    "benefits": [
+      "MPC-secured wallet via Coinbase CDP",
+      "No payment required",
+      "Instant creation",
+      "EVM + Solana supported",
+      "Fund with USDC to start transacting"
+    ],
+    "rateLimit": "2 free wallets per IP per day"
+  },
+  "recommendedServices": [
+    {
+      "id": "trade-signals",
+      "name": "AI Trade Signals",
+      "priceUSD": "$0.75",
+      "endpoint": "/x402/trade-signals"
+    },
+    {
+      "id": "gas-price-oracle",
+      "name": "Multi-Chain Gas Oracle",
+      "priceUSD": "$0.10",
+      "endpoint": "/x402/gas-price-oracle"
+    },
+    {
+      "id": "sdk-payments-evm",
+      "name": "SDK Payment Processing (EVM)",
+      "priceUSD": "Variable",
+      "endpoint": "/api/sdk/payments/send"
+    }
+  ],
+  "catalogUrl": "https://coinrailz.com/x402/catalog",
+  "totalServicesAvailable": 55
+}

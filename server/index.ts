@@ -3743,6 +3743,53 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     const { setupAnalyticsRoutes } = await import('./routes/analytics');
     setupAnalyticsRoutes(app);
     console.log('✅ Analytics hit tracking routes registered (pre-Vite)');
+
+    // Register Admin x402 Organic Traffic routes BEFORE Vite
+    app.post('/api/admin/x402-organic-traffic', async (req, res) => {
+      const adminSecret = process.env.ADMIN_SECRET || process.env.JWT_SECRET;
+      const authHeader = req.headers.authorization;
+      if (!adminSecret || !authHeader || authHeader !== `Bearer ${adminSecret}`) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const privateKey = process.env.EVM_PRIVATE_KEY;
+      if (!privateKey) {
+        return res.status(500).json({ error: "EVM_PRIVATE_KEY not configured" });
+      }
+      const {
+        maxCalls = 5, minDelayMs = 30000, maxDelayMs = 180000, dryRun = true,
+        excludeServices = ["verified-agent-identity", "compliance-consultation", "smart-contract-audit", "instant-agent-wallet", "agent-create-wallet", "seamless-chain-bridge", "instant-api-key"],
+        onlyServices = [],
+      } = req.body || {};
+      try {
+        const { runOrganicTraffic } = await import('../scripts/organic-x402-traffic');
+        const results = await runOrganicTraffic({
+          maxCalls, minDelayMs, maxDelayMs, dryRun, privateKey,
+          targetUrl: process.env.COINRAILZ_BASE_URL || `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'coinrailz.com'}`,
+          excludeServices, onlyServices,
+        });
+        res.json({ success: true, dryRun, totalCalls: results.length, results });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    app.get('/api/admin/x402-organic-traffic/services', async (req, res) => {
+      const adminSecret = process.env.ADMIN_SECRET || process.env.JWT_SECRET;
+      const authHeader = req.headers.authorization;
+      if (!adminSecret || !authHeader || authHeader !== `Bearer ${adminSecret}`) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const { SERVICES } = await import('../scripts/organic-x402-traffic');
+      const excludeDefault = ["verified-agent-identity", "compliance-consultation", "smart-contract-audit", "instant-agent-wallet", "agent-create-wallet", "seamless-chain-bridge", "instant-api-key"];
+      const available = SERVICES.filter((s: any) => !excludeDefault.includes(s.name));
+      const totalCost = available.reduce((sum: number, s: any) => sum + s.priceUsd, 0);
+      res.json({
+        totalServices: available.length,
+        totalCostOneEach: `$${totalCost.toFixed(2)}`,
+        services: available.map((s: any) => ({ name: s.name, priceUsd: s.priceUsd, weight: s.weight, category: s.userAgentCategory })),
+      });
+    });
+    console.log('✅ Admin x402 organic traffic routes registered (pre-Vite)');
     
     // NOTE: Solana Pay routes are now registered pre-static for BOTH environments (see above)
     

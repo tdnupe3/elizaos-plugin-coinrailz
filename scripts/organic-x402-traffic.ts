@@ -162,7 +162,8 @@ async function runOrganicTraffic(config: RunConfig): Promise<CallResult[]> {
   const { wrapFetchWithPaymentFromConfig } = await import("@x402/fetch");
   const { ExactEvmScheme } = await import("@x402/evm");
 
-  const account = privateKeyToAccount(config.privateKey as `0x${string}`);
+  const pk = config.privateKey.startsWith("0x") ? config.privateKey : `0x${config.privateKey}`;
+  const account = privateKeyToAccount(pk as `0x${string}`);
   const buyerAddress = account.address;
   const platformWallet = getPlatformWallet();
 
@@ -171,7 +172,10 @@ async function runOrganicTraffic(config: RunConfig): Promise<CallResult[]> {
   console.log(`CDP Facilitator: ${CDP_FACILITATOR_URL}`);
 
   if (buyerAddress.toLowerCase() === platformWallet.toLowerCase()) {
-    throw new Error("ABORT: Buyer wallet is the same as platform wallet. Use a different EVM_PRIVATE_KEY.");
+    if (!config.dryRun) {
+      throw new Error("ABORT: Buyer wallet is the same as platform wallet. Use a different EVM_PRIVATE_KEY for live runs.");
+    }
+    console.log("⚠️ WARNING: Buyer wallet matches platform wallet. OK for dry run, would fail in live mode.");
   }
 
   const schemeClient = new ExactEvmScheme(account);

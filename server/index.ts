@@ -3751,9 +3751,9 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       if (!adminSecret || !authHeader || authHeader !== `Bearer ${adminSecret}`) {
         return res.status(401).json({ error: "Unauthorized" });
       }
-      const privateKey = process.env.EVM_PRIVATE_KEY;
+      const privateKey = process.env.X402_BUYER_PRIVATE_KEY || process.env.EVM_PRIVATE_KEY;
       if (!privateKey) {
-        return res.status(500).json({ error: "EVM_PRIVATE_KEY not configured" });
+        return res.status(500).json({ error: "X402_BUYER_PRIVATE_KEY not configured" });
       }
       const {
         maxCalls = 5, minDelayMs = 30000, maxDelayMs = 180000, dryRun = true,

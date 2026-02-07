@@ -318,9 +318,9 @@ async function runOrganicTraffic(config: RunConfig): Promise<CallResult[]> {
 }
 
 if (typeof require !== "undefined" && require.main === module) {
-  const privateKey = process.env.EVM_PRIVATE_KEY;
+  const privateKey = process.env.X402_BUYER_PRIVATE_KEY || process.env.EVM_PRIVATE_KEY;
   if (!privateKey) {
-    console.error("ERROR: EVM_PRIVATE_KEY environment variable required");
+    console.error("ERROR: X402_BUYER_PRIVATE_KEY or EVM_PRIVATE_KEY environment variable required");
     process.exit(1);
   }
 

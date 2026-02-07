@@ -5123,9 +5123,9 @@ Questions? Reply to this message or contact support@coinrailz.com
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const privateKey = process.env.EVM_PRIVATE_KEY;
+    const privateKey = process.env.X402_BUYER_PRIVATE_KEY || process.env.EVM_PRIVATE_KEY;
     if (!privateKey) {
-      return res.status(500).json({ error: "EVM_PRIVATE_KEY not configured" });
+      return res.status(500).json({ error: "X402_BUYER_PRIVATE_KEY not configured" });
     }
 
     const {

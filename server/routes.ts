@@ -5116,6 +5116,82 @@ Questions? Reply to this message or contact support@coinrailz.com
     }
   });
 
+  app.post('/api/admin/x402-organic-traffic', async (req, res) => {
+    const adminSecret = process.env.ADMIN_SECRET || process.env.JWT_SECRET;
+    const authHeader = req.headers.authorization;
+    if (!adminSecret || !authHeader || authHeader !== `Bearer ${adminSecret}`) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const privateKey = process.env.EVM_PRIVATE_KEY;
+    if (!privateKey) {
+      return res.status(500).json({ error: "EVM_PRIVATE_KEY not configured" });
+    }
+
+    const {
+      maxCalls = 5,
+      minDelayMs = 30000,
+      maxDelayMs = 180000,
+      dryRun = true,
+      excludeServices = ["verified-agent-identity", "compliance-consultation", "smart-contract-audit", "instant-agent-wallet", "agent-create-wallet", "seamless-chain-bridge", "instant-api-key"],
+      onlyServices = [],
+    } = req.body || {};
+
+    try {
+      const { runOrganicTraffic } = await import('../scripts/organic-x402-traffic');
+      const targetUrl = process.env.CANONICAL_BASE_URL || 'https://coinrailz.com';
+
+      res.json({
+        success: true,
+        message: `Organic traffic run started: ${maxCalls} calls, ${dryRun ? 'DRY RUN' : 'LIVE'}`,
+        config: { maxCalls, minDelayMs, maxDelayMs, dryRun, targetUrl, excludeServices, onlyServices },
+        note: "Run executes in background. Check server logs for progress.",
+      });
+
+      runOrganicTraffic({
+        maxCalls,
+        minDelayMs,
+        maxDelayMs,
+        dryRun,
+        privateKey,
+        targetUrl,
+        excludeServices,
+        onlyServices,
+      }).then(results => {
+        const successCount = results.filter(r => r.success).length;
+        const totalSpent = results.reduce((sum, r) => r.success ? sum + r.priceUsd : sum, 0);
+        console.log(`[OrganicTraffic] Run complete: ${successCount}/${results.length} succeeded, $${totalSpent.toFixed(2)} spent`);
+      }).catch(err => {
+        console.error(`[OrganicTraffic] Run failed:`, err.message);
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/admin/x402-organic-traffic/services', async (req, res) => {
+    const adminSecret = process.env.ADMIN_SECRET || process.env.JWT_SECRET;
+    const authHeader = req.headers.authorization;
+    if (!adminSecret || !authHeader || authHeader !== `Bearer ${adminSecret}`) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { SERVICES } = await import('../scripts/organic-x402-traffic');
+    const excludeDefault = ["verified-agent-identity", "compliance-consultation", "smart-contract-audit", "instant-agent-wallet", "agent-create-wallet", "seamless-chain-bridge", "instant-api-key"];
+    const available = SERVICES.filter(s => !excludeDefault.includes(s.name));
+    const totalCost = available.reduce((sum, s) => sum + s.priceUsd, 0);
+    res.json({
+      totalServices: available.length,
+      totalCostOneEach: `$${totalCost.toFixed(2)}`,
+      services: available.map(s => ({
+        name: s.name,
+        priceUsd: s.priceUsd,
+        weight: s.weight,
+        category: s.userAgentCategory,
+      })),
+    });
+  });
+
   // 404 handler for API routes - MUST be the last route registered
   app.use('/api', (req, res) => {
     res.status(404).json({

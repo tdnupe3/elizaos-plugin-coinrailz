@@ -1743,6 +1743,28 @@ router.use((req: Request, res: Response, next) => {
       }
       
       console.log(`✅ Injected: facilitatorUrl=${body.facilitatorUrl}, discoverable=true for ${body.accepts.length} payment requirements`);
+
+      try {
+        const minimalPayload = {
+          x402Version: body.x402Version || 2,
+          accepts: body.accepts.map((a: any) => ({
+            scheme: a.scheme,
+            network: a.network,
+            maxAmountRequired: a.maxAmountRequired,
+            resource: a.resource,
+            description: a.description,
+            mimeType: a.mimeType,
+            payTo: a.payTo,
+            maxTimeoutSeconds: a.maxTimeoutSeconds,
+            asset: a.asset,
+            extra: a.extra,
+          })),
+        };
+        const headerValue = Buffer.from(JSON.stringify(minimalPayload), 'utf8').toString('base64');
+        res.setHeader('PAYMENT-REQUIRED', headerValue);
+      } catch (headerErr: any) {
+        console.error(`Failed to set PAYMENT-REQUIRED header: ${headerErr.message}`);
+      }
     }
     
     return originalJson(body);

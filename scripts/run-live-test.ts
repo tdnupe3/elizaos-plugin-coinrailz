@@ -6,24 +6,23 @@ if (!privateKey) {
   process.exit(1);
 }
 
-console.log("Starting live x402 traffic test...");
-console.log("Target: https://coinrailz.com");
-console.log("Services: token-price, gas-oracle, dex-liquidity");
+console.log("Starting live x402 traffic test (LOCAL dev server)...");
+console.log("Target: http://localhost:5000");
+console.log("Services: token-price, gas-oracle");
 console.log("DryRun: false (LIVE PAYMENTS)\n");
 
 runOrganicTraffic({
-  maxCalls: 3,
-  minDelayMs: 5000,
-  maxDelayMs: 15000,
+  maxCalls: 2,
+  minDelayMs: 3000,
+  maxDelayMs: 8000,
   dryRun: false,
   privateKey,
-  targetUrl: "https://coinrailz.com",
+  targetUrl: "http://localhost:5000",
   excludeServices: [],
-  onlyServices: ["token-price", "gas-oracle", "dex-liquidity"],
+  onlyServices: ["token-price", "gas-price-oracle"],
 }).then(results => {
   console.log("\n=== RESULTS ===");
   const successes = results.filter(r => r.success);
-  const failures = results.filter(r => !r.success);
   console.log(`Successes: ${successes.length}/${results.length}`);
   console.log(`Total spent: $${successes.reduce((s, r) => s + r.priceUsd, 0).toFixed(2)}`);
   results.forEach((r, i) => {

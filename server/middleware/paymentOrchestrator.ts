@@ -1182,7 +1182,7 @@ export function createPaymentOrchestrator(
       return;
     }
 
-    const xPayment = req.headers["x-payment"] as string | undefined;
+    const xPayment = (req.headers["x-payment"] || req.headers["payment-signature"]) as string | undefined;
 
     // FIRST-CALL FREE: Check if eligible for free call on cheapest services
     if (!xPayment && FIRST_CALL_FREE_SERVICES.includes(serviceName)) {

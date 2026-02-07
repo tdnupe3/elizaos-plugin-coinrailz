@@ -2253,26 +2253,83 @@ serviceEndpoints.forEach(endpoint => {
 // are handled by x402GatedRoutes.ts which is mounted at /x402/service
 // They are NOT registered here to prevent route conflicts
 
-const enterpriseDirectEndpoints: Array<{slug: string, price: string, name: string, description: string}> = [
-  { slug: "smart-contract-audit", price: "$1000", name: "Smart Contract Auditor", description: "Comprehensive smart contract security audit with vulnerability detection" },
-  { slug: "payment-processing", price: "$50", name: "Payment Processor", description: "Multi-chain payment processing service (hourly rate)" },
-  { slug: "compliance-consultation", price: "$500", name: "Compliance Consultant", description: "AML/KYC compliance consultation and risk assessment" }
+const enterpriseDirectEndpoints: Array<{slug: string, price: string, name: string, description: string, inputSchema: any}> = [
+  { 
+    slug: "smart-contract-audit", price: "$1000", name: "Smart Contract Auditor", 
+    description: "Comprehensive smart contract security audit with vulnerability detection",
+    inputSchema: {
+      type: "object",
+      properties: {
+        contractAddress: { type: "string", description: "Smart contract address to audit" },
+        chain: { type: "string", description: "Blockchain network (e.g., base, ethereum, polygon)" },
+        auditScope: { type: "string", description: "Scope: full, security-only, or gas-optimization" }
+      },
+      required: ["contractAddress"]
+    }
+  },
+  { 
+    slug: "payment-processing", price: "$50", name: "Payment Processor", 
+    description: "Multi-chain payment processing service (hourly rate)",
+    inputSchema: {
+      type: "object",
+      properties: {
+        amount: { type: "number", description: "Amount in USD to process" },
+        currency: { type: "string", description: "Token: USDC or USDT" },
+        chain: { type: "string", description: "Target chain: base, ethereum, polygon, arbitrum" },
+        recipientAddress: { type: "string", description: "Recipient wallet address" }
+      },
+      required: ["amount", "recipientAddress"]
+    }
+  },
+  { 
+    slug: "compliance-consultation", price: "$500", name: "Compliance Consultant", 
+    description: "AML/KYC compliance consultation and risk assessment",
+    inputSchema: {
+      type: "object",
+      properties: {
+        businessType: { type: "string", description: "Type of business (e.g., exchange, defi, payments)" },
+        jurisdiction: { type: "string", description: "Operating jurisdiction (e.g., US, EU, UK, APAC)" },
+        transactionVolume: { type: "number", description: "Monthly transaction volume in USD" },
+        complianceAreas: { type: "string", description: "Areas: aml, kyc, sanctions, travel-rule" }
+      },
+      required: ["businessType", "jurisdiction"]
+    }
+  }
 ];
 
 enterpriseDirectEndpoints.forEach(service => {
   router.get(`/${service.slug}`, (req: Request, res: Response) => {
     console.log(`📡 GET request for /${service.slug} - returning 402 with enterprise pricing, redirecting to /x402/service/${service.slug}`);
     const priceInMicro = parseFloat(service.price.replace('$', '')) * 1000000;
+    const resourceUrl = `${PUBLIC_BASE_URL}/x402/service/${service.slug}`;
+    
+    const bazaarInput = {
+      type: "http" as const,
+      method: "POST" as const,
+      bodyType: "json" as const,
+      body: Object.fromEntries(
+        Object.entries(service.inputSchema.properties || {}).map(([k, v]: [string, any]) => [k, v.description || k])
+      ),
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+    };
+    const bazaarOutput = {
+      type: "application/json",
+      format: "json",
+      example: { success: true, result: {}, timestamp: new Date().toISOString() }
+    };
+    
     res.status(402).json({
       x402Version: 2,
       error: "X-PAYMENT header is required",
       accepts: [{
         scheme: "exact",
-        network: "base", // Legacy format for x402-fetch v0.7.3 compatibility
-        x402Network: "eip155:8453", // V2 CAIP-2 format for spec compliance
+        network: "eip155:8453",
+        networkLegacy: "base",
+        x402Network: "eip155:8453",
+        amount: String(priceInMicro),
         maxAmountRequired: String(priceInMicro),
         maxAmountRequiredUSD: service.price,
-        resource: `${PUBLIC_BASE_URL}/x402/service/${service.slug}`,
+        resource: resourceUrl,
         description: service.description,
         payTo: PLATFORM_WALLET,
         asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
@@ -2282,9 +2339,29 @@ enterpriseDirectEndpoints.forEach(service => {
         category: "Enterprise",
         tags: ["Enterprise", "AI", "x402", "USDC"],
         extra: { name: "USD Coin", version: "2", decimals: 6, chainId: 8453, chainName: "Base" },
+        extensions: {
+          bazaar: { input: bazaarInput, output: bazaarOutput }
+        },
         type: "http",
         metadata: {}
       }],
+      resource: {
+        url: resourceUrl,
+        description: service.description,
+        mimeType: "application/json"
+      },
+      extensions: {
+        bazaar: {
+          info: { input: bazaarInput, output: bazaarOutput },
+          schema: service.inputSchema
+        }
+      },
+      inputSchema: {
+        ...service.inputSchema,
+        description: `Input schema for ${service.name}`,
+        httpMethod: "POST",
+        contentType: "application/json"
+      },
       facilitatorUrl: getFacilitatorUrl(),
       note: `This is an enterprise service. POST requests should be sent to /x402/service/${service.slug}`,
       enterpriseEndpoint: `/x402/service/${service.slug}`

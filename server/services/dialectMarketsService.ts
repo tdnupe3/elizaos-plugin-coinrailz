@@ -23,8 +23,10 @@ interface DialectReward {
 interface DialectMarket {
   id: string;
   type: 'lending' | 'yield' | 'loop' | 'perpetual';
-  provider: DialectProvider;
-  token: DialectToken;
+  provider?: DialectProvider;
+  token?: DialectToken;
+  tokenA?: DialectToken;
+  tokenB?: DialectToken;
   borrowToken?: DialectToken;
   websiteUrl?: string;
   depositApy: number;
@@ -126,13 +128,20 @@ class DialectMarketsService {
         }
       );
 
+      const rawMarkets = response.data?.markets || (Array.isArray(response.data) ? response.data : []);
+      
+      const malformed = rawMarkets.filter((m: any) => !m.token || !m.token.symbol || !m.provider);
+      if (malformed.length > 0) {
+        console.log(`⚠️ Dialect Markets: ${malformed.length}/${rawMarkets.length} markets missing token/provider (types: ${[...new Set(malformed.map((m: any) => m.type))].join(', ')})`);
+      }
+      
       this.cache = {
-        data: response.data.markets,
+        data: rawMarkets,
         timestamp: Date.now(),
       };
 
-      console.log(`✅ Dialect Markets: Fetched ${response.data.markets.length} markets`);
-      return response.data.markets;
+      console.log(`✅ Dialect Markets: Fetched ${rawMarkets.length} markets (${rawMarkets.length - malformed.length} with valid token)`);
+      return rawMarkets;
     } catch (error: any) {
       console.error('❌ Dialect Markets API error:', error.message);
       
@@ -197,11 +206,11 @@ class DialectMarketsService {
       
       return {
         id: m.id,
-        protocol: m.provider.name || m.provider.id,
-        protocolIcon: m.provider.icon,
-        token: m.token.symbol,
-        tokenAddress: m.token.address,
-        tokenIcon: m.token.icon,
+        protocol: m.provider?.name || m.provider?.id || 'Unknown',
+        protocolIcon: m.provider?.icon,
+        token: m.token?.symbol || 'Unknown',
+        tokenAddress: m.token?.address || '',
+        tokenIcon: m.token?.icon,
         type: m.type,
         depositApy: m.depositApy,
         depositApyFormatted: `${(m.depositApy * 100).toFixed(2)}%`,
@@ -253,14 +262,14 @@ class DialectMarketsService {
   async getMarketsByProtocol(protocol: string): Promise<DialectMarket[]> {
     const markets = await this.fetchMarkets();
     return markets.filter(m => 
-      m.provider.id.toLowerCase() === protocol.toLowerCase()
+      m.provider?.id?.toLowerCase() === protocol.toLowerCase()
     );
   }
 
   async getMarketsByToken(tokenSymbol: string): Promise<DialectMarket[]> {
     const markets = await this.fetchMarkets();
     return markets.filter(m => 
-      m.token.symbol.toLowerCase() === tokenSymbol.toLowerCase()
+      m.token?.symbol?.toLowerCase() === tokenSymbol.toLowerCase()
     );
   }
 

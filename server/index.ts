@@ -887,19 +887,14 @@ console.log('🛰️ Registering Satellite Data routes...');
 app.use('/api/satellite', satelliteDataRoutes);
 console.log('✅ Satellite Data routes registered at /api/satellite/* (Powered by NASA & ESA)');
 
-// === x402 PROTOCOL SERVICES (MICROSERVICES + GATED ENTERPRISE SERVICES) ===
-// CRITICAL FIX: Mount more specific /x402/service BEFORE general /x402 route
-// Express matches routes in order - /x402 was catching /x402/service/* before hybridPaymentMiddleware could run
-import x402GatedRoutes from './routes/x402GatedRoutes.js';
+// === x402 PROTOCOL SERVICES (UNIFIED V2 MICROSERVICES) ===
+// All x402 services including enterprise (smart-contract-audit, compliance-consultation, payment-processing)
+// are handled by x402MicroserviceRoutesV2.ts with createPaymentOrchestrator (x402Version: 2)
+// NOTE: x402GatedRoutes.ts (legacy x402-express v1) is deprecated - it returned x402Version: 1
+// which is incompatible with @x402/fetch and Coinbase CDP facilitator v2
 import { hybridPaymentMiddleware } from './middleware/hybridPaymentMiddleware';
-// CRITICAL: hybridPaymentMiddleware handles raw USDC/USDT tx hash verification + API keys + EIP-712
-console.log('🔒 Mounting /x402/service with hybridPaymentMiddleware FIRST (before /x402)...');
-app.use('/x402/service', hybridPaymentMiddleware, x402GatedRoutes); // Payment-gated services for AI agents
-console.log('✅ x402 gated enterprise services mounted at /x402/service/* with hybrid payment verification');
-
-// General x402 routes - mounted AFTER /x402/service so it doesn't catch service requests
-console.log('🔒 Mounting /x402 routes (V2 microservices)...');
-app.use('/x402', x402MicroserviceRoutes); // All x402 services with official Coinbase CDP facilitator (V2)
+console.log('🔒 Mounting /x402 routes (V2 microservices + enterprise services)...');
+app.use('/x402', x402MicroserviceRoutes);
 
 // === FREE WALLET TIER - Ecosystem Adoption ===
 console.log('🆓 Mounting Free Wallet routes for x402 ecosystem adoption...');

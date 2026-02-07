@@ -1745,9 +1745,13 @@ router.use((req: Request, res: Response, next) => {
       console.log(`✅ Injected: facilitatorUrl=${body.facilitatorUrl}, discoverable=true for ${body.accepts.length} payment requirements`);
 
       try {
+        const evmAccepts = body.accepts.filter((a: any) =>
+          a.network && a.network.startsWith('eip155:')
+        );
+        const headerAccepts = evmAccepts.length > 0 ? evmAccepts : body.accepts;
         const minimalPayload = {
           x402Version: body.x402Version || 2,
-          accepts: body.accepts.map((a: any) => ({
+          accepts: headerAccepts.map((a: any) => ({
             scheme: a.scheme,
             network: a.network,
             maxAmountRequired: a.maxAmountRequired,

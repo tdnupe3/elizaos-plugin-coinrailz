@@ -59,9 +59,9 @@ const locationSchema = z.object({
 });
 
 function generateX402PaymentRequired(product: typeof SATELLITE_DATA_PRODUCTS[0], req: Request): object {
-  const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-    ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-    : 'https://coinrailz.com';
+  const baseUrl = process.env.PUBLIC_URL 
+    || (process.env.REPLIT_DEPLOYMENT === '1' ? 'https://coinrailz.com' : null)
+    || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://coinrailz.com');
   
   // Look up catalog entry for Bazaar metadata
   const catalog = serviceCatalogService.getCatalog();
@@ -155,6 +155,25 @@ function generateX402PaymentRequired(product: typeof SATELLITE_DATA_PRODUCTS[0],
           required: ["west", "south", "east", "north"]
         }
       }
+    },
+    inputSchema: {
+      type: "object",
+      description: `Input parameters for ${product.name}`,
+      properties: {
+        west: { type: "number", description: "Western longitude boundary (-180 to 180)" },
+        south: { type: "number", description: "Southern latitude boundary (-90 to 90)" },
+        east: { type: "number", description: "Eastern longitude boundary (-180 to 180)" },
+        north: { type: "number", description: "Northern latitude boundary (-90 to 90)" },
+        ...(product.id === 'sat_weather_imagery' ? {
+          layer: { type: "string", description: "GIBS layer ID" }
+        } : {}),
+        ...(product.id === 'sat_fire_alerts' ? {
+          days: { type: "number", description: "Days to look back (default: 1)" }
+        } : {})
+      },
+      required: ["west", "south", "east", "north"],
+      httpMethod: "GET",
+      contentType: "application/json"
     },
     product: {
       id: product.id,

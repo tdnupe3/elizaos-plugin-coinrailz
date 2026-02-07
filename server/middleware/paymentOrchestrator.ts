@@ -2209,10 +2209,39 @@ function generate402Response(
     }
   ];
   
+  const bazaarInput = {
+    type: "http" as const,
+    method: "POST" as const,
+    bodyType: "json" as const,
+    body: { query: "example parameter" },
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+  };
+  const bazaarOutput = {
+    type: "application/json",
+    format: "json",
+    example: { success: true, result: {}, timestamp: new Date().toISOString() }
+  };
+  
   const response: any = {
     x402Version: 2,
     error: "X-PAYMENT header is required",
     accepts: acceptsArray,
+    resource: {
+      url: resource,
+      description: baseDescription,
+      mimeType: "application/json"
+    },
+    extensions: {
+      bazaar: {
+        info: { input: bazaarInput, output: bazaarOutput },
+        schema: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "Query parameter for the service" }
+          }
+        }
+      }
+    },
     facilitatorUrl: getFacilitatorUrl(),
     paymentInstructions: {
       step1: "Obtain USDC or USDT on Base or Solana",

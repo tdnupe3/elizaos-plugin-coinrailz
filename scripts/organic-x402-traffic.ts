@@ -75,7 +75,7 @@ const SERVICES: ServiceConfig[] = [
   { name: "polymarket-search", priceUsd: 0.25, weight: 4, method: "POST", body: { query: "bitcoin price", limit: 5 }, userAgentCategory: "trading-bot" },
   { name: "polymarket-odds", priceUsd: 0.50, weight: 3, method: "POST", body: { slug: "will-bitcoin-reach-100k" }, userAgentCategory: "trading-bot" },
   { name: "prediction-market-odds", priceUsd: 0.50, weight: 2, method: "POST", body: { market: "presidential-election-2028", outcome: "democrat" }, userAgentCategory: "trading-bot" },
-  { name: "stock-sentiment", priceUsd: 0.40, weight: 4, method: "POST", body: { ticker: "COIN", sources: ["news", "social"] }, userAgentCategory: "research-agent" },
+  { name: "stock-sentiment", priceUsd: 0.40, weight: 4, method: "POST", body: { symbol: "COIN", includeNews: true, includeTechnicals: true }, userAgentCategory: "research-agent" },
   { name: "forex-sentiment", priceUsd: 0.40, weight: 3, method: "POST", body: { pair: "EUR/USD", timeframe: "1d" }, userAgentCategory: "research-agent" },
   { name: "sentiment-analysis", priceUsd: 0.50, weight: 4, method: "POST", body: { symbol: "BTC", sources: ["twitter", "reddit"], includeNews: true }, userAgentCategory: "research-agent" },
   { name: "fraud-detection", priceUsd: 0.75, weight: 3, method: "POST", body: { transactionAmount: 50000, merchantCategory: "crypto-exchange", location: "US" }, userAgentCategory: "infrastructure" },

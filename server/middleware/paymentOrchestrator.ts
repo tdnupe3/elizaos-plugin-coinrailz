@@ -1972,7 +1972,7 @@ export function createPaymentOrchestrator(
             res,
             'PAYMENT_VERIFICATION_FAILED',
             `On-chain verification failed for transaction ${txHash?.substring(0, 20)}... - payment not confirmed on Base chain`,
-            `Verify: (1) Transaction is confirmed on Base chain, (2) Payment sent to platform wallet 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91, (3) Amount is at least $${microToUSD(requiredAmount).toFixed(2)} USDC`,
+            `Verify: (1) Transaction is confirmed on Base chain, (2) Payment sent to platform wallet 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91, (3) Amount is at least $${microToUSD(requiredAmount)} USDC`,
             requestId,
             {
               recoverable: true,
@@ -1980,7 +1980,7 @@ export function createPaymentOrchestrator(
               expectedFormat: {
                 txHash: 'Confirmed Base chain transaction hash (0x + 64 hex chars)',
                 examples: [
-                  `Send $${microToUSD(requiredAmount).toFixed(2)}+ USDC to 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
+                  `Send $${microToUSD(requiredAmount)}+ USDC to 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
                   'Wait for transaction confirmation',
                   'Submit confirmed tx hash in X-PAYMENT header'
                 ]

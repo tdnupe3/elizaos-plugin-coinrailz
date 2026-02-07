@@ -156,7 +156,7 @@ class DialectMarketsService {
     
     const markets = await this.fetchMarkets();
     
-    let filtered = markets.filter(m => m.depositApy > 0);
+    let filtered = markets.filter(m => m.depositApy > 0 && m.token && m.provider);
     
     if (type) {
       filtered = filtered.filter(m => m.type === type);
@@ -164,8 +164,8 @@ class DialectMarketsService {
     
     if (protocol) {
       filtered = filtered.filter(m => 
-        m.provider.id.toLowerCase().includes(protocol.toLowerCase()) ||
-        m.provider.name.toLowerCase().includes(protocol.toLowerCase())
+        m.provider?.id?.toLowerCase()?.includes(protocol.toLowerCase()) ||
+        m.provider?.name?.toLowerCase()?.includes(protocol.toLowerCase())
       );
     }
     
@@ -178,8 +178,8 @@ class DialectMarketsService {
     
     if (token) {
       filtered = filtered.filter(m => 
-        m.token.symbol.toLowerCase().includes(token.toLowerCase()) ||
-        m.token.address.toLowerCase() === token.toLowerCase()
+        m.token?.symbol?.toLowerCase()?.includes(token.toLowerCase()) ||
+        m.token?.address?.toLowerCase() === token.toLowerCase()
       );
     }
     

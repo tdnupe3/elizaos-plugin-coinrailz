@@ -246,18 +246,19 @@ export class CreditsService {
     const hashedKey = await bcrypt.hash(rawKey, 10);
     const keyPrefix = rawKey.substring(0, 12);
 
-    // For GPT users (gpt_...), ensure user exists before creating API key
-    if (userId.startsWith('gpt_')) {
+    // For programmatic users (gpt_..., x402_...), ensure user exists before creating API key
+    if (userId.startsWith('gpt_') || userId.startsWith('x402_')) {
       const existingUser = await db.query.users.findFirst({
         where: eq(users.id, userId)
       });
       
       if (!existingUser) {
-        console.log(`🤖 Creating GPT user: ${userId}`);
+        const prefix = userId.startsWith('gpt_') ? 'gpt' : 'x402';
+        console.log(`🤖 Creating ${prefix} user: ${userId}`);
         await db.insert(users).values({
           id: userId,
-          email: `${userId}@gpt-user.coinrailz.com`,
-          username: `gpt_user_${Date.now()}`,
+          email: `${userId}@${prefix}-user.coinrailz.com`,
+          username: `${prefix}_user_${Date.now()}`,
         }).onConflictDoNothing();
       }
     }

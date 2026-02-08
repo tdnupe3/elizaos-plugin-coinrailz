@@ -6,6 +6,9 @@
 
 import { CdpClient } from '@coinbase/cdp-sdk';
 import { ethers } from 'ethers';
+import { db } from '../db';
+import { whitelistedWallets } from '@shared/schema';
+import { eq, and } from 'drizzle-orm';
 
 export interface CDPWallet {
   id: string;
@@ -37,17 +40,24 @@ const BLACKLISTED_WALLETS = new Set([
 
 const CDP_EPHEMERAL_WALLETS = new Set<string>();
 
-function isKnownPlatformWallet(address: string): boolean {
-  const lower = address.toLowerCase();
-  if (!process.env.EVM_PRIVATE_KEY) return false;
-  try {
-    const platformAddr = new ethers.Wallet(process.env.EVM_PRIVATE_KEY).address.toLowerCase();
-    if (lower === platformAddr) return true;
-  } catch {}
-  return false;
+let whitelistCache: Set<string> | null = null;
+let whitelistCacheTime = 0;
+const WHITELIST_CACHE_TTL = 60_000;
+
+async function loadWhitelistCache(): Promise<Set<string>> {
+  const now = Date.now();
+  if (whitelistCache && now - whitelistCacheTime < WHITELIST_CACHE_TTL) {
+    return whitelistCache;
+  }
+  const rows = await db.select({ address: whitelistedWallets.address })
+    .from(whitelistedWallets)
+    .where(eq(whitelistedWallets.active, true));
+  whitelistCache = new Set(rows.map(r => r.address.toLowerCase()));
+  whitelistCacheTime = now;
+  return whitelistCache;
 }
 
-function validateOutboundTransfer(toAddress: string, context: string): void {
+async function validateOutboundTransfer(toAddress: string, context: string): Promise<void> {
   const lower = toAddress.toLowerCase();
 
   if (BLACKLISTED_WALLETS.has(lower)) {
@@ -55,8 +65,41 @@ function validateOutboundTransfer(toAddress: string, context: string): void {
   }
 
   if (CDP_EPHEMERAL_WALLETS.has(lower)) {
-    throw new Error(`🚫 BLOCKED: Transfer to ephemeral CDP-created wallet ${toAddress}. These wallets may become inaccessible after restart. Context: ${context}`);
+    throw new Error(`🚫 BLOCKED: Transfer to ephemeral CDP-created wallet ${toAddress}. These wallets may become inaccessible. Whitelist it first via the admin API. Context: ${context}`);
   }
+
+  const whitelist = await loadWhitelistCache();
+  if (!whitelist.has(lower)) {
+    throw new Error(`🚫 BLOCKED: Transfer to non-whitelisted wallet ${toAddress}. Add it to whitelisted_wallets table first. Context: ${context}`);
+  }
+}
+
+export async function whitelistWallet(address: string, label: string, approvedBy: string, reason?: string): Promise<void> {
+  const lower = address.toLowerCase();
+  if (BLACKLISTED_WALLETS.has(lower)) {
+    throw new Error(`Cannot whitelist blacklisted wallet ${address}`);
+  }
+  await db.insert(whitelistedWallets).values({
+    address: lower,
+    label,
+    approvedBy,
+    reason: reason || null,
+    active: true,
+  }).onConflictDoNothing();
+  whitelistCache = null;
+  console.log(`[CDP] ✅ Wallet whitelisted: ${lower} (${label}) by ${approvedBy}`);
+}
+
+export async function removeWhitelist(address: string): Promise<void> {
+  await db.update(whitelistedWallets)
+    .set({ active: false })
+    .where(eq(whitelistedWallets.address, address.toLowerCase()));
+  whitelistCache = null;
+  console.log(`[CDP] ❌ Wallet removed from whitelist: ${address}`);
+}
+
+export async function getWhitelistedWallets() {
+  return db.select().from(whitelistedWallets).where(eq(whitelistedWallets.active, true));
 }
 
 export class CoinbaseCDPService {
@@ -133,7 +176,7 @@ export class CoinbaseCDPService {
    */
   async sendTransaction(toAddress: string, amount: string, memo: string): Promise<{ hash: string; mode: 'onchain' | 'simulated'; reason?: string } | null> {
     try {
-      validateOutboundTransfer(toAddress, `sendTransaction(${amount} ETH, memo: ${memo})`);
+      await validateOutboundTransfer(toAddress, `sendTransaction(${amount} ETH, memo: ${memo})`);
       console.log(`🔗 Sending REAL blockchain transaction to ${toAddress} with amount ${amount} ETH`);
       
       // Get platform wallet for sending
@@ -514,7 +557,7 @@ export class CoinbaseCDPService {
     memo?: string;
   }): Promise<{ txHash: string; status: 'completed' | 'pending' | 'failed'; error?: string }> {
     try {
-      validateOutboundTransfer(params.toAddress, `sendUSDC(${params.amount} USDC on ${params.chain})`);
+      await validateOutboundTransfer(params.toAddress, `sendUSDC(${params.amount} USDC on ${params.chain})`);
       console.log(`💵 Sending ${params.amount} USDC to ${params.toAddress} on ${params.chain}`);
       
       const usdcAddress = CoinbaseCDPService.USDC_CONTRACTS[params.chain];
@@ -617,7 +660,7 @@ export class CoinbaseCDPService {
     memo?: string;
   }): Promise<{ txHash: string; status: 'completed' | 'pending' | 'failed'; error?: string }> {
     try {
-      validateOutboundTransfer(params.toAddress, `sendToken(${params.amount} ${params.token} on ${params.chain})`);
+      await validateOutboundTransfer(params.toAddress, `sendToken(${params.amount} ${params.token} on ${params.chain})`);
       console.log(`💵 Sending ${params.amount} ${params.token} to ${params.toAddress} on ${params.chain}`);
       
       const tokenAddress = CoinbaseCDPService.getTokenAddress(params.token, params.chain);
@@ -729,7 +772,7 @@ export class CoinbaseCDPService {
     }
 
     try {
-      validateOutboundTransfer(params.destinationAddress, `sweepDepositWallet(${params.token} on ${params.chain})`);
+      await validateOutboundTransfer(params.destinationAddress, `sweepDepositWallet(${params.token} on ${params.chain})`);
 
       const tokenAddress = CoinbaseCDPService.getTokenAddress(params.token, params.chain);
       if (!tokenAddress) {

@@ -6365,3 +6365,27 @@ export const endpointHitsInsertSchema = createInsertSchema(endpointHits).omit({
 export type EndpointHit = typeof endpointHits.$inferSelect;
 export type InsertEndpointHit = z.infer<typeof endpointHitsInsertSchema>;
 
+export const whitelistedWallets = pgTable(
+  "whitelisted_wallets",
+  {
+    id: serial("id").primaryKey(),
+    address: varchar("address", { length: 255 }).notNull().unique(),
+    label: varchar("label", { length: 255 }).notNull(),
+    chain: varchar("chain", { length: 50 }).default("evm"),
+    approvedBy: varchar("approved_by", { length: 255 }).notNull(),
+    reason: text("reason"),
+    active: boolean("active").default(true),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_whitelisted_wallets_address").on(table.address),
+  ],
+);
+
+export const whitelistedWalletsInsertSchema = createInsertSchema(whitelistedWallets).omit({
+  id: true,
+  createdAt: true,
+});
+export type WhitelistedWallet = typeof whitelistedWallets.$inferSelect;
+export type InsertWhitelistedWallet = z.infer<typeof whitelistedWalletsInsertSchema>;
+

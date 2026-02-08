@@ -128,11 +128,6 @@ export const seoConfigs = {
         "description": "Pay-per-use micropayments from $0.10. x402/USDC for AI agents, Stripe prepaid credits for TradFi developers."
       },
       "description": "Dual-rail micropayment platform for AI agents and TradFi developers. 38+ microservices including crypto APIs, stock sentiment, forex sentiment. Pay via x402/USDC or Stripe prepaid credits.",
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "reviewCount": "2847"
-      },
       "provider": {
         "@type": "Organization",
         "name": "Kellogg Holdings LLC",

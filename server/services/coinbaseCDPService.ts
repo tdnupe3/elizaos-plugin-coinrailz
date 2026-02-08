@@ -31,6 +31,34 @@ export interface CDPTransaction {
   fee?: string;
 }
 
+const BLACKLISTED_WALLETS = new Set([
+  '0x6341b240547d520a425ea58ef91b33692b12f356', // CDP_LOST - $39.35 locked forever
+]);
+
+const CDP_EPHEMERAL_WALLETS = new Set<string>();
+
+function isKnownPlatformWallet(address: string): boolean {
+  const lower = address.toLowerCase();
+  if (!process.env.EVM_PRIVATE_KEY) return false;
+  try {
+    const platformAddr = new ethers.Wallet(process.env.EVM_PRIVATE_KEY).address.toLowerCase();
+    if (lower === platformAddr) return true;
+  } catch {}
+  return false;
+}
+
+function validateOutboundTransfer(toAddress: string, context: string): void {
+  const lower = toAddress.toLowerCase();
+
+  if (BLACKLISTED_WALLETS.has(lower)) {
+    throw new Error(`🚫 BLOCKED: Transfer to blacklisted wallet ${toAddress} (CDP_LOST — funds permanently locked). Context: ${context}`);
+  }
+
+  if (CDP_EPHEMERAL_WALLETS.has(lower)) {
+    throw new Error(`🚫 BLOCKED: Transfer to ephemeral CDP-created wallet ${toAddress}. These wallets may become inaccessible after restart. Context: ${context}`);
+  }
+}
+
 export class CoinbaseCDPService {
   private static instance: CoinbaseCDPService;
   private cdpClient: CdpClient | null = null;
@@ -89,11 +117,23 @@ export class CoinbaseCDPService {
     };
   }
 
+  private async safeCreateAccount(purpose: string): Promise<any> {
+    if (!this.cdpClient) {
+      throw new Error('CDP Client not initialized');
+    }
+    const account = await this.cdpClient.evm.createAccount();
+    CDP_EPHEMERAL_WALLETS.add(account.address.toLowerCase());
+    console.warn(`⚠️ CDP EPHEMERAL WALLET CREATED: ${account.address} | Purpose: ${purpose}`);
+    console.warn(`   DO NOT send funds to this address — it may become inaccessible.`);
+    return account;
+  }
+
   /**
    * Send REAL blockchain transaction to agent address
    */
   async sendTransaction(toAddress: string, amount: string, memo: string): Promise<{ hash: string; mode: 'onchain' | 'simulated'; reason?: string } | null> {
     try {
+      validateOutboundTransfer(toAddress, `sendTransaction(${amount} ETH, memo: ${memo})`);
       console.log(`🔗 Sending REAL blockchain transaction to ${toAddress} with amount ${amount} ETH`);
       
       // Get platform wallet for sending
@@ -289,8 +329,7 @@ export class CoinbaseCDPService {
         };
       }
 
-      // Create new platform wallet account for messaging
-      const account = await this.cdpClient.evm.createAccount();
+      const account = await this.safeCreateAccount('platform-wallet-xmtp-messaging');
       
       const platformWallet: CDPWallet = {
         id: account.address,
@@ -335,8 +374,7 @@ export class CoinbaseCDPService {
     }
 
     try {
-      // Server Wallet v2 pattern: const account = await cdp.evm.createAccount();
-      const account = await this.cdpClient.evm.createAccount();
+      const account = await this.safeCreateAccount(`user-wallet:${userId}:${network}`);
       
       const cdpWallet: CDPWallet = {
         id: account.address, // Use address as ID for Server Wallet v2
@@ -476,6 +514,7 @@ export class CoinbaseCDPService {
     memo?: string;
   }): Promise<{ txHash: string; status: 'completed' | 'pending' | 'failed'; error?: string }> {
     try {
+      validateOutboundTransfer(params.toAddress, `sendUSDC(${params.amount} USDC on ${params.chain})`);
       console.log(`💵 Sending ${params.amount} USDC to ${params.toAddress} on ${params.chain}`);
       
       const usdcAddress = CoinbaseCDPService.USDC_CONTRACTS[params.chain];
@@ -578,6 +617,7 @@ export class CoinbaseCDPService {
     memo?: string;
   }): Promise<{ txHash: string; status: 'completed' | 'pending' | 'failed'; error?: string }> {
     try {
+      validateOutboundTransfer(params.toAddress, `sendToken(${params.amount} ${params.token} on ${params.chain})`);
       console.log(`💵 Sending ${params.amount} ${params.token} to ${params.toAddress} on ${params.chain}`);
       
       const tokenAddress = CoinbaseCDPService.getTokenAddress(params.token, params.chain);
@@ -689,6 +729,8 @@ export class CoinbaseCDPService {
     }
 
     try {
+      validateOutboundTransfer(params.destinationAddress, `sweepDepositWallet(${params.token} on ${params.chain})`);
+
       const tokenAddress = CoinbaseCDPService.getTokenAddress(params.token, params.chain);
       if (!tokenAddress) {
         return { txHash: '', status: 'failed', amount: '0', error: `${params.token} not supported on ${params.chain}` };
@@ -767,7 +809,7 @@ export class CoinbaseCDPService {
     }
     
     try {
-      const account = await this.cdpClient.evm.createAccount();
+      const account = await this.safeCreateAccount(`iot-wallet:${accountId}`);
       console.log(`✅ Created IoT CDP wallet for account ${accountId}: ${account.address}`);
       
       return {
@@ -803,8 +845,7 @@ export class CoinbaseCDPService {
     }
 
     try {
-      // Create temporary account for quote if needed
-      const account = await this.cdpClient.evm.createAccount();
+      const account = await this.safeCreateAccount('dex-quote-temp');
       
       // Get REAL market rate from Coinbase API
       const spotPrice = await this.getCoinbaseSpotPrice(params.fromAsset, params.toAsset);
@@ -1293,8 +1334,7 @@ export class CoinbaseCDPService {
     try {
       console.log(`🔄 Executing REAL trade: ${params.amount} ${params.fromAsset} → ${params.toAsset}`);
       
-      // Create account for the transaction
-      const account = await this.cdpClient.evm.createAccount();
+      const account = await this.safeCreateAccount(`dex-trade:${params.fromAsset}->${params.toAsset}`);
       
       // Calculate fees
       const userTier = await this.getUserTradingTier(params.userId);

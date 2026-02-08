@@ -31,6 +31,7 @@ import { z } from 'zod';
 import { satelliteDataService, SATELLITE_DATA_PRODUCTS } from '../services/satelliteDataService';
 import { trackX402Service } from '../middleware/hitTracker';
 import { hybridPaymentMiddleware } from '../middleware/hybridPaymentMiddleware';
+import { getFacilitatorUrl } from '../utils/facilitatorHelper';
 import { x402TrackingMiddleware } from '../middleware/x402TrackingMiddleware';
 import { nanoid } from 'nanoid';
 import { buildBazaarDiscoveryMetadata } from '../discovery/officialBazaarIntegration';
@@ -127,6 +128,7 @@ function generateX402PaymentRequired(product: typeof SATELLITE_DATA_PRODUCTS[0],
       },
     ],
     error: 'Payment required to access satellite data',
+    facilitatorUrl: getFacilitatorUrl(),
     resource: {
       url: `${baseUrl}${product.endpoint}`,
       description: product.description,
@@ -200,9 +202,10 @@ function hasPaymentCredentials(req: Request): boolean {
   const xApiKey = req.headers["x-api-key"] as string | undefined;
   const authHeader = req.headers["authorization"] as string | undefined;
   const xPayment = req.headers["x-payment"] as string | undefined;
+  const paymentSignature = req.headers["payment-signature"] as string | undefined;
   const xInternalAuth = req.headers["x-internal-auth"] as string | undefined;
   
-  return !!(xApiKey || authHeader?.startsWith("Bearer ") || xPayment || xInternalAuth);
+  return !!(xApiKey || authHeader?.startsWith("Bearer ") || xPayment || paymentSignature || xInternalAuth);
 }
 
 /**
@@ -229,7 +232,25 @@ function satellitePaymentMiddleware(productId: string) {
     
     // If no payment credentials, return 402 with x402 payment info
     if (!hasPaymentCredentials(req)) {
-      return res.status(402).json(generateX402PaymentRequired(product, req));
+      const paymentRequired = generateX402PaymentRequired(product, req);
+      const headerPayload = {
+        x402Version: 2,
+        accepts: (paymentRequired as any).accepts.map((a: any) => ({
+          scheme: a.scheme,
+          network: a.network,
+          maxAmountRequired: a.maxAmountRequired,
+          amount: a.amount,
+          resource: a.resource,
+          description: a.description,
+          mimeType: a.mimeType,
+          payTo: a.payTo,
+          maxTimeoutSeconds: a.maxTimeoutSeconds,
+          asset: a.asset,
+          extra: a.extra,
+        })),
+      };
+      res.setHeader('PAYMENT-REQUIRED', Buffer.from(JSON.stringify(headerPayload)).toString('base64'));
+      return res.status(402).json(paymentRequired);
     }
     
     // Has payment credentials - use hybrid payment middleware for verification

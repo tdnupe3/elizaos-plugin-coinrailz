@@ -442,11 +442,12 @@ export async function verifyTransactionPayment(
     }
 
     // STEP 2: Verify transaction on-chain BEFORE creating/updating intent
-    // Retry logic: Base block time is ~2s, but RPC indexing can lag.
-    // Poll up to 6 times with 3-second intervals (18 seconds total max wait).
-    // This matches the Solana verification pattern and fixes the ~50%
-    // PAYMENT_VERIFICATION_FAILED rate seen during drain tests.
-    const RECEIPT_MAX_RETRIES = 6;
+    // Retry logic: EVM block times vary (Base ~2s, Ethereum ~12s, Polygon ~2s,
+    // Arbitrum <1s). RPC indexing can lag further during congestion.
+    // Poll up to 10 times with 3-second intervals (30 seconds total max wait).
+    // Covers multiple blocks on all supported chains and fixes the ~50%
+    // PAYMENT_VERIFICATION_FAILED rate caused by RPC indexing lag.
+    const RECEIPT_MAX_RETRIES = 10;
     const RECEIPT_RETRY_DELAY_MS = 3000;
     let receipt = null;
     let receiptLastError = "";

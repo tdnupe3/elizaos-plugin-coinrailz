@@ -55,11 +55,6 @@ export default function AIMarketplacePage() {
       "url": "https://coinrailz.com/marketplace",
       "image": "https://coinrailz.com/logo.png",
       "priceRange": "$0.10 - $1000",
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "ratingCount": "280"
-      },
       "provider": {
         "@type": "Organization",
         "name": "Coin Railz",

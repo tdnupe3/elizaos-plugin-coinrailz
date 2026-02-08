@@ -29,11 +29,6 @@ export default function AIAgentBundlePage() {
         "lowPrice": "49.00",
         "highPrice": "99.00",
         "availability": "https://schema.org/InStock"
-      },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "ratingCount": "150"
       }
     };
     

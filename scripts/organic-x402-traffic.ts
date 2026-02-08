@@ -99,7 +99,7 @@ const SERVICES: ServiceConfig[] = [
   { name: "instant-api-key", priceUsd: 1.00, weight: 2, method: "POST", body: { agentId: "test-agent-001" }, userAgentCategory: "infrastructure" },
   { name: "agent-create-wallet", priceUsd: 2.00, weight: 1, method: "POST", body: { agent_id: "test-agent-wallet", chain: "base-mainnet", purpose: "ephemeral" }, userAgentCategory: "infrastructure" },
   { name: "seamless-chain-bridge", priceUsd: 2.00, weight: 1, method: "POST", body: { fromChain: "ethereum", toChain: "base", amount: "10", fromAddress: "0x5837A864C03912ea14a5609968F73E75B9d42a7C", toAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" }, userAgentCategory: "infrastructure" },
-  { name: "verified-agent-identity", priceUsd: 5.00, weight: 1, method: "POST", body: { agentName: "TestBot", capabilities: ["trading", "data"] }, userAgentCategory: "infrastructure" },
+  { name: "verified-agent-identity", priceUsd: 5.00, weight: 1, method: "POST", body: { agentId: "organic-agent-001", walletAddress: "0x5837A864C03912ea14a5609968F73E75B9d42a7C", agentName: "TestBot", capabilities: ["trading", "data"] }, userAgentCategory: "infrastructure" },
   { name: "compliance-consultation", priceUsd: 5.00, weight: 1, method: "POST", body: { topic: "crypto-payments", jurisdiction: "US" }, userAgentCategory: "infrastructure" },
   { name: "smart-contract-audit", priceUsd: 10.00, weight: 1, method: "POST", body: { contractAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", chain: "base" }, userAgentCategory: "infrastructure" },
   { name: "solana-yield-finder", priceUsd: 0.05, weight: 3, method: "POST", body: { minApy: 5, riskLevel: "low" }, userAgentCategory: "defi-bot" },

@@ -442,10 +442,32 @@ export async function verifyTransactionPayment(
     }
 
     // STEP 2: Verify transaction on-chain BEFORE creating/updating intent
-    const receipt = await provider.getTransactionReceipt(txHash);
+    // Retry logic: Base block time is ~2s, but RPC indexing can lag.
+    // Poll up to 6 times with 3-second intervals (18 seconds total max wait).
+    // This matches the Solana verification pattern and fixes the ~50%
+    // PAYMENT_VERIFICATION_FAILED rate seen during drain tests.
+    const RECEIPT_MAX_RETRIES = 6;
+    const RECEIPT_RETRY_DELAY_MS = 3000;
+    let receipt = null;
+    let receiptLastError = "";
+
+    for (let attempt = 1; attempt <= RECEIPT_MAX_RETRIES; attempt++) {
+      try {
+        receipt = await provider.getTransactionReceipt(txHash);
+        if (receipt) break;
+      } catch (rpcError: any) {
+        receiptLastError = rpcError.message || "RPC error";
+        console.warn(`⚠️ EVM RPC error on attempt ${attempt}/${RECEIPT_MAX_RETRIES}: ${receiptLastError}`);
+      }
+
+      if (attempt < RECEIPT_MAX_RETRIES) {
+        console.log(`⏳ EVM tx ${txHash.substring(0, 16)}... receipt not found yet, retry ${attempt}/${RECEIPT_MAX_RETRIES} (waiting ${RECEIPT_RETRY_DELAY_MS}ms)`);
+        await new Promise(resolve => setTimeout(resolve, RECEIPT_RETRY_DELAY_MS));
+      }
+    }
     
     if (!receipt) {
-      console.log(`❌ Transaction not found: ${txHash}`);
+      console.log(`❌ Transaction receipt not found after ${RECEIPT_MAX_RETRIES} attempts: ${txHash} (${receiptLastError || 'not indexed yet'})`);
       return { verified: false };
     }
 

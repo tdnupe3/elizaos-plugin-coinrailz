@@ -80,6 +80,8 @@ Coin Railz utilizes a USDC-first strategy, leveraging Coinbase CDP for wallet ma
 - **Production Hardening**: Stripe webhook handles IoT payment topups.
 - **DEV_LITE_MODE**: Development optimization for Vite HMR stability. Skips heavy service initialization (Discord bot, XMTP client, outreach orchestrators) in development. Set `DEV_FULL_SERVICES=true` to enable all services. Key files: `server/buildModeDetection.ts`, `server/services/automatedOutreach.ts`, `server/services/realAgentOutreach.ts`, `server/services/xmtpMessagingService.ts`.
 - **Landing Page IoT Section**: Homepage now includes IoT/Satellite data value proposition with navigation links to `/satellite`, `/fleet`, `/weather`, `/iot` and pilot credits CTA.
+- **EVM Payment Verification Retry (Feb 2026)**: `verifyTransactionPayment` in `hybridPaymentMiddleware.ts` now polls for transaction receipt up to 6 times with 3-second delays (18s total). This fixed the ~50% PAYMENT_VERIFICATION_FAILED rate caused by RPC indexing lag when @x402/fetch sends payment hash before receipt availability. Matches Solana verification pattern.
+- **Wallet Safety Layer (Feb 2026)**: All fund transfer scripts use centralized wallet registry (`scripts/lib/walletRegistry.ts`) with address validation, blacklist enforcement, dry-run by default (requires `CONFIRM_TRANSFER=true`), and labeled wallet summaries. Prevents accidental transfers to wrong addresses. Key addresses: Platform (0xa4bBE37f...), Buyer Test (0x5837A864...), CDP_LOST/blacklisted (0x6341B240...).
 
 ## External Dependencies
 - **Coinbase CDP:** Wallet creation, management, and transaction execution.

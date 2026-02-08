@@ -52,11 +52,21 @@ Coin Railz utilizes a USDC-first strategy, leveraging Coinbase CDP for wallet ma
   - Seller credits for device owners.
   - Product discovery via catalog.
   - API Routes: `/api/iot/products/*`, `/api/iot/data/*`, `/api/iot/catalog`, `/api/iot/sales/*`.
-- **Satellite Data Integration v1.0.0**: Production-grade x402-protected satellite data APIs powered by NASA Earthdata and ESA Copernicus:
-  - 6 Data Products: Fire Alerts ($0.05), Weather Imagery ($0.02), Vegetation Health ($0.10/km²), Flood Detection ($0.08), Air Quality ($0.05), Land Use ($0.15/km²).
-  - Data Sources: NASA GIBS, FIRMS, MODIS, Landsat; ESA Sentinel-1/2/5P (pending configuration).
-  - x402 Payment Verification: Uses hybridPaymentMiddleware for proper payment validation.
-  - Demo Mode: Environment-gated via SATELLITE_DEMO_MODE or NODE_ENV.
+- **Satellite Data Integration v2.0.0 (Feb 2026)**: Production-grade x402-protected satellite data APIs connecting to REAL NASA and ESA APIs (zero Math.random()):
+  - 6 Data Products: Fire Alerts ($0.05), Weather Imagery ($0.05), Vegetation Health ($0.10/km²), Flood Detection ($0.10), Air Quality ($0.05), Land Use ($0.15/km²).
+  - Real Data Sources (verified in production Feb 8 2026):
+    - NASA GIBS (weather imagery, public, no auth needed)
+    - NASA FIRMS (fire alerts, requires free NASA_FIRMS_MAP_KEY - currently NOT set)
+    - ESA Copernicus OData Catalog (Sentinel-1 SAR for flood, Sentinel-2 L2A for vegetation, Sentinel-5P TROPOMI for air quality)
+    - ESA WorldCover 2021 WMS (land use classification, 10m resolution)
+    - OpenAQ (ground-level air quality measurements, fallback data source)
+  - **VERIFIED**: 5/6 endpoints tested with real x402 USDC payments on Base mainnet ($0.65 spent, 8/8 calls succeeded).
+  - Response caching: 15-minute TTL to avoid hammering external APIs.
+  - Provenance fields on all responses (dataset, productId, timestamp, dataSource).
+  - ESA OAuth token management for future download capabilities.
+  - **BLOCKER**: NASA_FIRMS_MAP_KEY not set. Fire alerts endpoint returns clear error. Get free key at https://firms.modaps.eosdis.nasa.gov/api/map_key/.
+  - x402 Payment Verification: Uses hybridPaymentMiddleware + satellitePaymentMiddleware for proper payment validation.
+  - Demo Mode: Environment-gated via SATELLITE_DEMO_MODE or NODE_ENV (demo returns placeholder data, not real API data).
   - API Routes: `/api/satellite/*` (catalog, status, layers, fire-alerts, weather-imagery, vegetation, flood-detection, air-quality, land-use).
   - Landing Page: `/satellite` with space-themed UI, product showcase, and API reference.
   - Strategic positioning: "Powered by NASA & ESA" for fundraising appeal with 100% margin on free data.

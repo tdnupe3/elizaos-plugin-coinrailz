@@ -1,16 +1,16 @@
-async function fundBuyerWallet() {
+async function fundCorrectBuyer() {
   const { CoinbaseCDPService } = await import('../server/services/coinbaseCDPService');
   const cdp = CoinbaseCDPService.getInstance();
-  const buyerAddress = "0x6341B240547d520a425ea58EF91b33692b12f356";
-  const amount = "35.00";
+  const correctBuyer = "0x5837A864C03912ea14a5609968F73E75B9d42a7C";
+  const amount = "14.00";
   
-  console.log(`Funding buyer wallet ${buyerAddress} with $${amount} USDC on Base...`);
+  console.log(`Funding correct buyer wallet ${correctBuyer} with $${amount} USDC from platform wallet...`);
+  console.log(`(Platform has ~$16.68, sending $14 leaves ~$2.68 for gas)`);
   
   const result = await cdp.sendUSDC({
-    toAddress: buyerAddress,
+    toAddress: correctBuyer,
     amount: amount,
     chain: "base-mainnet",
-    memo: "Fund buyer wallet for drain test"
   });
   
   console.log(`Result:`, JSON.stringify(result, null, 2));
@@ -23,4 +23,4 @@ async function fundBuyerWallet() {
   }
 }
 
-fundBuyerWallet().catch(console.error);
+fundCorrectBuyer().catch(console.error);

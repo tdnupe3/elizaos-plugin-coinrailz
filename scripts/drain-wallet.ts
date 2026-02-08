@@ -48,13 +48,13 @@ async function drainWallet() {
     { name: "iot-sensor-reading", price: "$0.025", url: `${BASE}/iot-sensor-reading`, body: { deviceId: "drain-sensor-001", sensorType: "temperature" } },
     { name: "weather-station-data", price: "$0.05", url: `${BASE}/weather-station-data`, body: { stationId: "drain-wx-001", metrics: ["temperature", "humidity"] } },
     { name: "gas-price-oracle", price: "$0.10", url: `${BASE}/gas-price-oracle`, body: { chain: "ethereum" } },
-    { name: "token-metadata", price: "$0.10", url: `${BASE}/token-metadata`, body: { token: "USDC", chain: "base" } },
-    { name: "token-price", price: "$0.25", url: `${BASE}/token-price`, body: { token: "ETH", currency: "USD" } },
+    { name: "token-metadata", price: "$0.10", url: `${BASE}/token-metadata`, body: { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", chain: "base" } },
+    { name: "token-price", price: "$0.25", url: `${BASE}/token-price`, body: { tokenAddress: "0x4200000000000000000000000000000000000006", chain: "base" } },
     { name: "polymarket-events", price: "$0.25", url: `${BASE}/polymarket-events`, body: { category: "crypto" } },
     { name: "polymarket-search", price: "$0.25", url: `${BASE}/polymarket-search`, body: { query: "bitcoin" } },
   ];
 
-  const allCalls = [...premiumCalls, ...midCalls, ...volumeCalls];
+  const allCalls = [...volumeCalls, ...midCalls, ...premiumCalls];
   let totalSpent = 0;
   let successes = 0;
   let failures = 0;
@@ -62,7 +62,7 @@ async function drainWallet() {
 
   for (let i = 0; i < allCalls.length; i++) {
     const t = allCalls[i];
-    const phase = i < premiumCalls.length ? "PREMIUM" : i < premiumCalls.length + midCalls.length ? "MID-TIER" : "VOLUME";
+    const phase = i < volumeCalls.length ? "VOLUME" : i < volumeCalls.length + midCalls.length ? "MID-TIER" : "PREMIUM";
     console.log(`[${i+1}/${allCalls.length}] [${phase}] ${t.name} (${t.price})...`);
     const start = Date.now();
     try {
@@ -100,8 +100,7 @@ async function drainWallet() {
       console.log(`  ❌ FAIL: ${err.message?.substring(0, 200)}`);
     }
     
-    // Pace: 8s between premium, 6s between mid, 3s between volume
-    const delay = i < premiumCalls.length ? 8000 : i < premiumCalls.length + midCalls.length ? 6000 : 3000;
+    const delay = i < volumeCalls.length ? 3000 : i < volumeCalls.length + midCalls.length ? 6000 : 8000;
     if (i < allCalls.length - 1) {
       await new Promise(r => setTimeout(r, delay));
     }

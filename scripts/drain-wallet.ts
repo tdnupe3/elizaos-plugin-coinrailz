@@ -14,12 +14,15 @@ async function drainWallet() {
   console.log(`Buyer: ${account.address}`);
   console.log(`Starting drain sequence...\n`);
 
-  const BASE = "https://coinrailz.com/x402/service";
+  const BASE = "https://coinrailz.com/x402";
+  const ENTERPRISE = `${BASE}/service`;
   
-  // Phase 1: Premium services to drain fast ($5 each)
+  // Phase 1: Premium services ($5-$10 each) — enterprise services use /service/ prefix
   const premiumCalls = [
+    { name: "smart-contract-audit", price: "$10.00", url: `${ENTERPRISE}/smart-contract-audit`, body: { contractCode: "pragma solidity ^0.8.0; contract Test { function deposit() payable {} }", auditLevel: "standard" } },
     { name: "verified-agent-identity", price: "$5.00", url: `${BASE}/verified-agent-identity`, body: { agentName: "DrainTest-Agent", capabilities: ["payments", "trading"], contactUrl: "https://test.agent" } },
-    { name: "compliance-consultation", price: "$5.00", url: `${BASE}/compliance-consultation`, body: { businessType: "crypto-exchange", jurisdiction: "US", transactionVolume: 50000 } },
+    { name: "compliance-consultation", price: "$5.00", url: `${ENTERPRISE}/compliance-consultation`, body: { businessType: "crypto-exchange", jurisdiction: "US", transactionVolume: 50000 } },
+    { name: "payment-processing", price: "$5.00", url: `${ENTERPRISE}/payment-processing`, body: { amount: 100, currency: "USDC", recipient: "0x1234" } },
   ];
 
   // Phase 2: Mid-tier services ($0.50-$2.00)
@@ -28,18 +31,25 @@ async function drainWallet() {
     { name: "seamless-chain-bridge", price: "$2.00", url: `${BASE}/seamless-chain-bridge`, body: { fromChain: "ethereum", toChain: "base", token: "USDC", amount: "10" } },
     { name: "instant-api-key", price: "$1.00", url: `${BASE}/instant-api-key`, body: { projectName: "drain-test", tier: "standard" } },
     { name: "portfolio-optimization", price: "$2.00", url: `${BASE}/portfolio-optimization`, body: { portfolio: [{ token: "ETH", allocation: 0.5 }, { token: "BTC", allocation: 0.5 }] } },
+    { name: "iot-bulk-data", price: "$0.50", url: `${BASE}/iot-bulk-data`, body: { deviceId: "drain-device-001", startDate: "2026-01-01", endDate: "2026-02-01" } },
+    { name: "iot-device-stream", price: "$0.25", url: `${BASE}/iot-device-stream`, body: { deviceId: "drain-device-001", streamType: "telemetry", duration: 60 } },
   ];
 
-  // Phase 3: Low-cost volume burst ($0.025-$0.50)
+  // Phase 3: Low-cost volume burst ($0.025-$0.25)
   const volumeCalls = [
-    { name: "fire-alerts", price: "$0.05", url: `${BASE}/fire-alerts`, body: { lat: 37.7749, lng: -122.4194, radius: 100 } },
-    { name: "weather-imagery", price: "$0.05", url: `${BASE}/weather-imagery`, body: { lat: 40.7128, lng: -74.0060, layer: "MODIS_Terra_CorrectedReflectance_TrueColor" } },
-    { name: "air-quality", price: "$0.05", url: `${BASE}/air-quality`, body: { lat: 51.5074, lng: -0.1278 } },
+    { name: "fire-alerts", price: "$0.05", url: `${BASE}/fire-alerts`, body: { west: -125, south: 24, east: -66, north: 50, days: 1 } },
+    { name: "weather-imagery", price: "$0.05", url: `${BASE}/weather-imagery`, body: { lat: 40.7128, lon: -74.0060, layer: "MODIS_Terra_CorrectedReflectance_TrueColor" } },
+    { name: "air-quality", price: "$0.05", url: `${BASE}/air-quality`, body: { lat: 51.5074, lon: -0.1278 } },
+    { name: "vegetation", price: "$0.10", url: `${BASE}/vegetation`, body: { west: -122.5, south: 37.0, east: -121.5, north: 38.0 } },
+    { name: "flood-detection", price: "$0.10", url: `${BASE}/flood-detection`, body: { west: -90.5, south: 29.0, east: -89.0, north: 30.5 } },
+    { name: "land-use", price: "$0.15", url: `${BASE}/land-use`, body: { west: -118.5, south: 33.5, east: -117.5, north: 34.5 } },
+    { name: "fleet-telematics", price: "$0.10", url: `${BASE}/fleet-telematics`, body: { fleetId: "drain-fleet-001", vehicleCount: 5 } },
     { name: "solana-yield-finder", price: "$0.05", url: `${BASE}/solana-yield-finder`, body: { token: "SOL" } },
     { name: "iot-sensor-reading", price: "$0.025", url: `${BASE}/iot-sensor-reading`, body: { deviceId: "drain-sensor-001", sensorType: "temperature" } },
     { name: "weather-station-data", price: "$0.05", url: `${BASE}/weather-station-data`, body: { stationId: "drain-wx-001", metrics: ["temperature", "humidity"] } },
     { name: "gas-price-oracle", price: "$0.10", url: `${BASE}/gas-price-oracle`, body: { chain: "ethereum" } },
     { name: "token-metadata", price: "$0.10", url: `${BASE}/token-metadata`, body: { token: "USDC", chain: "base" } },
+    { name: "token-price", price: "$0.25", url: `${BASE}/token-price`, body: { token: "ETH", currency: "USD" } },
     { name: "polymarket-events", price: "$0.25", url: `${BASE}/polymarket-events`, body: { category: "crypto" } },
     { name: "polymarket-search", price: "$0.25", url: `${BASE}/polymarket-search`, body: { query: "bitcoin" } },
   ];

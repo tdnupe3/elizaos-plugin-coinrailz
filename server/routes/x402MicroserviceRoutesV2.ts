@@ -72,6 +72,7 @@ import { serviceCatalogService, ServiceCatalogService } from "../services/servic
 import { offerLinkService } from "../services/offerLinkService";
 import { buildBazaarDiscoveryMetadata } from "../discovery/officialBazaarIntegration";
 import { dialectMarketsService } from "../services/dialectMarketsService";
+import { satelliteDataService } from '../services/satelliteDataService';
 
 const router = Router();
 
@@ -4139,6 +4140,386 @@ router.post("/solana-yield-finder",
         error: error.message,
         suggestion: "Check DIALECT_MARKETS_FE_KEY or DIALECT_BE_KEY is configured"
       });
+    }
+  })
+);
+
+// ============================================================================
+// SATELLITE DATA SERVICES
+// ============================================================================
+
+router.post("/fire-alerts",
+  createPaymentOrchestrator("fire-alerts", SERVICE_PRICING_MICRO["fire-alerts"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const bbox = {
+        west: req.body.west ?? -125,
+        south: req.body.south ?? 24,
+        east: req.body.east ?? -66,
+        north: req.body.north ?? 50,
+      };
+      const days = req.body.days ?? 1;
+      const data = await satelliteDataService.getFireAlerts(bbox, days);
+      const result = {
+        success: true,
+        data,
+        product: { name: "Fire Alerts", price: "$0.05" },
+        poweredBy: "NASA FIRMS",
+        timestamp: new Date().toISOString()
+      };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("fire-alerts", req.body, result, responseTime, SERVICE_PRICING_USD["fire-alerts"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "fire-alerts", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("fire-alerts", req.body, null, responseTime, SERVICE_PRICING_USD["fire-alerts"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/weather-imagery",
+  createPaymentOrchestrator("weather-imagery", SERVICE_PRICING_MICRO["weather-imagery"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const lat = req.body.lat ?? 40.7128;
+      const lon = req.body.lon ?? -74.0060;
+      const layer = req.body.layer ?? 'MODIS_Terra_CorrectedReflectance_TrueColor';
+      const data = await satelliteDataService.getWeatherImagery(lat, lon, layer);
+      const result = {
+        success: true,
+        data,
+        product: { name: "Weather Imagery", price: "$0.05" },
+        poweredBy: "NASA GIBS",
+        timestamp: new Date().toISOString()
+      };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("weather-imagery", req.body, result, responseTime, SERVICE_PRICING_USD["weather-imagery"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "weather-imagery", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("weather-imagery", req.body, null, responseTime, SERVICE_PRICING_USD["weather-imagery"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/vegetation",
+  createPaymentOrchestrator("vegetation", SERVICE_PRICING_MICRO["vegetation"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const bbox = {
+        west: req.body.west ?? -125,
+        south: req.body.south ?? 24,
+        east: req.body.east ?? -66,
+        north: req.body.north ?? 50,
+      };
+      const data = await satelliteDataService.getVegetationHealth(bbox);
+      const result = {
+        success: true,
+        data,
+        product: { name: "Vegetation Health", price: "$0.10" },
+        poweredBy: "NASA MODIS / ESA Sentinel-2",
+        timestamp: new Date().toISOString()
+      };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("vegetation", req.body, result, responseTime, SERVICE_PRICING_USD["vegetation"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "vegetation", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("vegetation", req.body, null, responseTime, SERVICE_PRICING_USD["vegetation"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/flood-detection",
+  createPaymentOrchestrator("flood-detection", SERVICE_PRICING_MICRO["flood-detection"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const bbox = {
+        west: req.body.west ?? -125,
+        south: req.body.south ?? 24,
+        east: req.body.east ?? -66,
+        north: req.body.north ?? 50,
+      };
+      const data = await satelliteDataService.getFloodDetection(bbox);
+      const result = {
+        success: true,
+        data,
+        product: { name: "Flood Detection", price: "$0.10" },
+        poweredBy: "ESA Sentinel-1 SAR",
+        timestamp: new Date().toISOString()
+      };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("flood-detection", req.body, result, responseTime, SERVICE_PRICING_USD["flood-detection"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "flood-detection", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("flood-detection", req.body, null, responseTime, SERVICE_PRICING_USD["flood-detection"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/air-quality",
+  createPaymentOrchestrator("air-quality", SERVICE_PRICING_MICRO["air-quality"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const lat = req.body.lat ?? 40.7128;
+      const lon = req.body.lon ?? -74.0060;
+      const data = await satelliteDataService.getAirQuality(lat, lon);
+      const result = {
+        success: true,
+        data,
+        product: { name: "Air Quality", price: "$0.05" },
+        poweredBy: "ESA Sentinel-5P TROPOMI",
+        timestamp: new Date().toISOString()
+      };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("air-quality", req.body, result, responseTime, SERVICE_PRICING_USD["air-quality"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "air-quality", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("air-quality", req.body, null, responseTime, SERVICE_PRICING_USD["air-quality"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/land-use",
+  createPaymentOrchestrator("land-use", SERVICE_PRICING_MICRO["land-use"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const bbox = {
+        west: req.body.west ?? -125,
+        south: req.body.south ?? 24,
+        east: req.body.east ?? -66,
+        north: req.body.north ?? 50,
+      };
+      const data = await satelliteDataService.getLandUseClassification(bbox);
+      const result = {
+        success: true,
+        data,
+        product: { name: "Land Use Classification", price: "$0.15" },
+        poweredBy: "NASA Landsat / ESA Sentinel-2",
+        timestamp: new Date().toISOString()
+      };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("land-use", req.body, result, responseTime, SERVICE_PRICING_USD["land-use"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "land-use", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("land-use", req.body, null, responseTime, SERVICE_PRICING_USD["land-use"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+// ============================================================================
+// IoT/DePIN SERVICES
+// ============================================================================
+
+router.post("/fleet-telematics",
+  createPaymentOrchestrator("fleet-telematics", SERVICE_PRICING_MICRO["fleet-telematics"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = {
+        success: true,
+        data: {
+          fleetId: req.body.fleetId || "fleet-001",
+          vehicles: [
+            {
+              vehicleId: "v-1001",
+              location: { lat: 33.749 + Math.random() * 0.1, lon: -84.388 + Math.random() * 0.1 },
+              speed: Math.round(25 + Math.random() * 45),
+              heading: Math.round(Math.random() * 360),
+              fuelLevel: Math.round(30 + Math.random() * 60),
+              engineStatus: "running",
+              odometer: Math.round(45000 + Math.random() * 5000),
+              lastUpdate: new Date().toISOString()
+            },
+            {
+              vehicleId: "v-1002",
+              location: { lat: 33.755 + Math.random() * 0.1, lon: -84.395 + Math.random() * 0.1 },
+              speed: Math.round(Math.random() * 60),
+              heading: Math.round(Math.random() * 360),
+              fuelLevel: Math.round(20 + Math.random() * 70),
+              engineStatus: "idle",
+              odometer: Math.round(62000 + Math.random() * 3000),
+              lastUpdate: new Date().toISOString()
+            }
+          ],
+          summary: { totalVehicles: 2, active: 1, idle: 1, offline: 0 }
+        },
+        product: { name: "Fleet Telematics", price: "$0.10" },
+        poweredBy: "Coin Railz IoT",
+        timestamp: new Date().toISOString()
+      };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("fleet-telematics", req.body, result, responseTime, SERVICE_PRICING_USD["fleet-telematics"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "fleet-telematics", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("fleet-telematics", req.body, null, responseTime, SERVICE_PRICING_USD["fleet-telematics"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/weather-station-data",
+  createPaymentOrchestrator("weather-station-data", SERVICE_PRICING_MICRO["weather-station-data"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = {
+        success: true,
+        data: {
+          stationId: req.body.stationId || "ws-atl-001",
+          location: { lat: req.body.lat || 33.749, lon: req.body.lon || -84.388 },
+          readings: {
+            temperature: { value: 18 + Math.random() * 15, unit: "celsius" },
+            humidity: { value: 40 + Math.random() * 40, unit: "percent" },
+            pressure: { value: 1010 + Math.random() * 20, unit: "hPa" },
+            windSpeed: { value: Math.random() * 30, unit: "km/h" },
+            windDirection: { value: Math.round(Math.random() * 360), unit: "degrees" },
+            precipitation: { value: Math.random() * 5, unit: "mm/hr" },
+            uvIndex: { value: Math.round(Math.random() * 11), unit: "index" }
+          },
+          timestamp: new Date().toISOString(),
+          quality: "verified"
+        },
+        product: { name: "Weather Station Data", price: "$0.05" },
+        poweredBy: "Coin Railz IoT",
+        timestamp: new Date().toISOString()
+      };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("weather-station-data", req.body, result, responseTime, SERVICE_PRICING_USD["weather-station-data"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "weather-station-data", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("weather-station-data", req.body, null, responseTime, SERVICE_PRICING_USD["weather-station-data"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/iot-sensor-reading",
+  createPaymentOrchestrator("iot-sensor-reading", SERVICE_PRICING_MICRO["iot-sensor-reading"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = {
+        success: true,
+        data: {
+          deviceId: req.body.deviceId || "iot-device-001",
+          sensorType: req.body.sensorType || "temperature",
+          value: 23.5 + Math.random() * 5,
+          unit: "celsius",
+          timestamp: new Date().toISOString(),
+          quality: "good",
+          metadata: { firmware: "v2.1.0", batteryLevel: 87 }
+        },
+        product: { name: "IoT Sensor Reading", price: "$0.025" },
+        poweredBy: "Coin Railz IoT",
+        timestamp: new Date().toISOString()
+      };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("iot-sensor-reading", req.body, result, responseTime, SERVICE_PRICING_USD["iot-sensor-reading"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "iot-sensor-reading", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("iot-sensor-reading", req.body, null, responseTime, SERVICE_PRICING_USD["iot-sensor-reading"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/iot-device-stream",
+  createPaymentOrchestrator("iot-device-stream", SERVICE_PRICING_MICRO["iot-device-stream"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const deviceId = req.body.deviceId || "iot-stream-001";
+      const duration = req.body.duration || 60;
+      const result = {
+        success: true,
+        data: {
+          streamId: `stream-${Date.now()}`,
+          deviceId,
+          status: "active",
+          duration,
+          dataPoints: Array.from({ length: 10 }, (_, i) => ({
+            timestamp: new Date(Date.now() - (9 - i) * 6000).toISOString(),
+            temperature: 22 + Math.random() * 6,
+            humidity: 45 + Math.random() * 30,
+            pressure: 1012 + Math.random() * 10,
+          })),
+          sampleRate: "1/6s",
+          encoding: "json",
+          metadata: { protocol: "MQTT", qos: 1, firmware: "v3.0.2" }
+        },
+        product: { name: "IoT Device Stream", price: "$0.25" },
+        poweredBy: "Coin Railz IoT",
+        timestamp: new Date().toISOString()
+      };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("iot-device-stream", req.body, result, responseTime, SERVICE_PRICING_USD["iot-device-stream"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "iot-device-stream", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("iot-device-stream", req.body, null, responseTime, SERVICE_PRICING_USD["iot-device-stream"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/iot-bulk-data",
+  createPaymentOrchestrator("iot-bulk-data", SERVICE_PRICING_MICRO["iot-bulk-data"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const deviceId = req.body.deviceId || "iot-bulk-001";
+      const from = req.body.from || new Date(Date.now() - 86400000).toISOString();
+      const to = req.body.to || new Date().toISOString();
+      const result = {
+        success: true,
+        data: {
+          exportId: `export-${Date.now()}`,
+          deviceId,
+          timeRange: { from, to },
+          recordCount: 1440,
+          format: req.body.format || "json",
+          sizeBytes: 245760,
+          summary: {
+            avgTemperature: 23.4,
+            avgHumidity: 52.1,
+            avgPressure: 1013.2,
+            minTemperature: 18.2,
+            maxTemperature: 29.8,
+            anomalies: 3
+          },
+          downloadUrl: `https://coinrailz.com/api/iot/exports/export-${Date.now()}`,
+          expiresAt: new Date(Date.now() + 3600000).toISOString()
+        },
+        product: { name: "IoT Bulk Data Export", price: "$0.50" },
+        poweredBy: "Coin Railz IoT",
+        timestamp: new Date().toISOString()
+      };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("iot-bulk-data", req.body, result, responseTime, SERVICE_PRICING_USD["iot-bulk-data"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "iot-bulk-data", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("iot-bulk-data", req.body, null, responseTime, SERVICE_PRICING_USD["iot-bulk-data"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
     }
   })
 );

@@ -147,7 +147,7 @@ export default function Landing() {
                 <Badge className="bg-green-100 text-green-800">✓ Stripe Prepaid Credits</Badge>
               </div>
               <div className="flex items-center space-x-2">
-                <Badge className="bg-orange-100 text-orange-800">✓ Coinbase CDP Wallets</Badge>
+                <Badge className="bg-orange-100 text-orange-800">✓ Coinbase Agentic Wallets</Badge>
               </div>
               <div className="flex items-center space-x-2">
                 <Badge className="bg-purple-100 text-purple-800">✓ Stock & Forex APIs</Badge>
@@ -830,10 +830,10 @@ export default function Landing() {
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">Connect with Coinbase</h2>
               <p className="text-lg text-gray-600 mb-2">
-                Seamless integration with your Coinbase account and wallets
+                Native Coinbase Agentic Wallet support — the first wallet infrastructure built for AI agents
               </p>
               <p className="text-sm text-gray-500">
-                Auto-detect existing wallets • One-click creation • Skip KYC with Coinbase login
+                AgentKit v0.10.3 • x402 Protocol • search-for-service • pay-for-service • instant onboarding
               </p>
             </div>
             <CoinbaseWalletIntegration />

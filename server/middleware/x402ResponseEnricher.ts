@@ -292,7 +292,12 @@ export function x402ResponseEnricher() {
               const bazaarMetadata = buildBazaarDiscoveryMetadata(matchedService, 'POST');
               enriched.extensions = {
                 ...(enriched.extensions || {}),
-                bazaar: bazaarMetadata
+                bazaar: bazaarMetadata,
+                agenticWallet: {
+                  compatible: true,
+                  version: "0.10.3",
+                  skills: ["search-for-service", "pay-for-service"]
+                }
               };
             } catch (e) {
               // Silently continue if metadata build fails - don't break the 402 response

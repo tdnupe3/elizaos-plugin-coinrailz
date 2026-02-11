@@ -62,8 +62,8 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
   
   const a2aAgentCard = {
     name: "Coin Railz Multi-Chain Payment Infrastructure",
-    description: "Production-grade blockchain infrastructure for AI agents. 41 x402 micropayment services across 8 chains (7 EVM + Solana) + SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker) + Real Estate + Banking + Trading + Market Intelligence + Traditional Markets: property valuation, credit risk, trading signals, security audits, wallet analytics, gas optimization, DeFi intelligence, stock sentiment, and forex analysis. Processing fee: 1.5% + $0.01 per transaction.",
-    version: "0.5.0",
+    description: "Production-grade blockchain infrastructure for AI agents. 44+ x402 micropayment services across 8 chains (7 EVM + Solana) + Native Coinbase Agentic Wallet support + Satellite Data APIs (NASA/ESA) + SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker) + Real Estate + Banking + Trading + Market Intelligence + Traditional Markets. Processing fee: 1.5% + $0.01 per transaction.",
+    version: "0.6.0",
     agentId: "coinrailz-x402-infrastructure",
     
     // A2A v0.3 service endpoint
@@ -1922,15 +1922,25 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
   const agentCard = {
     protocolVersion: "0.3.0",
     name: "Coin Railz",
-    description: "Multi-chain x402 micropayment infrastructure for AI agents. 41 pay-per-call API services for crypto analytics, trading signals, security audits, real estate, banking, market intelligence, prediction markets, and traditional markets. Pay with USDC on Base chain - prices from $0.10 to $10.00 per request.",
+    description: "Multi-chain x402 micropayment infrastructure for AI agents. 44+ pay-per-call API services for crypto analytics, trading signals, security audits, satellite data (NASA/ESA), real estate, banking, market intelligence, prediction markets, and traditional markets. Native Coinbase Agentic Wallet compatible. Pay with USDC on Base chain - prices from $0.05 to $10.00 per request.",
     url: baseUrl,
-    version: "3.0.0",
+    version: "3.1.0",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
     
     capabilities: {
       streaming: true,
       pushNotifications: false,
       stateTransitionHistory: true
+    },
+    
+    agenticWallet: {
+      compatible: true,
+      sdkVersion: "0.10.3",
+      walletProvisioningEndpoint: `${baseUrl}/x402/wallet/free`,
+      paidWalletEndpoint: `${baseUrl}/x402/instant-agent-wallet`,
+      supportedSkills: ["search-for-service", "pay-for-service", "monetize-service"],
+      onboardingFlow: "instant",
+      cli: "npx awal"
     },
     
     skills: [
@@ -2324,7 +2334,14 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       "agent-payments",
       "real-estate",
       "banking",
-      "market-intelligence"
+      "market-intelligence",
+      "agentic-wallet",
+      "coinbase",
+      "cdp",
+      "satellite-data",
+      "iot",
+      "nasa",
+      "esa"
     ],
     
     // Platform trust signals for AI agent decision-making
@@ -2332,8 +2349,9 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
     platformSignals: {
       verifiedPayments: true,           // Real x402 payments processed and verified
       repeatAgentsObserved: true,       // Returning agents making multiple payments
-      paymentRails: ["x402-USDC", "stripe", "sdk-payments"],  // Available payment methods
-      totalServicesAvailable: 43,       // Current service count in catalog (41 x402 + 2 SDK)
+      paymentRails: ["x402-USDC", "stripe", "sdk-payments", "agentic-wallet"],  // Available payment methods
+      totalServicesAvailable: 47,       // Current service count in catalog (44 x402 + 2 SDK + satellite)
+      agenticWalletCompatible: true,    // Native Coinbase Agentic Wallet support
       networksSupported: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "solana:101"],   // Primary blockchain networks (CAIP-2 format)
       networkSupported: "eip155:8453",   // Primary blockchain network (CAIP-2 format) - kept for backwards compatibility
       paymentAsset: "USDC",              // Primary payment token
@@ -2614,8 +2632,8 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     name: "Coin Railz",
     homepage: "https://coinrailz.com",
     contact: "support@coinrailz.com",
-    description: "AI agent marketplace with x402 autonomous payment endpoints, A2A 2.0 discovery, SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker), and multi-chain support across 8 networks (7 EVM + Solana). Processing fee: 1.5% + $0.01 per transaction.",
-    version: "x402-2.1",
+    description: "AI agent marketplace with x402 autonomous payment endpoints, native Coinbase Agentic Wallet support, A2A 2.0 discovery, SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker), satellite data APIs (NASA/ESA), and multi-chain support across 8 networks (7 EVM + Solana). Processing fee: 1.5% + $0.01 per transaction.",
+    version: "x402-2.2",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
     sdk: {
       npm: "@coinrailz/agent-payments",
@@ -3285,7 +3303,14 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         decimals: 6
       },
-      platform_wallet: process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91"
+      platform_wallet: process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+      agenticWalletCompatible: true,
+      agenticWalletVersion: "0.10.3",
+      walletProvisioning: {
+        freeEndpoint: `${baseUrl}/x402/wallet/free`,
+        paidEndpoint: `${baseUrl}/x402/instant-agent-wallet`,
+        supportedSkills: ["search-for-service", "pay-for-service", "monetize-service"]
+      }
     },
     a2a: {
       protocol_version: "2.0.0",

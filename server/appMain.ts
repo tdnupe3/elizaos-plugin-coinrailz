@@ -1,7 +1,6 @@
+import express, { Router } from 'express';
 import { app, httpServer, port } from './index.js';
 
-// ============================================================================
-// NOW load the rest of the application (after server is already listening)
 // ============================================================================
 
 console.log('🚀 SERVER STARTUP - VERSION v3-fast-health-check');
@@ -4051,4 +4050,3 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   process.exit(1);
 });
 
-export { app };

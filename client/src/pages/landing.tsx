@@ -130,16 +130,16 @@ export default function Landing() {
             </div>
             
             {/* Main Value Proposition */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight px-2">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-3 sm:mb-6 leading-tight px-2">
               Micropayment Rail for<br />AI Agents & TradFi Developers
             </h1>
             
-            <p className="text-xl sm:text-2xl text-gray-600 mb-6 sm:mb-8 px-4 max-w-3xl mx-auto">
-              Two payment rails, one platform. x402/USDC for autonomous agents. Stripe prepaid credits for TradFi teams. 55 x402 services from crypto to satellite data & IoT.
+            <p className="text-base sm:text-2xl text-gray-600 mb-4 sm:mb-8 px-4 max-w-3xl mx-auto">
+              Two payment rails, one platform. x402/USDC for autonomous agents. Stripe prepaid credits for TradFi teams. 58 x402 services from crypto to satellite data & IoT.
             </p>
             
             {/* Trust Badges - Dual Rail Focus with Crypto Proof */}
-            <div className="flex flex-wrap items-center justify-center gap-3 mb-8 text-sm text-gray-700">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-6 sm:mb-8 text-sm text-gray-700">
               <div className="flex items-center space-x-2">
                 <Badge className="bg-blue-100 text-blue-800">✓ x402/USDC on Base</Badge>
               </div>
@@ -154,74 +154,59 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* PRIMARY CTA - Pilot Credits for IoT/DePIN (60-day revenue goal) */}
-            <div className="max-w-md mx-auto mb-6">
+            {/* PRIMARY CTA - Pilot Credits as compact inline banner on mobile */}
+            <div className="max-w-md mx-auto mb-4 sm:mb-6">
               <Link href="/pilots/buy">
-                <Card 
-                  className="border-2 border-cyan-400 bg-gradient-to-br from-cyan-50 to-blue-50 hover:shadow-lg transition-shadow cursor-pointer"
+                <div 
+                  className="flex items-center justify-between border-2 border-cyan-400 bg-gradient-to-r from-cyan-50 to-blue-50 hover:shadow-lg transition-shadow cursor-pointer rounded-lg px-4 py-3"
                   data-testid="card-pilot-credits"
                   onClick={() => {
                     trackEvent('click', 'landing_pilot_cta', 'purchase_pilot_credits');
                     trackBusinessEvent('pilot_credit_purchase_intent', { payment_method: 'stripe_or_crypto', user_type: 'iot_depin' });
                   }}
                 >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center">
-                          <CreditCard className="w-4 h-4 text-cyan-600" />
-                        </div>
-                        <CardTitle className="text-base font-semibold text-cyan-900">IoT/DePIN Pilot Credits</CardTitle>
-                      </div>
-                      <Badge className="bg-cyan-100 text-cyan-800 font-medium">Multi-Chain</Badge>
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center flex-shrink-0">
+                      <CreditCard className="w-4 h-4 text-cyan-600" />
                     </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <p className="text-sm text-cyan-700 mb-3">Start your pilot program with prepaid credits. Card or USDC/USDT.</p>
-                    <Button 
-                      className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white"
-                      size="sm"
-                      data-testid="button-stripe-purchase"
-                    >
-                      Purchase Credits →
-                    </Button>
-                  </CardContent>
-                </Card>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-cyan-900">IoT/DePIN Pilot Credits</div>
+                      <div className="text-xs text-cyan-700">Card or USDC/USDT • Multi-Chain</div>
+                    </div>
+                  </div>
+                  <Button 
+                    className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white text-xs flex-shrink-0 ml-2"
+                    size="sm"
+                    data-testid="button-stripe-purchase"
+                  >
+                    Purchase →
+                  </Button>
+                </div>
               </Link>
             </div>
 
-            {/* Stock & Forex Hero Cards - TradFi Services */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto mb-6 sm:mb-8">
-              <Card className="border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50 hover:shadow-lg transition-shadow" data-testid="stock-sentiment-hero-card">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <TrendingUp className="w-5 h-5 text-emerald-600" />
-                    <Badge className="bg-emerald-100 text-emerald-800 font-bold">$0.40</Badge>
-                  </div>
-                  <CardTitle className="text-sm font-semibold text-emerald-900">Stock Sentiment Signals</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="text-xs text-emerald-700">Real-time equities sentiment via Yahoo Finance</p>
-                </CardContent>
-              </Card>
-              <Card className="border-2 border-indigo-300 bg-gradient-to-br from-indigo-50 to-blue-50 hover:shadow-lg transition-shadow" data-testid="forex-sentiment-hero-card">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <Globe className="w-5 h-5 text-indigo-600" />
-                    <Badge className="bg-indigo-100 text-indigo-800 font-bold">$0.40</Badge>
-                  </div>
-                  <CardTitle className="text-sm font-semibold text-indigo-900">Forex Sentiment Pulse</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="text-xs text-indigo-700">FX insights via ECB/Frankfurter data</p>
-                </CardContent>
-              </Card>
+            {/* Stock & Forex Hero Cards - Compact row on mobile */}
+            <div className="grid grid-cols-2 gap-3 max-w-xl mx-auto mb-4 sm:mb-8">
+              <div className="flex items-center justify-between border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg px-3 py-2.5" data-testid="stock-sentiment-hero-card">
+                <div>
+                  <div className="text-xs font-semibold text-emerald-900">Stock Sentiment</div>
+                  <div className="text-[10px] text-emerald-700 hidden sm:block">Yahoo Finance data</div>
+                </div>
+                <Badge className="bg-emerald-100 text-emerald-800 font-bold text-xs">$0.40</Badge>
+              </div>
+              <div className="flex items-center justify-between border-2 border-indigo-300 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg px-3 py-2.5" data-testid="forex-sentiment-hero-card">
+                <div>
+                  <div className="text-xs font-semibold text-indigo-900">Forex Pulse</div>
+                  <div className="text-[10px] text-indigo-700 hidden sm:block">ECB/Frankfurter data</div>
+                </div>
+                <Badge className="bg-indigo-100 text-indigo-800 font-bold text-xs">$0.40</Badge>
+              </div>
             </div>
             
             {/* Key Stats - Verified counts only */}
             <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-6 sm:mb-8">
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600">44</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600">58</div>
                 <div className="text-xs sm:text-sm text-gray-600">x402 Services</div>
               </div>
               <div className="text-center">
@@ -241,7 +226,7 @@ export default function Landing() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                   <a href="/mcp/services" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center space-x-2 bg-white border border-gray-300 rounded px-3 py-2 hover:bg-gray-100 transition-colors">
                     <span className="font-mono text-gray-700">MCP Protocol</span>
-                    <Badge className="bg-blue-100 text-blue-700 text-xs">42 services</Badge>
+                    <Badge className="bg-blue-100 text-blue-700 text-xs">56 services</Badge>
                   </a>
                   <a href="https://coinrailz-x402-gateway.coinrailz.workers.dev/catalog" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center space-x-2 bg-white border border-gray-300 rounded px-3 py-2 hover:bg-gray-100 transition-colors">
                     <span className="font-mono text-gray-700">Cloudflare Gateway</span>
@@ -288,143 +273,120 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Secondary Actions - All Functional */}
-            <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8 max-w-2xl mx-auto px-4 sm:px-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            {/* Secondary Actions - Compact on mobile */}
+            <div className="space-y-2 sm:space-y-4 mb-4 sm:mb-8 max-w-2xl mx-auto px-4 sm:px-0">
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 <Button 
                   onClick={() => setLocation("/usdc-ecosystem-dashboard")}
                   variant="outline"
-                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-3 sm:py-4 text-base sm:text-lg font-medium"
-                  size="lg"
+                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-2 sm:py-4 text-sm sm:text-lg font-medium"
+                  size="sm"
                 >
-                  <USDCLogo className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                  USDC Ecosystem
+                  <USDCLogo className="w-4 h-4 mr-1 sm:mr-2" />
+                  USDC
                 </Button>
 
                 <Button 
                   onClick={() => setLocation("/xrp-ecosystem")}
                   variant="outline"
-                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-3 sm:py-4 text-base sm:text-lg font-medium"
-                  size="lg"
+                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-2 sm:py-4 text-sm sm:text-lg font-medium"
+                  size="sm"
                 >
-                  <XRPLogo className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                  XRP Ecosystem
+                  <XRPLogo className="w-4 h-4 mr-1 sm:mr-2" />
+                  XRP
                 </Button>
               </div>
 
-              {/* Premium Smart Contract Audit Service - High Revenue */}
-              <div className="mb-4">
-                <Button 
-                  onClick={() => setLocation("/smart-contract-audit")}
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 sm:py-5 text-lg sm:text-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
-                  size="lg"
-                >
-                  <Shield className="w-5 h-5 sm:w-6 sm:h-6 mr-3" />
-                  🛡️ Smart Contract Audit - $1K • 5-Min Delivery
-                </Button>
-                <p className="text-center text-sm text-gray-600 mt-2">
-                  Professional security analysis • No signup required • Instant results
-                </p>
-              </div>
+              <Button 
+                onClick={() => setLocation("/smart-contract-audit")}
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-2.5 sm:py-5 text-sm sm:text-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
+                size="sm"
+              >
+                <Shield className="w-4 h-4 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
+                Smart Contract Audit - $1K
+              </Button>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 <Button 
                   onClick={() => setLocation("/swap")}
                   variant="outline"
-                  className="w-full border-purple-600 text-purple-600 hover:bg-purple-50 py-3 sm:py-4 text-base sm:text-lg font-medium"
-                  size="lg"
+                  className="w-full border-purple-600 text-purple-600 hover:bg-purple-50 py-2 sm:py-4 text-sm sm:text-lg font-medium"
+                  size="sm"
                 >
-                  <Repeat className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  <Repeat className="w-4 h-4 mr-1 sm:mr-2" />
                   DEX Swap
                 </Button>
 
                 <Button 
                   onClick={() => setLocation("/ai-marketplace")}
                   variant="outline"
-                  className="w-full border-orange-600 text-orange-600 hover:bg-orange-50 py-3 sm:py-4 text-base sm:text-lg font-medium"
-                  size="lg"
+                  className="w-full border-orange-600 text-orange-600 hover:bg-orange-50 py-2 sm:py-4 text-sm sm:text-lg font-medium"
+                  size="sm"
                 >
-                  <Bot className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                  AI Marketplace
+                  <Bot className="w-4 h-4 mr-1 sm:mr-2" />
+                  AI Agents
                 </Button>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:gap-4">
-                <Link href="/pilots/buy" className="w-full">
-                  <Button 
-                    className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white py-3 sm:py-4 text-base sm:text-lg font-medium"
-                    size="lg"
-                  >
-                    <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                    Get Pilot Credits
-                  </Button>
-                </Link>
               </div>
             </div>
           </div>
 
           {/* x402 SERVICES PRICING - REVENUE DRIVER */}
-          <div className="text-center mb-12">
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-3">Pay-Per-Use AI Services</h2>
-              <p className="text-lg text-gray-600 mb-2">Available via Telegram, x402, or Stripe Credits</p>
-              <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">No subscription • Pay only for what you use</Badge>
+          <div className="text-center mb-8 sm:mb-12">
+            <div className="mb-4 sm:mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">Pay-Per-Use AI Services</h2>
+              <p className="text-sm sm:text-lg text-gray-600 mb-2">Available via Telegram, x402, or Stripe Credits</p>
+              <Badge className="bg-green-100 text-green-800 text-xs sm:text-sm px-2 sm:px-3 py-1">No subscription • Pay only for what you use</Badge>
             </div>
 
-            {/* Services Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl mx-auto mb-6">
+            {/* Services Grid - Compact on mobile */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 max-w-6xl mx-auto mb-4 sm:mb-6">
               {[
-                { name: "AI Chat Assistant", price: "$0.10", description: "GPT-4 powered conversations", icon: <Bot className="w-5 h-5" /> },
-                { name: "Gas Price Oracle", price: "$0.10", description: "Real-time gas estimates", icon: <Activity className="w-5 h-5" /> },
-                { name: "Token Metadata", price: "$0.10", description: "Unified token info", icon: <Network className="w-5 h-5" /> },
-                { name: "DEX Liquidity Monitor", price: "$0.20", description: "Pool liquidity tracking", icon: <TrendingUp className="w-5 h-5" /> },
-                { name: "Approval Manager", price: "$0.20", description: "Token approval builder", icon: <Shield className="w-5 h-5" /> },
-                { name: "Token Price Feed", price: "$0.25", description: "Real-time crypto prices", icon: <DollarSign className="w-5 h-5" /> },
-                { name: "Token Sentiment", price: "$0.25", description: "Social sentiment analysis", icon: <TrendingUp className="w-5 h-5" /> },
-                { name: "Transaction Builder", price: "$0.30", description: "Pre-validated transactions", icon: <Send className="w-5 h-5" /> },
-                { name: "Whale Alerts", price: "$0.35", description: "Large wallet movements", icon: <Activity className="w-5 h-5" /> },
-                { name: "Batch Quote", price: "$0.40", description: "Multi-DEX price quotes", icon: <Repeat className="w-5 h-5" /> },
-                { name: "Multi-Chain Balance", price: "$0.50", description: "7+ chain balances", icon: <Network className="w-5 h-5" /> },
-                { name: "Trending Tokens", price: "$0.50", description: "Top gainers/losers", icon: <TrendingUp className="w-5 h-5" /> },
-                { name: "Wallet Risk Score", price: "$0.50", description: "Compliance analysis", icon: <Shield className="w-5 h-5" /> },
-                { name: "Portfolio Tracker", price: "$0.50", description: "Multi-chain valuation", icon: <Activity className="w-5 h-5" /> },
-                { name: "Trade Signals", price: "$0.75", description: "AI trading recommendations", icon: <TrendingUp className="w-5 h-5" /> },
-                { name: "Contract Security Scan", price: "$1.00", description: "Vulnerability detection", icon: <Shield className="w-5 h-5" /> },
-                { name: "Instant Agent Wallet", price: "$1.00", description: "Circle MPC wallets", icon: <CreditCard className="w-5 h-5" /> },
-                { name: "Chain Bridge", price: "$2.00", description: "Cross-chain USDC routing", icon: <Repeat className="w-5 h-5" /> },
+                { name: "AI Chat", price: "$0.10", description: "GPT-4 conversations", icon: <Bot className="w-4 h-4" /> },
+                { name: "Gas Oracle", price: "$0.10", description: "Gas estimates", icon: <Activity className="w-4 h-4" /> },
+                { name: "Token Info", price: "$0.10", description: "Token metadata", icon: <Network className="w-4 h-4" /> },
+                { name: "DEX Liquidity", price: "$0.20", description: "Pool tracking", icon: <TrendingUp className="w-4 h-4" /> },
+                { name: "Approvals", price: "$0.20", description: "Token approvals", icon: <Shield className="w-4 h-4" /> },
+                { name: "Token Price", price: "$0.25", description: "Crypto prices", icon: <DollarSign className="w-4 h-4" /> },
+                { name: "Sentiment", price: "$0.25", description: "Social analysis", icon: <TrendingUp className="w-4 h-4" /> },
+                { name: "Tx Builder", price: "$0.30", description: "Pre-validated txs", icon: <Send className="w-4 h-4" /> },
+                { name: "Whale Alerts", price: "$0.35", description: "Large movements", icon: <Activity className="w-4 h-4" /> },
+                { name: "Batch Quote", price: "$0.40", description: "Multi-DEX prices", icon: <Repeat className="w-4 h-4" /> },
+                { name: "Multi-Balance", price: "$0.50", description: "7+ chains", icon: <Network className="w-4 h-4" /> },
+                { name: "Trending", price: "$0.50", description: "Gainers/losers", icon: <TrendingUp className="w-4 h-4" /> },
+                { name: "Risk Score", price: "$0.50", description: "Compliance", icon: <Shield className="w-4 h-4" /> },
+                { name: "Portfolio", price: "$0.50", description: "Valuation", icon: <Activity className="w-4 h-4" /> },
+                { name: "Signals", price: "$0.75", description: "AI trading", icon: <TrendingUp className="w-4 h-4" /> },
+                { name: "Security Scan", price: "$1.00", description: "Vulnerabilities", icon: <Shield className="w-4 h-4" /> },
+                { name: "Agent Wallet", price: "$1.00", description: "MPC wallets", icon: <CreditCard className="w-4 h-4" /> },
+                { name: "Bridge", price: "$2.00", description: "Cross-chain", icon: <Repeat className="w-4 h-4" /> },
               ].map((service, idx) => (
-                <Card 
+                <div 
                   key={idx}
-                  className="hover:shadow-md transition-shadow border-gray-200 bg-white text-left"
+                  className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2 sm:px-4 sm:py-3 hover:shadow-md transition-shadow text-left"
                   data-testid={`service-card-${idx}`}
                 >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-blue-600">{service.icon}</div>
-                      <Badge className="bg-green-50 text-green-700 font-bold text-sm">{service.price}</Badge>
+                  <div className="flex items-center space-x-2 min-w-0">
+                    <div className="text-blue-600 flex-shrink-0">{service.icon}</div>
+                    <div className="min-w-0">
+                      <div className="text-xs sm:text-sm font-semibold text-gray-900 truncate">{service.name}</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500 truncate">{service.description}</div>
                     </div>
-                    <CardTitle className="text-sm font-semibold text-gray-900">{service.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-xs text-gray-600">{service.description}</p>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <Badge className="bg-green-50 text-green-700 font-bold text-[10px] sm:text-xs flex-shrink-0 ml-1">{service.price}</Badge>
+                </div>
               ))}
               
               {/* Premium Service Highlight */}
-              <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-300 hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between mb-2">
-                    <Shield className="w-5 h-5 text-purple-600" />
-                    <Badge className="bg-purple-100 text-purple-800 font-bold text-sm">$5.00</Badge>
+              <div className="flex items-center justify-between bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-300 rounded-lg px-3 py-2 sm:px-4 sm:py-3 hover:shadow-lg transition-shadow text-left col-span-2 sm:col-span-1">
+                <div className="flex items-center space-x-2 min-w-0">
+                  <Shield className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-xs sm:text-sm font-semibold text-purple-900">AI Agent Identity (KYA)</div>
+                    <div className="text-[10px] sm:text-xs text-purple-700">ERC-8004 verification</div>
                   </div>
-                  <CardTitle className="text-sm font-semibold text-purple-900">AI Agent Identity (KYA)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-purple-700">ERC-8004 on-chain verification</p>
-                  <Badge className="mt-2 bg-purple-200 text-purple-900 text-xs">Premium</Badge>
-                </CardContent>
-              </Card>
+                </div>
+                <Badge className="bg-purple-100 text-purple-800 font-bold text-[10px] sm:text-xs flex-shrink-0 ml-1">$5.00</Badge>
+              </div>
             </div>
 
             <div className="text-center">
@@ -447,7 +409,7 @@ export default function Landing() {
           </div>
 
           {/* IOT & SATELLITE DATA SECTION - DEVICE DATA MONETIZATION */}
-          <div className="mb-12 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 rounded-2xl p-8 text-white">
+          <div className="mb-8 sm:mb-12 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 rounded-2xl p-4 sm:p-8 text-white">
             <div className="text-center mb-8">
               <div className="flex justify-center mb-4">
                 <div className="bg-white/10 rounded-full p-4">
@@ -550,7 +512,7 @@ export default function Landing() {
           </div>
 
           {/* PREDICTION MARKETS SECTION */}
-          <div className="mb-12 bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 rounded-2xl p-8 text-white">
+          <div className="mb-8 sm:mb-12 bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 rounded-2xl p-4 sm:p-8 text-white">
             <div className="text-center mb-8">
               <div className="flex justify-center mb-4">
                 <div className="bg-white/10 rounded-full p-4">

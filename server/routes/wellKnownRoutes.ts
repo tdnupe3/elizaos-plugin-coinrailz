@@ -1582,6 +1582,85 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
         },
         pricing: { amount: SERVICE_PRICING_USD["land-use"], currency: "USD" },
         category: "satellite-data"
+      },
+      {
+        id: "kalshi_markets",
+        name: "Kalshi Prediction Markets",
+        description: "Get active markets from Kalshi, the CFTC-regulated prediction exchange. Use when user asks 'prediction markets', 'Kalshi markets', 'what events can I bet on', 'CFTC regulated markets', or 'election markets'.",
+        inputSchema: {
+          type: "object",
+          title: "Kalshi Markets Request",
+          description: "Request active prediction markets from Kalshi",
+          additionalProperties: false,
+          properties: {
+            limit: { type: "number", title: "Result Limit", description: "Number of markets to return (max 50)", minimum: 1, maximum: 50, default: 10 },
+            status: { type: "string", title: "Market Status", enum: ["open", "closed", "settled"], default: "open" },
+            category: { type: "string", title: "Category", description: "Filter by series ticker (e.g., 'KXBTC' for Bitcoin)" }
+          }
+        },
+        outputSchema: {
+          type: "object",
+          title: "Kalshi Markets Response",
+          additionalProperties: false,
+          properties: {
+            markets: { type: "array", title: "Active Markets", items: { type: "object", properties: { ticker: { type: "string" }, title: { type: "string" }, yesPrice: { type: "number" }, noPrice: { type: "number" }, volume: { type: "number" } } } }
+          }
+        },
+        pricing: { amount: 0.25, currency: "USD" },
+        category: "prediction-markets"
+      },
+      {
+        id: "kalshi_odds",
+        name: "Kalshi Odds Lookup",
+        description: "Get current odds, orderbook depth, and event details for a specific Kalshi market. Use when user asks 'Kalshi odds', 'prediction odds', 'market probability', 'event odds', or 'orderbook depth'.",
+        inputSchema: {
+          type: "object",
+          title: "Kalshi Odds Request",
+          description: "Request odds for a specific Kalshi market or event",
+          additionalProperties: false,
+          properties: {
+            ticker: { type: "string", title: "Market Ticker", description: "Kalshi market ticker (e.g., 'KXBTC-26FEB14-B55500')" },
+            eventTicker: { type: "string", title: "Event Ticker", description: "Kalshi event ticker (e.g., 'KXBTC-26FEB14')" }
+          }
+        },
+        outputSchema: {
+          type: "object",
+          title: "Kalshi Odds Response",
+          additionalProperties: false,
+          properties: {
+            market: { type: "object", title: "Market Details" },
+            orderbook: { type: "object", title: "Orderbook Depth" }
+          }
+        },
+        pricing: { amount: 0.50, currency: "USD" },
+        category: "prediction-markets"
+      },
+      {
+        id: "kalshi_search",
+        name: "Kalshi Market Search",
+        description: "Search Kalshi prediction markets by keyword with relevance scoring. Use when user asks 'search predictions', 'find Kalshi market', 'prediction about bitcoin', 'search election markets', or 'find prediction market'.",
+        inputSchema: {
+          type: "object",
+          title: "Kalshi Search Request",
+          description: "Search Kalshi markets by keyword",
+          additionalProperties: false,
+          properties: {
+            query: { type: "string", title: "Search Query", description: "Keywords to search for" },
+            limit: { type: "number", title: "Result Limit", minimum: 1, maximum: 20, default: 10 },
+            status: { type: "string", title: "Market Status", enum: ["open", "closed", "settled"], default: "open" }
+          },
+          required: ["query"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "Kalshi Search Response",
+          additionalProperties: false,
+          properties: {
+            results: { type: "array", title: "Matching Markets", items: { type: "object", properties: { ticker: { type: "string" }, title: { type: "string" }, relevanceScore: { type: "number" } } } }
+          }
+        },
+        pricing: { amount: 0.25, currency: "USD" },
+        category: "prediction-markets"
       }
     ],
     
@@ -1844,8 +1923,8 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
     pricing: {
       description: "Service pricing ranges from $0.05 to $10.00 USDC per call",
       pricingTiers: [
-        { tier: "Basic", range: "$0.05 - $0.25", examples: ["ping", "gas-price-oracle", "fire-alerts"] },
-        { tier: "Standard", range: "$0.25 - $1.00", examples: ["multi-chain-balance", "wallet-risk", "trade-signals"] },
+        { tier: "Basic", range: "$0.05 - $0.25", examples: ["ping", "gas-price-oracle", "fire-alerts", "kalshi-markets", "kalshi-search"] },
+        { tier: "Standard", range: "$0.25 - $1.00", examples: ["multi-chain-balance", "wallet-risk", "trade-signals", "kalshi-odds"] },
         { tier: "Premium", range: "$1.00 - $5.00", examples: ["instant-agent-wallet", "verified-agent-identity"] },
         { tier: "Enterprise", range: "$5.00 - $10.00", examples: ["smart-contract-audit", "compliance-consultation"] }
       ],
@@ -2404,7 +2483,7 @@ router.get('/.well-known/service-manifest.json', async (req: Request, res: Respo
   const manifest = {
     platform: "Coin Railz",
     version: "2.0.0",
-    total_services: 21,
+    total_services: 24,
     services: [
       {
         id: "contract-scanner",
@@ -2549,6 +2628,30 @@ router.get('/.well-known/service-manifest.json', async (req: Request, res: Respo
         endpoint: `${baseUrl}/x402/sentiment-analyzer`,
         price_usd: 0.30,
         category: "analytics"
+      },
+      {
+        id: "kalshi-markets",
+        name: "Kalshi Prediction Markets",
+        description: "Active markets from Kalshi (CFTC-regulated prediction exchange)",
+        endpoint: `${baseUrl}/x402/kalshi-markets`,
+        price_usd: 0.25,
+        category: "prediction-markets"
+      },
+      {
+        id: "kalshi-odds",
+        name: "Kalshi Odds Lookup",
+        description: "Current odds and orderbook for specific Kalshi markets",
+        endpoint: `${baseUrl}/x402/kalshi-odds`,
+        price_usd: 0.50,
+        category: "prediction-markets"
+      },
+      {
+        id: "kalshi-search",
+        name: "Kalshi Market Search",
+        description: "Search Kalshi prediction markets by keyword",
+        endpoint: `${baseUrl}/x402/kalshi-search`,
+        price_usd: 0.25,
+        category: "prediction-markets"
       }
     ]
   };
@@ -3455,7 +3558,10 @@ router.get('/.well-known/pricing.json', async (req: Request, res: Response) => {
       { service: "DeFi Protocol Scanner", price: 0.40 },
       { service: "Token Holder Analytics", price: 0.35 },
       { service: "Transaction Pattern Detector", price: 0.45 },
-      { service: "Market Sentiment Analyzer", price: 0.30 }
+      { service: "Market Sentiment Analyzer", price: 0.30 },
+      { service: "Kalshi Prediction Markets", price: 0.25 },
+      { service: "Kalshi Odds Lookup", price: 0.50 },
+      { service: "Kalshi Market Search", price: 0.25 }
     ],
     
     platform_fees: {

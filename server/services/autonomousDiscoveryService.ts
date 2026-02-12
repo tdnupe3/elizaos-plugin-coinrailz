@@ -154,7 +154,11 @@ class AutonomousDiscoveryService {
         '/x402/prediction-market-odds',
         // Traditional markets services (2 services) - added Dec 2025
         '/x402/stock-sentiment',
-        '/x402/forex-sentiment'
+        '/x402/forex-sentiment',
+        // Kalshi prediction market services (3 services) - added Feb 2026
+        '/x402/kalshi-markets',
+        '/x402/kalshi-odds',
+        '/x402/kalshi-search'
       ];
       
       // GPT Action endpoints for ChatGPT integration
@@ -308,6 +312,10 @@ class AutonomousDiscoveryService {
         { path: '/integrate', priority: '0.8' },
         { path: '/case-studies', priority: '0.7' },
         { path: '/credits/proof', priority: '0.6' },
+        
+        // Prediction Markets (Feb 2026)
+        { path: '/predictions', priority: '0.9' },
+        { path: '/satellite', priority: '0.9' },
         
         // Legal & Company Info
         { path: '/about', priority: '0.5' },

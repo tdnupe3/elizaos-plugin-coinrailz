@@ -2,6 +2,13 @@ import { ServiceHandler, ServiceRequest } from './types';
 
 const KALSHI_API_BASE = 'https://api.elections.kalshi.com/trade-api/v2';
 
+const VALID_STATUSES = ['open', 'closed', 'settled'] as const;
+const TICKER_REGEX = /^[A-Za-z0-9\-_]{1,100}$/;
+const CATEGORY_REGEX = /^[A-Za-z0-9\-_]{1,100}$/;
+const MAX_LIMIT = 50;
+const MAX_SEARCH_RESULTS = 20;
+const MAX_QUERY_LENGTH = 200;
+
 interface KalshiMarket {
   ticker: string;
   event_ticker: string;
@@ -31,8 +38,9 @@ interface KalshiEvent {
   status?: string;
 }
 
-const kalshiCache: Map<string, { data: any; expiry: number }> = new Map();
+const CACHE_MAX_SIZE = 100;
 const CACHE_TTL = 60_000;
+const kalshiCache: Map<string, { data: any; expiry: number }> = new Map();
 
 function getCached(key: string): any | null {
   const entry = kalshiCache.get(key);
@@ -42,12 +50,70 @@ function getCached(key: string): any | null {
 }
 
 function setCache(key: string, data: any): void {
+  if (kalshiCache.size >= CACHE_MAX_SIZE) {
+    const oldestKey = kalshiCache.keys().next().value;
+    if (oldestKey) kalshiCache.delete(oldestKey);
+  }
   kalshiCache.set(key, { data, expiry: Date.now() + CACHE_TTL });
+}
+
+const RATE_WINDOW_MS = 10_000;
+const MAX_UPSTREAM_CALLS = 15;
+const upstreamCallLog: number[] = [];
+
+function checkUpstreamRateLimit(): boolean {
+  const now = Date.now();
+  while (upstreamCallLog.length > 0 && upstreamCallLog[0] < now - RATE_WINDOW_MS) {
+    upstreamCallLog.shift();
+  }
+  if (upstreamCallLog.length >= MAX_UPSTREAM_CALLS) {
+    return false;
+  }
+  upstreamCallLog.push(now);
+  return true;
+}
+
+let circuitOpen = false;
+let circuitOpenUntil = 0;
+let consecutiveFailures = 0;
+const CIRCUIT_THRESHOLD = 5;
+const CIRCUIT_COOLDOWN_MS = 30_000;
+
+function checkCircuitBreaker(): boolean {
+  if (circuitOpen && Date.now() < circuitOpenUntil) {
+    return false;
+  }
+  if (circuitOpen) {
+    circuitOpen = false;
+    consecutiveFailures = 0;
+  }
+  return true;
+}
+
+function recordUpstreamSuccess(): void {
+  consecutiveFailures = 0;
+}
+
+function recordUpstreamFailure(): void {
+  consecutiveFailures++;
+  if (consecutiveFailures >= CIRCUIT_THRESHOLD) {
+    circuitOpen = true;
+    circuitOpenUntil = Date.now() + CIRCUIT_COOLDOWN_MS;
+    console.warn(`[Kalshi] Circuit breaker OPEN - ${consecutiveFailures} consecutive failures. Cooldown ${CIRCUIT_COOLDOWN_MS / 1000}s`);
+  }
 }
 
 async function kalshiFetch(path: string): Promise<any> {
   const cached = getCached(path);
   if (cached) return cached;
+
+  if (!checkCircuitBreaker()) {
+    throw new Error('Kalshi API temporarily unavailable. Please retry in 30 seconds.');
+  }
+
+  if (!checkUpstreamRateLimit()) {
+    throw new Error('Upstream rate limit reached. Please retry shortly.');
+  }
 
   const response = await fetch(`${KALSHI_API_BASE}${path}`, {
     headers: {
@@ -57,41 +123,85 @@ async function kalshiFetch(path: string): Promise<any> {
   });
 
   if (!response.ok) {
-    throw new Error(`Kalshi API error: ${response.status} ${response.statusText}`);
+    recordUpstreamFailure();
+    const statusCode = response.status;
+    if (statusCode === 429) {
+      throw new Error('Kalshi API rate limited. Please retry in a few seconds.');
+    }
+    throw new Error(`Upstream service error (HTTP ${statusCode})`);
   }
 
+  recordUpstreamSuccess();
   const data = await response.json();
   setCache(path, data);
   return data;
 }
 
+function sanitizeString(val: unknown): string | null {
+  if (typeof val !== 'string') return null;
+  return val.trim().slice(0, MAX_QUERY_LENGTH) || null;
+}
+
+function sanitizeLimit(val: unknown): number {
+  const num = typeof val === 'number' ? val : parseInt(String(val), 10);
+  if (isNaN(num) || num < 1) return 10;
+  return Math.min(num, MAX_LIMIT);
+}
+
+function validateTicker(val: unknown): string | null {
+  const str = sanitizeString(val);
+  if (!str) return null;
+  if (!TICKER_REGEX.test(str)) return null;
+  return str;
+}
+
+function validateStatus(val: unknown): string {
+  const str = sanitizeString(val);
+  if (!str || !(VALID_STATUSES as readonly string[]).includes(str)) return 'open';
+  return str;
+}
+
+function validateCategory(val: unknown): string | null {
+  const str = sanitizeString(val);
+  if (!str) return null;
+  if (!CATEGORY_REGEX.test(str)) return null;
+  return str;
+}
+
 function formatMarket(market: KalshiMarket) {
+  const yesPrice = typeof market.yes_price === 'number' ? market.yes_price : 0;
+  const noPrice = typeof market.no_price === 'number' ? market.no_price : 0;
+
   return {
-    ticker: market.ticker,
-    eventTicker: market.event_ticker,
-    title: market.title,
+    ticker: market.ticker || 'unknown',
+    eventTicker: market.event_ticker || 'unknown',
+    title: market.title || 'Untitled',
     subtitle: market.subtitle || null,
-    yesPrice: market.yes_price,
-    noPrice: market.no_price,
-    yesProbability: `${(market.yes_price / 100).toFixed(1)}%`,
-    noProbability: `${(market.no_price / 100).toFixed(1)}%`,
-    volume: market.volume,
-    volume24h: market.volume_24h || 0,
-    openInterest: market.open_interest || 0,
-    status: market.status,
+    yesPrice,
+    noPrice,
+    yesProbability: `${(yesPrice / 100).toFixed(1)}%`,
+    noProbability: `${(noPrice / 100).toFixed(1)}%`,
+    volume: typeof market.volume === 'number' ? market.volume : 0,
+    volume24h: typeof market.volume_24h === 'number' ? market.volume_24h : 0,
+    openInterest: typeof market.open_interest === 'number' ? market.open_interest : 0,
+    status: market.status || 'unknown',
     closeTime: market.close_time || null,
     result: market.result || null,
-    url: `https://kalshi.com/markets/${market.event_ticker?.toLowerCase()}`,
+    url: market.event_ticker
+      ? `https://kalshi.com/markets/${encodeURIComponent(market.event_ticker.toLowerCase())}`
+      : null,
   };
 }
 
 export class KalshiMarketsHandler implements ServiceHandler {
   async execute(request: ServiceRequest): Promise<any> {
-    const { limit = 10, status = 'open', category } = request;
+    const limit = sanitizeLimit(request.limit ?? 10);
+    const status = validateStatus(request.status ?? 'open');
+    const category = validateCategory(request.category);
 
     try {
       const params = new URLSearchParams({
-        limit: String(Math.min(limit, 50)),
+        limit: String(limit),
         status,
       });
 
@@ -115,7 +225,7 @@ export class KalshiMarketsHandler implements ServiceHandler {
         note: 'Kalshi is a CFTC-regulated prediction market. Prices are in cents (1-99). Volume is in contracts.',
       };
     } catch (error: any) {
-      console.error('Kalshi markets fetch error:', error);
+      console.error('Kalshi markets fetch error:', error.message);
       return {
         success: false,
         service: 'kalshi-markets',
@@ -128,13 +238,14 @@ export class KalshiMarketsHandler implements ServiceHandler {
 
 export class KalshiOddsHandler implements ServiceHandler {
   async execute(request: ServiceRequest): Promise<any> {
-    const { ticker, eventTicker } = request;
+    const ticker = validateTicker(request.ticker);
+    const eventTicker = validateTicker(request.eventTicker);
 
     if (!ticker && !eventTicker) {
       return {
         success: false,
         service: 'kalshi-odds',
-        error: 'Either ticker (market ticker) or eventTicker (event ticker) is required',
+        error: 'Either ticker (market ticker) or eventTicker (event ticker) is required. Must contain only alphanumeric characters, hyphens, and underscores.',
         example: { ticker: 'KXBTC-26FEB14-B55500' },
         alternativeExample: { eventTicker: 'KXBTC-26FEB14' },
         timestamp: new Date().toISOString(),
@@ -143,7 +254,7 @@ export class KalshiOddsHandler implements ServiceHandler {
 
     try {
       if (ticker) {
-        const data = await kalshiFetch(`/markets/${ticker}`);
+        const data = await kalshiFetch(`/markets/${encodeURIComponent(ticker)}`);
         const market: KalshiMarket = data.market;
 
         if (!market) {
@@ -157,7 +268,7 @@ export class KalshiOddsHandler implements ServiceHandler {
 
         let orderbook = null;
         try {
-          const obData = await kalshiFetch(`/markets/${ticker}/orderbook`);
+          const obData = await kalshiFetch(`/markets/${encodeURIComponent(ticker)}/orderbook`);
           orderbook = {
             yesBids: (obData.orderbook?.yes || []).slice(0, 5).map((b: number[]) => ({
               price: b[0],
@@ -180,7 +291,7 @@ export class KalshiOddsHandler implements ServiceHandler {
         };
       }
 
-      const data = await kalshiFetch(`/events/${eventTicker}`);
+      const data = await kalshiFetch(`/events/${encodeURIComponent(eventTicker!)}`);
       const event: KalshiEvent = data.event;
 
       if (!event) {
@@ -206,13 +317,15 @@ export class KalshiOddsHandler implements ServiceHandler {
           category: event.category || null,
           status: event.status || null,
           mutuallyExclusive: event.mutually_exclusive || false,
-          url: `https://kalshi.com/markets/${event.event_ticker?.toLowerCase()}`,
+          url: event.event_ticker
+            ? `https://kalshi.com/markets/${encodeURIComponent(event.event_ticker.toLowerCase())}`
+            : null,
         },
         markets: eventMarkets,
         source: 'Kalshi Exchange API (CFTC-regulated)',
       };
     } catch (error: any) {
-      console.error('Kalshi odds fetch error:', error);
+      console.error('Kalshi odds fetch error:', error.message);
       return {
         success: false,
         service: 'kalshi-odds',
@@ -225,17 +338,21 @@ export class KalshiOddsHandler implements ServiceHandler {
 
 export class KalshiSearchHandler implements ServiceHandler {
   async execute(request: ServiceRequest): Promise<any> {
-    const { query, limit = 10, status = 'open' } = request;
+    const query = sanitizeString(request.query);
+    const limit = sanitizeLimit(request.limit ?? 10);
+    const status = validateStatus(request.status ?? 'open');
 
     if (!query) {
       return {
         success: false,
         service: 'kalshi-search',
-        error: 'Search query is required',
+        error: 'Search query is required (max 200 characters)',
         example: { query: 'bitcoin', limit: 10 },
         timestamp: new Date().toISOString(),
       };
     }
+
+    const cappedLimit = Math.min(limit, MAX_SEARCH_RESULTS);
 
     try {
       const params = new URLSearchParams({
@@ -246,7 +363,16 @@ export class KalshiSearchHandler implements ServiceHandler {
       const data = await kalshiFetch(`/markets?${params}`);
       const markets: KalshiMarket[] = data.markets || [];
 
-      const queryTerms = query.toLowerCase().split(/\s+/).filter((t: string) => t.length > 1);
+      const queryTerms = query.toLowerCase().split(/\s+/).filter((t: string) => t.length > 1).slice(0, 10);
+
+      if (queryTerms.length === 0) {
+        return {
+          success: false,
+          service: 'kalshi-search',
+          error: 'Query must contain at least one term with 2+ characters',
+          timestamp: new Date().toISOString(),
+        };
+      }
 
       const scored = markets
         .map((market) => {
@@ -275,7 +401,7 @@ export class KalshiSearchHandler implements ServiceHandler {
         })
         .filter(({ score }) => score > 0)
         .sort((a, b) => b.score - a.score)
-        .slice(0, Math.min(limit, 50));
+        .slice(0, cappedLimit);
 
       const formatted = scored.map(({ market, score }) => ({
         ...formatMarket(market),
@@ -289,15 +415,14 @@ export class KalshiSearchHandler implements ServiceHandler {
         query,
         searchTerms: queryTerms,
         count: formatted.length,
-        marketsSearched: markets.length,
         results: formatted,
         source: 'Kalshi Exchange API (CFTC-regulated)',
         note: formatted.length === 0
-          ? `No matches found for "${query}" among ${markets.length} markets. Try broader terms.`
+          ? `No matches found for "${query}". Try broader terms.`
           : undefined,
       };
     } catch (error: any) {
-      console.error('Kalshi search error:', error);
+      console.error('Kalshi search error:', error.message);
       return {
         success: false,
         service: 'kalshi-search',

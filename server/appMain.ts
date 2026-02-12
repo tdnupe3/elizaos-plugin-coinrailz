@@ -1,5 +1,5 @@
 import express, { Router } from 'express';
-import { app, httpServer, port } from './index.js';
+import { app, httpServer, port, markFrontendReady } from './index.js';
 
 // ============================================================================
 
@@ -3634,6 +3634,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     
     serveStatic(app);
     console.log('✅ Static file serving configured');
+    markFrontendReady();
   }
   
   // NOTE: Server is already listening from the top of file (fast health check pattern)
@@ -3740,8 +3741,10 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     try {
       await setupVite(app, httpServer);
       console.log('✅ Vite HMR ready');
+      markFrontendReady();
     } catch (error) {
       console.warn('⚠️ Vite setup failed, continuing without HMR:', error);
+      markFrontendReady();
     }
   }
   

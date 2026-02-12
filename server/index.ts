@@ -13,34 +13,25 @@ const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
 const httpServer = http.createServer(app);
 
+// Readiness flag - frontend is NOT ready until appMain completes setup
+let frontendReady = false;
+export function markFrontendReady() {
+  frontendReady = true;
+  console.log('✅ Frontend ready - / will now serve the app');
+}
+
 // CRITICAL: Health check endpoints FIRST - before ANY other code
 app.get('/healthz', (_req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 app.get('/', (req, res, next) => {
-  const userAgent = req.headers['user-agent'] || '';
-  const acceptHeader = req.headers['accept'] || '';
-  
-  // Health check detection - return 200 immediately for non-browser requests
-  const isBrowserRequest = acceptHeader.includes('text/html') && 
-                           !userAgent.includes('curl') && 
-                           !userAgent.includes('health') && 
-                           !userAgent.includes('kube') && 
-                           !userAgent.includes('Replit') &&
-                           !userAgent.includes('Uptime') &&
-                           !userAgent.includes('Monitor');
-  
-  if (!isBrowserRequest) {
-    return res.status(200).json({ 
-      status: 'ok', 
-      service: 'Coin Railz', 
-      timestamp: new Date().toISOString(),
-      version: '1.0.0'
-    });
+  // If frontend is not ready yet, ALWAYS return 200 for health checks
+  if (!frontendReady) {
+    return res.status(200).send(`<!DOCTYPE html><html><head><title>Coin Railz</title><meta http-equiv="refresh" content="3"></head><body><p>Loading...</p></body></html>`);
   }
   
-  // For browser requests, continue to next handler (Vite frontend)
+  // Frontend is ready - pass to Vite/static handler
   next();
 });
 

@@ -164,6 +164,7 @@ const IoTPaymentsPage = lazy(() => import("@/pages/IoTPaymentsPage"));
 const FleetTelematicsPage = lazy(() => import("@/pages/FleetTelematicsPage"));
 const WeatherDataPage = lazy(() => import("@/pages/WeatherDataPage"));
 const SatelliteDataPage = lazy(() => import("@/pages/SatelliteDataPage"));
+const PredictionMarketsPage = lazy(() => import("@/pages/PredictionMarketsPage"));
 const FleetDemoPage = lazy(() => import("@/pages/FleetDemoPage"));
 const WeatherDemoPage = lazy(() => import("@/pages/WeatherDemoPage"));
 const IoTDashboardPage = lazy(() => import("@/pages/IoTDashboardPage"));
@@ -395,6 +396,9 @@ function Router() {
       </Route>
       <Route path="/satellite">
         {() => <LazyLoadWrapper><SatelliteDataPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/predictions">
+        {() => <LazyLoadWrapper><PredictionMarketsPage /></LazyLoadWrapper>}
       </Route>
       <Route path="/credits/proof">
         {() => {

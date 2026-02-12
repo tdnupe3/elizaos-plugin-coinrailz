@@ -549,6 +549,92 @@ export default function Landing() {
             </div>
           </div>
 
+          {/* PREDICTION MARKETS SECTION */}
+          <div className="mb-12 bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 rounded-2xl p-8 text-white">
+            <div className="text-center mb-8">
+              <div className="flex justify-center mb-4">
+                <div className="bg-white/10 rounded-full p-4">
+                  <TrendingUp className="w-12 h-12 text-emerald-400" />
+                </div>
+              </div>
+              <h2 className="text-3xl font-bold mb-3">Prediction Market APIs</h2>
+              <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-4">
+                One API for 99% of the $44B prediction market. AI agents access Kalshi and Polymarket data via x402 micropayments.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/50">Kalshi (CFTC-Regulated)</Badge>
+                <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/50">Polymarket</Badge>
+                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/50">7 Endpoints</Badge>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+              <Link href="/predictions">
+                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="bg-emerald-500/20 rounded-lg p-2">
+                        <TrendingUp className="w-5 h-5 text-emerald-400" />
+                      </div>
+                      <CardTitle className="text-white text-base">Kalshi Markets</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-300 text-sm mb-2">CFTC-regulated event contracts, odds, search</p>
+                    <Badge className="bg-green-500/20 text-green-300">From $0.25/call</Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/predictions">
+                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="bg-orange-500/20 rounded-lg p-2">
+                        <Activity className="w-5 h-5 text-orange-400" />
+                      </div>
+                      <CardTitle className="text-white text-base">Polymarket Data</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-300 text-sm mb-2">Trending events, odds lookup, 15K+ market search</p>
+                    <Badge className="bg-green-500/20 text-green-300">From $0.25/call</Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/predictions">
+                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="bg-purple-500/20 rounded-lg p-2">
+                        <Shield className="w-5 h-5 text-purple-400" />
+                      </div>
+                      <CardTitle className="text-white text-base">Universal Odds</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-300 text-sm mb-2">Cross-platform odds comparison and arbitrage</p>
+                    <Badge className="bg-green-500/20 text-green-300">From $0.50/call</Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
+
+            <div className="text-center">
+              <Link href="/predictions">
+                <Button 
+                  className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-8 py-4 text-lg font-medium shadow-lg"
+                  size="lg"
+                >
+                  <TrendingUp className="w-5 h-5 mr-2" />
+                  Explore Prediction Market APIs
+                </Button>
+              </Link>
+              <p className="text-sm text-gray-400 mt-3">$44B market coverage via x402 micropayments or prepaid credits</p>
+            </div>
+          </div>
+
           {/* Streamlined Core Features - Only Working Features */}
           <div className="text-center mb-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Full Platform Features</h2>

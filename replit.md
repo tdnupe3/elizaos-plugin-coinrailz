@@ -1,9 +1,9 @@
 # Coin Railz - Multi-Chain Payment Infrastructure
 
 ## Overview
-Coin Railz is building a universal payment layer for the AI agent economy, facilitating cross-platform payment routing across 8 blockchains (7 EVM + Solana), primarily settling in USDC. The platform provides a multi-chain payment SDK, x402 protocol micropayments, agent-to-agent commerce infrastructure, DEX aggregation, and P2P payment routing. It aims to be the crypto-native complement to fiat-based agentic commerce protocols.
+Coin Railz is developing a universal payment layer for the AI agent economy, enabling cross-platform payment routing across 8 blockchains (7 EVM + Solana), primarily settling in USDC. The platform provides a multi-chain payment SDK, x402 protocol micropayments, agent-to-agent commerce infrastructure, DEX aggregation, and P2P payment routing, aiming to be the crypto-native complement to fiat-based agentic commerce protocols.
 
-The platform also offers production-grade device payment infrastructure for IoT and DePIN networks, enabling AI agents to pay IoT devices for data via the x402 protocol. This includes dedicated landing pages and demo UIs for Fleet Telematics and Weather Data verticals, alongside a unified credits system for both AI agents and IoT devices.
+The platform also delivers production-grade device payment infrastructure for IoT and DePIN networks, allowing AI agents to pay IoT devices for data via the x402 protocol. This includes dedicated landing pages and demo UIs for Fleet Telematics, Weather Data, and Satellite Data verticals, along with a unified credits system for both AI agents and IoT devices.
 
 ## User Preferences
 - **⚠️ ABSOLUTE HONESTY COMMITMENT**: NEVER LIE TO USER. Always report actual results, failures, and truth. User has been financially harmed by previous dishonest claims about outreach success when systems actually failed.
@@ -17,83 +17,42 @@ The platform also offers production-grade device payment infrastructure for IoT 
 - **OPTIMIZATION SAFETY RULE**: Only conservative optimizations until post-deployment
 
 ## System Architecture
-Coin Railz utilizes a USDC-first strategy, leveraging Coinbase CDP for wallet management, unified payment processing, an AI marketplace, and real-time revenue management.
+Coin Railz employs a USDC-first strategy, utilizing Coinbase CDP for wallet management, unified payment processing, an AI marketplace, and real-time revenue management.
 
 **Core Architectural Patterns & Decisions:**
-- **AI Agent Marketplace:** Uses the x402 protocol for HTTP 402 payments on Base Chain, Coinbase CDP for wallet creation, and Alchemy RPC for verification. ERC-8004 Blockchain Identity is used for agent identities.
+- **AI Agent Marketplace:** Leverages the x402 protocol for HTTP 402 payments on Base Chain, Coinbase CDP for wallet creation, and Alchemy RPC for verification. ERC-8004 Blockchain Identity is used for agent identities.
 - **Authentication:** Supports Coinbase OAuth, Replit OAuth, and email/password, with PostgreSQL as the backend.
 - **x402 Microservices**: 44 production services compatible with Coinbase Bazaar and x402scan, adhering to `x402Version: 2`.
-- **Discovery Engine**: Multi-layer mechanism with 9 active methods for identifying AI agents, including Coinbase Bazaar indexing. (Feb 2026: `extensions.bazaar` injected into all 402 responses via x402ResponseEnricher for facilitator indexing. Top-level `resource` and `extensions` added for x402scan V2 compliance. **CRITICAL**: All 402 response changes must be additive only — never remove legacy fields (`networkLegacy`, `discoverable`, `accepts[].extensions.bazaar`, `paymentInstructions`, `facilitatorUrl`, etc.) as other discovery methods depend on them.)
+- **Discovery Engine**: Multi-layer mechanism with 9 active methods for identifying AI agents, including Coinbase Bazaar indexing. All 402 response changes must be additive only to maintain compatibility with existing discovery methods.
 - **Payment Intent Ledger**: Durable ledger for state transitions and replay protection of payment intents.
 - **Hybrid Facilitator**: Dynamically uses CDP facilitator if available, otherwise falls back to x402.org for payment processing.
-- **Crypto Checkout Architecture**: Endpoints for creating pending orders and verifying on-chain payments, tracked with `x402_payment_intents`, `x402_payments`, and `marketplace_orders` tables.
+- **Crypto Checkout Architecture**: Endpoints for creating pending orders and verifying on-chain payments.
 - **Multi-chain Capability**: Supports payment acceptance on 8 chains with same-chain settlement.
 - **ACP Integration**: Endpoints (`/acp/v1/*`) for catalog, checkout, and order management, integrating with Stripe for digital product fulfillment.
 - **Farcaster Frame Integration**: Provides Farcaster Frame endpoints exposing 6 curated x402 services.
 - **Cloudflare Worker Gateway**: A Cloudflare Worker template for x402 proxy.
-- **MCP Payments Kit v1.5.0**: Single-call checkout endpoint for AI agents with three payment methods: Stripe (fiat), Credits (pre-purchased balance), and x402 (on-chain USDC). Features include multi-wallet lookup, true ACID transactions, refund idempotency, rate limiting, and a full audit trail.
+- **MCP Payments Kit v1.5.0**: Single-call checkout endpoint for AI agents with three payment methods: Stripe (fiat), Credits (pre-purchased balance), and x402 (on-chain USDC). Features multi-wallet lookup, true ACID transactions, refund idempotency, rate limiting, and a full audit trail.
 - **M2M Onboarding**: Single-call onboarding for IoT devices and AI agents.
-- **IoT Payments System v1.1.0**: Production-grade device payment infrastructure for IoT and DePIN networks, featuring:
-  - Account management and device registry with spending limits.
-  - Credits system (v1.1) with volume pricing.
-  - Billable event metering.
-  - D2D transfers with fee extraction.
-  - Non-custodial USDC on-chain transfers via CDP.
-  - Stripe and PayPal for credit topups.
-  - Multi-chain support (Base, Ethereum, Polygon, Arbitrum, Solana).
-  - Full audit trail (`iot_billable_events`, `iot_transfers`, `iot_topups`).
-  - API Routes: `/api/iot/*`.
-  - SDK: `@coinrailz/iot-payments` npm package.
-- **A2D (Agent-to-Device) x402 Payments v1.1.0**: Enables AI agents to pay IoT devices for data via x402 protocol, featuring:
-  - Device data products with multi-chain support.
-  - x402-protected endpoints requiring HTTP 402 payment verification.
-  - Strict payment verification and replay protection.
-  - Short-lived access tokens for data retrieval.
-  - Seller credits for device owners.
-  - Product discovery via catalog.
-  - API Routes: `/api/iot/products/*`, `/api/iot/data/*`, `/api/iot/catalog`, `/api/iot/sales/*`.
-- **Satellite Data Integration v2.0.0 (Feb 2026)**: Production-grade x402-protected satellite data APIs connecting to REAL NASA and ESA APIs (zero Math.random()):
-  - 6 Data Products: Fire Alerts ($0.05), Weather Imagery ($0.05), Vegetation Health ($0.10/km²), Flood Detection ($0.10), Air Quality ($0.05), Land Use ($0.15/km²).
-  - Real Data Sources (verified in production Feb 8 2026):
-    - NASA GIBS (weather imagery, public, no auth needed)
-    - NASA FIRMS (fire alerts, requires free NASA_FIRMS_MAP_KEY - currently NOT set)
-    - ESA Copernicus OData Catalog (Sentinel-1 SAR for flood, Sentinel-2 L2A for vegetation, Sentinel-5P TROPOMI for air quality)
-    - ESA WorldCover 2021 WMS (land use classification, 10m resolution)
-    - OpenAQ (ground-level air quality measurements, fallback data source)
-  - **VERIFIED**: 5/6 endpoints tested with real x402 USDC payments on Base mainnet ($0.65 spent, 8/8 calls succeeded).
-  - Response caching: 15-minute TTL to avoid hammering external APIs.
-  - Provenance fields on all responses (dataset, productId, timestamp, dataSource).
-  - ESA OAuth token management for future download capabilities.
-  - **BLOCKER**: NASA_FIRMS_MAP_KEY not set. Fire alerts endpoint returns clear error. Get free key at https://firms.modaps.eosdis.nasa.gov/api/map_key/.
-  - x402 Payment Verification: Uses hybridPaymentMiddleware + satellitePaymentMiddleware for proper payment validation.
-  - Demo Mode: Environment-gated via SATELLITE_DEMO_MODE or NODE_ENV (demo returns placeholder data, not real API data).
-  - API Routes: `/api/satellite/*` (catalog, status, layers, fire-alerts, weather-imagery, vegetation, flood-detection, air-quality, land-use).
-  - Landing Page: `/satellite` with space-themed UI, product showcase, and API reference.
-  - Strategic positioning: "Powered by NASA & ESA" for fundraising appeal with 100% margin on free data.
+- **IoT Payments System v1.1.0**: Production-grade device payment infrastructure for IoT and DePIN networks, including account management, device registry with spending limits, a credits system with volume pricing, billable event metering, D2D transfers with fee extraction, non-custodial USDC on-chain transfers via CDP, and multi-chain support (Base, Ethereum, Polygon, Arbitrum, Solana).
+- **A2D (Agent-to-Device) x402 Payments v1.1.0**: Enables AI agents to pay IoT devices for data via x402 protocol, featuring device data products with multi-chain support, x402-protected endpoints, strict payment verification, replay protection, short-lived access tokens, seller credits, and product discovery.
+- **Satellite Data Integration v2.0.0**: Production-grade x402-protected satellite data APIs connecting to NASA and ESA APIs for 6 data products (Fire Alerts, Weather Imagery, Vegetation Health, Flood Detection, Air Quality, Land Use). Includes response caching, provenance fields, and demo mode.
 - **IoT Vertical Landing Pages**: `/fleet` (Fleet Telematics), `/weather` (Weather Data), `/satellite` (Satellite Data), `/iot/dashboard` (IoT Dashboard), `/credits/proof` (Credits Ledger Proof).
-- **IoT Partner & Sales Tools**: `/partners` (Partner Program), `/integrate` (Integration Guide), `/admin/pilots` (Pilot Tracking CRM), `/case-studies` (Case Studies).
-- **IoT Operations & Onboarding**: `/iot` (IoT Hub), `/iot/analytics` (Analytics Dashboard), `/pilot/onboard` (Pilot Onboarding).
-- **Pilot Credits Purchase**: `/pilots/buy` with multi-payment support:
-  - Tiers: Starter ($500), Growth ($1000), Enterprise ($2500).
-  - Card payments via Stripe checkout with webhook crediting.
-  - Crypto payments: USDC/USDT on Base, Polygon, Arbitrum (multi-chain for DePIN networks).
-  - API Routes: `/api/stripe/pilot-credits/*` (create checkout, crypto-intent, crypto-status, confirm).
-  - Background Job: `PilotCreditsConfirmationJob` polls pending crypto payments every 5 minutes.
+- **Prediction Markets Vertical**: `/predictions` landing page covering 7 x402 endpoints across Kalshi and Polymarket, with SEO optimization and wallet onboarding CTAs.
+- **Pilot Credits Purchase**: `/pilots/buy` with multi-payment support (Stripe card, multi-chain crypto USDC/USDT).
 - **A2A Protocol Outreach System**: Autonomous outreach to AI agents using Google's A2A Protocol, with registry sync, prioritization, rate limiting, and pipeline tracking.
-- **Unified Credits System v1.0.1**: Shared credits pool for both MCP (AI agents) and IoT devices with ACID transactions, audit trail, and security features. Includes Credits Proof View and Dispute Handling.
-- **On-Chain Payment Infrastructure v1.1.0 (Multi-Token)**: Production-grade on-chain payment support for USDC and USDT across 4 mainnet chains (Ethereum, Base, Polygon, Arbitrum). Includes multi-token methods in CDP service, `usdc_onchain` and `usdt_onchain` payment methods, CDP wallet provisioning, credits-to-wallet withdrawal, and on-chain topup.
+- **Unified Credits System v1.0.1**: Shared credits pool for both MCP (AI agents) and IoT devices with ACID transactions, audit trail, and security features.
+- **On-Chain Payment Infrastructure v1.1.0 (Multi-Token)**: Production-grade on-chain payment support for USDC and USDT across 4 mainnet chains (Ethereum, Base, Polygon, Arbitrum), including multi-token methods in CDP service, CDP wallet provisioning, credits-to-wallet withdrawal, and on-chain topup.
 - **Atomic DB Transactions**: D2D on-chain transfers and withdrawals use `db.transaction()` for robust credit debit/rollback patterns.
 - **Async Topup Confirmation Job**: Background job for confirming on-chain topups with exponential backoff and state machine.
 - **Enhanced Validation & Security**: Includes token support checks, platform wallet validation, unique `txHash` constraint, sender address filtering, amount tolerance enforcement, and exact token contract verification.
-- **Demo Data Isolation**: `isDemo` flag for `iot_accounts` and `iot_device_registry` tables to separate demo data from production metrics.
+- **Demo Data Isolation**: `isDemo` flag for `iot_accounts` and `iot_device_registry` tables to separate demo data.
 - **CDP v1 to v2 Migration**: Migration from `@coinbase/coinbase-sdk` (v1) to `@coinbase/cdp-sdk` (v2) for shared wallet operations.
-- **Coinbase Agentic Wallets Alignment (Feb 2026)**: AgentKit bumped to v0.10.3. Discovery manifests (agent-card.json, x402.json, agent.json) enhanced with `agenticWallet` compatibility section advertising `search-for-service`, `pay-for-service`, `monetize-service` skills. 402 response enricher injects `extensions.agenticWallet` alongside Bazaar metadata. Landing page updated to reference "Coinbase Agentic Wallets". New registryTags: agentic-wallet, coinbase, cdp, satellite-data, iot, nasa, esa.
+- **Coinbase Agentic Wallets Alignment**: AgentKit bumped to v0.10.3. Discovery manifests enhanced with `agenticWallet` compatibility section advertising skills. 402 response enricher injects `extensions.agenticWallet`.
 - **Production Hardening**: Stripe webhook handles IoT payment topups.
-- **DEV_LITE_MODE**: Development optimization for Vite HMR stability. Skips heavy service initialization (Discord bot, XMTP client, outreach orchestrators) in development. Set `DEV_FULL_SERVICES=true` to enable all services. Key files: `server/buildModeDetection.ts`, `server/services/automatedOutreach.ts`, `server/services/realAgentOutreach.ts`, `server/services/xmtpMessagingService.ts`.
-- **Landing Page IoT Section**: Homepage now includes IoT/Satellite data value proposition with navigation links to `/satellite`, `/fleet`, `/weather`, `/iot` and pilot credits CTA.
-- **EVM Payment Verification Retry (Feb 2026)**: `verifyTransactionPayment` in `hybridPaymentMiddleware.ts` now polls for transaction receipt up to 10 times with 3-second delays (30s total). This fixed the ~50% PAYMENT_VERIFICATION_FAILED rate caused by RPC indexing lag when @x402/fetch sends payment hash before receipt availability. 30s covers multiple blocks on all supported chains (Base ~2s, Ethereum ~12s, Polygon ~2s, Arbitrum <1s).
-- **Wallet Safety Layer (Feb 2026)**: All fund transfer scripts use centralized wallet registry (`scripts/lib/walletRegistry.ts`) with address validation, blacklist enforcement, dry-run by default (requires `CONFIRM_TRANSFER=true`), and labeled wallet summaries. Prevents accidental transfers to wrong addresses. Key addresses: Platform (0xa4bBE37f...), Buyer Test (0x5837A864...), CDP_LOST/blacklisted (0x6341B240...).
-- **Wallet Whitelisting System (Feb 2026)**: DB-persisted whitelist (`whitelisted_wallets` table) for outbound fund transfers. All `sendTransaction`, `sendUSDC`, `sendToken`, `sweepDepositWallet` methods check the whitelist before executing. Wallets must be explicitly approved before the platform can send funds to them. This prevents fund loss if hacked/compromised agents or bots try to drain platform wallets. Functions: `whitelistWallet()`, `removeWhitelist()`, `getWhitelistedWallets()` in `server/services/coinbaseCDPService.ts`. Cache TTL: 60s. **SECURITY NOTE**: If an attacker compromises an agent and calls wallet creation, the platform will NOT send funds to the new wallet until it's manually whitelisted — this is by design as a critical anti-drain measure.
+- **DEV_LITE_MODE**: Development optimization for Vite HMR stability by skipping heavy service initialization in development.
+- **EVM Payment Verification Retry**: `verifyTransactionPayment` polls for transaction receipt up to 10 times with 3-second delays (30s total) to mitigate RPC indexing lag.
+- **Wallet Safety Layer**: All fund transfer scripts use a centralized wallet registry with address validation, blacklist enforcement, dry-run by default, and labeled wallet summaries to prevent accidental transfers.
+- **Wallet Whitelisting System**: A DB-persisted whitelist for outbound fund transfers. All `sendTransaction`, `sendUSDC`, `sendToken`, `sweepDepositWallet` methods check the whitelist before executing to prevent unauthorized fund drainage.
 
 ## External Dependencies
 - **Coinbase CDP:** Wallet creation, management, and transaction execution.
@@ -106,3 +65,10 @@ Coin Railz utilizes a USDC-first strategy, leveraging Coinbase CDP for wallet ma
 - **OpenAI GPT Store:** Monetized Coin Railz GPT with custom actions.
 - **Farcaster Frames:** For Farcaster Frame deployment.
 - **Google's A2A Protocol:** For autonomous outreach to AI agents.
+- **NASA GIBS:** Weather imagery data.
+- **NASA FIRMS:** Fire alerts data.
+- **ESA Copernicus OData Catalog:** Sentinel-1 SAR, Sentinel-2 L2A, Sentinel-5P TROPOMI data.
+- **ESA WorldCover 2021 WMS:** Land use classification data.
+- **OpenAQ:** Ground-level air quality measurements.
+- **Kalshi:** Prediction market data.
+- **Polymarket:** Prediction market data.

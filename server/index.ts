@@ -26,9 +26,32 @@ app.get('/healthz', (_req, res) => {
 });
 
 app.get('/', (req, res, next) => {
-  // If frontend is not ready yet, ALWAYS return 200 for health checks
+  // If frontend is not ready yet, return a proper HTML page with OG tags
+  // so social media crawlers (Facebook, Twitter, LinkedIn) still get metadata
   if (!frontendReady) {
-    return res.status(200).send(`<!DOCTYPE html><html><head><title>Coin Railz</title><meta http-equiv="refresh" content="3"></head><body><p>Loading...</p></body></html>`);
+    return res.status(200).send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Coin Railz - Micropayment Rail for AI Agents</title>
+<meta name="description" content="Two payment rails, one platform. x402/USDC for autonomous agents. Stripe prepaid credits for TradFi teams. 58 x402 services from crypto to satellite data & IoT.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://coinrailz.com">
+<meta property="og:title" content="Coin Railz - Micropayment Rail for AI Agents">
+<meta property="og:description" content="Two payment rails, one platform. x402/USDC for autonomous agents. Stripe prepaid credits for TradFi teams. 58 x402 services from crypto to satellite data & IoT.">
+<meta property="og:image" content="https://coinrailz.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Coin Railz">
+<meta property="twitter:card" content="summary_large_image">
+<meta property="twitter:title" content="Coin Railz - Micropayment Rail for AI Agents">
+<meta property="twitter:image" content="https://coinrailz.com/og-image.png">
+<meta http-equiv="refresh" content="3">
+</head>
+<body style="margin:0;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:white;text-align:center">
+<div><h1 style="font-size:2.5rem;margin:0 0 1rem">Coin Railz</h1><p style="opacity:0.9">Loading...</p></div>
+</body>
+</html>`);
   }
   
   // Frontend is ready - pass to Vite/static handler

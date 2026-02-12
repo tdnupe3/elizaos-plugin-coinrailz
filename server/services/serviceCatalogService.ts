@@ -525,6 +525,40 @@ export class ServiceCatalogService {
         x402Compatible: true,
         stripeCompatible: true
       },
+      // Kalshi Prediction Markets (3) - CFTC-regulated
+      {
+        id: 'kalshi-markets',
+        name: 'Kalshi Markets',
+        description: 'Get active markets from Kalshi (CFTC-regulated prediction exchange)',
+        endpoint: '/x402/kalshi-markets',
+        network: 'eip155:8453',
+        category: 'prediction-markets',
+        capabilities: ['prediction-markets', 'kalshi', 'regulated', 'cftc'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'kalshi-odds',
+        name: 'Kalshi Odds',
+        description: 'Get current odds and orderbook for specific Kalshi markets',
+        endpoint: '/x402/kalshi-odds',
+        network: 'eip155:8453',
+        category: 'prediction-markets',
+        capabilities: ['odds', 'orderbook', 'kalshi', 'regulated'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'kalshi-search',
+        name: 'Kalshi Search',
+        description: 'Search Kalshi prediction markets by keyword',
+        endpoint: '/x402/kalshi-search',
+        network: 'eip155:8453',
+        category: 'prediction-markets',
+        capabilities: ['search', 'discovery', 'kalshi', 'regulated'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
       // Traditional Markets (2) - Stock & Forex Sentiment
       {
         id: 'stock-sentiment',

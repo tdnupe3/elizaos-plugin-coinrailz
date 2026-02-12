@@ -2276,6 +2276,30 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         outputModes: ["application/json"]
       },
       {
+        id: "kalshi-markets",
+        name: "Kalshi Markets",
+        description: "Get active markets from Kalshi (CFTC-regulated prediction exchange). $0.25 per request.",
+        tags: ["prediction-markets", "kalshi", "regulated", "cftc", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "kalshi-odds",
+        name: "Kalshi Odds",
+        description: "Get current odds and orderbook for specific Kalshi markets. $0.50 per request.",
+        tags: ["prediction-markets", "kalshi", "odds", "orderbook", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "kalshi-search",
+        name: "Kalshi Search",
+        description: "Search Kalshi prediction markets by keyword. $0.25 per request.",
+        tags: ["prediction-markets", "kalshi", "search", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
         id: "prediction-market-odds",
         name: "Prediction Market Odds",
         description: "Get current odds and probability for any prediction market event. $0.50 per request.",
@@ -3225,6 +3249,39 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         status: "healthy",
         category: "prediction-markets",
         input_schema: { type: "object", properties: { eventId: { type: "string" }, marketType: { type: "string" } }, required: ["eventId"] }
+      },
+      {
+        path: "/x402/kalshi-markets",
+        methods: ["GET", "POST"],
+        price_usd: 0.25,
+        auth: "x402",
+        name: "Kalshi Markets",
+        description: "Get active markets from Kalshi (CFTC-regulated prediction exchange)",
+        status: "healthy",
+        category: "prediction-markets",
+        input_schema: { type: "object", properties: { limit: { type: "number" }, status: { type: "string" }, category: { type: "string" } } }
+      },
+      {
+        path: "/x402/kalshi-odds",
+        methods: ["GET", "POST"],
+        price_usd: 0.50,
+        auth: "x402",
+        name: "Kalshi Odds",
+        description: "Get current odds and orderbook for specific Kalshi markets",
+        status: "healthy",
+        category: "prediction-markets",
+        input_schema: { type: "object", properties: { ticker: { type: "string" }, eventTicker: { type: "string" } } }
+      },
+      {
+        path: "/x402/kalshi-search",
+        methods: ["GET", "POST"],
+        price_usd: 0.25,
+        auth: "x402",
+        name: "Kalshi Search",
+        description: "Search Kalshi prediction markets by keyword",
+        status: "healthy",
+        category: "prediction-markets",
+        input_schema: { type: "object", properties: { query: { type: "string" }, limit: { type: "number" } }, required: ["query"] }
       },
       // Satellite Data Services (6 services) - NASA Earthdata + ESA Copernicus
       {

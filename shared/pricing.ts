@@ -56,11 +56,14 @@ export type ServiceName =
   | "arbitrage-scanner"
   | "correlation-matrix"
   | "risk-metrics"
-  // Prediction Markets vertical (4 services)
+  // Prediction Markets vertical (4 Polymarket + 3 Kalshi = 7 services)
   | "polymarket-events"
   | "polymarket-odds"
   | "polymarket-search"
   | "prediction-market-odds"
+  | "kalshi-markets"
+  | "kalshi-odds"
+  | "kalshi-search"
   // Traditional Markets vertical (2 services) - Stocks & Forex
   | "stock-sentiment"
   | "forex-sentiment"
@@ -162,6 +165,9 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   "polymarket-odds": 500000,           // $0.50 - current odds for specific market
   "polymarket-search": 250000,         // $0.25 - search prediction markets
   "prediction-market-odds": 500000,    // $0.50 - generic prediction market odds (alias for polymarket-odds)
+  "kalshi-markets": 250000,            // $0.25 - active Kalshi markets (CFTC-regulated)
+  "kalshi-odds": 500000,               // $0.50 - odds for specific Kalshi market
+  "kalshi-search": 250000,             // $0.25 - search Kalshi prediction markets
   
   // VERTICAL EXPANSION - Traditional Markets Services ($0.40)
   "stock-sentiment": 400000,           // $0.40 - AI stock sentiment analysis
@@ -247,6 +253,9 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   "polymarket-odds": 0.50,
   "polymarket-search": 0.25,
   "prediction-market-odds": 0.50,
+  "kalshi-markets": 0.25,
+  "kalshi-odds": 0.50,
+  "kalshi-search": 0.25,
   
   // Traditional Markets vertical
   "stock-sentiment": 0.40,

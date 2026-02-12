@@ -1529,6 +1529,114 @@ const x402Routes = {
       }
     },
   },
+  // === VERTICAL EXPANSION: KALSHI PREDICTION MARKETS (CFTC-REGULATED) ===
+  "POST /kalshi-markets": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["kalshi-markets"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/kalshi-markets`,
+      name: "Kalshi Active Markets",
+      description: "Get active markets from Kalshi, the CFTC-regulated prediction exchange. Access economics, politics, tech, weather, and more.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 60,
+      inputSchema: {
+        bodyFields: {
+          limit: { type: "number", description: "Number of markets to return (max 50)", required: false },
+          status: { type: "string", description: "Market status filter: open, closed, settled (default: open)", required: false },
+          category: { type: "string", description: "Series ticker to filter by (e.g., KXBTC, KXFED)", required: false }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            limit: { type: "number", description: "Number of markets to return (max 50)" },
+            status: { type: "string", description: "Market status filter: open, closed, settled" },
+            category: { type: "string", description: "Series ticker to filter by" }
+          }
+        },
+        output: {
+          type: "object",
+          properties: {
+            markets: { type: "array", description: "Array of Kalshi prediction markets with prices and volume" },
+            count: { type: "number", description: "Number of markets returned" }
+          }
+        }
+      }
+    },
+  },
+  "POST /kalshi-odds": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["kalshi-odds"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/kalshi-odds`,
+      name: "Kalshi Odds Lookup",
+      description: "Get current odds, orderbook depth, and event details for a specific Kalshi market by ticker or event ticker.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 60,
+      inputSchema: {
+        bodyFields: {
+          ticker: { type: "string", description: "Market ticker (e.g., KXBTC-26FEB14-B55500)", required: false },
+          eventTicker: { type: "string", description: "Event ticker (e.g., KXBTC-26FEB14)", required: false }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            ticker: { type: "string", description: "Market ticker" },
+            eventTicker: { type: "string", description: "Event ticker" }
+          }
+        },
+        output: {
+          type: "object",
+          properties: {
+            market: { type: "object", description: "Market details with yes/no prices" },
+            orderbook: { type: "object", description: "Current orderbook with yes/no bids" }
+          }
+        }
+      }
+    },
+  },
+  "POST /kalshi-search": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["kalshi-search"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/kalshi-search`,
+      name: "Kalshi Search",
+      description: "Search Kalshi prediction markets by keyword. Searches across market titles, tickers, and events.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 120,
+      inputSchema: {
+        bodyFields: {
+          query: { type: "string", description: "Search keyword (e.g., 'bitcoin', 'fed rate')", required: true },
+          limit: { type: "number", description: "Number of results to return (max 50)", required: false },
+          status: { type: "string", description: "Market status filter: open, closed, settled (default: open)", required: false }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "Search keyword" },
+            limit: { type: "number", description: "Number of results to return" },
+            status: { type: "string", description: "Market status filter" }
+          },
+          required: ["query"]
+        },
+        output: {
+          type: "object",
+          properties: {
+            results: { type: "array", description: "Array of matching Kalshi markets with relevance scores" },
+            count: { type: "number", description: "Number of results found" }
+          }
+        }
+      }
+    },
+  },
   // Traditional Markets Services - Stock & Forex Sentiment
   "POST /stock-sentiment": {
     price: `$${microToUSD(SERVICE_PRICING_MICRO["stock-sentiment"])}`,
@@ -2044,6 +2152,7 @@ const serviceEndpoints = [
   "trading-signal", "portfolio-optimization", "sentiment-analysis",
   "arbitrage-scanner", "correlation-matrix", "risk-metrics",
   "polymarket-events", "polymarket-odds", "polymarket-search", "prediction-market-odds",
+  "kalshi-markets", "kalshi-odds", "kalshi-search",
   "agent-create-wallet",
   "stock-sentiment", "forex-sentiment"
 ];
@@ -3662,6 +3771,68 @@ router.post("/prediction-market-odds",
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
       await trackRequest("prediction-market-odds", req.body, null, responseTime, SERVICE_PRICING_USD["prediction-market-odds"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+// ========================================
+// KALSHI PREDICTION MARKETS SERVICES
+// CFTC-regulated prediction market data (public API, no auth required)
+// Complements Polymarket with regulated US market coverage
+// ========================================
+import { KalshiMarketsHandler, KalshiOddsHandler, KalshiSearchHandler } from '../services/handlers/KalshiHandler';
+
+const kalshiMarketsHandler = new KalshiMarketsHandler();
+const kalshiOddsHandler = new KalshiOddsHandler();
+const kalshiSearchHandler = new KalshiSearchHandler();
+
+router.post("/kalshi-markets",
+  createPaymentOrchestrator("kalshi-markets", SERVICE_PRICING_MICRO["kalshi-markets"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = await kalshiMarketsHandler.execute(req.body);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("kalshi-markets", req.body, result, responseTime, SERVICE_PRICING_USD["kalshi-markets"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "kalshi-markets", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("kalshi-markets", req.body, null, responseTime, SERVICE_PRICING_USD["kalshi-markets"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/kalshi-odds",
+  createPaymentOrchestrator("kalshi-odds", SERVICE_PRICING_MICRO["kalshi-odds"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = await kalshiOddsHandler.execute(req.body);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("kalshi-odds", req.body, result, responseTime, SERVICE_PRICING_USD["kalshi-odds"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "kalshi-odds", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("kalshi-odds", req.body, null, responseTime, SERVICE_PRICING_USD["kalshi-odds"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/kalshi-search",
+  createPaymentOrchestrator("kalshi-search", SERVICE_PRICING_MICRO["kalshi-search"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = await kalshiSearchHandler.execute(req.body);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("kalshi-search", req.body, result, responseTime, SERVICE_PRICING_USD["kalshi-search"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "kalshi-search", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("kalshi-search", req.body, null, responseTime, SERVICE_PRICING_USD["kalshi-search"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   })

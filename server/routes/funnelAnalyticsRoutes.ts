@@ -326,7 +326,7 @@ router.get('/circle-briefing', async (req: Request, res: Response) => {
           products: 6,
           dataSources: ['NASA FIRMS', 'NASA GIBS', 'ESA Copernicus', 'OpenAQ'],
           pricing: '$0.02-$0.15 per request',
-          demoEndpoint: '/api/satellite/demo-showcase',
+          demoEndpoint: '/api/satellite/fire-alerts?demo=true',
           catalogEndpoint: '/api/satellite/catalog',
         },
         iotDevicePayments: {

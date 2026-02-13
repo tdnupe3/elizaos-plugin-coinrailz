@@ -37,8 +37,9 @@ import { nanoid } from 'nanoid';
 import { buildBazaarDiscoveryMetadata } from '../discovery/officialBazaarIntegration';
 import { serviceCatalogService } from '../services/serviceCatalogService';
 
-// Demo mode only enabled in development unless explicitly overridden
-const DEMO_MODE_ENABLED = process.env.SATELLITE_DEMO_MODE === 'true' || process.env.NODE_ENV !== 'production';
+// Demo mode is always available - it only returns sample/fake data, never real data
+// Real data requires x402 payment or API key regardless of demo mode
+const DEMO_MODE_ENABLED = true;
 
 const router = Router();
 

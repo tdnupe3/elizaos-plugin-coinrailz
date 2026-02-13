@@ -61,6 +61,7 @@ externalPort = 3000
 PUBLIC_URL = "https://coinrailz.com"
 CANONICAL_BASE_URL = "https://coinrailz.com"
 PUBLIC_BASE_URL = "https://coinrailz.com"
+SATELLITE_DEMO_MODE = "true"
 
 [userenv.shared]
 TESTING_VITE_STRIPE_PUBLIC_KEY = "pk_test_51K9D4gLfxiQk11F0IicaifXTVOSJFK9o9wiuhUQNX90ZeOY5vabDGHuZnkor5WgKb8hisuOuzA5gJ1tO6if3aiwA00OCemyuMW"

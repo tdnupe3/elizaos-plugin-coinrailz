@@ -70,8 +70,6 @@ httpServer.listen(port, '0.0.0.0', () => {
   console.log('🔄 Loading application modules in background...');
 
   // Defer heavy application loading AFTER listen callback completes
-  // Using setTimeout with real delay ensures health checks can respond
-  // before the event loop gets blocked by heavy module resolution
   setTimeout(async () => {
     try {
       await import('./appMain.js');

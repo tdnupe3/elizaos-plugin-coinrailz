@@ -44,7 +44,8 @@ const { aiMarketplaceSimpleRoutes } = await import("./routes/aiMarketplaceSimple
 const aiAgentProductRoutesProduction = (await import("./routes/aiAgentProductRoutesProduction")).default;
 const smartContractAuditRoutes = (await import('./routes/smartContractAuditRoutes')).default;
 const { registerAuthRoutes } = await import("./authRoutes");
-const { registerRoutes as registerMainRoutes } = await import("./routes");
+const routesModule = await import("./routes");
+const registerMainRoutes = routesModule.registerRoutes;
 const gasStationRoutes = (await import('./routes/gasStationRoutes')).default;
 const plaidRoutes = (await import('./routes/plaidRoutes')).default;
 const agentPaymentsRoutes = (await import('./routes/agentPaymentsRoutes')).default;
@@ -408,6 +409,7 @@ app.post('/api/orders/create', async (req, res) => {
 console.log('✅ ORDER CREATION ENDPOINT REGISTERED AT HIGHEST PRIORITY');
 
 // Initialize global error handling FIRST
+const { initGlobalErrorHandling, errorHandlerMiddleware } = await import('./middleware/errorHandler');
 initGlobalErrorHandling();
 
 // Critical Rate Limiting Implementation
@@ -514,8 +516,7 @@ const dashboardRoutes = (await import('./routes/dashboardRoutes')).default;
 const circleRoutes = (await import('./routes/circleRoutes')).default;
 const userCircleRoutes = (await import('./routes/userCircleRoutes')).default;
 
-// Enhanced error handling and authentication
-const { initGlobalErrorHandling, errorHandlerMiddleware } = await import('./middleware/errorHandler');
+// Enhanced authentication
 const { enhancedAuth, requireAuth, optionalAuth } = await import('./middleware/authenticationFix');
 
 // Authentication system integration

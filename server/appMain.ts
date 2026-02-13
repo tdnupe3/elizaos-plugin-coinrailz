@@ -948,6 +948,10 @@ import onChainOutreachRoutes from './routes/onChainOutreachRoutes';
 app.use('/api/onchain-outreach', onChainOutreachRoutes);
 console.log('✅ On-chain x402 outreach routes registered');
 
+import bazaarCrawlerRoutes from './routes/bazaarCrawlerRoutes';
+app.use('/api/bazaar', bazaarCrawlerRoutes);
+console.log('✅ Bazaar crawler routes registered');
+
 // === x402SCAN AGENT DISCOVERY ===
 console.log('🔍 Registering x402scan Agent Discovery routes for intelligent agent targeting...');
 import { x402ScanDiscovery } from './services/x402scanAgentDiscovery';

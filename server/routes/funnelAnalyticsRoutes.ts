@@ -345,8 +345,9 @@ router.get('/circle-briefing', async (req: Request, res: Response) => {
         'Sub-$0.01 micropayments for AI agent data consumption',
       ],
       liveDemo: {
-        satelliteShowcase: '/api/satellite/demo-showcase',
-        x402Challenge: '/api/satellite/fire-alerts (returns 402 with payment instructions)',
+        fireAlertsDemo: '/api/satellite/fire-alerts?demo=true (sample data, no payment)',
+        fireAlertsPaid: '/api/satellite/fire-alerts (returns 402 with payment instructions)',
+        weatherDemo: '/api/satellite/weather-imagery?demo=true (sample data, no payment)',
         catalog: '/api/satellite/catalog',
         funnel: '/api/funnel/summary',
         campaignTargets: '/api/funnel/campaign-targets',

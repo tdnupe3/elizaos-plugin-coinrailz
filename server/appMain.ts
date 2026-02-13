@@ -3611,6 +3611,11 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   app.use('/solana-pay', solanaPayRoutes);
   console.log('✅ Solana Pay routes registered (pre-static, both dev & prod)');
   
+  // 📊 Circle Meeting Evidence Pack - MUST be before static serving
+  const circleEvidenceRoutes = await import('./routes/circleEvidenceRoutes').then(m => m.default);
+  app.use('/api/circle-evidence', circleEvidenceRoutes);
+  console.log('✅ Circle Evidence Pack routes registered (pre-static)');
+
   // ============================================================================
   // Backward Compatibility Redirect - MUST be before static serving
   // Old SDK documentation linked to /dashboard/api-keys, redirect to /api-keys

@@ -389,6 +389,9 @@ Questions? Reply to this message or contact support@coinrailz.com
   // 💎 On-Chain x402 Outreach (direct blockchain messages to agent wallets)
   app.use('/api/onchain-outreach', await import('./routes/onChainOutreachRoutes').then(m => m.default));
   
+  // 📊 Circle Meeting Evidence Pack
+  app.use('/api/circle-evidence', await import('./routes/circleEvidenceRoutes').then(m => m.default));
+  
   // 🤖 A2A Protocol Outreach (Google standard agent-to-agent communication)
   app.use('/api/a2a-protocol', a2aOutreachRoutes);
   

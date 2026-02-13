@@ -4,7 +4,7 @@
  * This file contains curated lists of actual A2A agents with verified
  * endpoints following the Google A2A protocol (.well-known/agent-card.json)
  * 
- * Updated: October 2025
+ * Updated: February 2026
  */
 
 export interface VerifiedAgentTarget {
@@ -51,11 +51,48 @@ export const VERIFIED_AGENT_TARGETS: VerifiedAgentTarget[] = [
   
   // Truth Terminal - Autonomous agent (Solana)
   {
-    wallet: 'rgPyefcNqJCsJj1wrWhdQqHVphVWFXLqU5wtiFStBEN',  // Solana address
+    wallet: 'rgPyefcNqJCsJj1wrWhdQqHVphVWFXLqU5wtiFStBEN',
     platform: 'solana',
     verified: true,
     description: 'Truth Terminal - First AI agent to receive VC funding ($20M+ holdings)',
     priority: 90
+  },
+
+  // --- Circle Ecosystem / x402 Hackathon Winners (Feb 2026) ---
+
+  // ClawRouter by BlockRun.ai - Won $10K USDC from Circle OpenClaw Hackathon
+  // LLM router using x402 micropayments on Base, 30+ models
+  {
+    domain: 'api.blockrun.ai',
+    platform: 'base',
+    verified: true,
+    description: 'ClawRouter/BlockRun.ai - Circle hackathon winner, x402 LLM router on Base',
+    priority: 98
+  },
+
+  // FereAI - Coinbase partner, AI agent platform
+  {
+    domain: 'fereai.xyz',
+    platform: 'base',
+    verified: true,
+    description: 'FereAI - Coinbase partner, AI agent platform with payment needs',
+    priority: 92
+  },
+
+  // SLAMai - Smart money intelligence, live MCP + x402 on Base/ETH
+  {
+    platform: 'base',
+    verified: true,
+    description: 'SLAMai - Smart money intelligence, live x402+MCP on Base',
+    priority: 85
+  },
+
+  // Agently - Agent-to-agent payment routing layer
+  {
+    platform: 'base',
+    verified: true,
+    description: 'Agently - Agent-to-agent payment routing, potential integration partner',
+    priority: 82
   }
 ];
 
@@ -97,7 +134,7 @@ export const AGENT_SOCIAL_CONTACTS = {
     wallet: '0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825'
   },
   'luna_virtuals': {
-    twitter: '@lunavirtualsai', // Need to verify
+    twitter: '@lunavirtualsai',
     platform: 'base', 
     wallet: '0x55cd6469f597452b5a7536e2cd98fde4c1247ee4'
   },
@@ -112,6 +149,26 @@ export const AGENT_SOCIAL_CONTACTS = {
     github: 'https://github.com/elizaOS/eliza',
     website: 'https://elizaos.ai',
     platform: 'multi-chain'
+  },
+  'blockrun_clawrouter': {
+    github: 'https://github.com/BlockRunAI/ClawRouter',
+    website: 'https://api.blockrun.ai',
+    platform: 'base',
+    notes: 'Circle OpenClaw hackathon winner ($10K USDC), x402 LLM router'
+  },
+  'fereai': {
+    website: 'https://fereai.xyz',
+    twitter: '@FereAI',
+    platform: 'base',
+    notes: 'Coinbase partner, AI agent platform'
+  },
+  'slamai': {
+    platform: 'base',
+    notes: 'Smart money intelligence, live MCP + x402 on Base/ETH'
+  },
+  'agently': {
+    platform: 'base',
+    notes: 'Agent-to-agent payment routing layer'
   }
 } as const;
 

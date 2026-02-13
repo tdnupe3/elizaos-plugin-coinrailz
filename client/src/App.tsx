@@ -450,6 +450,16 @@ function Router() {
           );
         }}
       </Route>
+      <Route path="/circle-evidence">
+        {() => {
+          const CircleEvidencePage = lazy(() => import("@/pages/CircleEvidencePage"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <CircleEvidencePage />
+            </Suspense>
+          );
+        }}
+      </Route>
       <Route path="/case-studies">
         {() => {
           const CaseStudiesPage = lazy(() => import("@/pages/CaseStudiesPage"));

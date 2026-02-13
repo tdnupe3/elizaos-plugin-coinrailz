@@ -16,8 +16,11 @@ export class OnChainX402Outreach {
 
   constructor() {
     this.cdpService = CoinbaseCDPService.getInstance();
-    // Base mainnet RPC
-    this.baseProvider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+    const alchemyKey = process.env.ALCHEMY_API_KEY;
+    const rpcUrl = alchemyKey
+      ? `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}`
+      : 'https://mainnet.base.org';
+    this.baseProvider = new ethers.JsonRpcProvider(rpcUrl);
   }
 
   /**

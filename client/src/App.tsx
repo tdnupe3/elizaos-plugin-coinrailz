@@ -410,6 +410,16 @@ function Router() {
           );
         }}
       </Route>
+      <Route path="/partner">
+        {() => {
+          const X402PartnerPage = lazy(() => import("@/pages/X402PartnerPage"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <X402PartnerPage />
+            </Suspense>
+          );
+        }}
+      </Route>
       <Route path="/partners">
         {() => {
           const PartnerProgramPage = lazy(() => import("@/pages/PartnerProgramPage"));

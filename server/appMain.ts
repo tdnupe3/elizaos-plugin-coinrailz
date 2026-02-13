@@ -944,6 +944,10 @@ import autonomousOutreachRoutes from './routes/autonomousOutreachRoutes';
 app.use('/api/outreach', autonomousOutreachRoutes);
 console.log('✅ Autonomous Outreach routes registered - AI agent discovery & contact operational');
 
+import onChainOutreachRoutes from './routes/onChainOutreachRoutes';
+app.use('/api/onchain-outreach', onChainOutreachRoutes);
+console.log('✅ On-chain x402 outreach routes registered');
+
 // === x402SCAN AGENT DISCOVERY ===
 console.log('🔍 Registering x402scan Agent Discovery routes for intelligent agent targeting...');
 import { x402ScanDiscovery } from './services/x402scanAgentDiscovery';

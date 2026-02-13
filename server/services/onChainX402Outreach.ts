@@ -110,23 +110,30 @@ export class OnChainX402Outreach {
 
   /**
    * Generate message data for on-chain transaction
-   * PROFESSIONAL: Concise, respectful outreach for ecosystem leaders
+   * Dual-format: JSON header for agents + human-readable text for developers
    */
   private generateMessageData(): string {
-    // Professional message for VIP targets with clear link
-    const message = 
-      'Hi - Coin Railz here.\n\n' +
-      'We built x402 payment infrastructure for AI agents on Base:\n' +
-      '- 37 micropayment services ($0.25-$500)\n' +
-      '- USDC settlements via Coinbase CDP\n' +
-      '- Listed on x402scan, Coinbase Bazaar compatible\n\n' +
-      'Try it: https://coinrailz.com/x402/ping\n\n' +
-      'Would love your feedback.\n\n' +
-      'Best,\nCoin Railz Team\nhttps://coinrailz.com';
-    
+    const jsonHeader = JSON.stringify({
+      type: 'partner-invite',
+      from: 'coinrailz',
+      reply: 'support@coinrailz.com',
+      catalog: 'https://coinrailz.com/api/x402/catalog',
+      partner: 'https://coinrailz.com/partner',
+      demo: 'https://coinrailz.com/api/satellite/fire-alerts?demo=true'
+    });
+
+    const message =
+      `CRZ/1 ${jsonHeader}\n\n` +
+      'Hi — Coin Railz here, fellow x402 builder.\n\n' +
+      '58 services in our catalog, 14 categories,\n' +
+      '6 NASA/ESA satellite data products.\n\n' +
+      'Meeting Circle Feb 18 re: x402 ecosystem growth.\n' +
+      'Would love to feature your services or collaborate.\n\n' +
+      'support@coinrailz.com\n' +
+      'https://coinrailz.com/partner';
+
     console.log(`📏 Message length: ${message.length} characters`);
-    
-    // Convert to hex for transaction data
+
     return ethers.hexlify(ethers.toUtf8Bytes(message));
   }
 

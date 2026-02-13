@@ -21,9 +21,10 @@ import {
   getAgentsReadyForOutreach,
   getOutreachRecommendations,
 } from '../services/discoveryScheduler';
+import { agentDiscoveryService } from '../services/agentDiscoveryService';
 import { db } from '../db';
 import { discoveryRuns, discoveredAgents, agentOutreachMessages } from '@shared/schema';
-import { eq, desc, sql, isNotNull, and } from 'drizzle-orm';
+import { eq, desc, sql, isNotNull, and, ne } from 'drizzle-orm';
 
 const router = express.Router();
 
@@ -579,24 +580,73 @@ router.get('/api/discovery/scheduler/runs/:id', async (req: Request, res: Respon
 
 /**
  * POST /api/discovery/scheduler/run
- * Trigger immediate discovery run
+ * Trigger immediate discovery run (both script-based AND adapter-based)
+ * 
+ * Query params:
+ *   adaptersOnly=true  — Skip the master script, only run adapter-based discovery (Bazaar, A2A, on-chain)
+ *   scriptOnly=true    — Only run the legacy master-agent-discovery script (GitHub, A2A probe)
+ *   (default)          — Run both sequentially: script first, then adapters
  */
 router.post('/api/discovery/scheduler/run', async (req: Request, res: Response) => {
   try {
-    console.log('🚀 Manual discovery run triggered via API');
-    const runId = await runDiscoveryNow();
+    const adaptersOnly = req.query.adaptersOnly === 'true';
+    const scriptOnly = req.query.scriptOnly === 'true';
     
-    if (runId === -1) {
+    console.log('🚀 Manual discovery run triggered via API');
+    console.log(`   Mode: ${adaptersOnly ? 'adapters-only' : scriptOnly ? 'script-only' : 'full (script + adapters)'}`);
+
+    const results: {
+      scriptRunId?: number;
+      adapterResults?: { totalFound: number; newAgents: number; duration: number; summary: string };
+      errors: string[];
+    } = { errors: [] };
+
+    if (!adaptersOnly) {
+      const runId = await runDiscoveryNow();
+      if (runId === -1) {
+        results.errors.push('Script discovery already running');
+      } else {
+        results.scriptRunId = runId;
+      }
+    }
+
+    if (!scriptOnly) {
+      try {
+        if (!agentDiscoveryService.hasAdapters()) {
+          console.log('🔧 Adapters not yet initialized (DEV_LITE_MODE) — initializing now...');
+          await agentDiscoveryService.ensureAdaptersInitialized();
+        }
+        console.log('🔌 Running adapter-based discovery (Bazaar, A2A registry, on-chain, ElizaOS)...');
+        const adapterResult = await agentDiscoveryService.runDiscovery({
+          priority: 'thorough',
+          skipLock: true,
+        });
+        results.adapterResults = {
+          totalFound: adapterResult.totalFound,
+          newAgents: adapterResult.newAgents,
+          duration: adapterResult.duration,
+          summary: adapterResult.summary,
+        };
+        console.log(`✅ Adapter discovery complete: ${adapterResult.newAgents} new agents found`);
+      } catch (adapterError: any) {
+        console.error('⚠️ Adapter discovery failed (non-fatal):', adapterError.message);
+        results.errors.push(`Adapter discovery: ${adapterError.message}`);
+      }
+    }
+
+    const hasAnyResult = results.scriptRunId || results.adapterResults;
+    if (!hasAnyResult) {
       return res.status(409).json({
         success: false,
-        error: 'Discovery is already running',
+        error: 'All discovery methods failed or already running',
+        details: results.errors,
       });
     }
     
     res.json({
       success: true,
-      message: 'Discovery run started',
-      data: { runId },
+      message: 'Discovery run completed',
+      data: results,
     });
   } catch (error) {
     console.error('Error starting discovery run:', error);
@@ -928,6 +978,80 @@ router.get('/api/discovery/outreach/recommendations', async (req: Request, res: 
     res.status(500).json({
       success: false,
       error: 'Failed to get outreach recommendations',
+    });
+  }
+});
+
+/**
+ * GET /api/discovery/wallets
+ * Get discovered agents grouped by domain with wallet addresses for on-chain outreach
+ * 
+ * Query params:
+ *   source   — Filter by source (e.g., 'x402-bazaar', 'elizaos-registry')
+ *   limit    — Max results (default 100)
+ *   minEndpoints — Minimum endpoints per domain (default 1)
+ */
+router.get('/api/discovery/wallets', async (req: Request, res: Response) => {
+  try {
+    const source = req.query.source as string;
+    const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
+    const minEndpoints = parseInt(req.query.minEndpoints as string) || 1;
+
+    const conditions = [
+      isNotNull(discoveredAgents.wallet),
+      ne(discoveredAgents.wallet, ''),
+    ];
+
+    if (source) {
+      conditions.push(eq(discoveredAgents.source, source));
+    }
+
+    const walletAgents = await db
+      .select({
+        domain: sql<string>`SUBSTRING(${discoveredAgents.url} FROM 'https?://([^/]+)')`,
+        wallet: discoveredAgents.wallet,
+        source: discoveredAgents.source,
+        endpoints: sql<number>`COUNT(*)`,
+        lastSeen: sql<string>`MAX(${discoveredAgents.discoveredAt})`,
+        sampleUrls: sql<string[]>`ARRAY_AGG(${discoveredAgents.url} ORDER BY ${discoveredAgents.discoveredAt} DESC)`,
+      })
+      .from(discoveredAgents)
+      .where(and(...conditions))
+      .groupBy(
+        sql`SUBSTRING(${discoveredAgents.url} FROM 'https?://([^/]+)')`,
+        discoveredAgents.wallet,
+        discoveredAgents.source,
+      )
+      .having(sql`COUNT(*) >= ${minEndpoints}`)
+      .orderBy(sql`COUNT(*) DESC`)
+      .limit(limit);
+
+    const formatted = walletAgents.map(row => ({
+      domain: row.domain,
+      wallet: row.wallet,
+      source: row.source,
+      endpointCount: Number(row.endpoints),
+      lastSeen: row.lastSeen,
+      sampleEndpoints: (row.sampleUrls || []).slice(0, 5),
+    }));
+
+    const uniqueWallets = new Set(formatted.map(r => r.wallet));
+    const uniqueDomains = new Set(formatted.map(r => r.domain));
+
+    res.json({
+      success: true,
+      summary: {
+        totalEntries: formatted.length,
+        uniqueWallets: uniqueWallets.size,
+        uniqueDomains: uniqueDomains.size,
+      },
+      data: formatted,
+    });
+  } catch (error) {
+    console.error('Error getting wallet outreach data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get wallet outreach data',
     });
   }
 });

@@ -10,6 +10,7 @@ import { OnchainLookupsAdapter } from './onchainLookupsAdapter';
 import { SocialScrapingAdapter } from './socialScrapingAdapter';
 import { PlatformAdapter } from './platformAdapter';
 import { X402BazaarAdapter } from './x402BazaarAdapter';
+import { ElizaOSRegistryAdapter } from './elizaOSRegistryAdapter';
 
 // Initialize and register all adapters
 export function initializeDiscoveryAdapters(): void {
@@ -27,6 +28,10 @@ export function initializeDiscoveryAdapters(): void {
   const onchainAdapter = new OnchainLookupsAdapter();
   agentDiscoveryService.registerAdapter('onchain-lookups', onchainAdapter);
 
+  // ElizaOS Registry Adapter - Discovers ElizaOS plugins from official registry
+  const elizaAdapter = new ElizaOSRegistryAdapter();
+  agentDiscoveryService.registerAdapter('elizaos-registry', elizaAdapter);
+
   // DISABLED: Social Scraping Adapter - Discord 403, Reddit 401, rate limit waits, 0 new agents
   // const socialAdapter = new SocialScrapingAdapter();
   // agentDiscoveryService.registerAdapter('social-scraper', socialAdapter);
@@ -38,12 +43,13 @@ export function initializeDiscoveryAdapters(): void {
   console.log('⏸️ platform-adapter DISABLED (external APIs failing, 0 yield)');
 
   console.log('✅ Discovery adapters loaded and registered');
-  console.log(`📊 Active adapters: x402-bazaar, a2a-registry, onchain-lookups`);
+  console.log(`📊 Active adapters: x402-bazaar, a2a-registry, onchain-lookups, elizaos-registry`);
   console.log(`📊 Expected yield: ${
     bazaarAdapter.expectedYield +
     a2aAdapter.expectedYield + 
-    onchainAdapter.expectedYield
-  } agents per run (including ${bazaarAdapter.expectedYield} REAL paying agents from Coinbase Bazaar)`);
+    onchainAdapter.expectedYield +
+    elizaAdapter.expectedYield
+  } agents per run (including ${bazaarAdapter.expectedYield} REAL paying agents from Coinbase Bazaar, ${elizaAdapter.expectedYield} ElizaOS plugins)`);
 
   // NOTE: Scheduler is started from server/index.ts AFTER server is listening
   // Do NOT start here to prevent health check timeout during deployment
@@ -51,6 +57,7 @@ export function initializeDiscoveryAdapters(): void {
 
 // Export individual adapters for testing
 export {
+  ElizaOSRegistryAdapter,
   X402BazaarAdapter,
   A2ARegistryAdapter,
   OnchainLookupsAdapter,

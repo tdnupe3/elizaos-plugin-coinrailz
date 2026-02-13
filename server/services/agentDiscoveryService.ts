@@ -946,6 +946,16 @@ export class AgentDiscoveryService {
     }
   }
 
+  hasAdapters(): boolean {
+    return this.adapters.size > 0;
+  }
+
+  async ensureAdaptersInitialized(): Promise<void> {
+    if (this.adapters.size === 0) {
+      await this.initializeAdapters();
+    }
+  }
+
   /**
    * REGISTER ADAPTER
    */

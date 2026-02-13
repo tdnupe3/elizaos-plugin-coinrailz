@@ -319,6 +319,24 @@ router.get('/circle-briefing', async (req: Request, res: Response) => {
         creditsPurchased: stageMap['credit_purchased'] || creditRevenue.total,
         pilotsConverted: stageMap['pilot_converted'] || 0,
       },
+      verticals: {
+        satelliteData: {
+          name: 'Satellite Data Intelligence',
+          description: 'FREE NASA/ESA data repackaged via x402 micropayments for AI agents',
+          products: 6,
+          dataSources: ['NASA FIRMS', 'NASA GIBS', 'ESA Copernicus', 'OpenAQ'],
+          pricing: '$0.02-$0.15 per request',
+          demoEndpoint: '/api/satellite/demo-showcase',
+          catalogEndpoint: '/api/satellite/catalog',
+        },
+        iotDevicePayments: {
+          name: 'IoT/DePIN Device Payments',
+          description: 'Production-grade device payment infrastructure for IoT networks',
+          features: ['Device registry', 'Credits system', 'D2D transfers', 'Multi-chain USDC'],
+          pricing: 'Volume-based credits packages ($50-$10,000)',
+          dashboardEndpoint: '/iot/dashboard',
+        },
+      },
       competitiveAdvantage: [
         'FREE satellite data from NASA/ESA repackaged via x402 micropayments',
         'Only multi-chain x402 payment infrastructure (8 chains)',
@@ -326,11 +344,80 @@ router.get('/circle-briefing', async (req: Request, res: Response) => {
         'ElizaOS ecosystem integration (242 plugins discovered)',
         'Sub-$0.01 micropayments for AI agent data consumption',
       ],
+      liveDemo: {
+        satelliteShowcase: '/api/satellite/demo-showcase',
+        x402Challenge: '/api/satellite/fire-alerts (returns 402 with payment instructions)',
+        catalog: '/api/satellite/catalog',
+        funnel: '/api/funnel/summary',
+        campaignTargets: '/api/funnel/campaign-targets',
+      },
       ask: 'Strategic partnership for USDC settlement infrastructure and Circle ecosystem access',
       generatedAt: new Date().toISOString(),
     });
   } catch (error: any) {
     console.error('Circle briefing error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/campaign-targets', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    const topWallets = await db.execute(sql`
+      SELECT 
+        wallet,
+        COUNT(*) as endpoint_count,
+        MAX(url) as sample_url,
+        source,
+        MAX(last_seen_at) as last_seen
+      FROM discovered_agents
+      WHERE wallet IS NOT NULL AND wallet != '' AND LENGTH(wallet) = 42
+      GROUP BY wallet, source
+      ORDER BY COUNT(*) DESC
+      LIMIT ${limit}
+    `);
+
+    const alreadyContacted = await db
+      .select({ wallet: conversionFunnelEvents.walletAddress })
+      .from(conversionFunnelEvents)
+      .where(eq(conversionFunnelEvents.stage, 'wallet_contacted'));
+
+    const contactedSet = new Set(alreadyContacted.map(r => r.wallet?.toLowerCase()));
+
+    const targets = topWallets.rows.map((row: any) => {
+      const isContacted = contactedSet.has(row.wallet?.toLowerCase());
+      return {
+        wallet: row.wallet,
+        endpointCount: Number(row.endpoint_count),
+        source: row.source,
+        sampleUrl: row.sample_url,
+        lastSeen: row.last_seen,
+        alreadyContacted: isContacted,
+        priority: Number(row.endpoint_count) > 100 ? 'high' : Number(row.endpoint_count) > 20 ? 'medium' : 'low',
+        estimatedCost: '$0.01',
+      };
+    });
+
+    const uncontacted = targets.filter(t => !t.alreadyContacted);
+
+    res.json({
+      success: true,
+      campaign: {
+        name: 'circle-prep-outreach',
+        totalTargets: targets.length,
+        uncontacted: uncontacted.length,
+        alreadyContacted: targets.length - uncontacted.length,
+        estimatedTotalCost: `$${(uncontacted.length * 0.01).toFixed(2)}`,
+        network: 'Base',
+        method: 'On-chain memo (ETH transfer with embedded message)',
+      },
+      targets,
+      readyToExecute: uncontacted.length > 0,
+      executeEndpoint: 'POST /api/onchain-outreach/execute',
+    });
+  } catch (error: any) {
+    console.error('Campaign targets error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

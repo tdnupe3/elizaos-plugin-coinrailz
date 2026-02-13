@@ -53,17 +53,14 @@ app.get('/healthz', (_req, res) => {
 });
 
 app.get('/', (req, res, next) => {
-  // If frontend is not ready yet, serve the built index.html directly
-  // This ensures social crawlers (Facebook, Twitter, LinkedIn) get proper OG tags
-  // from the same source of truth as the real app (no duplication)
   if (!frontendReady) {
-    if (fallbackHtml) {
+    const ua = (req.headers['user-agent'] || '').toLowerCase();
+    const isCrawler = ua.includes('bot') || ua.includes('crawler') || ua.includes('facebookexternalhit') || ua.includes('twitterbot') || ua.includes('linkedinbot') || ua.includes('slackbot');
+    if (isCrawler && fallbackHtml) {
       return res.status(200).type('html').send(fallbackHtml);
     }
-    return res.status(200).json({ status: 'ok', service: 'Coin Railz' });
+    return res.status(200).json({ status: 'ok', service: 'Coin Railz', ready: false });
   }
-  
-  // Frontend is ready - pass to Vite/static handler
   next();
 });
 
@@ -71,17 +68,19 @@ app.get('/', (req, res, next) => {
 httpServer.listen(port, '0.0.0.0', () => {
   console.log(`🚀 SERVER LISTENING ON PORT ${port} - Health checks now responding`);
   console.log('🔄 Loading application modules in background...');
-});
 
-// Defer heavy application loading so health checks respond instantly
-setTimeout(async () => {
-  try {
-    await import('./appMain.js');
-    console.log('✅ Full application loaded and initialized');
-  } catch (err) {
-    console.error('❌ Failed to load application:', err);
-  }
-}, 0);
+  // Defer heavy application loading AFTER listen callback completes
+  // Using setTimeout with real delay ensures health checks can respond
+  // before the event loop gets blocked by heavy module resolution
+  setTimeout(async () => {
+    try {
+      await import('./appMain.js');
+      console.log('✅ Full application loaded and initialized');
+    } catch (err) {
+      console.error('❌ Failed to load application:', err);
+    }
+  }, 100);
+});
 
 export { app, httpServer, port };
 export default app;

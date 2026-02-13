@@ -72,7 +72,8 @@ httpServer.listen(port, '0.0.0.0', () => {
   // Defer heavy application loading AFTER listen callback completes
   setTimeout(async () => {
     try {
-      await import('./appMain.js');
+      const { initApp } = await import('./appMain.js');
+      await initApp();
       console.log('✅ Full application loaded and initialized');
     } catch (err) {
       console.error('❌ Failed to load application:', err);

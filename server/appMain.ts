@@ -1,5 +1,9 @@
-import express, { Router } from 'express';
 import { app, httpServer, port, markFrontendReady } from './index.js';
+
+export async function initApp() {
+
+const express = (await import('express')).default;
+const { Router } = await import('express');
 
 // ============================================================================
 
@@ -11,98 +15,98 @@ console.log('🔧 ENV CHECK:', {
   HAS_REPLIT_DOMAINS: !!process.env.REPLIT_DOMAINS
 });
 
-import path from "path";
-import fs from "fs";
-import { setupVite, serveStatic } from "./vite";
-import { setupSimpleRoutes } from "./simpleRoutes";
+const path = (await import("path")).default;
+const fs = (await import("fs")).default;
+const { setupVite, serveStatic } = await import("./vite");
+const { setupSimpleRoutes } = await import("./simpleRoutes");
 
 // CRITICAL: Import nuclear build mode detection
-import { DISABLE_BACKGROUND_SERVICES, DISABLE_HEAVY_SERVICES, DEV_LITE_MODE } from './buildModeDetection';
-import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogicRoutes";
+const { DISABLE_BACKGROUND_SERVICES, DISABLE_HEAVY_SERVICES, DEV_LITE_MODE } = await import('./buildModeDetection');
+const { setupEnhancedBusinessLogicRoutes } = await import("./routes/enhancedBusinessLogicRoutes");
 // NOTE: Heavy background services moved to lazy imports in post-listen block:
 // - initializeAutomatedOutreach -> dynamically imported
 // - telegramTradingBot -> dynamically imported  
 // - initializeAffiliateSystem -> dynamically imported
 // - realA2AFailoverPipeline -> dynamically imported
 // - sdkLeadGenerationService -> dynamically imported
-import emergencyRevenueRoutes from './routes/emergencyRevenueRoutes';
-import competitionRoutes from './routes/competitionRoutes.js';
-import { setupReferralRoutes } from "./referralRoutes";
-import { setupCriticalAPIRoutes } from "./apiRoutes";
-import { dataMonetizationRoutes } from "./routes/dataMonetizationRoutes";
-import { enterpriseDataRoutes } from "./routes/enterpriseDataRoutes";
-import { db } from "./db";
-import { globalAIAgents, users } from "../shared/schema";
-import { eq } from "drizzle-orm";
+const emergencyRevenueRoutes = (await import('./routes/emergencyRevenueRoutes')).default;
+const competitionRoutes = (await import('./routes/competitionRoutes.js')).default;
+const { setupReferralRoutes } = await import("./referralRoutes");
+const { setupCriticalAPIRoutes } = await import("./apiRoutes");
+const { dataMonetizationRoutes } = await import("./routes/dataMonetizationRoutes");
+const { enterpriseDataRoutes } = await import("./routes/enterpriseDataRoutes");
+const { db } = await import("./db");
+const { globalAIAgents, users } = await import("../shared/schema");
+const { eq } = await import("drizzle-orm");
 
-import p2pRoutes from "./routes/p2pRoutes";
-import { aiMarketplaceSimpleRoutes } from "./routes/aiMarketplaceSimple";
-import aiAgentProductRoutesProduction from "./routes/aiAgentProductRoutesProduction";
-import smartContractAuditRoutes from './routes/smartContractAuditRoutes';
-import { registerAuthRoutes } from "./authRoutes";
-import { registerRoutes as registerMainRoutes } from "./routes";
-import gasStationRoutes from './routes/gasStationRoutes';
-import plaidRoutes from './routes/plaidRoutes';
-import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
-import sdkPaymentsRoutes from './routes/sdkPaymentsRoutes';
-import sdkSolanaRoutes from './routes/sdkSolanaRoutes';
-import x402Routes from './routes/x402Routes';
-import x402MicroserviceRoutes from './routes/x402MicroserviceRoutesV2';
-import x402scanScraperRoutes from './routes/x402scanScraperRoutes';
-import x402AnalyticsRoutes from './routes/x402AnalyticsRoutes';
-import automatedCampaignRoutes from './routes/automatedCampaignRoutes';
-import revenueAttributionRoutes from './routes/revenueAttributionRoutes';
-import automatedFollowUpRoutes from './routes/automatedFollowUpRoutes';
-import contactExtractionRoutes from './routes/contactExtractionRoutes';
-import sdkLicensingRoutes from './routes/sdkLicensingRoutes';
-import realSDKLicensingRoutes from './routes/realSDKLicensingRoutes';
-import customerPortalRoutes from './routes/customerPortalRoutes';
-import stripeWebhookRoutes from './routes/stripeWebhookRoutes';
-import immediateRevenueRoutes from './routes/immediateRevenueRoutes';
-import enterpriseOutreachRoutes from './routes/enterpriseOutreachRoutes';
-import experimentalOutreachRoutes from './routes/experimentalOutreachRoutes';
-import walletBalanceRoutes from './routes/walletBalanceRoutes';
-import { redditAuthRouter } from './routes/redditAuth';
-import automatedOutreachRouter from './routes/automatedOutreachRoutes';
-import virtualsOutreachRouter from './routes/virtualsOutreachRoutes';
-import coinflipRoutes from './routes/coinflipRoutes';
+const p2pRoutes = (await import("./routes/p2pRoutes")).default;
+const { aiMarketplaceSimpleRoutes } = await import("./routes/aiMarketplaceSimple");
+const aiAgentProductRoutesProduction = (await import("./routes/aiAgentProductRoutesProduction")).default;
+const smartContractAuditRoutes = (await import('./routes/smartContractAuditRoutes')).default;
+const { registerAuthRoutes } = await import("./authRoutes");
+const { registerRoutes as registerMainRoutes } = await import("./routes");
+const gasStationRoutes = (await import('./routes/gasStationRoutes')).default;
+const plaidRoutes = (await import('./routes/plaidRoutes')).default;
+const agentPaymentsRoutes = (await import('./routes/agentPaymentsRoutes')).default;
+const sdkPaymentsRoutes = (await import('./routes/sdkPaymentsRoutes')).default;
+const sdkSolanaRoutes = (await import('./routes/sdkSolanaRoutes')).default;
+const x402Routes = (await import('./routes/x402Routes')).default;
+const x402MicroserviceRoutes = (await import('./routes/x402MicroserviceRoutesV2')).default;
+const x402scanScraperRoutes = (await import('./routes/x402scanScraperRoutes')).default;
+const x402AnalyticsRoutes = (await import('./routes/x402AnalyticsRoutes')).default;
+const automatedCampaignRoutes = (await import('./routes/automatedCampaignRoutes')).default;
+const revenueAttributionRoutes = (await import('./routes/revenueAttributionRoutes')).default;
+const automatedFollowUpRoutes = (await import('./routes/automatedFollowUpRoutes')).default;
+const contactExtractionRoutes = (await import('./routes/contactExtractionRoutes')).default;
+const sdkLicensingRoutes = (await import('./routes/sdkLicensingRoutes')).default;
+const realSDKLicensingRoutes = (await import('./routes/realSDKLicensingRoutes')).default;
+const customerPortalRoutes = (await import('./routes/customerPortalRoutes')).default;
+const stripeWebhookRoutes = (await import('./routes/stripeWebhookRoutes')).default;
+const immediateRevenueRoutes = (await import('./routes/immediateRevenueRoutes')).default;
+const enterpriseOutreachRoutes = (await import('./routes/enterpriseOutreachRoutes')).default;
+const experimentalOutreachRoutes = (await import('./routes/experimentalOutreachRoutes')).default;
+const walletBalanceRoutes = (await import('./routes/walletBalanceRoutes')).default;
+const { redditAuthRouter } = await import('./routes/redditAuth');
+const automatedOutreachRouter = (await import('./routes/automatedOutreachRoutes')).default;
+const virtualsOutreachRouter = (await import('./routes/virtualsOutreachRoutes')).default;
+const coinflipRoutes = (await import('./routes/coinflipRoutes')).default;
 // Token launcher disabled - research showed 98.6% failure rate, not profitable
 // import launcherRoutes from './routes/launcherRoutes';
 // import pumpfunCopyTradingRoutes from './routes/pumpfunCopyTradingRoutes';
-import realWalletDiscoveryRoutes from './routes/realWalletDiscoveryRoutes';
-import targetedOutreachRoutes from './routes/targetedOutreachRoutes';
-import outreachRoutes from './routes/outreach';
-import autoJoinerRoutes from './routes/autoJoinerFixed';
-import subscriptionPayments from './routes/subscriptionPayments';
-import aiAgentServices from './routes/aiAgentServices';
-import agentServiceRoutes from './routes/agentServiceRoutes';
-import microservicesRoutes from './routes/microservices';
-import { telegramOutreachService } from './services/telegramOutreachService.js';
-import telegramMiniAppRoutes from './routes/telegramMiniAppRoutes';
-import { bnbChainService } from "./services/bnbChainService";
-import { pulseChainService } from "./services/pulseChainService";
-import { connectionManager } from "./services/connectionManager";
-import { peezyService } from './services/peezyIntegrationService';
-import a2aWrapperRoutes from './routes/a2aWrapperRoutes';
-import a2aBridgeRoutes from './routes/a2aBridgeRoutes.js';
-import agentCardRoutes from './routes/agentCardRoutes';
-import wellKnownRoutes from './routes/wellKnownRoutes';
-import discoveryRoutes from './routes/discoveryRoutes';
-import erc8004DiscoveryRoutes from './routes/erc8004DiscoveryRoutes';
-import a2aMassDiscoveryRoutes from './routes/a2aMassDiscoveryRoutes';
-import mcpServiceDiscoveryRoutes from './routes/mcpServiceDiscovery';
-import iotPaymentsRoutes from './routes/iotPaymentsRoutes';
-import a2dPaymentsRoutes from './routes/a2dPaymentsRoutes';
-import unifiedCreditsRoutes from './routes/unifiedCreditsRoutes';
-import satelliteDataRoutes from './routes/satelliteDataRoutes';
-import { createBazaarDiscoveryRouter, initializeBazaarDiscovery, isBazaarDiscoveryEnabled } from './discovery/bazaarRegistrar';
-import fastRevenueRoutes from './routes/fastRevenueRoutes.js';
-import stripePaymentRoutes from './routes/stripePaymentRoutes.js';
-import campaignConversionRoutes from './routes/campaignConversionRoutes.js';
-import { ProviderCapabilityService } from './services/providerCapabilityService.js';
-import { createAllProviderRouters } from './routes/a2aProviderRoutes.js';
-import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from './paypal.js';
-import rateLimitImport from 'express-rate-limit';
+const realWalletDiscoveryRoutes = (await import('./routes/realWalletDiscoveryRoutes')).default;
+const targetedOutreachRoutes = (await import('./routes/targetedOutreachRoutes')).default;
+const outreachRoutes = (await import('./routes/outreach')).default;
+const autoJoinerRoutes = (await import('./routes/autoJoinerFixed')).default;
+const subscriptionPayments = (await import('./routes/subscriptionPayments')).default;
+const aiAgentServices = (await import('./routes/aiAgentServices')).default;
+const agentServiceRoutes = (await import('./routes/agentServiceRoutes')).default;
+const microservicesRoutes = (await import('./routes/microservices')).default;
+const { telegramOutreachService } = await import('./services/telegramOutreachService.js');
+const telegramMiniAppRoutes = (await import('./routes/telegramMiniAppRoutes')).default;
+const { bnbChainService } = await import("./services/bnbChainService");
+const { pulseChainService } = await import("./services/pulseChainService");
+const { connectionManager } = await import("./services/connectionManager");
+const { peezyService } = await import('./services/peezyIntegrationService');
+const a2aWrapperRoutes = (await import('./routes/a2aWrapperRoutes')).default;
+const a2aBridgeRoutes = (await import('./routes/a2aBridgeRoutes.js')).default;
+const agentCardRoutes = (await import('./routes/agentCardRoutes')).default;
+const wellKnownRoutes = (await import('./routes/wellKnownRoutes')).default;
+const discoveryRoutes = (await import('./routes/discoveryRoutes')).default;
+const erc8004DiscoveryRoutes = (await import('./routes/erc8004DiscoveryRoutes')).default;
+const a2aMassDiscoveryRoutes = (await import('./routes/a2aMassDiscoveryRoutes')).default;
+const mcpServiceDiscoveryRoutes = (await import('./routes/mcpServiceDiscovery')).default;
+const iotPaymentsRoutes = (await import('./routes/iotPaymentsRoutes')).default;
+const a2dPaymentsRoutes = (await import('./routes/a2dPaymentsRoutes')).default;
+const unifiedCreditsRoutes = (await import('./routes/unifiedCreditsRoutes')).default;
+const satelliteDataRoutes = (await import('./routes/satelliteDataRoutes')).default;
+const { createBazaarDiscoveryRouter, initializeBazaarDiscovery, isBazaarDiscoveryEnabled } = await import('./discovery/bazaarRegistrar');
+const fastRevenueRoutes = (await import('./routes/fastRevenueRoutes.js')).default;
+const stripePaymentRoutes = (await import('./routes/stripePaymentRoutes.js')).default;
+const campaignConversionRoutes = (await import('./routes/campaignConversionRoutes.js')).default;
+const { ProviderCapabilityService } = await import('./services/providerCapabilityService.js');
+const { createAllProviderRouters } = await import('./routes/a2aProviderRoutes.js');
+const { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } = await import('./paypal.js');
+const rateLimitImport = (await import('express-rate-limit')).default;
 // NOTE: initializeServiceHandlers is now dynamically imported in post-listen block
 
 // ============= BOOT-TIME VALIDATION =============
@@ -147,7 +151,7 @@ function validateRequiredEnvironmentVariables() {
 validateRequiredEnvironmentVariables();
 
 // Additional production health checks
-import { validateProductionReadiness } from './healthChecks';
+const { validateProductionReadiness } = await import('./healthChecks');
 validateProductionReadiness();
 // ============= END BOOT-TIME VALIDATION =============
 
@@ -194,10 +198,10 @@ app.get('/pay/:sessionId', async (req, res, next) => {
 });
 
 // STRIPE WEBHOOKS BEFORE JSON PARSER - Critical for raw body signature verification
-import { stripeWebhookHandler } from './routes/stripePaymentRoutes.js';
-import { creditsStripeWebhookHandler } from './routes/creditsRoutes.js';
-import { bundleStripeWebhookHandler } from './routes/bundleRoutes.js';
-import { stripeMarketplaceWebhookHandler } from './routes/stripeRoutes.js';
+const { stripeWebhookHandler } = await import('./routes/stripePaymentRoutes.js');
+const { creditsStripeWebhookHandler } = await import('./routes/creditsRoutes.js');
+const { bundleStripeWebhookHandler } = await import('./routes/bundleRoutes.js');
+const { stripeMarketplaceWebhookHandler } = await import('./routes/stripeRoutes.js');
 
 app.post('/api/fast-revenue/stripe-webhook', express.raw({type: 'application/json'}), stripeWebhookHandler);
 app.post('/api/credits/stripe-webhook', express.raw({type: 'application/json'}), creditsStripeWebhookHandler);
@@ -492,30 +496,30 @@ app.set('trust proxy', 1);
 // Authentication routes are registered later via registerAuthRoutes(app)
 
 // CRITICAL: Register ALL marketplace routes BEFORE Vite middleware
-import agentRegistration from './routes/agentRegistration';
-import agentSelfRegistration from './routes/agentSelfRegistration';
-import paymentIntegration from './routes/paymentIntegration';
-import messagingSystem from './routes/messagingSystem';
-import disputeResolution from './routes/disputeResolution';
-import agentPayouts from './routes/agentPayouts';
-import orderProcessing from './routes/orderProcessing';
-import escrowIntegration from './routes/escrowIntegration';
-import serviceDelivery from './routes/serviceDelivery';
-import reviewSystem from './routes/reviewSystem';
-import referralRoutes from './routes/referralRoutes';
-import blockchainRoutes from './routes/blockchainRoutes';
-import aiMarketplaceRoutes from './routes/aiMarketplaceRoutes';
-import marketplaceRoutes from './routes/marketplaceRoutes';
-import dashboardRoutes from './routes/dashboardRoutes';
-import circleRoutes from './routes/circleRoutes';
-import userCircleRoutes from './routes/userCircleRoutes';
+const agentRegistration = (await import('./routes/agentRegistration')).default;
+const agentSelfRegistration = (await import('./routes/agentSelfRegistration')).default;
+const paymentIntegration = (await import('./routes/paymentIntegration')).default;
+const messagingSystem = (await import('./routes/messagingSystem')).default;
+const disputeResolution = (await import('./routes/disputeResolution')).default;
+const agentPayouts = (await import('./routes/agentPayouts')).default;
+const orderProcessing = (await import('./routes/orderProcessing')).default;
+const escrowIntegration = (await import('./routes/escrowIntegration')).default;
+const serviceDelivery = (await import('./routes/serviceDelivery')).default;
+const reviewSystem = (await import('./routes/reviewSystem')).default;
+const referralRoutes = (await import('./routes/referralRoutes')).default;
+const blockchainRoutes = (await import('./routes/blockchainRoutes')).default;
+const aiMarketplaceRoutes = (await import('./routes/aiMarketplaceRoutes')).default;
+const marketplaceRoutes = (await import('./routes/marketplaceRoutes')).default;
+const dashboardRoutes = (await import('./routes/dashboardRoutes')).default;
+const circleRoutes = (await import('./routes/circleRoutes')).default;
+const userCircleRoutes = (await import('./routes/userCircleRoutes')).default;
 
 // Enhanced error handling and authentication
-import { initGlobalErrorHandling, errorHandlerMiddleware } from './middleware/errorHandler';
-import { enhancedAuth, requireAuth, optionalAuth } from './middleware/authenticationFix';
+const { initGlobalErrorHandling, errorHandlerMiddleware } = await import('./middleware/errorHandler');
+const { enhancedAuth, requireAuth, optionalAuth } = await import('./middleware/authenticationFix');
 
 // Authentication system integration
-import { setupAuth } from './replitAuth';
+const { setupAuth } = await import('./replitAuth');
 
 // Initialize authentication system
 setupAuth(app);
@@ -701,14 +705,14 @@ app.use('/api', marketplaceRoutes);
 app.use('/api', dashboardRoutes);
 
 // === AI AGENT TASK BOARD OUTREACH ===
-import taskBoardRoutes from './routes/taskBoardRoutes.js';
+const taskBoardRoutes = (await import('./routes/taskBoardRoutes.js')).default;
 app.use('/api/task-boards', taskBoardRoutes);
 
 // === A2A PROTOCOL TESTING & TELEMETRY ===
-import a2aTestingRoutes from './routes/a2aTestingRoutes.js';
-import enterpriseA2ARoutes from './routes/enterpriseA2ARoutes.js';
-import enterpriseA2AMultiPayment from './routes/enterpriseA2AMultiPayment.js';
-import a2aOutreachRoutes from './routes/a2aOutreachRoutes.js';
+const a2aTestingRoutes = (await import('./routes/a2aTestingRoutes.js')).default;
+const enterpriseA2ARoutes = (await import('./routes/enterpriseA2ARoutes.js')).default;
+const enterpriseA2AMultiPayment = (await import('./routes/enterpriseA2AMultiPayment.js')).default;
+const a2aOutreachRoutes = (await import('./routes/a2aOutreachRoutes.js')).default;
 app.use('/api/a2a', a2aTestingRoutes);
 console.log('🤖 Registering A2A Protocol Outreach routes...');
 app.use('/api/a2a-protocol', a2aOutreachRoutes);
@@ -734,7 +738,7 @@ app.use(wellKnownRoutes);
 console.log('✅ .well-known endpoints registered - Platform discoverable by x402 indexers');
 
 // Conversion Funnel Analytics
-import funnelAnalyticsRoutes from './routes/funnelAnalyticsRoutes';
+const funnelAnalyticsRoutes = (await import('./routes/funnelAnalyticsRoutes')).default;
 app.use('/api/funnel', funnelAnalyticsRoutes);
 
 // Register Autonomous Discovery routes for crawler/search engine discovery
@@ -786,12 +790,12 @@ console.log('✅ Fast Revenue routes registered - Immediate revenue generation a
 console.log('✅ Stripe Payment routes registered - Enterprise payment processing active');
 
 // === PILOT CREDITS & MARKETPLACE STRIPE ROUTES ===
-import stripeMarketplaceRoutes from './routes/stripeRoutes.js';
+const stripeMarketplaceRoutes = (await import('./routes/stripeRoutes.js')).default;
 app.use('/api/stripe', stripeMarketplaceRoutes);
 console.log('✅ Stripe pilot credits routes registered at /api/stripe/*');
 
 // === AI AGENT PRODUCT STORE ===
-import aiAgentProductRoutes from './routes/aiAgentProductRoutes.js';
+const aiAgentProductRoutes = (await import('./routes/aiAgentProductRoutes.js')).default;
 app.use('/api/ai-products', aiAgentProductRoutes);
 
 // === CIRCLE USDC INTEGRATION ROUTES ===
@@ -845,13 +849,13 @@ console.log('✅ Satellite Data routes registered at /api/satellite/* (Powered b
 // are handled by x402MicroserviceRoutesV2.ts with createPaymentOrchestrator (x402Version: 2)
 // NOTE: x402GatedRoutes.ts (legacy x402-express v1) is deprecated - it returned x402Version: 1
 // which is incompatible with @x402/fetch and Coinbase CDP facilitator v2
-import { hybridPaymentMiddleware } from './middleware/hybridPaymentMiddleware';
+const { hybridPaymentMiddleware } = await import('./middleware/hybridPaymentMiddleware');
 console.log('🔒 Mounting /x402 routes (V2 microservices + enterprise services)...');
 app.use('/x402', x402MicroserviceRoutes);
 
 // === FREE WALLET TIER - Ecosystem Adoption ===
 console.log('🆓 Mounting Free Wallet routes for x402 ecosystem adoption...');
-import freeWalletRoutes from './routes/freeWalletRoutes';
+const freeWalletRoutes = (await import('./routes/freeWalletRoutes')).default;
 app.use('/x402/wallet', freeWalletRoutes); // Free wallet creation for agents
 console.log('✅ Free wallet routes registered at /x402/wallet/* - POST /x402/wallet/free');
 
@@ -868,9 +872,9 @@ console.log('✅ x402scan agent scraper routes registered');
 
 // === PREPAID CREDITS SYSTEM & CONVERSION OPTIMIZATION ===
 console.log('💳 Registering Prepaid Credits system for conversion optimization...');
-import { registerCreditsRoutes } from './routes/creditsRoutes';
-import { registerApiKeysRoutes } from './routes/apiKeysRoutes';
-import { registerProductsRoutes } from './routes/productsRoutes.js';
+const { registerCreditsRoutes } = await import('./routes/creditsRoutes');
+const { registerApiKeysRoutes } = await import('./routes/apiKeysRoutes');
+const { registerProductsRoutes } = await import('./routes/productsRoutes.js');
 registerCreditsRoutes(app);
 registerApiKeysRoutes(app);
 registerProductsRoutes(app);
@@ -878,13 +882,13 @@ console.log('✅ Credits, Products & API Keys routes registered successfully');
 
 // === ACP (AGENTIC COMMERCE PROTOCOL) ROUTES ===
 console.log('🛒 Registering ACP routes for ChatGPT Instant Checkout integration...');
-import acpRoutes from './routes/acpRoutes';
+const acpRoutes = (await import('./routes/acpRoutes')).default;
 app.use('/acp/v1', acpRoutes);
 console.log('✅ ACP routes registered at /acp/v1/* - Catalog, Checkout, Orders');
 
 // === AMAZON AFFILIATE ROUTES ===
 console.log('🛍️ Registering Amazon Affiliate routes for GPT product recommendations...');
-import affiliateRoutes from './routes/affiliateRoutes';
+const affiliateRoutes = (await import('./routes/affiliateRoutes')).default;
 app.use('/affiliate', affiliateRoutes);
 console.log('✅ Affiliate routes registered at /affiliate/* - Search, Link, Tag');
 
@@ -909,26 +913,26 @@ console.log('🚀 Registering Production Outreach routes for blockchain B2B outr
 app.use('/api/production-outreach', experimentalOutreachRoutes);
 
 console.log('📊 Registering REVOLUTIONARY Outreach Analytics for campaign performance tracking...');
-import outreachAnalyticsRoutes from './routes/outreachAnalyticsRoutes';
+const outreachAnalyticsRoutes = (await import('./routes/outreachAnalyticsRoutes')).default;
 // Import research-backed outreach service for 2024-2025 AI agent protocols
-import { researchBackedOutreach } from './services/researchBackedOutreach';
+const { researchBackedOutreach } = await import('./services/researchBackedOutreach');
 
 app.use('/api/outreach-analytics', outreachAnalyticsRoutes);
 
 console.log('🧠 Registering AI-POWERED Optimization & Auto-Scaling for maximum ROI...');
-import outreachOptimizationRoutes from './routes/outreachOptimizationRoutes';
+const outreachOptimizationRoutes = (await import('./routes/outreachOptimizationRoutes')).default;
 app.use('/api/optimization', outreachOptimizationRoutes);
 
 console.log('💰 Registering Legitimate Payment Request routes for consent-based automation...');
-import legitimatePaymentRoutes from './routes/legitimatePaymentRoutes';
+const legitimatePaymentRoutes = (await import('./routes/legitimatePaymentRoutes')).default;
 app.use('/api/payments', legitimatePaymentRoutes);
 
 console.log('🚀 Registering MASSIVE OUTREACH SCALING routes for verified high-value wallets...');
-import massiveOutreachScaling from './routes/massiveOutreachScaling';
+const massiveOutreachScaling = (await import('./routes/massiveOutreachScaling')).default;
 app.use('/api/massive', massiveOutreachScaling);
 
 console.log('🌍 Registering GLOBAL REAL OUTREACH routes for additional geographic markets...');
-import globalRealOutreachRoutes from './routes/globalRealOutreachRoutes';
+const globalRealOutreachRoutes = (await import('./routes/globalRealOutreachRoutes')).default;
 app.use('/api/global', globalRealOutreachRoutes);
 console.log('✅ Enterprise Outreach routes registered successfully');
 
@@ -940,21 +944,21 @@ console.log('✅ Enterprise A2A routes registered successfully');
 
 // Register Autonomous Outreach routes for self-executing agent discovery
 console.log('🤖 Registering AUTONOMOUS OUTREACH routes for self-executing agent contact...');
-import autonomousOutreachRoutes from './routes/autonomousOutreachRoutes';
+const autonomousOutreachRoutes = (await import('./routes/autonomousOutreachRoutes')).default;
 app.use('/api/outreach', autonomousOutreachRoutes);
 console.log('✅ Autonomous Outreach routes registered - AI agent discovery & contact operational');
 
-import onChainOutreachRoutes from './routes/onChainOutreachRoutes';
+const onChainOutreachRoutes = (await import('./routes/onChainOutreachRoutes')).default;
 app.use('/api/onchain-outreach', onChainOutreachRoutes);
 console.log('✅ On-chain x402 outreach routes registered');
 
-import bazaarCrawlerRoutes from './routes/bazaarCrawlerRoutes';
+const bazaarCrawlerRoutes = (await import('./routes/bazaarCrawlerRoutes')).default;
 app.use('/api/bazaar', bazaarCrawlerRoutes);
 console.log('✅ Bazaar crawler routes registered');
 
 // === x402SCAN AGENT DISCOVERY ===
 console.log('🔍 Registering x402scan Agent Discovery routes for intelligent agent targeting...');
-import { x402ScanDiscovery } from './services/x402scanAgentDiscovery';
+const { x402ScanDiscovery } = await import('./services/x402scanAgentDiscovery');
 app.post('/api/agent-discovery/x402scan/run', async (req, res) => {
   try {
     const { transactionLimit = 200 } = req.body;
@@ -992,25 +996,25 @@ app.get('/api/agent-discovery/stats', async (req, res) => {
 console.log('✅ x402scan Agent Discovery routes registered - intelligent agent targeting operational');
 
 // Import and register Monitoring Dashboard routes
-import monitoringDashboard from './routes/monitoringDashboard';
+const monitoringDashboard = (await import('./routes/monitoringDashboard')).default;
 app.use('/api/monitoring', monitoringDashboard);
 console.log('📊 Monitoring Dashboard routes registered successfully');
 
 // Gas Station routes moved after setupSimpleRoutes
 
 // === BUSINESS LOGIC VALIDATION ROUTES ===
-import { businessLogicRoutes } from './routes/businessLogicRoutes';
+const { businessLogicRoutes } = await import('./routes/businessLogicRoutes');
 app.use('/api/business-logic', businessLogicRoutes);
 
 // === USDC CONVERSION ROUTES ===
-import { usdcConversionRoutes } from './routes/usdcConversionRoutes';
+const { usdcConversionRoutes } = await import('./routes/usdcConversionRoutes');
 app.use('/api/usdc-conversion', usdcConversionRoutes);
 
 // === CIRCLE KYC/AML ROUTES ===
 // Circle KYC/AML compliance and identity verification
 console.log('🔄 Registering Circle KYC routes...');
 
-import { isAuthenticated } from './replitAuth';
+const { isAuthenticated } = await import('./replitAuth');
 
 app.get('/api/circle/kyc/status', isAuthenticated, async (req, res) => {
   try {
@@ -1973,8 +1977,8 @@ app.get('/api/ai-marketplace/payment-methods', (req, res) => {
 });
 
 // Additional marketplace routes
-import marketplaceCore from './routes/marketplaceCore';
-import marketplaceDemo from './routes/marketplaceDemo';
+const marketplaceCore = (await import('./routes/marketplaceCore')).default;
+const marketplaceDemo = (await import('./routes/marketplaceDemo')).default;
 
 app.use('/api/marketplace', marketplaceDemo);
 app.use('/api/marketplace', marketplaceCore);
@@ -2421,7 +2425,7 @@ app.get('/api/platform/performance', (req, res) => {
 });
 
 // Import real-time pricing service
-import { realTimePricingService } from './services/realTimePricingService';
+const { realTimePricingService } = await import('./services/realTimePricingService');
 
 // Comprehensive real-time crypto rates endpoint
 app.get('/api/crypto/rates', async (req, res) => {
@@ -3466,7 +3470,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
 
 // Wrap main setup in async function
 // NOTE: httpServer is already created and listening at the top of file for fast health checks
-(async () => {
+// === Former async IIFE contents - now part of initApp() ===
   // httpServer is already created at the top of the file and listening for health checks
   // We just need to continue with route registration and heavy initialization
   
@@ -4060,8 +4064,5 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   }
   }); // End of setImmediate
   
-})().catch(error => {
-  console.error('Server startup error:', error);
-  process.exit(1);
-});
 
+} // end initApp()

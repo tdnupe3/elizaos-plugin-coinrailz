@@ -9,6 +9,7 @@ import { pilotCreditsPayments } from '@shared/schema';
 import { eq, and, lte, or } from 'drizzle-orm';
 import { CoinbaseCDPService } from '../services/coinbaseCDPService';
 import { unifiedCreditsService } from '../services/unifiedCreditsService';
+import { creditsService } from '../services/creditsService';
 import { ethers } from 'ethers';
 
 const MAX_VERIFICATION_ATTEMPTS = 10;
@@ -376,6 +377,26 @@ export class PilotCreditsConfirmationJob {
         .where(eq(pilotCreditsPayments.id, payment.id));
 
       console.log(`✅ Pilot crypto payment completed: ${payment.id} - ${payment.credits} credits to ${payment.userId}`);
+
+      try {
+        await creditsService.addCredits({
+          userId: payment.userId,
+          amount: payment.credits,
+          paymentMethod: (payment.token?.toLowerCase() === 'usdt' ? 'usdt' : 'usdc') as any,
+          referenceId: `bridge_crypto_${payment.id}`,
+          description: `Pilot credits bridge: crypto ${payment.token} ($${payment.credits})`,
+          metadata: { source: 'pilot_credits_bridge', paymentId: payment.id }
+        });
+        console.log(`🔗 Bridge: Mirrored $${payment.credits} crypto credits to legacy for ${payment.userId}`);
+      } catch (bridgeError: any) {
+        if ((bridgeError as any).code === '23503') {
+          console.log(`🔗 Bridge: User ${payment.userId} not in users table - skipping legacy mirror (unified credits still active)`);
+        } else if (bridgeError.message?.includes('duplicate') || bridgeError.message?.includes('already')) {
+          console.log(`🔗 Bridge: Already mirrored for crypto ${payment.id} - skipping`);
+        } else {
+          console.error(`⚠️ Bridge: Failed to mirror crypto credits (non-blocking):`, bridgeError.message);
+        }
+      }
     } catch (error: any) {
       if (error.message?.includes('Idempotency')) {
         console.log(`⚠️ Credits already added for ${payment.id} - marking complete`);

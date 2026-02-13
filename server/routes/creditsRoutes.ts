@@ -1,5 +1,6 @@
 import express, { Express, Request, Response } from "express";
 import { creditsService } from "../services/creditsService.js";
+import { unifiedCreditsService } from "../services/unifiedCreditsService";
 import Stripe from "stripe";
 import { db } from "../db.js";
 import { usedTransactionHashes } from "@shared/schema";
@@ -167,6 +168,44 @@ export function registerCreditsRoutes(app: Express) {
     } catch (error: any) {
       console.error("❌ Error fetching credits balance:", error);
       res.status(500).json({ error: "Failed to fetch balance" });
+    }
+  });
+
+  app.get("/api/credits/unified-balance", async (req: Request, res: Response) => {
+    try {
+      const email = req.query.email as string;
+      const apiKey = req.headers['x-api-key'] as string;
+
+      let userId: string | undefined;
+
+      if (req.user?.id) {
+        userId = req.user.id;
+      } else if (email && apiKey) {
+        const validKey = await creditsService.validateApiKey(apiKey);
+        if (validKey && validKey.userId === email) {
+          userId = email;
+        } else {
+          return res.status(403).json({ error: "Invalid API key for this email" });
+        }
+      } else if (email) {
+        userId = email;
+      }
+
+      if (!userId) {
+        return res.status(400).json({ error: "Provide email query param or authenticate" });
+      }
+
+      const unifiedBalance = await unifiedCreditsService.getBalance('user', userId);
+
+      res.json({
+        success: true,
+        userId,
+        balance: unifiedBalance,
+        totalFormatted: `$${unifiedBalance.toFixed(2)}`,
+      });
+    } catch (error: any) {
+      console.error("❌ Error fetching unified balance:", error);
+      res.status(500).json({ error: "Failed to fetch unified balance" });
     }
   });
 

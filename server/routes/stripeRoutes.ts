@@ -545,6 +545,8 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
               }
             );
             console.log(`✅ Pilot credits webhook: Added $${credits} to user ${userId} (session: ${session.id})`);
+            
+            await bridgeCreditsToLegacy(userId, credits, session.id, tierId);
           } catch (creditsError: any) {
             if (creditsError.message?.includes('Idempotency')) {
               console.log(`⚠️ Pilot credits webhook: Session ${session.id} already processed - ignoring duplicate`);
@@ -564,6 +566,28 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
   }
 
   res.json({ received: true });
+}
+
+async function bridgeCreditsToLegacy(userId: string, credits: number, referenceId: string, tierId: string) {
+  try {
+    await creditsService.addCredits({
+      userId,
+      amount: credits,
+      paymentMethod: 'stripe',
+      referenceId: `bridge_${referenceId}`,
+      description: `Pilot credits bridge: ${tierId} ($${credits})`,
+      metadata: { source: 'pilot_credits_bridge', tierId, originalRef: referenceId }
+    });
+    console.log(`🔗 Bridge: Mirrored $${credits} to legacy credits for ${userId}`);
+  } catch (bridgeError: any) {
+    if (bridgeError.code === '23503') {
+      console.log(`🔗 Bridge: User ${userId} not in users table - skipping legacy mirror (unified credits still active)`);
+    } else if (bridgeError.message?.includes('duplicate') || bridgeError.message?.includes('already')) {
+      console.log(`🔗 Bridge: Already mirrored for ${referenceId} - skipping`);
+    } else {
+      console.error(`⚠️ Bridge: Failed to mirror credits for ${userId} (non-blocking):`, bridgeError.message);
+    }
+  }
 }
 
 // ==========================================
@@ -607,8 +631,8 @@ router.post('/pilot-credits', async (req, res) => {
         credits: String(tier.credits),
         platform: 'coin-railz-iot'
       },
-      success_url: successUrl || `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://coinrailz.com'}/pilots/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl || `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://coinrailz.com'}/pilots/buy`,
+      success_url: successUrl || `${process.env.REPLIT_DEPLOYMENT ? 'https://coinrailz.com' : `https://${process.env.REPLIT_DEV_DOMAIN || 'coinrailz.com'}`}/pilots/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl || `${process.env.REPLIT_DEPLOYMENT ? 'https://coinrailz.com' : `https://${process.env.REPLIT_DEV_DOMAIN || 'coinrailz.com'}`}/pilots/buy`,
     });
 
     console.log(`💳 Created pilot credits checkout session: ${session.id} for ${tier.name}`);
@@ -709,6 +733,8 @@ router.post('/pilot-credits/confirm', async (req, res) => {
       const balance = await unifiedCreditsService.getBalance('user', userId);
 
       console.log(`✅ Pilot credits added: $${credits} to user ${userId} (session: ${sessionId})`);
+
+      await bridgeCreditsToLegacy(userId, credits, sessionId, tierId);
 
       // Auto-generate API key for minimal friction
       let apiKey: string | undefined;
@@ -824,7 +850,7 @@ router.post('/pilot-credits/crypto-intent', async (req, res) => {
 
     const paymentId = `pilot_pay_${nanoid(16)}`;
     const idempotencyKey = `pilot_crypto_${paymentId}`;
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
     const nextCheckAt = new Date(Date.now() + 2 * 60 * 1000);
 
     await db.insert(pilotCreditsPayments).values({

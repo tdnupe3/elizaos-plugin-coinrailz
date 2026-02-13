@@ -91,6 +91,19 @@ export default function Landing() {
               <span className="text-lg sm:text-xl font-bold text-gray-900">Coin Railz</span>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-3">
+              <Link href="/pilots/buy">
+                <Button
+                  className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white text-xs sm:text-sm px-3 sm:px-4"
+                  size="sm"
+                  data-testid="nav-buy-credits"
+                  onClick={() => {
+                    trackEvent('click', 'nav_cta', 'buy_credits');
+                    trackBusinessEvent('nav_credit_purchase_intent', { source: 'top_nav' });
+                  }}
+                >
+                  Buy Credits
+                </Button>
+              </Link>
               <Link href="/developers">
                 <Button
                   variant="ghost"

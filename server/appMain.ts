@@ -733,6 +733,10 @@ console.log('🔍 Registering .well-known endpoints for x402scan and Coinbase in
 app.use(wellKnownRoutes);
 console.log('✅ .well-known endpoints registered - Platform discoverable by x402 indexers');
 
+// Conversion Funnel Analytics
+import funnelAnalyticsRoutes from './routes/funnelAnalyticsRoutes';
+app.use('/api/funnel', funnelAnalyticsRoutes);
+
 // Register Autonomous Discovery routes for crawler/search engine discovery
 console.log('🔍 Registering Autonomous Discovery routes (sitemap, robots.txt, search engine pings)...');
 app.use(discoveryRoutes);

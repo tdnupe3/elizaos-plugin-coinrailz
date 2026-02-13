@@ -6389,3 +6389,34 @@ export const whitelistedWalletsInsertSchema = createInsertSchema(whitelistedWall
 export type WhitelistedWallet = typeof whitelistedWallets.$inferSelect;
 export type InsertWhitelistedWallet = z.infer<typeof whitelistedWalletsInsertSchema>;
 
+export const conversionFunnelEvents = pgTable(
+  "conversion_funnel_events",
+  {
+    id: serial("id").primaryKey(),
+    stage: varchar("stage", { length: 50 }).notNull(),
+    walletAddress: varchar("wallet_address"),
+    agentUrl: varchar("agent_url"),
+    campaignId: varchar("campaign_id"),
+    channel: varchar("channel", { length: 50 }),
+    txHash: varchar("tx_hash"),
+    creditsAmount: decimal("credits_amount", { precision: 10, scale: 2 }),
+    apiKeyPrefix: varchar("api_key_prefix", { length: 12 }),
+    serviceName: varchar("service_name"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_funnel_events_stage").on(table.stage),
+    index("IDX_funnel_events_wallet").on(table.walletAddress),
+    index("IDX_funnel_events_campaign").on(table.campaignId),
+    index("IDX_funnel_events_created").on(table.createdAt),
+  ],
+);
+
+export const conversionFunnelEventsInsertSchema = createInsertSchema(conversionFunnelEvents).omit({
+  id: true,
+  createdAt: true,
+});
+export type ConversionFunnelEvent = typeof conversionFunnelEvents.$inferSelect;
+export type InsertConversionFunnelEvent = z.infer<typeof conversionFunnelEventsInsertSchema>;
+

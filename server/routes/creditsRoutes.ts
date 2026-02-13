@@ -187,12 +187,10 @@ export function registerCreditsRoutes(app: Express) {
         } else {
           return res.status(403).json({ error: "Invalid API key for this email" });
         }
-      } else if (email) {
-        userId = email;
       }
 
       if (!userId) {
-        return res.status(400).json({ error: "Provide email query param or authenticate" });
+        return res.status(401).json({ error: "Authentication required - provide session or API key" });
       }
 
       const unifiedBalance = await unifiedCreditsService.getBalance('user', userId);

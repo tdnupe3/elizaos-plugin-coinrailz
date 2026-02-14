@@ -64,19 +64,22 @@ const realSDKLicensingRoutes = (await import('./routes/realSDKLicensingRoutes'))
 const customerPortalRoutes = (await import('./routes/customerPortalRoutes')).default;
 const stripeWebhookRoutes = (await import('./routes/stripeWebhookRoutes')).default;
 const immediateRevenueRoutes = (await import('./routes/immediateRevenueRoutes')).default;
-const enterpriseOutreachRoutes = (await import('./routes/enterpriseOutreachRoutes')).default;
-const experimentalOutreachRoutes = (await import('./routes/experimentalOutreachRoutes')).default;
+// Disabled (Feb 14 2026): broken outreach - 34K failures
+// const enterpriseOutreachRoutes = (await import('./routes/enterpriseOutreachRoutes')).default;
+// const experimentalOutreachRoutes = (await import('./routes/experimentalOutreachRoutes')).default;
 const walletBalanceRoutes = (await import('./routes/walletBalanceRoutes')).default;
 const { redditAuthRouter } = await import('./routes/redditAuth');
-const automatedOutreachRouter = (await import('./routes/automatedOutreachRoutes')).default;
-const virtualsOutreachRouter = (await import('./routes/virtualsOutreachRoutes')).default;
+// Disabled (Feb 14 2026): automated outreach generates noise
+// const automatedOutreachRouter = (await import('./routes/automatedOutreachRoutes')).default;
+// const virtualsOutreachRouter = (await import('./routes/virtualsOutreachRoutes')).default;
 const coinflipRoutes = (await import('./routes/coinflipRoutes')).default;
 // Token launcher disabled - research showed 98.6% failure rate, not profitable
 // import launcherRoutes from './routes/launcherRoutes';
 // import pumpfunCopyTradingRoutes from './routes/pumpfunCopyTradingRoutes';
 const realWalletDiscoveryRoutes = (await import('./routes/realWalletDiscoveryRoutes')).default;
-const targetedOutreachRoutes = (await import('./routes/targetedOutreachRoutes')).default;
-const outreachRoutes = (await import('./routes/outreach')).default;
+// Disabled (Feb 14 2026): targeted/general outreach disabled
+// const targetedOutreachRoutes = (await import('./routes/targetedOutreachRoutes')).default;
+// const outreachRoutes = (await import('./routes/outreach')).default;
 const autoJoinerRoutes = (await import('./routes/autoJoinerFixed')).default;
 const subscriptionPayments = (await import('./routes/subscriptionPayments')).default;
 const aiAgentServices = (await import('./routes/aiAgentServices')).default;
@@ -908,34 +911,25 @@ app.use('/api/webhooks', stripeWebhookRoutes);
 console.log('✅ Stripe Webhook routes registered - payment-to-license flow operational');
 console.log('✅ Real SDK Licensing API registered successfully');
 
-console.log('🎯 Registering Enterprise Outreach routes for AI companies, fintech startups, and payment processors...');
-app.use('/api/enterprise-outreach', enterpriseOutreachRoutes);
-console.log('🚀 Registering Production Outreach routes for blockchain B2B outreach...');
-app.use('/api/production-outreach', experimentalOutreachRoutes);
+// === OUTREACH DISABLED (Feb 14 2026) - 34K failures, 13K ACP failures, 0 real conversions ===
+// Enterprise/experimental outreach: pings api.openai.com, api.anthropic.com etc. with no auth - pure noise
+// app.use('/api/enterprise-outreach', enterpriseOutreachRoutes);
+// app.use('/api/production-outreach', experimentalOutreachRoutes);
 
-console.log('📊 Registering REVOLUTIONARY Outreach Analytics for campaign performance tracking...');
+console.log('📊 Registering Outreach Analytics (read-only metrics)...');
 const outreachAnalyticsRoutes = (await import('./routes/outreachAnalyticsRoutes')).default;
-// Import research-backed outreach service for 2024-2025 AI agent protocols
-const { researchBackedOutreach } = await import('./services/researchBackedOutreach');
-
 app.use('/api/outreach-analytics', outreachAnalyticsRoutes);
 
-console.log('🧠 Registering AI-POWERED Optimization & Auto-Scaling for maximum ROI...');
-const outreachOptimizationRoutes = (await import('./routes/outreachOptimizationRoutes')).default;
-app.use('/api/optimization', outreachOptimizationRoutes);
-
-console.log('💰 Registering Legitimate Payment Request routes for consent-based automation...');
-const legitimatePaymentRoutes = (await import('./routes/legitimatePaymentRoutes')).default;
-app.use('/api/payments', legitimatePaymentRoutes);
-
-console.log('🚀 Registering MASSIVE OUTREACH SCALING routes for verified high-value wallets...');
-const massiveOutreachScaling = (await import('./routes/massiveOutreachScaling')).default;
-app.use('/api/massive', massiveOutreachScaling);
-
-console.log('🌍 Registering GLOBAL REAL OUTREACH routes for additional geographic markets...');
-const globalRealOutreachRoutes = (await import('./routes/globalRealOutreachRoutes')).default;
-app.use('/api/global', globalRealOutreachRoutes);
-console.log('✅ Enterprise Outreach routes registered successfully');
+// Disabled: optimization, massive scaling, global outreach, legitimate payments - all produce failures
+// const outreachOptimizationRoutes = (await import('./routes/outreachOptimizationRoutes')).default;
+// app.use('/api/optimization', outreachOptimizationRoutes);
+// const legitimatePaymentRoutes = (await import('./routes/legitimatePaymentRoutes')).default;
+// app.use('/api/payments', legitimatePaymentRoutes);
+// const massiveOutreachScaling = (await import('./routes/massiveOutreachScaling')).default;
+// app.use('/api/massive', massiveOutreachScaling);
+// const globalRealOutreachRoutes = (await import('./routes/globalRealOutreachRoutes')).default;
+// app.use('/api/global', globalRealOutreachRoutes);
+console.log('✅ Broken outreach disabled - analytics preserved');
 
 // Register Enterprise A2A routes for immediate revenue generation
 console.log('🏢 Registering ENTERPRISE A2A routes for immediate revenue generation...');
@@ -943,11 +937,9 @@ app.use('/api/enterprise-a2a', enterpriseA2ARoutes);
 app.use('/api/enterprise-a2a-multi', enterpriseA2AMultiPayment);
 console.log('✅ Enterprise A2A routes registered successfully');
 
-// Register Autonomous Outreach routes for self-executing agent discovery
-console.log('🤖 Registering AUTONOMOUS OUTREACH routes for self-executing agent contact...');
-const autonomousOutreachRoutes = (await import('./routes/autonomousOutreachRoutes')).default;
-app.use('/api/outreach', autonomousOutreachRoutes);
-console.log('✅ Autonomous Outreach routes registered - AI agent discovery & contact operational');
+// Autonomous outreach DISABLED (Feb 14 2026) - A2A probes all failing (404/unreachable)
+// const autonomousOutreachRoutes = (await import('./routes/autonomousOutreachRoutes')).default;
+// app.use('/api/outreach', autonomousOutreachRoutes);
 
 const onChainOutreachRoutes = (await import('./routes/onChainOutreachRoutes')).default;
 app.use('/api/onchain-outreach', onChainOutreachRoutes);
@@ -3268,8 +3260,9 @@ app.use('/api/coinflip', coinflipRoutes);
 // app.use('/api/launcher', launcherRoutes);
 // app.use('/api/pumpfun-copy-trading', pumpfunCopyTradingRoutes);
 app.use('/api/real-wallet-discovery', realWalletDiscoveryRoutes);
-app.use('/api/targeted-outreach', targetedOutreachRoutes);
-app.use('/api/outreach', outreachRoutes);
+// Disabled (Feb 14 2026): targeted/general outreach
+// app.use('/api/targeted-outreach', targetedOutreachRoutes);
+// app.use('/api/outreach', outreachRoutes);
 app.use('/api/auto-joiner', autoJoinerRoutes);
 app.use('/api/telegram', telegramMiniAppRoutes);
 app.use('/api/payments', subscriptionPayments);
@@ -3339,8 +3332,9 @@ app.use('/api/data', dataMonetizationRoutes);
 
 // AUTOMATED OUTREACH ROUTES - EMERGENCY REVENUE GENERATION
 app.use('/api', redditAuthRouter);
-app.use('/api', automatedOutreachRouter);
-app.use('/api/outreach', virtualsOutreachRouter);
+// Disabled (Feb 14 2026): automated/virtuals outreach
+// app.use('/api', automatedOutreachRouter);
+// app.use('/api/outreach', virtualsOutreachRouter);
 
 // Register P2P routes with profitable fee structure BEFORE catch-all handler
 app.use('/api/p2p', p2pRoutes);
@@ -4023,10 +4017,12 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       // }).catch(err => console.error('❌ Failed to start discovery scheduler:', err));
       
       // Lazy import for automated outreach
-      import('./services/automatedOutreachOrchestrator').then(({ initializeAutomatedOutreach }) => {
-        initializeAutomatedOutreach().catch(console.error);
-        console.log('✅ Emergency outreach orchestrator started');
-      }).catch(err => console.error('❌ Failed to initialize automated outreach:', err));
+      // Automated outreach orchestrator DISABLED (Feb 14 2026) - generates 34K+ failures
+      // import('./services/automatedOutreachOrchestrator').then(({ initializeAutomatedOutreach }) => {
+      //   initializeAutomatedOutreach().catch(console.error);
+      //   console.log('✅ Emergency outreach orchestrator started');
+      // }).catch(err => console.error('❌ Failed to initialize automated outreach:', err));
+      console.log('⏸️ Outreach orchestrator disabled - broken outreach cleanup (Feb 14 2026)');
       
       console.log('🎯 PRODUCTION REVENUE GENERATION ACTIVE');
       console.log('📞 Targeting trading bot operators, AI developers, profitable traders');

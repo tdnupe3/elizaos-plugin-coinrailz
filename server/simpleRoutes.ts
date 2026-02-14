@@ -205,7 +205,7 @@ Would love your thoughts on the implementation patterns!
     }
   });
 
-  // AUTOMATED OUTREACH ORCHESTRATOR ENDPOINTS
+  // AUTOMATED OUTREACH ORCHESTRATOR ENDPOINTS (outreach disabled Feb 14 2026)
   app.get('/api/automation/status', async (req, res) => {
     try {
       const { getOutreachOrchestrator } = await import('./services/automatedOutreachOrchestrator');
@@ -219,8 +219,9 @@ Would love your thoughts on the implementation patterns!
     }
   });
 
-  // COMPREHENSIVE OUTREACH CAMPAIGN ENDPOINT
+  // COMPREHENSIVE OUTREACH CAMPAIGN ENDPOINT (DISABLED Feb 14 2026 - generates noise)
   app.post('/api/execute-comprehensive-outreach', async (req, res) => {
+    return res.json({ success: false, message: 'Outreach disabled - broken systems cleanup (Feb 14 2026). Use on-chain messaging instead.' });
     try {
       console.log('🚀 EXECUTING COMPREHENSIVE OUTREACH CAMPAIGN');
       
@@ -276,8 +277,9 @@ Would love your thoughts on the implementation patterns!
     }
   });
 
-  // LEGACY TELEGRAM-ONLY OUTREACH
+  // LEGACY TELEGRAM-ONLY OUTREACH (DISABLED Feb 14 2026)
   app.post('/api/execute-automated-outreach', async (req, res) => {
+    return res.json({ success: false, message: 'Automated outreach disabled (Feb 14 2026). Use on-chain messaging instead.' });
     try {
       const { AutomatedOutreachService } = await import('./services/automatedOutreach');
       const outreachService = new AutomatedOutreachService();

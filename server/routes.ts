@@ -45,7 +45,8 @@ import { registerEmergencyRoutes } from "./routes/emergencyRoutes";
 import dashboardRoutesV2 from "./routes/dashboardRoutes";
 import { registerCircleStatusRoutes } from "./routes/circleStatus";
 import agentDiscoveryRoutes from "./routes/agentDiscoveryRoutes";
-import a2aOutreachRoutes from "./routes/a2aOutreachRoutes";
+// Disabled (Feb 14 2026): A2A outreach probes all failing
+// import a2aOutreachRoutes from "./routes/a2aOutreachRoutes";
 import revolutionaryPaymentRoutes from "./routes/revolutionaryPaymentRoutes";
 import walletAccessRoutes from "./routes/walletAccessRoutes";
 import { solanaMessagingRoutes } from "./routes/solanaMessagingRoutes";
@@ -353,11 +354,13 @@ Questions? Reply to this message or contact support@coinrailz.com
   app.use('/api/xmtp', await import('./routes/xmtpDiscoveryRoutes').then(m => m.default));
 
   // XMTP Agent Outreach Routes (Personalized campaigns with $10 free credits)
-  app.use('/api/xmtp-outreach', await import('./routes/xmtpAgentOutreachRoutes').then(m => m.default));
+  // XMTP outreach DISABLED (Feb 14 2026) - XMTP is a dead protocol
+  // app.use('/api/xmtp-outreach', await import('./routes/xmtpAgentOutreachRoutes').then(m => m.default));
 
   // B2B Marketing Service Routes  
   app.use('/api/b2b-marketing', await import('./routes/b2bMarketingRoutes').then(m => m.default));
-  app.use('/api/solana-outreach', await import('./routes/solanaOutreachRoutes').then(m => m.solanaOutreachRoutes));
+  // Solana outreach DISABLED (Feb 14 2026)
+  // app.use('/api/solana-outreach', await import('./routes/solanaOutreachRoutes').then(m => m.solanaOutreachRoutes));
   app.use('/api/solana-premium', await import('./routes/solanaPremiumRoutes').then(m => m.solanaPremiumRoutes));
   app.use('/api/solana-messaging', solanaMessagingRoutes);
   
@@ -381,7 +384,8 @@ Questions? Reply to this message or contact support@coinrailz.com
   app.use('/api/base-whales', await import('./routes/baseWhaleRoutes').then(m => m.default));
   
   // 🤖 x402 Active Agent Outreach (XMTP wallet messaging)
-  app.use('/api/x402-outreach', await import('./routes/x402OutreachRoutes').then(m => m.default));
+  // x402 outreach DISABLED (Feb 14 2026)
+  // app.use('/api/x402-outreach', await import('./routes/x402OutreachRoutes').then(m => m.default));
   
   // 🎯 x402 Offer Links - Trackable unique links for outreach attribution
   app.use('/api/outreach', await import('./routes/offerLinkRoutes').then(m => m.default));
@@ -393,7 +397,8 @@ Questions? Reply to this message or contact support@coinrailz.com
   app.use('/api/circle-evidence', await import('./routes/circleEvidenceRoutes').then(m => m.default));
   
   // 🤖 A2A Protocol Outreach (Google standard agent-to-agent communication)
-  app.use('/api/a2a-protocol', a2aOutreachRoutes);
+  // A2A outreach DISABLED (Feb 14 2026) - probes failing (404/unreachable)
+  // app.use('/api/a2a-protocol', a2aOutreachRoutes);
   
   // 💰 Real-time Crypto Pricing Routes (CoinGecko)
   app.use('/api/prices', await import('./routes/pricingRoutes').then(m => m.default));
@@ -1240,8 +1245,9 @@ Questions? Reply to this message or contact support@coinrailz.com
   app.use('/api/ai-products', aiAgentProductRoutes);
 
   // AI Agent Outreach System for wallet discovery and targeted campaigns
-  const { default: aiAgentOutreachRoutes } = await import('./routes/aiAgentOutreachRoutes');
-  app.use('/api/outreach', aiAgentOutreachRoutes);
+  // AI agent outreach DISABLED (Feb 14 2026) - generates noise, 0 conversions
+  // const { default: aiAgentOutreachRoutes } = await import('./routes/aiAgentOutreachRoutes');
+  // app.use('/api/outreach', aiAgentOutreachRoutes);
 
   // Payment processing routes
   const { paymentRoutes } = await import('./routes/paymentRoutes');

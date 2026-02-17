@@ -81,6 +81,9 @@ import {
   verifiedSolanaWallets,
   type InsertVerifiedSolanaWallet,
   type SelectVerifiedSolanaWallet,
+  onrampOrders,
+  type OnrampOrder,
+  type InsertOnrampOrder,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sum, sql, lte, gte, lt } from "drizzle-orm";
@@ -341,6 +344,13 @@ export interface IStorage {
   updateGptOAuthTokenLastUsed(id: number): Promise<void>;
   revokeGptOAuthToken(id: number): Promise<void>;
   revokeAllGptOAuthTokensForUser(userId: string): Promise<number>;
+
+  createOnrampOrder(order: InsertOnrampOrder): Promise<OnrampOrder>;
+  getOnrampOrder(id: number): Promise<OnrampOrder | undefined>;
+  getOnrampOrderByTransakId(transakOrderId: string): Promise<OnrampOrder | undefined>;
+  getUserOnrampOrders(userId: string, limit?: number): Promise<OnrampOrder[]>;
+  updateOnrampOrder(id: number, updates: Partial<InsertOnrampOrder>): Promise<OnrampOrder | undefined>;
+  updateOnrampOrderByTransakId(transakOrderId: string, updates: Partial<InsertOnrampOrder>): Promise<OnrampOrder | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2663,6 +2673,44 @@ export class DatabaseStorage implements IStorage {
         eq(gptOAuthTokens.status, 'active')
       ));
     return (result as any)?.rowCount || 0;
+  }
+
+  async createOnrampOrder(order: InsertOnrampOrder): Promise<OnrampOrder> {
+    const [created] = await db.insert(onrampOrders).values(order).returning();
+    return created;
+  }
+
+  async getOnrampOrder(id: number): Promise<OnrampOrder | undefined> {
+    const [order] = await db.select().from(onrampOrders).where(eq(onrampOrders.id, id)).limit(1);
+    return order;
+  }
+
+  async getOnrampOrderByTransakId(transakOrderId: string): Promise<OnrampOrder | undefined> {
+    const [order] = await db.select().from(onrampOrders).where(eq(onrampOrders.transakOrderId, transakOrderId)).limit(1);
+    return order;
+  }
+
+  async getUserOnrampOrders(userId: string, limit: number = 20): Promise<OnrampOrder[]> {
+    return await db.select().from(onrampOrders)
+      .where(eq(onrampOrders.userId, userId))
+      .orderBy(desc(onrampOrders.createdAt))
+      .limit(limit);
+  }
+
+  async updateOnrampOrder(id: number, updates: Partial<InsertOnrampOrder>): Promise<OnrampOrder | undefined> {
+    const [updated] = await db.update(onrampOrders)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(onrampOrders.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateOnrampOrderByTransakId(transakOrderId: string, updates: Partial<InsertOnrampOrder>): Promise<OnrampOrder | undefined> {
+    const [updated] = await db.update(onrampOrders)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(onrampOrders.transakOrderId, transakOrderId))
+      .returning();
+    return updated;
   }
 }
 

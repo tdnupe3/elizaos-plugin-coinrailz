@@ -983,6 +983,10 @@ Questions? Reply to this message or contact support@coinrailz.com
     res.json({ success: true, message: 'API working', timestamp: new Date().toISOString() });
   });
   
+  // === TRANSAK FIAT ON-RAMP ROUTES (register before generic onramp) ===
+  const transakOnrampRoutes = (await import('./routes/transakOnrampRoutes.js')).default;
+  app.use('/api/onramp/transak', transakOnrampRoutes);
+
   // === STREAMLINED ONRAMP ROUTES ===
   const onrampRoutes = (await import('./routes/onrampRoutes.js')).default;
   app.use('/api/onramp', onrampRoutes);

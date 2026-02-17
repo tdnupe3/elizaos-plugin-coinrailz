@@ -3752,6 +3752,15 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     });
     console.log('✅ Admin x402 organic traffic routes registered (pre-Vite)');
     
+    // === TRANSAK FIAT ON-RAMP ROUTES (pre-Vite for dev mode) ===
+    try {
+      const transakOnrampRoutes = (await import('./routes/transakOnrampRoutes.js')).default;
+      app.use('/api/onramp/transak', transakOnrampRoutes);
+      console.log('✅ Transak on-ramp routes registered (pre-Vite)');
+    } catch (error) {
+      console.warn('⚠️ Transak on-ramp routes failed to load:', error);
+    }
+    
     // NOTE: Solana Pay routes are now registered pre-static for BOTH environments (see above)
     
     try {

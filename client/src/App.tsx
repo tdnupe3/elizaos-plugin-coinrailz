@@ -119,6 +119,7 @@ const GptPurchaseSuccess = lazy(() => import("@/pages/gpt-purchase-success"));
 const PaySessionPage = lazy(() => import("@/pages/pay-session"));
 const OrderManagement = lazy(() => import("@/pages/order-management"));
 const OnrampPage = lazy(() => import("@/pages/onramp"));
+const BuyOnramp = lazy(() => import("@/pages/BuyOnramp"));
 const EnterprisePage = lazy(() => import("@/pages/enterprise"));
 const LegalDisclaimers = lazy(() => import("@/pages/legal-disclaimers"));
 const ContactUs = lazy(() => import("@/pages/contact-us"));
@@ -821,7 +822,10 @@ function Router() {
         {() => <LazyLoadWrapper><SendMoney /></LazyLoadWrapper>}
       </Route>
       <Route path="/buy">
-        {() => <LazyLoadWrapper><BuySellPage /></LazyLoadWrapper>}
+        {() => <LazyLoadWrapper><BuyOnramp /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/buy-crypto">
+        {() => <LazyLoadWrapper><BuyOnramp /></LazyLoadWrapper>}
       </Route>
       <Route path="/sell">
         {() => <LazyLoadWrapper><BuySellPage /></LazyLoadWrapper>}

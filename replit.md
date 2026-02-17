@@ -53,6 +53,7 @@ Coin Railz employs a USDC-first strategy, utilizing Coinbase CDP for wallet mana
 - **EVM Payment Verification Retry**: `verifyTransactionPayment` polls for transaction receipt up to 10 times with 3-second delays (30s total) to mitigate RPC indexing lag.
 - **Wallet Safety Layer**: All fund transfer scripts use a centralized wallet registry with address validation, blacklist enforcement, dry-run by default, and labeled wallet summaries to prevent accidental transfers.
 - **Wallet Whitelisting System**: A DB-persisted whitelist for outbound fund transfers. All `sendTransaction`, `sendUSDC`, `sendToken`, `sweepDepositWallet` methods check the whitelist before executing to prevent unauthorized fund drainage.
+- **Transak Fiat On-Ramp v1.0.0**: White-label fiat-to-crypto purchase flow at `/buy` and `/buy-crypto`. Supports USDC/USDT on 6 networks (Ethereum, Base, Polygon, Arbitrum, Optimism, Tron). Features: $10-$2,500 transaction limits, 3% Coin Railz fee, inline auth (login/register on page), 4-step stepper UX, real-time quotes, EVM/Tron wallet validation, HMAC-SHA256 webhook verification, staging mode when API key not configured. Backend: `server/routes/transakOnrampRoutes.ts`. Frontend: `client/src/pages/BuyOnramp.tsx`. DB: `onramp_orders` table.
 
 ## External Dependencies
 - **Coinbase CDP:** Wallet creation, management, and transaction execution.
@@ -72,3 +73,4 @@ Coin Railz employs a USDC-first strategy, utilizing Coinbase CDP for wallet mana
 - **OpenAQ:** Ground-level air quality measurements.
 - **Kalshi:** Prediction market data.
 - **Polymarket:** Prediction market data.
+- **Transak:** White-label fiat-to-crypto on-ramp for USDC/USDT purchases.

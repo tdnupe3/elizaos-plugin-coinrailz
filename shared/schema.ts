@@ -6420,3 +6420,41 @@ export const conversionFunnelEventsInsertSchema = createInsertSchema(conversionF
 export type ConversionFunnelEvent = typeof conversionFunnelEvents.$inferSelect;
 export type InsertConversionFunnelEvent = z.infer<typeof conversionFunnelEventsInsertSchema>;
 
+export const onrampOrders = pgTable(
+  "onramp_orders",
+  {
+    id: serial("id").primaryKey(),
+    userId: varchar("user_id").notNull(),
+    transakOrderId: varchar("transak_order_id").unique(),
+    status: varchar("status", { length: 50 }).notNull().default("created"),
+    fiatCurrency: varchar("fiat_currency", { length: 10 }).notNull().default("USD"),
+    fiatAmount: decimal("fiat_amount", { precision: 10, scale: 2 }).notNull(),
+    coinrailzFee: decimal("coinrailz_fee", { precision: 10, scale: 2 }).notNull().default("0.00"),
+    cryptoAmount: decimal("crypto_amount", { precision: 20, scale: 8 }),
+    cryptoCurrency: varchar("crypto_currency", { length: 10 }).notNull(),
+    network: varchar("network", { length: 50 }).notNull(),
+    walletAddress: varchar("wallet_address").notNull(),
+    paymentMethod: varchar("payment_method", { length: 50 }),
+    transakStatus: varchar("transak_status", { length: 50 }),
+    transactionHash: varchar("transaction_hash"),
+    errorMessage: text("error_message"),
+    completedAt: timestamp("completed_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_onramp_orders_user").on(table.userId),
+    index("IDX_onramp_orders_transak").on(table.transakOrderId),
+    index("IDX_onramp_orders_status").on(table.status),
+    index("IDX_onramp_orders_created").on(table.createdAt),
+  ],
+);
+
+export const onrampOrdersInsertSchema = createInsertSchema(onrampOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type OnrampOrder = typeof onrampOrders.$inferSelect;
+export type InsertOnrampOrder = z.infer<typeof onrampOrdersInsertSchema>;
+

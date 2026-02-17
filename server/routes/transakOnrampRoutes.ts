@@ -17,7 +17,7 @@ const SUPPORTED_NETWORKS: Record<string, { transakNetwork: string; chainId?: num
   tron: { transakNetwork: 'tron', addressRegex: /^T[a-zA-Z0-9]{33}$/ },
 };
 
-const COINRAILZ_FEE_RATE = 0.03;
+const COINRAILZ_FEE_RATE = 0.05;
 const MAX_TRANSACTION_AMOUNT = 2500;
 const MIN_TRANSACTION_AMOUNT = 10;
 const ORDER_EXPIRY_MINUTES = 60;

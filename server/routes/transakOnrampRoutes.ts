@@ -20,6 +20,29 @@ const COINRAILZ_FEE_RATE = 0.03;
 const MAX_TRANSACTION_AMOUNT = 2500;
 const MIN_TRANSACTION_AMOUNT = 10;
 
+const processedWebhookEvents = new Set<string>();
+const WEBHOOK_EVENT_TTL_MS = 24 * 60 * 60 * 1000;
+
+setInterval(() => {
+  processedWebhookEvents.clear();
+}, WEBHOOK_EVENT_TTL_MS);
+
+const sessionRateLimiter = new Map<string, { count: number; resetAt: number }>();
+const SESSION_RATE_LIMIT = 10;
+const SESSION_RATE_WINDOW_MS = 60 * 60 * 1000;
+
+function checkSessionRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const entry = sessionRateLimiter.get(userId);
+  if (!entry || now > entry.resetAt) {
+    sessionRateLimiter.set(userId, { count: 1, resetAt: now + SESSION_RATE_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= SESSION_RATE_LIMIT) return false;
+  entry.count++;
+  return true;
+}
+
 const createSessionSchema = z.object({
   fiatAmount: z.number().min(MIN_TRANSACTION_AMOUNT).max(MAX_TRANSACTION_AMOUNT),
   fiatCurrency: z.string().default('USD'),
@@ -68,8 +91,8 @@ router.get('/quote', (req: Request, res: Response) => {
     }
 
     const coinrailzFee = Math.round(amount * COINRAILZ_FEE_RATE * 100) / 100;
-    const estimatedTransakFee = Math.round(amount * 0.015 * 100) / 100;
-    const totalFees = coinrailzFee + estimatedTransakFee;
+    const estimatedProcessingFee = Math.round(amount * 0.015 * 100) / 100;
+    const totalFees = coinrailzFee + estimatedProcessingFee;
     const cryptoAmount = Math.round((amount - totalFees) * 100) / 100;
 
     res.json({
@@ -79,11 +102,12 @@ router.get('/quote', (req: Request, res: Response) => {
         fiatCurrency: 'USD',
         cryptoCurrency: token,
         coinrailzFee,
-        estimatedTransakFee,
+        estimatedProcessingFee,
         totalFees,
         estimatedCryptoAmount: cryptoAmount,
         rate: 1.0,
         expiresIn: 30,
+        disclaimer: 'Processing fees and final crypto amount may vary based on payment method and market conditions. This is an estimate.',
       },
     });
   } catch (error) {
@@ -96,6 +120,13 @@ router.post('/session', async (req: Request, res: Response) => {
     const userId = (req as any).user?.id || (req as any).session?.passport?.user?.id;
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    if (!checkSessionRateLimit(userId)) {
+      return res.status(429).json({
+        success: false,
+        error: 'Too many purchase attempts. Please try again later.',
+      });
     }
 
     const validation = createSessionSchema.safeParse(req.body);
@@ -176,6 +207,7 @@ router.post('/session', async (req: Request, res: Response) => {
       themeColor: '3B82F6',
       partnerOrderId: order.id.toString(),
       partnerCustomerId: userId,
+      partnerFeePercentage: COINRAILZ_FEE_RATE * 100,
     };
 
     res.json({
@@ -205,15 +237,17 @@ router.post('/webhook', async (req: Request, res: Response) => {
     const webhookSecret = process.env.TRANSAK_WEBHOOK_SECRET;
     if (webhookSecret) {
       const signature = req.headers['x-transak-signature'] as string;
-      if (signature) {
-        const expectedSignature = crypto
-          .createHmac('sha256', webhookSecret)
-          .update(JSON.stringify(req.body))
-          .digest('hex');
+      if (!signature) {
+        return res.status(401).json({ error: 'Missing webhook signature' });
+      }
 
-        if (signature !== expectedSignature) {
-          return res.status(401).json({ error: 'Invalid webhook signature' });
-        }
+      const expectedSignature = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(JSON.stringify(req.body))
+        .digest('hex');
+
+      if (signature !== expectedSignature) {
+        return res.status(401).json({ error: 'Invalid webhook signature' });
       }
     }
 
@@ -221,6 +255,11 @@ router.post('/webhook', async (req: Request, res: Response) => {
 
     if (!webhookData) {
       return res.status(400).json({ error: 'Missing webhook data' });
+    }
+
+    if (eventID && processedWebhookEvents.has(eventID)) {
+      console.log(`Transak webhook: duplicate eventID ${eventID}, skipping`);
+      return res.json({ success: true, message: 'Already processed' });
     }
 
     const {
@@ -235,7 +274,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
       errorMessage,
     } = webhookData;
 
-    let statusMap: Record<string, string> = {
+    const statusMap: Record<string, string> = {
       AWAITING_PAYMENT_FROM_USER: 'pending_payment',
       PAYMENT_DONE_MARKED_BY_USER: 'payment_received',
       PROCESSING: 'processing',
@@ -272,19 +311,8 @@ router.post('/webhook', async (req: Request, res: Response) => {
       }
     }
 
-    if (mappedStatus === 'completed' && partnerOrderId) {
-      const order = await storage.getOnrampOrder(parseInt(partnerOrderId));
-      if (order) {
-        try {
-          await storage.updateUser(order.userId, {
-            kycStatus: 'verified',
-            kycProvider: 'transak',
-            isKycVerified: true,
-          } as any);
-        } catch (e) {
-          console.warn('Could not update user KYC status:', e);
-        }
-      }
+    if (eventID) {
+      processedWebhookEvents.add(eventID);
     }
 
     console.log(`Transak webhook: ${eventID} → order ${partnerOrderId || transakOrderId} → ${mappedStatus}`);
@@ -302,7 +330,7 @@ router.get('/orders', async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
-    const limit = parseInt(req.query.limit as string) || 20;
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
     const orders = await storage.getUserOnrampOrders(userId, limit);
 
     res.json({

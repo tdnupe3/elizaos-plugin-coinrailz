@@ -177,12 +177,89 @@ function QuoteDisplay({ amount, token }: { amount: number; token: string }) {
       </div>
       <div className="flex justify-between">
         <span className="text-gray-500">Processing fee (est.)</span>
-        <span className="text-gray-600">-${quote.estimatedTransakFee.toFixed(2)}</span>
+        <span className="text-gray-600">-${(quote.estimatedProcessingFee ?? quote.estimatedTransakFee ?? 0).toFixed(2)}</span>
       </div>
       <div className="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between">
         <span className="font-semibold text-green-600">You receive (est.)</span>
-        <span className="font-bold text-green-600">{quote.estimatedCryptoAmount.toFixed(2)} {token}</span>
+        <span className="font-bold text-green-600">~{quote.estimatedCryptoAmount.toFixed(2)} {token}</span>
       </div>
+      {quote.disclaimer && <p className="text-xs text-gray-400 mt-1">{quote.disclaimer}</p>}
+    </div>
+  );
+}
+
+function TransakWidget({ config, onClose, onSuccess }: { config: any; onClose: () => void; onSuccess: () => void }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [widgetLoaded, setWidgetLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!config?.apiKey) return;
+
+    const params = new URLSearchParams({
+      apiKey: config.apiKey,
+      environment: config.environment || 'STAGING',
+      cryptoCurrencyCode: config.cryptoCurrencyCode || 'USDC',
+      network: config.network || 'base',
+      defaultFiatAmount: String(config.defaultFiatAmount || 100),
+      fiatCurrency: config.fiatCurrency || 'USD',
+      walletAddress: config.walletAddress || '',
+      disableWalletAddressForm: 'true',
+      hideMenu: 'true',
+      themeColor: config.themeColor || '3B82F6',
+      ...(config.partnerOrderId && { partnerOrderId: config.partnerOrderId }),
+      ...(config.partnerCustomerId && { partnerCustomerId: config.partnerCustomerId }),
+      ...(config.partnerFeePercentage && { partnerFeePercentage: String(config.partnerFeePercentage) }),
+    });
+
+    const baseUrl = config.environment === 'PRODUCTION'
+      ? 'https://global.transak.com'
+      : 'https://global-stg.transak.com';
+
+    if (iframeRef.current) {
+      iframeRef.current.src = `${baseUrl}/?${params.toString()}`;
+    }
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin.includes('transak.com')) {
+        try {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+          if (data.event_id === 'TRANSAK_ORDER_SUCCESSFUL' || data.event_id === 'TRANSAK_ORDER_COMPLETED') {
+            onSuccess();
+          }
+          if (data.event_id === 'TRANSAK_WIDGET_CLOSE') {
+            onClose();
+          }
+        } catch (e) {}
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [config]);
+
+  return (
+    <div className="space-y-4">
+      <div className="w-full rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 relative" style={{ minHeight: '600px' }}>
+        {!widgetLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800 z-10">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">Loading payment widget...</p>
+            </div>
+          </div>
+        )}
+        <iframe
+          ref={iframeRef}
+          title="Transak Payment Widget"
+          allow="camera;microphone;fullscreen;payment"
+          className="w-full border-0"
+          style={{ height: '600px' }}
+          onLoad={() => setWidgetLoaded(true)}
+        />
+      </div>
+      <Button variant="outline" className="w-full" onClick={onClose}>
+        <ArrowLeft className="w-4 h-4 mr-2" /> Cancel & Start Over
+      </Button>
     </div>
   );
 }
@@ -192,7 +269,6 @@ export default function BuyOnramp() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const [step, setStep] = useState(1);
   const [selectedToken, setSelectedToken] = useState("USDC");
@@ -213,7 +289,13 @@ export default function BuyOnramp() {
     }
   }, [isAuthenticated]);
 
-  const validateWallet = (address: string, network: string) => {
+  const isWalletValid = (address: string, network: string): boolean => {
+    if (!address) return false;
+    if (network === "tron") return /^T[a-zA-Z0-9]{33}$/.test(address);
+    return /^0x[a-fA-F0-9]{40}$/.test(address);
+  };
+
+  const validateWalletWithError = (address: string, network: string) => {
     if (!address) {
       setWalletError("");
       return false;
@@ -235,7 +317,7 @@ export default function BuyOnramp() {
 
   const handleWalletChange = (value: string) => {
     setWalletAddress(value);
-    if (value.length > 5) validateWallet(value, selectedNetwork);
+    if (value.length > 5) validateWalletWithError(value, selectedNetwork);
     else setWalletError("");
   };
 
@@ -268,7 +350,7 @@ export default function BuyOnramp() {
   const orders = (ordersData as any)?.orders || [];
 
   const canProceedToStep3 = selectedToken && selectedNetwork;
-  const canProceedToStep4 = parsedAmount >= 10 && parsedAmount <= 2500 && walletAddress && !walletError && validateWallet(walletAddress, selectedNetwork);
+  const canProceedToStep4 = parsedAmount >= 10 && parsedAmount <= 2500 && walletAddress && !walletError && isWalletValid(walletAddress, selectedNetwork);
 
   const quickAmounts = [25, 50, 100, 250, 500, 1000, 2500];
 
@@ -332,7 +414,7 @@ export default function BuyOnramp() {
                   {NETWORKS.map((network) => (
                     <button
                       key={network.id}
-                      onClick={() => { setSelectedNetwork(network.id); if (walletAddress) validateWallet(walletAddress, network.id); }}
+                      onClick={() => { setSelectedNetwork(network.id); setWalletAddress(""); setWalletError(""); }}
                       className={`p-3 rounded-xl border-2 transition-all text-center ${selectedNetwork === network.id ? "border-blue-600 bg-blue-50 dark:bg-blue-950" : "border-gray-200 dark:border-gray-700 hover:border-blue-300"}`}
                     >
                       <div className="font-bold" style={{ color: network.color }}>{network.icon}</div>
@@ -496,19 +578,7 @@ export default function BuyOnramp() {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div id="transakMount" className="w-full min-h-[600px] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-center h-[600px] bg-gray-50 dark:bg-gray-800">
-                      <div className="text-center">
-                        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
-                        <p className="text-sm text-gray-500">Loading payment widget...</p>
-                      </div>
-                    </div>
-                  </div>
-                  <Button variant="outline" className="w-full" onClick={() => { setStep(2); setShowWidget(false); setOrderCreated(null); }}>
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Cancel & Start Over
-                  </Button>
-                </div>
+                <TransakWidget config={orderCreated?.widget?.config} onClose={() => { setStep(2); setShowWidget(false); setOrderCreated(null); }} onSuccess={() => { queryClient.invalidateQueries({ queryKey: ["/api/onramp/transak/orders"] }); toast({ title: "Purchase complete!", description: "Your crypto is on its way to your wallet." }); }} />
               )}
             </CardContent>
           </Card>

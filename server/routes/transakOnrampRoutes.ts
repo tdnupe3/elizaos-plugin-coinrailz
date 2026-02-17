@@ -1,8 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { storage } from '../storage.js';
-import { getSession, isSessionValid, isSessionValidSync, getSessionSync } from '../services/sessionManager.js';
+import { getSession, isSessionValid } from '../services/sessionManager.js';
 
 const router = Router();
 
@@ -25,6 +25,8 @@ const ORDER_EXPIRY_MINUTES = 60;
 const sessionRateLimiter = new Map<string, { count: number; resetAt: number }>();
 const SESSION_RATE_LIMIT = 10;
 const SESSION_RATE_WINDOW_MS = 60 * 60 * 1000;
+
+let cachedAccessToken: { token: string; expiresAt: number } | null = null;
 
 function checkSessionRateLimit(userId: string): boolean {
   const now = Date.now();
@@ -54,6 +56,50 @@ async function resolveUserId(req: Request): Promise<string | null> {
     }
   }
   return null;
+}
+
+async function getTransakAccessToken(): Promise<string | null> {
+  if (cachedAccessToken && Date.now() < cachedAccessToken.expiresAt) {
+    return cachedAccessToken.token;
+  }
+
+  const apiSecret = process.env.TRANSAK_API_SECRET;
+  if (!apiSecret) return null;
+
+  const isProduction = (process.env.TRANSAK_ENVIRONMENT || 'STAGING') === 'PRODUCTION';
+  const baseUrl = isProduction
+    ? 'https://api.transak.com'
+    : 'https://api-stg.transak.com';
+
+  try {
+    const response = await fetch(`${baseUrl}/api/v2/currencies/refresh-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-secret': apiSecret,
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`Transak refresh token failed: ${response.status} ${response.statusText}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const accessToken = data?.data?.accessToken || data?.data?.token;
+    if (accessToken) {
+      cachedAccessToken = {
+        token: accessToken,
+        expiresAt: Date.now() + 4 * 60 * 1000,
+      };
+      return accessToken;
+    }
+    console.error('Transak refresh token: no accessToken in response', data);
+    return null;
+  } catch (err: any) {
+    console.error('Transak refresh token error:', err.message);
+    return null;
+  }
 }
 
 function startOrderExpiryJob() {
@@ -145,7 +191,7 @@ router.get('/quote', (req: Request, res: Response) => {
 
 router.post('/session', async (req: Request, res: Response) => {
   try {
-    const userId = resolveUserId(req);
+    const userId = await resolveUserId(req);
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
@@ -222,9 +268,8 @@ router.post('/session', async (req: Request, res: Response) => {
       });
     }
 
-    const widgetConfig = {
+    const widgetParams: Record<string, any> = {
       apiKey: transakApiKey,
-      environment: process.env.TRANSAK_ENVIRONMENT || 'STAGING',
       cryptoCurrencyCode: cryptoCurrency,
       network: networkConfig.transakNetwork,
       defaultFiatAmount: fiatAmount,
@@ -235,8 +280,42 @@ router.post('/session', async (req: Request, res: Response) => {
       themeColor: '3B82F6',
       partnerOrderId: order.id.toString(),
       partnerCustomerId: userId,
-      partnerFeePercentage: COINRAILZ_FEE_RATE * 100,
+      exchangeScreenTitle: 'Buy Crypto — Coin Railz',
     };
+
+    const transakEnv = process.env.TRANSAK_ENVIRONMENT || 'STAGING';
+
+    let widgetUrl: string | null = null;
+    const accessToken = await getTransakAccessToken();
+    if (accessToken) {
+      try {
+        const isProduction = transakEnv === 'PRODUCTION';
+        const apiBase = isProduction
+          ? 'https://api-gateway.transak.com'
+          : 'https://api-gateway-stg.transak.com';
+
+        const createWidgetResp = await fetch(`${apiBase}/craft/widget/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'access-token': accessToken,
+          },
+          body: JSON.stringify({
+            widgetParams,
+            referrerDomain: 'coinrailz.com',
+          }),
+        });
+
+        if (createWidgetResp.ok) {
+          const widgetData = await createWidgetResp.json();
+          widgetUrl = widgetData?.data?.widgetUrl || widgetData?.data?.url || null;
+        } else {
+          console.warn(`Transak Create Widget URL failed: ${createWidgetResp.status}`);
+        }
+      } catch (err: any) {
+        console.warn('Transak Create Widget URL error:', err.message);
+      }
+    }
 
     res.json({
       success: true,
@@ -251,7 +330,12 @@ router.post('/session', async (req: Request, res: Response) => {
       },
       widget: {
         mode: 'live',
-        config: widgetConfig,
+        widgetUrl,
+        config: {
+          ...widgetParams,
+          environment: transakEnv,
+          partnerFeePercentage: COINRAILZ_FEE_RATE * 100,
+        },
       },
     });
   } catch (error: any) {
@@ -262,27 +346,41 @@ router.post('/session', async (req: Request, res: Response) => {
 
 router.post('/webhook', async (req: Request, res: Response) => {
   try {
-    const webhookSecret = process.env.TRANSAK_WEBHOOK_SECRET;
-    if (webhookSecret) {
-      const signature = req.headers['x-transak-signature'] as string;
-      if (!signature) {
-        return res.status(401).json({ error: 'Missing webhook signature' });
-      }
+    const { data: jwtPayload } = req.body;
 
-      const expectedSignature = crypto
-        .createHmac('sha256', webhookSecret)
-        .update(JSON.stringify(req.body))
-        .digest('hex');
+    if (!jwtPayload) {
+      return res.status(400).json({ error: 'Missing webhook data (JWT payload)' });
+    }
 
-      if (signature !== expectedSignature) {
+    let webhookData: any;
+    let eventID: string | undefined;
+
+    const accessToken = await getTransakAccessToken();
+    if (accessToken) {
+      try {
+        const decoded = jwt.verify(jwtPayload, accessToken) as any;
+        webhookData = decoded.webhookData || decoded;
+        eventID = decoded.eventID || decoded.event_id;
+      } catch (jwtErr: any) {
+        console.error('Transak webhook JWT verification failed:', jwtErr.message);
         return res.status(401).json({ error: 'Invalid webhook signature' });
+      }
+    } else {
+      console.warn('Transak webhook: No access token available, processing unverified (API secret not configured)');
+      try {
+        const decoded = jwt.decode(jwtPayload) as any;
+        if (!decoded) {
+          return res.status(400).json({ error: 'Invalid webhook JWT format' });
+        }
+        webhookData = decoded.webhookData || decoded;
+        eventID = decoded.eventID || decoded.event_id;
+      } catch {
+        return res.status(400).json({ error: 'Failed to decode webhook payload' });
       }
     }
 
-    const { eventID, webhookData } = req.body;
-
     if (!webhookData) {
-      return res.status(400).json({ error: 'Missing webhook data' });
+      return res.status(400).json({ error: 'Missing webhook data after decoding' });
     }
 
     if (eventID) {
@@ -356,7 +454,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
 
 router.get('/orders', async (req: Request, res: Response) => {
   try {
-    const userId = resolveUserId(req);
+    const userId = await resolveUserId(req);
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
@@ -389,7 +487,7 @@ router.get('/orders', async (req: Request, res: Response) => {
 
 router.get('/order/:id', async (req: Request, res: Response) => {
   try {
-    const userId = resolveUserId(req);
+    const userId = await resolveUserId(req);
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }

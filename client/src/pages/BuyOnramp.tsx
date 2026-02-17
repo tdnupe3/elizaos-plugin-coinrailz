@@ -266,35 +266,43 @@ function OrderStatusBanner({ orderId }: { orderId: number }) {
   );
 }
 
-function TransakWidget({ config, orderId, onClose, onSuccess }: { config: any; orderId: number; onClose: () => void; onSuccess: () => void }) {
+function TransakWidget({ config, widgetUrl, orderId, onClose, onSuccess }: { config: any; widgetUrl?: string; orderId: number; onClose: () => void; onSuccess: () => void }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [widgetLoaded, setWidgetLoaded] = useState(false);
 
   useEffect(() => {
     if (!config?.apiKey) return;
 
-    const params = new URLSearchParams({
-      apiKey: config.apiKey,
-      environment: config.environment || 'STAGING',
-      cryptoCurrencyCode: config.cryptoCurrencyCode || 'USDC',
-      network: config.network || 'base',
-      defaultFiatAmount: String(config.defaultFiatAmount || 100),
-      fiatCurrency: config.fiatCurrency || 'USD',
-      walletAddress: config.walletAddress || '',
-      disableWalletAddressForm: 'true',
-      hideMenu: 'true',
-      themeColor: config.themeColor || '3B82F6',
-      ...(config.partnerOrderId && { partnerOrderId: config.partnerOrderId }),
-      ...(config.partnerCustomerId && { partnerCustomerId: config.partnerCustomerId }),
-      ...(config.partnerFeePercentage && { partnerFeePercentage: String(config.partnerFeePercentage) }),
-    });
+    let src: string;
 
-    const baseUrl = config.environment === 'PRODUCTION'
-      ? 'https://global.transak.com'
-      : 'https://global-stg.transak.com';
+    if (widgetUrl) {
+      src = widgetUrl;
+    } else {
+      const params = new URLSearchParams({
+        apiKey: config.apiKey,
+        environment: config.environment || 'STAGING',
+        cryptoCurrencyCode: config.cryptoCurrencyCode || 'USDC',
+        network: config.network || 'base',
+        defaultFiatAmount: String(config.defaultFiatAmount || 100),
+        fiatCurrency: config.fiatCurrency || 'USD',
+        walletAddress: config.walletAddress || '',
+        disableWalletAddressForm: 'true',
+        hideMenu: 'true',
+        themeColor: config.themeColor || '3B82F6',
+        ...(config.partnerOrderId && { partnerOrderId: config.partnerOrderId }),
+        ...(config.partnerCustomerId && { partnerCustomerId: config.partnerCustomerId }),
+        ...(config.partnerFeePercentage && { partnerFeePercentage: String(config.partnerFeePercentage) }),
+      });
+
+      const baseUrl = config.environment === 'PRODUCTION'
+        ? 'https://global.transak.com'
+        : 'https://global-stg.transak.com';
+
+      src = `${baseUrl}/?${params.toString()}`;
+    }
 
     if (iframeRef.current) {
-      iframeRef.current.src = `${baseUrl}/?${params.toString()}`;
+      iframeRef.current.src = src;
     }
 
     const handleMessage = (event: MessageEvent) => {
@@ -703,6 +711,7 @@ export default function BuyOnramp() {
               ) : (
                 <TransakWidget
                   config={orderCreated?.widget?.config}
+                  widgetUrl={orderCreated?.widget?.widgetUrl}
                   orderId={orderCreated?.order?.id}
                   onClose={resetFlow}
                   onSuccess={() => {

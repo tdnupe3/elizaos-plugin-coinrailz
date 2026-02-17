@@ -528,6 +528,15 @@ const { setupAuth } = await import('./replitAuth');
 // Initialize authentication system
 setupAuth(app);
 
+// Restore persisted user sessions from database
+try {
+  const { loadSessionsFromDB, cleanExpiredSessions } = await import('./services/sessionManager');
+  await loadSessionsFromDB();
+  await cleanExpiredSessions();
+} catch (err: any) {
+  console.warn('Session restore skipped:', err.message);
+}
+
 // Mark passport as configured for OAuth routes
 console.log('✅ OAuth configuration loaded successfully');
 

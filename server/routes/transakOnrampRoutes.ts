@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { storage } from '../storage.js';
-import { getSession, isSessionValid } from '../services/sessionManager.js';
+import { getSession, isSessionValid, isSessionValidSync, getSessionSync } from '../services/sessionManager.js';
 
 const router = Router();
 
@@ -38,16 +38,19 @@ function checkSessionRateLimit(userId: string): boolean {
   return true;
 }
 
-function resolveUserId(req: Request): string | null {
+async function resolveUserId(req: Request): Promise<string | null> {
   const existingId = (req as any).user?.id || (req as any).session?.passport?.user?.id;
   if (existingId) return existingId;
 
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
-    if (token && isSessionValid(token)) {
-      const session = getSession(token);
-      if (session) return session.userId;
+    if (token) {
+      const valid = await isSessionValid(token);
+      if (valid) {
+        const session = await getSession(token);
+        if (session) return session.userId;
+      }
     }
   }
   return null;

@@ -201,32 +201,20 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
     
-    // For development/testing, accept any bearer token as valid
-    if (process.env.NODE_ENV === 'development' && token) {
-      // Create a mock user for development
-      req.user = {
-        claims: {
-          sub: `dev-user-${token.slice(-8)}`,
-          email: `test-${token.slice(-8)}@coinrailz.dev`,
-          first_name: 'Test',
-          last_name: 'User'
-        }
-      };
-      return next();
-    }
-    
-    // In production, validate the token properly
-    // For now, accept any token for marketplace testing
     if (token) {
-      req.user = {
-        claims: {
-          sub: `api-user-${token.slice(-8)}`,
-          email: `api-${token.slice(-8)}@coinrailz.com`,
-          first_name: 'API',
-          last_name: 'User'
-        }
-      };
-      return next();
+      const { getSessionSync } = await import('./services/sessionManager');
+      const session = getSessionSync(token);
+      if (session) {
+        req.user = {
+          claims: {
+            sub: session.userId,
+            email: session.userEmail,
+            first_name: 'User',
+            last_name: ''
+          }
+        };
+        return next();
+      }
     }
   }
 

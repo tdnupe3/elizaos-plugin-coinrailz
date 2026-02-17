@@ -6,7 +6,7 @@ import type { Express } from "express";
 import { storage } from "./storage";
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
-import { sessionStore, createSession } from './services/sessionManager';
+import { sessionStore, createSession, getSession, deleteSession } from './services/sessionManager';
 import { userCircleService } from './services/userCircleService';
 
 // Registration validation schema with secure password requirements
@@ -139,15 +139,7 @@ export function registerAuthRoutes(app: Express) {
         });
       }
 
-      // Create session token (simplified - in production would use JWT)
-      const sessionToken = `cr_session_${user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Store session in memory (in production, this would be in Redis/database)
-      sessionStore.set(sessionToken, {
-        userId: user.id,
-        userEmail: user.email || '',
-        createdAt: Date.now()
-      });
+      const sessionToken = createSession(user.id, user.email || '');
       
       const { password: _, ...userResponse } = user;
       
@@ -188,7 +180,7 @@ export function registerAuthRoutes(app: Express) {
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.split(' ')[1];
-        const session = sessionStore.get(token);
+        const session = await getSession(token);
         if (session) {
           const user = await storage.getUserByEmail(session.userEmail);
           if (user) {
@@ -238,7 +230,7 @@ export function registerAuthRoutes(app: Express) {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
-      sessionStore.delete(token);
+      deleteSession(token);
     }
     
     // Redirect to home page after logout
@@ -260,7 +252,7 @@ export function registerAuthRoutes(app: Express) {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
-      sessionStore.delete(token);
+      deleteSession(token);
     }
     
     res.json({
@@ -373,7 +365,7 @@ export function registerAuthRoutes(app: Express) {
 
       // Extract and validate session token
       const token = authHeader.split(' ')[1];
-      const session = sessionStore.get(token);
+      const session = await getSession(token);
       if (!session) {
         return res.status(401).json({
           success: false,
@@ -426,7 +418,7 @@ export function registerAuthRoutes(app: Express) {
 
       // Extract and validate session token
       const token = authHeader.split(' ')[1];
-      const session = sessionStore.get(token);
+      const session = await getSession(token);
       if (!session) {
         return res.status(401).json({
           success: false,
@@ -473,7 +465,7 @@ export function registerAuthRoutes(app: Express) {
 
       // Extract and validate session token
       const token = authHeader.split(' ')[1];
-      const session = sessionStore.get(token);
+      const session = await getSession(token);
       if (!session) {
         return res.status(401).json({
           success: false,

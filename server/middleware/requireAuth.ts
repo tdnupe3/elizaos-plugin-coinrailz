@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { getSession, isSessionValid } from '../services/sessionManager';
+import { getSession, isSessionValid, isSessionValidSync, getSessionSync } from '../services/sessionManager';
 
 interface AuthenticatedRequest extends Request {
   user: {
@@ -10,9 +10,8 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
-export function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
-    // Check for Authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
@@ -22,7 +21,6 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
       });
     }
 
-    // Extract and validate session token
     const token = authHeader.split(' ')[1];
     if (!token) {
       return res.status(401).json({
@@ -32,8 +30,8 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
       });
     }
 
-    // Check if session exists and is valid
-    if (!isSessionValid(token)) {
+    const valid = await isSessionValid(token);
+    if (!valid) {
       return res.status(401).json({
         success: false,
         error: 'Session expired',
@@ -41,7 +39,7 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
       });
     }
 
-    const session = getSession(token);
+    const session = await getSession(token);
     if (!session) {
       return res.status(401).json({
         success: false,
@@ -50,12 +48,9 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
       });
     }
 
-    // Add user info to request
     req.user = {
       id: session.userId,
       email: session.userEmail,
-      firstName: 'Demo',
-      lastName: 'User'
     };
 
     next();

@@ -355,6 +355,12 @@ export interface IStorage {
   isWebhookEventProcessed(eventId: string): Promise<boolean>;
   recordWebhookEvent(eventId: string, transakOrderId?: string, status?: string): Promise<void>;
   expireStaleOnrampOrders(olderThanMinutes: number): Promise<number>;
+
+  createAuthSession(data: { token: string; userId: string; userEmail: string; expiresAt: Date }): Promise<any>;
+  getAuthSessionByToken(token: string): Promise<any>;
+  deleteAuthSession(token: string): Promise<void>;
+  getActiveAuthSessions(): Promise<any[]>;
+  deleteExpiredAuthSessions(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2741,6 +2747,35 @@ export class DatabaseStorage implements IStorage {
       ))
       .returning();
     return result.length;
+  }
+
+  async createAuthSession(data: { token: string; userId: string; userEmail: string; expiresAt: Date }): Promise<any> {
+    const result = await db.execute(
+      sql`INSERT INTO auth_user_sessions (token, user_id, user_email, expires_at) VALUES (${data.token}, ${data.userId}, ${data.userEmail}, ${data.expiresAt}) ON CONFLICT (token) DO NOTHING RETURNING *`
+    );
+    return result.rows?.[0] || null;
+  }
+
+  async getAuthSessionByToken(token: string): Promise<any> {
+    const result = await db.execute(
+      sql`SELECT token, user_id as "userId", user_email as "userEmail", created_at as "createdAt", expires_at as "expiresAt" FROM auth_user_sessions WHERE token = ${token} LIMIT 1`
+    );
+    return result.rows?.[0] || null;
+  }
+
+  async deleteAuthSession(token: string): Promise<void> {
+    await db.execute(sql`DELETE FROM auth_user_sessions WHERE token = ${token}`);
+  }
+
+  async getActiveAuthSessions(): Promise<any[]> {
+    const result = await db.execute(
+      sql`SELECT token, user_id as "userId", user_email as "userEmail", created_at as "createdAt", expires_at as "expiresAt" FROM auth_user_sessions WHERE expires_at > NOW()`
+    );
+    return result.rows || [];
+  }
+
+  async deleteExpiredAuthSessions(): Promise<void> {
+    await db.execute(sql`DELETE FROM auth_user_sessions WHERE expires_at < NOW()`);
   }
 }
 

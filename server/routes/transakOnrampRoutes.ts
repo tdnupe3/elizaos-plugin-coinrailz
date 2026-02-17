@@ -1,7 +1,8 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { storage } from '../storage.js';
+import { getSession, isSessionValid } from '../services/sessionManager.js';
 
 const router = Router();
 
@@ -35,6 +36,21 @@ function checkSessionRateLimit(userId: string): boolean {
   if (entry.count >= SESSION_RATE_LIMIT) return false;
   entry.count++;
   return true;
+}
+
+function resolveUserId(req: Request): string | null {
+  const existingId = (req as any).user?.id || (req as any).session?.passport?.user?.id;
+  if (existingId) return existingId;
+
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    if (token && isSessionValid(token)) {
+      const session = getSession(token);
+      if (session) return session.userId;
+    }
+  }
+  return null;
 }
 
 function startOrderExpiryJob() {
@@ -126,7 +142,7 @@ router.get('/quote', (req: Request, res: Response) => {
 
 router.post('/session', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id || (req as any).session?.passport?.user?.id;
+    const userId = resolveUserId(req);
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
@@ -337,7 +353,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
 
 router.get('/orders', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id || (req as any).session?.passport?.user?.id;
+    const userId = resolveUserId(req);
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
@@ -370,7 +386,7 @@ router.get('/orders', async (req: Request, res: Response) => {
 
 router.get('/order/:id', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id || (req as any).session?.passport?.user?.id;
+    const userId = resolveUserId(req);
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }

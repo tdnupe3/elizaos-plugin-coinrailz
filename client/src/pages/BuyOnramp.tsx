@@ -145,11 +145,30 @@ function InlineAuth({ onSuccess }: { onSuccess: () => void }) {
             </div>
             <div>
               <Label htmlFor="reg-password">Password</Label>
-              <Input id="reg-password" type="password" placeholder="Min. 8 characters" value={registerData.password} onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })} />
+              <Input id="reg-password" type="password" placeholder="e.g. MyPass1!" value={registerData.password} onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })} />
+              {registerData.password.length > 0 && (
+                <div className="mt-1.5 space-y-0.5">
+                  {[
+                    { test: registerData.password.length >= 8, label: "8+ characters" },
+                    { test: /[A-Z]/.test(registerData.password), label: "Uppercase letter" },
+                    { test: /[a-z]/.test(registerData.password), label: "Lowercase letter" },
+                    { test: /\d/.test(registerData.password), label: "Number" },
+                    { test: /[@$!%*?&]/.test(registerData.password), label: "Special char (@$!%*?&)" },
+                  ].map(({ test, label }) => (
+                    <div key={label} className={`text-xs flex items-center gap-1 ${test ? "text-green-600" : "text-gray-400"}`}>
+                      {test ? <CheckCircle className="w-3 h-3" /> : <span className="w-3 h-3 inline-block rounded-full border border-gray-300" />}
+                      {label}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <Label htmlFor="reg-confirm">Confirm Password</Label>
               <Input id="reg-confirm" type="password" placeholder="Confirm password" value={registerData.confirmPassword} onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })} />
+              {registerData.confirmPassword && registerData.password !== registerData.confirmPassword && (
+                <p className="text-xs text-red-500 mt-1">Passwords don't match</p>
+              )}
             </div>
             <Button
               className="w-full h-12 text-lg"

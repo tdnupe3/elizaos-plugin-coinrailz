@@ -64,7 +64,8 @@ async function getTransakAccessToken(): Promise<string | null> {
   }
 
   const apiSecret = process.env.TRANSAK_API_SECRET;
-  if (!apiSecret) return null;
+  const apiKey = process.env.TRANSAK_API_KEY;
+  if (!apiSecret || !apiKey) return null;
 
   const isProduction = (process.env.TRANSAK_ENVIRONMENT || 'STAGING') === 'PRODUCTION';
   const baseUrl = isProduction
@@ -72,16 +73,18 @@ async function getTransakAccessToken(): Promise<string | null> {
     : 'https://api-stg.transak.com';
 
   try {
-    const response = await fetch(`${baseUrl}/api/v2/currencies/refresh-token`, {
+    const response = await fetch(`${baseUrl}/api/v2/auth/refresh-token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'api-secret': apiSecret,
       },
+      body: JSON.stringify({ apiKey }),
     });
 
     if (!response.ok) {
-      console.error(`Transak refresh token failed: ${response.status} ${response.statusText}`);
+      const errorText = await response.text().catch(() => '');
+      console.error(`Transak refresh token failed: ${response.status} ${response.statusText}`, errorText);
       return null;
     }
 
@@ -90,11 +93,12 @@ async function getTransakAccessToken(): Promise<string | null> {
     if (accessToken) {
       cachedAccessToken = {
         token: accessToken,
-        expiresAt: Date.now() + 4 * 60 * 1000,
+        expiresAt: Date.now() + 6 * 24 * 60 * 60 * 1000,
       };
+      console.log('✅ Transak access token refreshed successfully');
       return accessToken;
     }
-    console.error('Transak refresh token: no accessToken in response', data);
+    console.error('Transak refresh token: no accessToken in response', JSON.stringify(data));
     return null;
   } catch (err: any) {
     console.error('Transak refresh token error:', err.message);
@@ -291,26 +295,33 @@ router.post('/session', async (req: Request, res: Response) => {
       try {
         const isProduction = transakEnv === 'PRODUCTION';
         const apiBase = isProduction
-          ? 'https://api-gateway.transak.com'
-          : 'https://api-gateway-stg.transak.com';
+          ? 'https://api.transak.com'
+          : 'https://api-stg.transak.com';
 
-        const createWidgetResp = await fetch(`${apiBase}/craft/widget/create`, {
+        const createWidgetResp = await fetch(`${apiBase}/api/v2/auth/session`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'accept': 'application/json',
             'access-token': accessToken,
           },
           body: JSON.stringify({
-            widgetParams,
-            referrerDomain: 'coinrailz.com',
+            widgetParams: {
+              ...widgetParams,
+              referrerDomain: 'coinrailz.com',
+            },
           }),
         });
 
         if (createWidgetResp.ok) {
           const widgetData = await createWidgetResp.json();
-          widgetUrl = widgetData?.data?.widgetUrl || widgetData?.data?.url || null;
+          widgetUrl = widgetData?.data?.widgetUrl || null;
+          if (widgetUrl) {
+            console.log('✅ Transak secure widget URL generated');
+          }
         } else {
-          console.warn(`Transak Create Widget URL failed: ${createWidgetResp.status}`);
+          const errText = await createWidgetResp.text().catch(() => '');
+          console.warn(`Transak Create Widget URL failed: ${createWidgetResp.status}`, errText);
         }
       } catch (err: any) {
         console.warn('Transak Create Widget URL error:', err.message);

@@ -338,7 +338,8 @@ function TransakWidget({ config, widgetUrl, orderId, onClose, onSuccess }: { con
         <iframe
           ref={iframeRef}
           title="Transak Payment Widget"
-          allow="camera;microphone;fullscreen;payment"
+          allow="camera;microphone;fullscreen;payment;clipboard-write"
+          referrerPolicy="strict-origin-when-cross-origin"
           className="w-full border-0"
           style={{ height: '600px' }}
           onLoad={() => setWidgetLoaded(true)}

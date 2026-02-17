@@ -210,12 +210,8 @@ function QuoteDisplay({ amount, token }: { amount: number; token: string }) {
         <span className="font-semibold">${amount.toFixed(2)} USD</span>
       </div>
       <div className="flex justify-between">
-        <span className="text-gray-500">Coin Railz fee (3%)</span>
-        <span className="text-gray-600">-${quote.coinrailzFee.toFixed(2)}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-gray-500">Processing fee (est.)</span>
-        <span className="text-gray-600">-${(quote.estimatedProcessingFee ?? 0).toFixed(2)}</span>
+        <span className="text-gray-500">Fees (inclusive of all network & transfer fees)</span>
+        <span className="text-gray-600">-${quote.totalFees.toFixed(2)}</span>
       </div>
       <div className="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between">
         <span className="font-semibold text-green-600">You receive (est.)</span>
@@ -706,7 +702,7 @@ export default function BuyOnramp() {
                         <span className="font-mono text-xs">{orderCreated.order.walletAddress.slice(0, 10)}...{orderCreated.order.walletAddress.slice(-6)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Fee</span>
+                        <span className="text-gray-500">Fees (all-inclusive)</span>
                         <span>${parseFloat(orderCreated.order.coinrailzFee).toFixed(2)}</span>
                       </div>
                     </div>

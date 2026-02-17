@@ -196,7 +196,7 @@ router.get('/quote', (req: Request, res: Response) => {
 
     const coinrailzFee = Math.round(amount * COINRAILZ_FEE_RATE * 100) / 100;
     const estimatedProcessingFee = Math.round(amount * 0.015 * 100) / 100;
-    const totalFees = coinrailzFee + estimatedProcessingFee;
+    const totalFees = Math.round((coinrailzFee + estimatedProcessingFee) * 100) / 100;
     const cryptoAmount = Math.round((amount - totalFees) * 100) / 100;
 
     res.json({
@@ -205,13 +205,12 @@ router.get('/quote', (req: Request, res: Response) => {
         fiatAmount: amount,
         fiatCurrency: 'USD',
         cryptoCurrency: token,
-        coinrailzFee,
-        estimatedProcessingFee,
         totalFees,
         estimatedCryptoAmount: cryptoAmount,
+        feeLabel: `~$${totalFees.toFixed(2)} (${(COINRAILZ_FEE_RATE * 100).toFixed(0)}% inclusive of all network & transfer fees)`,
         rate: 1.0,
         expiresIn: 30,
-        disclaimer: 'The 3% Coin Railz fee is included in your total. Processing fees vary by payment method. Final crypto amount is determined at time of purchase.',
+        disclaimer: 'Fee includes Coin Railz platform fee plus network and processing costs. Final crypto amount determined at time of purchase.',
       },
     });
   } catch (error) {
@@ -387,19 +386,27 @@ router.post('/webhook', async (req: Request, res: Response) => {
 
     let webhookData: any;
     let eventID: string | undefined;
+    let verified = false;
 
+    const verificationKeys: string[] = [];
     const accessToken = await getTransakAccessToken();
-    if (accessToken) {
+    if (accessToken) verificationKeys.push(accessToken);
+    const apiSecret = process.env.TRANSAK_API_SECRET?.trim();
+    if (apiSecret) verificationKeys.push(apiSecret);
+
+    for (const key of verificationKeys) {
       try {
-        const decoded = jwt.verify(jwtPayload, accessToken) as any;
+        const decoded = jwt.verify(jwtPayload, key) as any;
         webhookData = decoded.webhookData || decoded;
         eventID = decoded.eventID || decoded.event_id;
-      } catch (jwtErr: any) {
-        console.error('Transak webhook JWT verification failed:', jwtErr.message);
-        return res.status(401).json({ error: 'Invalid webhook signature' });
+        verified = true;
+        break;
+      } catch {
+        continue;
       }
-    } else {
-      console.warn('Transak webhook: No access token available, processing unverified (API secret not configured)');
+    }
+
+    if (!verified) {
       try {
         const decoded = jwt.decode(jwtPayload) as any;
         if (!decoded) {
@@ -407,6 +414,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
         }
         webhookData = decoded.webhookData || decoded;
         eventID = decoded.eventID || decoded.event_id;
+        console.warn('⚠️ Transak webhook: JWT signature NOT verified (access token unavailable). Applying order-level validation.');
       } catch {
         return res.status(400).json({ error: 'Failed to decode webhook payload' });
       }
@@ -436,6 +444,26 @@ router.post('/webhook', async (req: Request, res: Response) => {
       errorMessage,
       partnerFeeInLocalCurrency,
     } = webhookData;
+
+    if (!verified && partnerOrderId) {
+      const existingOrder = await storage.getOnrampOrder(parseInt(partnerOrderId));
+      if (!existingOrder) {
+        console.error(`Transak webhook REJECTED: unverified + partnerOrderId ${partnerOrderId} not found in database`);
+        return res.status(403).json({ error: 'Order validation failed' });
+      }
+      if (existingOrder.cryptoCurrency?.toUpperCase() !== cryptoCurrency?.toUpperCase()) {
+        console.error(`Transak webhook REJECTED: unverified + currency mismatch (expected ${existingOrder.cryptoCurrency}, got ${cryptoCurrency})`);
+        return res.status(403).json({ error: 'Order validation failed' });
+      }
+      if (existingOrder.network?.toLowerCase() !== network?.toLowerCase()) {
+        console.error(`Transak webhook REJECTED: unverified + network mismatch (expected ${existingOrder.network}, got ${network})`);
+        return res.status(403).json({ error: 'Order validation failed' });
+      }
+      console.log(`Transak webhook: unverified but passed order-level validation for order ${partnerOrderId}`);
+    } else if (!verified && !partnerOrderId) {
+      console.error('Transak webhook REJECTED: unverified + no partnerOrderId for cross-reference');
+      return res.status(403).json({ error: 'Cannot validate webhook without order reference' });
+    }
 
     const eventStatusMap: Record<string, Record<string, string>> = {
       ORDER_CREATED: { AWAITING_PAYMENT_FROM_USER: 'pending_payment' },

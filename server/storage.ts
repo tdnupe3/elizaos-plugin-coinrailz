@@ -84,6 +84,7 @@ import {
   onrampOrders,
   type OnrampOrder,
   type InsertOnrampOrder,
+  onrampWebhookEvents,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sum, sql, lte, gte, lt } from "drizzle-orm";
@@ -351,6 +352,9 @@ export interface IStorage {
   getUserOnrampOrders(userId: string, limit?: number): Promise<OnrampOrder[]>;
   updateOnrampOrder(id: number, updates: Partial<InsertOnrampOrder>): Promise<OnrampOrder | undefined>;
   updateOnrampOrderByTransakId(transakOrderId: string, updates: Partial<InsertOnrampOrder>): Promise<OnrampOrder | undefined>;
+  isWebhookEventProcessed(eventId: string): Promise<boolean>;
+  recordWebhookEvent(eventId: string, transakOrderId?: string, status?: string): Promise<void>;
+  expireStaleOnrampOrders(olderThanMinutes: number): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2711,6 +2715,32 @@ export class DatabaseStorage implements IStorage {
       .where(eq(onrampOrders.transakOrderId, transakOrderId))
       .returning();
     return updated;
+  }
+
+  async isWebhookEventProcessed(eventId: string): Promise<boolean> {
+    const [existing] = await db.select().from(onrampWebhookEvents)
+      .where(eq(onrampWebhookEvents.eventId, eventId)).limit(1);
+    return !!existing;
+  }
+
+  async recordWebhookEvent(eventId: string, transakOrderId?: string, status?: string): Promise<void> {
+    await db.insert(onrampWebhookEvents).values({
+      eventId,
+      transakOrderId: transakOrderId || null,
+      status: status || null,
+    }).onConflictDoNothing();
+  }
+
+  async expireStaleOnrampOrders(olderThanMinutes: number): Promise<number> {
+    const cutoff = new Date(Date.now() - olderThanMinutes * 60 * 1000);
+    const result = await db.update(onrampOrders)
+      .set({ status: 'expired', updatedAt: new Date() })
+      .where(and(
+        eq(onrampOrders.status, 'created'),
+        lte(onrampOrders.createdAt, cutoff),
+      ))
+      .returning();
+    return result.length;
   }
 }
 

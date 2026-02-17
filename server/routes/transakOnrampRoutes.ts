@@ -19,13 +19,7 @@ const SUPPORTED_NETWORKS: Record<string, { transakNetwork: string; chainId?: num
 const COINRAILZ_FEE_RATE = 0.03;
 const MAX_TRANSACTION_AMOUNT = 2500;
 const MIN_TRANSACTION_AMOUNT = 10;
-
-const processedWebhookEvents = new Set<string>();
-const WEBHOOK_EVENT_TTL_MS = 24 * 60 * 60 * 1000;
-
-setInterval(() => {
-  processedWebhookEvents.clear();
-}, WEBHOOK_EVENT_TTL_MS);
+const ORDER_EXPIRY_MINUTES = 60;
 
 const sessionRateLimiter = new Map<string, { count: number; resetAt: number }>();
 const SESSION_RATE_LIMIT = 10;
@@ -42,6 +36,21 @@ function checkSessionRateLimit(userId: string): boolean {
   entry.count++;
   return true;
 }
+
+function startOrderExpiryJob() {
+  setInterval(async () => {
+    try {
+      const expired = await storage.expireStaleOnrampOrders(ORDER_EXPIRY_MINUTES);
+      if (expired > 0) {
+        console.log(`Transak: expired ${expired} stale onramp orders (>${ORDER_EXPIRY_MINUTES}min old)`);
+      }
+    } catch (e) {
+      console.warn('Transak order expiry job error:', e);
+    }
+  }, 5 * 60 * 1000);
+}
+
+startOrderExpiryJob();
 
 const createSessionSchema = z.object({
   fiatAmount: z.number().min(MIN_TRANSACTION_AMOUNT).max(MAX_TRANSACTION_AMOUNT),
@@ -107,7 +116,7 @@ router.get('/quote', (req: Request, res: Response) => {
         estimatedCryptoAmount: cryptoAmount,
         rate: 1.0,
         expiresIn: 30,
-        disclaimer: 'Processing fees and final crypto amount may vary based on payment method and market conditions. This is an estimate.',
+        disclaimer: 'The 3% Coin Railz fee is included in your total. Processing fees vary by payment method. Final crypto amount is determined at time of purchase.',
       },
     });
   } catch (error) {
@@ -257,9 +266,12 @@ router.post('/webhook', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing webhook data' });
     }
 
-    if (eventID && processedWebhookEvents.has(eventID)) {
-      console.log(`Transak webhook: duplicate eventID ${eventID}, skipping`);
-      return res.json({ success: true, message: 'Already processed' });
+    if (eventID) {
+      const alreadyProcessed = await storage.isWebhookEventProcessed(eventID);
+      if (alreadyProcessed) {
+        console.log(`Transak webhook: duplicate eventID ${eventID}, skipping`);
+        return res.json({ success: true, message: 'Already processed' });
+      }
     }
 
     const {
@@ -312,7 +324,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
     }
 
     if (eventID) {
-      processedWebhookEvents.add(eventID);
+      await storage.recordWebhookEvent(eventID, transakOrderId, mappedStatus);
     }
 
     console.log(`Transak webhook: ${eventID} → order ${partnerOrderId || transakOrderId} → ${mappedStatus}`);
@@ -344,7 +356,7 @@ router.get('/orders', async (req: Request, res: Response) => {
         cryptoAmount: o.cryptoAmount,
         cryptoCurrency: o.cryptoCurrency,
         network: o.network,
-        walletAddress: o.walletAddress,
+        walletAddress: maskWalletAddress(o.walletAddress),
         paymentMethod: o.paymentMethod,
         transactionHash: o.transactionHash,
         completedAt: o.completedAt,
@@ -368,10 +380,21 @@ router.get('/order/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: 'Order not found' });
     }
 
-    res.json({ success: true, order });
+    res.json({
+      success: true,
+      order: {
+        ...order,
+        walletAddress: maskWalletAddress(order.walletAddress),
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch order' });
   }
 });
+
+function maskWalletAddress(address: string): string {
+  if (!address || address.length < 12) return address;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
 
 export default router;

@@ -6458,3 +6458,11 @@ export const onrampOrdersInsertSchema = createInsertSchema(onrampOrders).omit({
 export type OnrampOrder = typeof onrampOrders.$inferSelect;
 export type InsertOnrampOrder = z.infer<typeof onrampOrdersInsertSchema>;
 
+export const onrampWebhookEvents = pgTable("onramp_webhook_events", {
+  id: serial("id").primaryKey(),
+  eventId: varchar("event_id").notNull().unique(),
+  transakOrderId: varchar("transak_order_id"),
+  status: varchar("status", { length: 50 }),
+  processedAt: timestamp("processed_at").defaultNow(),
+});
+

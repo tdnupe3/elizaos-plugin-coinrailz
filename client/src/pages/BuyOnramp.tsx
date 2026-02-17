@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,16 +19,14 @@ import {
   Zap,
   CheckCircle,
   Clock,
-  AlertTriangle,
   Loader2,
   Wallet,
   DollarSign,
   Globe,
-  ChevronDown,
-  ExternalLink,
-  Copy,
-  Check,
+  RefreshCw,
 } from "lucide-react";
+
+const STORAGE_KEY = "coinrailz_onramp_session";
 
 const NETWORKS = [
   { id: "ethereum", name: "Ethereum", icon: "ETH", color: "#627EEA" },
@@ -43,6 +41,27 @@ const TOKENS = [
   { id: "USDC", name: "USDC", description: "USD Coin" },
   { id: "USDT", name: "USDT", description: "Tether" },
 ];
+
+function clearSavedSession() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+}
+
+function saveSession(data: any) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, savedAt: Date.now() })); } catch (e) {}
+}
+
+function loadSession(): any | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (Date.now() - data.savedAt > 60 * 60 * 1000) {
+      clearSavedSession();
+      return null;
+    }
+    return data;
+  } catch (e) { return null; }
+}
 
 function InlineAuth({ onSuccess }: { onSuccess: () => void }) {
   const { toast } = useToast();
@@ -177,7 +196,7 @@ function QuoteDisplay({ amount, token }: { amount: number; token: string }) {
       </div>
       <div className="flex justify-between">
         <span className="text-gray-500">Processing fee (est.)</span>
-        <span className="text-gray-600">-${(quote.estimatedProcessingFee ?? quote.estimatedTransakFee ?? 0).toFixed(2)}</span>
+        <span className="text-gray-600">-${(quote.estimatedProcessingFee ?? 0).toFixed(2)}</span>
       </div>
       <div className="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between">
         <span className="font-semibold text-green-600">You receive (est.)</span>
@@ -188,7 +207,47 @@ function QuoteDisplay({ amount, token }: { amount: number; token: string }) {
   );
 }
 
-function TransakWidget({ config, onClose, onSuccess }: { config: any; onClose: () => void; onSuccess: () => void }) {
+function OrderStatusBanner({ orderId }: { orderId: number }) {
+  const { data } = useQuery({
+    queryKey: ["/api/onramp/transak/order", orderId],
+    queryFn: async () => {
+      const res = await fetch(`/api/onramp/transak/order/${orderId}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    refetchInterval: 5000,
+    enabled: !!orderId,
+  });
+
+  const order = (data as any)?.order;
+  if (!order || order.status === 'created') return null;
+
+  const statusConfig: Record<string, { color: string; label: string; icon: any }> = {
+    pending_payment: { color: "text-yellow-600", label: "Waiting for payment...", icon: Clock },
+    payment_received: { color: "text-blue-600", label: "Payment received, processing...", icon: RefreshCw },
+    processing: { color: "text-blue-600", label: "Processing your order...", icon: RefreshCw },
+    delivering: { color: "text-blue-600", label: "Delivering crypto to your wallet...", icon: Zap },
+    completed: { color: "text-green-600", label: "Purchase complete!", icon: CheckCircle },
+    failed: { color: "text-red-600", label: "Purchase failed", icon: Shield },
+    cancelled: { color: "text-gray-500", label: "Order cancelled", icon: Shield },
+    expired: { color: "text-gray-500", label: "Order expired", icon: Clock },
+  };
+
+  const config = statusConfig[order.status] || { color: "text-gray-500", label: order.status, icon: Clock };
+  const Icon = config.icon;
+
+  return (
+    <div className={`flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 ${config.color}`}>
+      <Icon className="w-5 h-5 animate-pulse" />
+      <span className="font-medium text-sm">{config.label}</span>
+      {order.transactionHash && (
+        <span className="text-xs font-mono ml-auto opacity-60">{order.transactionHash.slice(0, 10)}...</span>
+      )}
+    </div>
+  );
+}
+
+function TransakWidget({ config, orderId, onClose, onSuccess }: { config: any; orderId: number; onClose: () => void; onSuccess: () => void }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [widgetLoaded, setWidgetLoaded] = useState(false);
 
@@ -239,6 +298,7 @@ function TransakWidget({ config, onClose, onSuccess }: { config: any; onClose: (
 
   return (
     <div className="space-y-4">
+      <OrderStatusBanner orderId={orderId} />
       <div className="w-full rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 relative" style={{ minHeight: '600px' }}>
         {!widgetLoaded && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800 z-10">
@@ -278,10 +338,30 @@ export default function BuyOnramp() {
   const [walletError, setWalletError] = useState("");
   const [showWidget, setShowWidget] = useState(false);
   const [orderCreated, setOrderCreated] = useState<any>(null);
-  const [copied, setCopied] = useState(false);
+  const [sessionRestored, setSessionRestored] = useState(false);
 
   const parsedAmount = parseFloat(amount) || 0;
   const isTron = selectedNetwork === "tron";
+
+  useEffect(() => {
+    if (sessionRestored) return;
+    setSessionRestored(true);
+
+    const saved = loadSession();
+    if (saved && isAuthenticated) {
+      setOrderCreated(saved.orderCreated);
+      setSelectedToken(saved.selectedToken || "USDC");
+      setSelectedNetwork(saved.selectedNetwork || "base");
+      setAmount(saved.amount || "");
+      setWalletAddress(saved.walletAddress || "");
+      if (saved.orderCreated) {
+        setShowWidget(true);
+        setStep(4);
+      } else if (saved.step && saved.step > 1) {
+        setStep(saved.step);
+      }
+    }
+  }, [isAuthenticated, sessionRestored]);
 
   useEffect(() => {
     if (isAuthenticated && step === 1) {
@@ -321,6 +401,16 @@ export default function BuyOnramp() {
     else setWalletError("");
   };
 
+  const resetFlow = useCallback(() => {
+    setStep(isAuthenticated ? 2 : 1);
+    setShowWidget(false);
+    setOrderCreated(null);
+    setAmount("");
+    setWalletAddress("");
+    setWalletError("");
+    clearSavedSession();
+  }, [isAuthenticated]);
+
   const createSessionMutation = useMutation({
     mutationFn: async () => {
       return await apiRequest("POST", "/api/onramp/transak/session", {
@@ -335,9 +425,23 @@ export default function BuyOnramp() {
       setOrderCreated(data);
       setShowWidget(true);
       setStep(4);
+      saveSession({
+        orderCreated: data,
+        selectedToken,
+        selectedNetwork,
+        amount,
+        walletAddress,
+        step: 4,
+      });
       toast({ title: "Order created", description: "Complete your purchase below." });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      if (error?.message?.includes("401") || error?.message?.includes("Authentication")) {
+        toast({ title: "Session expired", description: "Please sign in again to continue.", variant: "destructive" });
+        saveSession({ selectedToken, selectedNetwork, amount, walletAddress, step: 3 });
+        setStep(1);
+        return;
+      }
       toast({ title: "Failed to start purchase", description: error.message, variant: "destructive" });
     },
   });
@@ -573,12 +677,21 @@ export default function BuyOnramp() {
                       </div>
                     </div>
                   </div>
-                  <Button variant="outline" className="w-full" onClick={() => { setStep(2); setShowWidget(false); setOrderCreated(null); }}>
+                  <Button variant="outline" className="w-full" onClick={resetFlow}>
                     <ArrowLeft className="w-4 h-4 mr-2" /> Start New Purchase
                   </Button>
                 </div>
               ) : (
-                <TransakWidget config={orderCreated?.widget?.config} onClose={() => { setStep(2); setShowWidget(false); setOrderCreated(null); }} onSuccess={() => { queryClient.invalidateQueries({ queryKey: ["/api/onramp/transak/orders"] }); toast({ title: "Purchase complete!", description: "Your crypto is on its way to your wallet." }); }} />
+                <TransakWidget
+                  config={orderCreated?.widget?.config}
+                  orderId={orderCreated?.order?.id}
+                  onClose={resetFlow}
+                  onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ["/api/onramp/transak/orders"] });
+                    clearSavedSession();
+                    toast({ title: "Purchase complete!", description: "Your crypto is on its way to your wallet." });
+                  }}
+                />
               )}
             </CardContent>
           </Card>

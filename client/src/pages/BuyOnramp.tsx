@@ -280,6 +280,7 @@ function TransakWidget({ config, widgetUrl, orderId, onClose, onSuccess }: { con
     } else {
       const params = new URLSearchParams({
         apiKey: config.apiKey,
+        productsAvailed: 'BUY',
         environment: config.environment || 'STAGING',
         cryptoCurrencyCode: config.cryptoCurrencyCode || 'USDC',
         network: config.network || 'base',
@@ -292,6 +293,7 @@ function TransakWidget({ config, widgetUrl, orderId, onClose, onSuccess }: { con
         ...(config.partnerOrderId && { partnerOrderId: config.partnerOrderId }),
         ...(config.partnerCustomerId && { partnerCustomerId: config.partnerCustomerId }),
         ...(config.partnerFeePercentage && { partnerFeePercentage: String(config.partnerFeePercentage) }),
+        ...(config.referrerDomain && { referrerDomain: config.referrerDomain }),
       });
 
       const baseUrl = config.environment === 'PRODUCTION'
@@ -309,10 +311,14 @@ function TransakWidget({ config, widgetUrl, orderId, onClose, onSuccess }: { con
       if (event.origin.includes('transak.com')) {
         try {
           const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-          if (data.event_id === 'TRANSAK_ORDER_SUCCESSFUL' || data.event_id === 'TRANSAK_ORDER_COMPLETED') {
+          const eventId = data?.event_id;
+          if (eventId === 'TRANSAK_ORDER_SUCCESSFUL') {
             onSuccess();
           }
-          if (data.event_id === 'TRANSAK_WIDGET_CLOSE') {
+          if (eventId === 'TRANSAK_ORDER_FAILED') {
+            console.warn('Transak order failed:', data?.data);
+          }
+          if (eventId === 'TRANSAK_WIDGET_CLOSE') {
             onClose();
           }
         } catch (e) {}

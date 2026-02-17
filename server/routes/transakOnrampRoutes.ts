@@ -58,6 +58,27 @@ async function resolveUserId(req: Request): Promise<string | null> {
   return null;
 }
 
+function getTransakGatewayUrl(): string {
+  const isProduction = (process.env.TRANSAK_ENVIRONMENT || 'STAGING') === 'PRODUCTION';
+  return isProduction
+    ? 'https://api-gateway.transak.com'
+    : 'https://api-gateway-stg.transak.com';
+}
+
+function getTransakApiUrl(): string {
+  const isProduction = (process.env.TRANSAK_ENVIRONMENT || 'STAGING') === 'PRODUCTION';
+  return isProduction
+    ? 'https://api.transak.com'
+    : 'https://api-stg.transak.com';
+}
+
+function getTransakWidgetUrl(): string {
+  const isProduction = (process.env.TRANSAK_ENVIRONMENT || 'STAGING') === 'PRODUCTION';
+  return isProduction
+    ? 'https://global.transak.com'
+    : 'https://global-stg.transak.com';
+}
+
 async function getTransakAccessToken(): Promise<string | null> {
   if (cachedAccessToken && Date.now() < cachedAccessToken.expiresAt) {
     return cachedAccessToken.token;
@@ -67,43 +88,48 @@ async function getTransakAccessToken(): Promise<string | null> {
   const apiKey = process.env.TRANSAK_API_KEY;
   if (!apiSecret || !apiKey) return null;
 
-  const isProduction = (process.env.TRANSAK_ENVIRONMENT || 'STAGING') === 'PRODUCTION';
-  const baseUrl = isProduction
-    ? 'https://api.transak.com'
-    : 'https://api-stg.transak.com';
+  const endpoints = [
+    `${getTransakGatewayUrl()}/api/v2/auth/refresh-token`,
+    `${getTransakApiUrl()}/api/v2/auth/refresh-token`,
+  ];
 
-  try {
-    const response = await fetch(`${baseUrl}/api/v2/auth/refresh-token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-secret': apiSecret,
-      },
-      body: JSON.stringify({ apiKey }),
-    });
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-secret': apiSecret.trim(),
+        },
+        body: JSON.stringify({ apiKey: apiKey.trim() }),
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      console.error(`Transak refresh token failed: ${response.status} ${response.statusText}`, errorText);
-      return null;
+      if (response.status === 404) continue;
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        console.warn(`Transak refresh token (${endpoint}): ${response.status} ${response.statusText}`, errorText);
+        continue;
+      }
+
+      const data = await response.json();
+      const accessToken = data?.data?.accessToken || data?.data?.token;
+      if (accessToken) {
+        cachedAccessToken = {
+          token: accessToken,
+          expiresAt: Date.now() + 6 * 24 * 60 * 60 * 1000,
+        };
+        console.log('✅ Transak access token refreshed successfully');
+        return accessToken;
+      }
+      console.warn('Transak refresh token: no accessToken in response', JSON.stringify(data));
+    } catch (err: any) {
+      console.warn(`Transak refresh token error (${endpoint}):`, err.message);
     }
-
-    const data = await response.json();
-    const accessToken = data?.data?.accessToken || data?.data?.token;
-    if (accessToken) {
-      cachedAccessToken = {
-        token: accessToken,
-        expiresAt: Date.now() + 6 * 24 * 60 * 60 * 1000,
-      };
-      console.log('✅ Transak access token refreshed successfully');
-      return accessToken;
-    }
-    console.error('Transak refresh token: no accessToken in response', JSON.stringify(data));
-    return null;
-  } catch (err: any) {
-    console.error('Transak refresh token error:', err.message);
-    return null;
   }
+
+  console.warn('⚠️ Transak access token unavailable - widget will use direct URL mode (still functional)');
+  return null;
 }
 
 function startOrderExpiryJob() {
@@ -274,6 +300,7 @@ router.post('/session', async (req: Request, res: Response) => {
 
     const widgetParams: Record<string, any> = {
       apiKey: transakApiKey,
+      productsAvailed: 'BUY',
       cryptoCurrencyCode: cryptoCurrency,
       network: networkConfig.transakNetwork,
       defaultFiatAmount: fiatAmount,
@@ -285,6 +312,7 @@ router.post('/session', async (req: Request, res: Response) => {
       partnerOrderId: order.id.toString(),
       partnerCustomerId: userId,
       exchangeScreenTitle: 'Buy Crypto — Coin Railz',
+      referrerDomain: 'coinrailz.com',
     };
 
     const transakEnv = process.env.TRANSAK_ENVIRONMENT || 'STAGING';
@@ -293,12 +321,9 @@ router.post('/session', async (req: Request, res: Response) => {
     const accessToken = await getTransakAccessToken();
     if (accessToken) {
       try {
-        const isProduction = transakEnv === 'PRODUCTION';
-        const apiBase = isProduction
-          ? 'https://api.transak.com'
-          : 'https://api-stg.transak.com';
+        const gatewayUrl = getTransakGatewayUrl();
 
-        const createWidgetResp = await fetch(`${apiBase}/api/v2/auth/session`, {
+        const createWidgetResp = await fetch(`${gatewayUrl}/api/v2/auth/session`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -306,10 +331,7 @@ router.post('/session', async (req: Request, res: Response) => {
             'access-token': accessToken,
           },
           body: JSON.stringify({
-            widgetParams: {
-              ...widgetParams,
-              referrerDomain: 'coinrailz.com',
-            },
+            widgetParams,
           }),
         });
 
@@ -406,15 +428,34 @@ router.post('/webhook', async (req: Request, res: Response) => {
       id: transakOrderId,
       status: transakStatus,
       cryptoAmount,
-      cryptocurrency: cryptoCurrency,
+      cryptoCurrency,
       network,
       transactionHash,
       paymentOptionId: paymentMethod,
       partnerOrderId,
       errorMessage,
+      partnerFeeInLocalCurrency,
     } = webhookData;
 
-    const statusMap: Record<string, string> = {
+    const eventStatusMap: Record<string, Record<string, string>> = {
+      ORDER_CREATED: { AWAITING_PAYMENT_FROM_USER: 'pending_payment' },
+      ORDER_PAYMENT_VERIFYING: { PAYMENT_DONE_MARKED_BY_USER: 'payment_received' },
+      ORDER_PROCESSING: {
+        PROCESSING: 'processing',
+        PENDING_DELIVERY_FROM_TRANSAK: 'delivering',
+        ON_HOLD_PENDING_DELIVERY_FROM_TRANSAK: 'on_hold',
+      },
+      ORDER_COMPLETED: { COMPLETED: 'completed' },
+      ORDER_FAILED: {
+        CANCELLED: 'cancelled',
+        FAILED: 'failed',
+        EXPIRED: 'expired',
+      },
+      ORDER_REFUNDED: { REFUNDED: 'refunded' },
+      ORDER_EXPIRED: { EXPIRED: 'expired' },
+    };
+
+    const statusFallback: Record<string, string> = {
       AWAITING_PAYMENT_FROM_USER: 'pending_payment',
       PAYMENT_DONE_MARKED_BY_USER: 'payment_received',
       PROCESSING: 'processing',
@@ -427,7 +468,12 @@ router.post('/webhook', async (req: Request, res: Response) => {
       EXPIRED: 'expired',
     };
 
-    const mappedStatus = statusMap[transakStatus] || transakStatus?.toLowerCase() || 'unknown';
+    let mappedStatus: string;
+    if (eventID && eventStatusMap[eventID]?.[transakStatus]) {
+      mappedStatus = eventStatusMap[eventID][transakStatus];
+    } else {
+      mappedStatus = statusFallback[transakStatus] || transakStatus?.toLowerCase() || 'unknown';
+    }
 
     const updates: any = {
       transakOrderId,

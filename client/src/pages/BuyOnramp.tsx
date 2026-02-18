@@ -28,6 +28,78 @@ import {
 
 const STORAGE_KEY = "coinrailz_onramp_session";
 
+function TokenLogo({ token, size = 32 }: { token: string; size?: number }) {
+  if (token === "USDC") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <circle cx="16" cy="16" r="16" fill="#2775CA"/>
+        <path d="M20.4 18.4c0-2.1-1.3-2.8-3.8-3.1-1.8-.3-2.2-.7-2.2-1.5s.7-1.3 1.8-1.3c1 0 1.6.4 1.9 1.2.1.1.2.2.3.2h1.2c.2 0 .3-.1.3-.3-.3-1.3-1.2-2.2-2.7-2.4V9.8c0-.2-.1-.3-.3-.3h-1c-.2 0-.3.1-.3.3v1.4c-1.8.2-2.9 1.4-2.9 2.8 0 2 1.2 2.7 3.7 3 1.6.3 2.2.8 2.2 1.6 0 1-.8 1.6-2 1.6-1.5 0-2-.6-2.2-1.5 0-.2-.1-.2-.3-.2h-1.2c-.2 0-.3.1-.3.3.3 1.5 1.2 2.4 3 2.7v1.4c0 .2.1.3.3.3h1c.2 0 .3-.1.3-.3v-1.4c1.8-.3 3-1.4 3-3z" fill="white"/>
+        <path d="M12.8 24.4c-4.5-1.6-6.8-6.5-5.3-10.9 .8-2.3 2.6-4 5-4.8.2-.1.3-.2.3-.4v-1c0-.2-.1-.3-.3-.3-.1 0-.1 0-.2.1C7.1 8.7 4.4 14.3 6 19.5c1 3.2 3.4 5.6 6.6 6.6.2.1.4 0 .4-.2v-1c0-.2-.1-.3-.2-.5zm6.5-17.3c-.2-.1-.4 0-.4.2v1c0 .2.2.4.3.4 4.5 1.6 6.8 6.5 5.3 10.9-.8 2.3-2.6 4-5 4.8-.2.1-.3.2-.3.4v1c0 .2.1.3.3.3.1 0 .1 0 .2-.1 5.2-1.6 7.9-7.2 6.3-12.4-1-3.1-3.4-5.5-6.7-6.5z" fill="white"/>
+      </svg>
+    );
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+      <circle cx="16" cy="16" r="16" fill="#26A17B"/>
+      <path d="M17.9 17.1v0c-.1 0-.7.1-2 .1-1 0-1.7-.1-1.9-.1v0c-3.8-.2-6.6-.9-6.6-1.8s2.8-1.6 6.6-1.8v2.8c.3 0 1 .1 2 .1 1.2 0 1.7-.1 1.9-.1v-2.8c3.8.2 6.6.9 6.6 1.8s-2.8 1.6-6.6 1.8zm0-3.9v-2.5h5.2V7.5H8.8v3.2h5.2v2.5c-4.3.2-7.5 1.2-7.5 2.4s3.2 2.2 7.5 2.4v8.5h3.8V18c4.3-.2 7.5-1.2 7.5-2.4s-3.2-2.1-7.4-2.4z" fill="white"/>
+    </svg>
+  );
+}
+
+function ChainLogo({ chain, size = 24 }: { chain: string; size?: number }) {
+  switch (chain) {
+    case "ethereum":
+      return (
+        <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="16" fill="#627EEA"/>
+          <path d="M16.5 4v8.9l7.5 3.3L16.5 4z" fill="white" fillOpacity="0.6"/>
+          <path d="M16.5 4L9 16.2l7.5-3.3V4z" fill="white"/>
+          <path d="M16.5 21.9v6.1L24 17.6l-7.5 4.3z" fill="white" fillOpacity="0.6"/>
+          <path d="M16.5 28v-6.1L9 17.6l7.5 10.4z" fill="white"/>
+          <path d="M16.5 20.6l7.5-4.4-7.5-3.3v7.7z" fill="white" fillOpacity="0.2"/>
+          <path d="M9 16.2l7.5 4.4v-7.7L9 16.2z" fill="white" fillOpacity="0.6"/>
+        </svg>
+      );
+    case "base":
+      return (
+        <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="16" fill="#0052FF"/>
+          <path d="M16 27c6.075 0 11-4.925 11-11S22.075 5 16 5C10.352 5 5.622 9.237 5.05 14.7h14.2v2.6H5.05C5.622 22.763 10.352 27 16 27z" fill="white"/>
+        </svg>
+      );
+    case "polygon":
+      return (
+        <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="16" fill="#8247E5"/>
+          <path d="M21.1 12.7c-.4-.2-.9-.2-1.2 0l-2.9 1.7-2 1.1-2.9 1.7c-.4.2-.9.2-1.2 0l-2.3-1.3c-.4-.2-.6-.6-.6-1.1v-2.5c0-.4.2-.9.6-1.1l2.3-1.3c.4-.2.9-.2 1.2 0l2.3 1.3c.4.2.6.6.6 1.1v1.7l2-1.1v-1.7c0-.4-.2-.9-.6-1.1l-4.2-2.4c-.4-.2-.9-.2-1.2 0l-4.3 2.5c-.4.2-.6.6-.6 1v4.9c0 .4.2.9.6 1.1l4.3 2.4c.4.2.9.2 1.2 0l2.9-1.7 2-1.1 2.9-1.7c.4-.2.9-.2 1.2 0l2.3 1.3c.4.2.6.6.6 1.1v2.5c0 .4-.2.9-.6 1.1l-2.2 1.3c-.4.2-.9.2-1.2 0l-2.3-1.3c-.4-.2-.6-.6-.6-1.1v-1.7l-2 1.1v1.7c0 .4.2.9.6 1.1l4.3 2.4c.4.2.9.2 1.2 0l4.3-2.4c.4-.2.6-.6.6-1.1v-4.9c0-.4-.2-.9-.6-1.1l-4.4-2.5z" fill="white"/>
+        </svg>
+      );
+    case "arbitrum":
+      return (
+        <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="16" fill="#28A0F0"/>
+          <path d="M18.3 15.5l2.3 3.6 2.3-1.3-2.9-4.6c-.2-.3-.6-.3-.8 0l-.9 1.4v.9zm-1.4-3.3l-4.2 6.6 2.3 1.3 3-4.8c.2-.3.2-.7 0-1l-1.1-2.1zm8.1 6.3l-1.6-2.5v5.7l-7.4 4.3-7.4-4.3V12.4l7.4-4.3 4.8 2.7 1.4-.8L16 6.6 8.1 11v9.7L16 25.4l7.9-4.6v-2.3l-.9.5v-.5z" fill="white"/>
+        </svg>
+      );
+    case "optimism":
+      return (
+        <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="16" fill="#FF0420"/>
+          <path d="M11.5 19.6c-1.7 0-3-1.3-3-3.5 0-2.5 1.6-4.5 4.2-4.5 1.7 0 2.8.9 3.2 2.1l-1.8.6c-.2-.7-.7-1.1-1.4-1.1-1.3 0-2.2 1.2-2.2 2.8 0 1.3.6 2.1 1.7 2.1.8 0 1.3-.5 1.6-1.2l1.8.5c-.5 1.5-1.6 2.2-3.1 2.2zm6.3-.2c-.7 0-1.2-.5-1.2-1.2s.5-1.2 1.2-1.2 1.2.5 1.2 1.2-.5 1.2-1.2 1.2zm3.2-1.7h-1.2V12h2.7c1.7 0 2.7.9 2.7 2.4 0 1.6-1.1 2.5-2.7 2.5h-1.5v.8zm1.3-2.3c.7 0 1.1-.4 1.1-1s-.4-1-1.1-1H21v2h1.3z" fill="white"/>
+        </svg>
+      );
+    case "tron":
+      return (
+        <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="16" fill="#FF0013"/>
+          <path d="M8.3 9.2l3.4 15.3L24.7 11 8.3 9.2zm3.1 2.1l10.4 1.1-8.7 8.2-1.7-9.3zm2.4 9.5l6.7-6.3-7.9-.9 1.2 7.2z" fill="white"/>
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 const NETWORKS = [
   { id: "ethereum", name: "Ethereum", icon: "ETH", color: "#627EEA" },
   { id: "base", name: "Base", icon: "BASE", color: "#0052FF" },
@@ -472,7 +544,11 @@ export default function BuyOnramp() {
         setStep(1);
         return;
       }
-      toast({ title: "Failed to start purchase", description: error.message, variant: "destructive" });
+      const msg = error?.message || "Something went wrong";
+      const friendlyMsg = msg.includes("unexpected") || msg.includes("DOCTYPE")
+        ? "Payment service is temporarily unavailable. Please try again later."
+        : msg;
+      toast({ title: "Failed to start purchase", description: friendlyMsg, variant: "destructive" });
     },
   });
 
@@ -533,10 +609,13 @@ export default function BuyOnramp() {
                     <button
                       key={token.id}
                       onClick={() => setSelectedToken(token.id)}
-                      className={`p-4 rounded-xl border-2 transition-all text-left ${selectedToken === token.id ? "border-blue-600 bg-blue-50 dark:bg-blue-950" : "border-gray-200 dark:border-gray-700 hover:border-blue-300"}`}
+                      className={`p-4 rounded-xl border-2 transition-all text-left flex items-center gap-3 ${selectedToken === token.id ? "border-blue-600 bg-blue-50 dark:bg-blue-950" : "border-gray-200 dark:border-gray-700 hover:border-blue-300"}`}
                     >
-                      <div className="font-bold text-lg">{token.name}</div>
-                      <div className="text-sm text-gray-500">{token.description}</div>
+                      <TokenLogo token={token.id} size={36} />
+                      <div>
+                        <div className="font-bold text-lg">{token.name}</div>
+                        <div className="text-sm text-gray-500">{token.description}</div>
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -549,10 +628,10 @@ export default function BuyOnramp() {
                     <button
                       key={network.id}
                       onClick={() => { setSelectedNetwork(network.id); setWalletAddress(""); setWalletError(""); }}
-                      className={`p-3 rounded-xl border-2 transition-all text-center ${selectedNetwork === network.id ? "border-blue-600 bg-blue-50 dark:bg-blue-950" : "border-gray-200 dark:border-gray-700 hover:border-blue-300"}`}
+                      className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${selectedNetwork === network.id ? "border-blue-600 bg-blue-50 dark:bg-blue-950" : "border-gray-200 dark:border-gray-700 hover:border-blue-300"}`}
                     >
-                      <div className="font-bold" style={{ color: network.color }}>{network.icon}</div>
-                      <div className="text-xs text-gray-500 mt-1">{network.name}</div>
+                      <ChainLogo chain={network.id} size={28} />
+                      <div className="text-xs text-gray-500 font-medium">{network.name}</div>
                     </button>
                   ))}
                 </div>

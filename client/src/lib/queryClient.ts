@@ -139,10 +139,27 @@ export const apiRequest = async (
     const response = await fetch(url, options);
 
     if (!response.ok) {
-      throw new Error(`Request failed with status: ${response.status}`);
+      let errorMessage = `Request failed with status: ${response.status}`;
+      try {
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        }
+      } catch (_) {}
+      throw new Error(errorMessage);
     }
 
-    return await response.json();
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      return await response.json();
+    }
+    const text = await response.text();
+    try {
+      return JSON.parse(text);
+    } catch (_) {
+      throw new Error('Server returned an unexpected response. Please try again.');
+    }
   } catch (error) {
     throw error;
   }

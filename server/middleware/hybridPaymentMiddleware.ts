@@ -9,20 +9,51 @@ import { creditsService } from "../services/creditsService.js";
 import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD, getServicePricing, getCanonicalResourceUrl } from "@shared/pricing";
 import { createPaymentIntentMetadata } from "@shared/schema";
 
-// Alchemy provider for Base mainnet
+// Alchemy providers for EVM chains
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "";
 const BASE_MAINNET_URL = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
-const provider = new ethers.JsonRpcProvider(BASE_MAINNET_URL);
+const ETH_MAINNET_URL = `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
+const baseProvider = new ethers.JsonRpcProvider(BASE_MAINNET_URL);
+const ethereumProvider = new ethers.JsonRpcProvider(ETH_MAINNET_URL);
+const provider = baseProvider;
 
 // Stablecoin contract addresses on Base mainnet
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-const USDT_BASE = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"; // Bridged USDT on Base
+const USDT_BASE = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2";
 
-// Accepted stablecoins for x402 payments (USDC and USDT)
-const ACCEPTED_STABLECOINS = [
+// Stablecoin contract addresses on Ethereum mainnet
+const USDC_ETH = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const USDT_ETH = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+
+// Accepted stablecoins per chain
+const ACCEPTED_STABLECOINS_BASE = [
   { address: USDC_BASE, symbol: "USDC", name: "USD Coin" },
   { address: USDT_BASE, symbol: "USDT", name: "Tether USD" }
 ];
+
+const ACCEPTED_STABLECOINS_ETH = [
+  { address: USDC_ETH, symbol: "USDC", name: "USD Coin" },
+  { address: USDT_ETH, symbol: "USDT", name: "Tether USD" }
+];
+
+const ACCEPTED_STABLECOINS = ACCEPTED_STABLECOINS_BASE;
+
+type EvmChain = 'base' | 'ethereum';
+
+function getProviderForChain(chain: EvmChain): ethers.JsonRpcProvider {
+  return chain === 'ethereum' ? ethereumProvider : baseProvider;
+}
+
+function getStablecoinsForChain(chain: EvmChain) {
+  return chain === 'ethereum' ? ACCEPTED_STABLECOINS_ETH : ACCEPTED_STABLECOINS_BASE;
+}
+
+function parseNetworkToChain(network?: string): EvmChain {
+  if (!network) return 'base';
+  const n = network.toLowerCase();
+  if (n === 'ethereum' || n === 'eip155:1' || n === 'ethereum-mainnet') return 'ethereum';
+  return 'base';
+}
 
 // Platform wallet address
 const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";
@@ -233,6 +264,7 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
   // Try to parse as Base64-encoded JSON first
   let txHash = xPayment.trim();
   let paymentAmount: number | undefined;
+  let paymentChain: EvmChain = 'base';
   
   try {
     // Attempt to decode as Base64 JSON
@@ -267,15 +299,15 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
           paymentAmount = parsed.amount;
         }
         
-        // Validate network field (optional, but must match if present)
-        // x402 V2: Accept both legacy "base" and CAIP-2 "eip155:8453" format
-        if (parsed.network && parsed.network !== 'base' && parsed.network !== 'eip155:8453') {
+        const VALID_NETWORKS = ['base', 'eip155:8453', 'ethereum', 'eip155:1', 'ethereum-mainnet'];
+        if (parsed.network && !VALID_NETWORKS.includes(parsed.network)) {
           console.log(`❌ Invalid network in Base64 JSON: ${parsed.network}`);
           return res.status(400).json({
             error: "Invalid payment proof format",
-            message: "network must be 'base' or 'eip155:8453' for this service"
+            message: "network must be one of: ethereum, eip155:1, base, eip155:8453"
           });
         }
+        paymentChain = parseNetworkToChain(parsed.network);
       }
     }
   } catch {
@@ -324,18 +356,15 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
     });
   }
 
-  // Verify transaction on-chain
-  verifyTransactionPayment(txHash, serviceName, requiredAmount)
+  // Verify transaction on-chain (detect chain from payment payload)
+  verifyTransactionPayment(txHash, serviceName, requiredAmount, paymentChain)
     .then((verified) => {
       if (verified) {
-        console.log(`✅ Payment verified on-chain for ${serviceName}`);
-        // Set flag to bypass x402-express verification
+        console.log(`✅ Payment verified on-chain for ${serviceName} (chain: ${paymentChain})`);
         (req as any).paymentAlreadyVerified = true;
-        // Payment verified - continue to service handler
         return next();
       } else {
-        console.log(`❌ Payment verification failed for ${serviceName}`);
-        // Payment not valid - return 402
+        console.log(`❌ Payment verification failed for ${serviceName} (chain: ${paymentChain})`);
         return res.status(402).json({
           x402Version: 2,
           error: "Payment verification failed",
@@ -347,7 +376,11 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
             resource: getCanonicalResourceUrl(serviceName),
             payTo: PLATFORM_WALLET,
             asset: USDC_BASE,
-          }]
+          }],
+          supportedNetworks: [
+            { network: "eip155:1", legacy: "ethereum" },
+            { network: "eip155:8453", legacy: "base" }
+          ]
         });
       }
     })
@@ -362,13 +395,13 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
 }
 
 /**
- * Verify a transaction on Base mainnet using Payment Intent Ledger Pattern
- * ARCHITECT-APPROVED: Implements durable payment state with retry support
+ * Verify a transaction on Ethereum or Base mainnet using Payment Intent Ledger Pattern
+ * Supports both eip155:1 (Ethereum) and eip155:8453 (Base)
  * 
  * Flow:
  * 1. Check for existing payment intent (SUCCEEDED blocks replay, FAILED allows retry)
  * 2. Create PENDING intent before verification
- * 3. Verify transaction on-chain
+ * 3. Verify transaction on-chain using chain-specific provider
  * 4. Return true if verified (handler will mark SUCCEEDED after completion)
  * 
  * EXPORTED for use by payment orchestrator
@@ -378,12 +411,14 @@ export interface TransactionVerificationResult {
   senderAddress?: string;
   paymentAmount?: number;
   paymentToken?: 'USDC' | 'USDT';
+  chain?: EvmChain;
 }
 
 export async function verifyTransactionPayment(
   txHash: string,
   serviceName: string,
-  requiredAmount: number
+  requiredAmount: number,
+  chain: EvmChain = 'base'
 ): Promise<TransactionVerificationResult> {
   const MAX_RETRIES = 3;
   const INTENT_TTL_MS = 15 * 60 * 1000; // 15 minutes
@@ -452,17 +487,22 @@ export async function verifyTransactionPayment(
     let receipt = null;
     let receiptLastError = "";
 
+    const chainProvider = getProviderForChain(chain);
+    const chainStablecoins = getStablecoinsForChain(chain);
+    const chainId = chain === 'ethereum' ? 1 : 8453;
+    console.log(`🔍 Verifying tx on ${chain} (chainId: ${chainId})`);
+
     for (let attempt = 1; attempt <= RECEIPT_MAX_RETRIES; attempt++) {
       try {
-        receipt = await provider.getTransactionReceipt(txHash);
+        receipt = await chainProvider.getTransactionReceipt(txHash);
         if (receipt) break;
       } catch (rpcError: any) {
         receiptLastError = rpcError.message || "RPC error";
-        console.warn(`⚠️ EVM RPC error on attempt ${attempt}/${RECEIPT_MAX_RETRIES}: ${receiptLastError}`);
+        console.warn(`⚠️ ${chain} RPC error on attempt ${attempt}/${RECEIPT_MAX_RETRIES}: ${receiptLastError}`);
       }
 
       if (attempt < RECEIPT_MAX_RETRIES) {
-        console.log(`⏳ EVM tx ${txHash.substring(0, 16)}... receipt not found yet, retry ${attempt}/${RECEIPT_MAX_RETRIES} (waiting ${RECEIPT_RETRY_DELAY_MS}ms)`);
+        console.log(`⏳ ${chain} tx ${txHash.substring(0, 16)}... receipt not found yet, retry ${attempt}/${RECEIPT_MAX_RETRIES} (waiting ${RECEIPT_RETRY_DELAY_MS}ms)`);
         await new Promise(resolve => setTimeout(resolve, RECEIPT_RETRY_DELAY_MS));
       }
     }
@@ -487,8 +527,7 @@ export async function verifyTransactionPayment(
     let paymentTokenAddress = "";
 
     for (const log of receipt.logs) {
-      // Check if this log is from an accepted stablecoin (USDC or USDT)
-      const matchedToken = ACCEPTED_STABLECOINS.find(
+      const matchedToken = chainStablecoins.find(
         token => token.address.toLowerCase() === log.address.toLowerCase()
       );
       
@@ -568,15 +607,15 @@ export async function verifyTransactionPayment(
         ? createPaymentIntentMetadata(
             paymentTokenAddress,
             paymentToken as 'USDC' | 'USDT',
-            8453, // Base chainId
+            chainId,
             { pricingVersion: "2025-12-14" }
           )
-        : { token: "unknown" }; // Fallback for edge cases
+        : { token: "unknown" };
       
       await db.insert(x402PaymentIntents).values({
         id: intentId,
         txHash,
-        network: "eip155:8453",
+        network: chain === 'ethereum' ? "eip155:1" : "eip155:8453",
         serviceName,
         payer: senderAddress,
         amount: (paymentAmount / 1e6).toString(),
@@ -589,13 +628,13 @@ export async function verifyTransactionPayment(
       console.log(`📝 Created payment intent ${intentId} with status PENDING (token: ${paymentToken})`);
     }
 
-    // STEP 4: Return verification result with sender address for tracking
-    console.log(`✅ Payment verified on-chain, intent ${intentId} is PENDING, payer: ${senderAddress}`);
+    console.log(`✅ Payment verified on ${chain}, intent ${intentId} is PENDING, payer: ${senderAddress}`);
     return { 
       verified: true, 
       senderAddress, 
       paymentAmount, 
-      paymentToken: paymentToken as 'USDC' | 'USDT' 
+      paymentToken: paymentToken as 'USDC' | 'USDT',
+      chain
     };
 
   } catch (error: any) {

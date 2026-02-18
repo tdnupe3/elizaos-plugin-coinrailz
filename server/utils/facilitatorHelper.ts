@@ -71,6 +71,18 @@ export function isUsingCdpFacilitator(): boolean {
 export const NETWORK_LEGACY = 'base';
 export const NETWORK_CAIP2 = 'eip155:8453';
 
+export const ETHEREUM_NETWORK_LEGACY = 'ethereum';
+export const ETHEREUM_NETWORK_CAIP2 = 'eip155:1';
+
+export const SUPPORTED_EVM_NETWORKS = {
+  ethereum: { caip2: 'eip155:1', chainId: 1, name: 'Ethereum' },
+  base: { caip2: 'eip155:8453', chainId: 8453, name: 'Base' },
+} as const;
+
+// Ethereum L1 Stablecoin Addresses
+export const USDC_ETHEREUM_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+export const USDT_ETHEREUM_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+
 // Base (EVM) Stablecoin Addresses
 export const USDC_BASE_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 export const USDT_BASE_ADDRESS = '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2';
@@ -79,14 +91,19 @@ export const USDT_BASE_ADDRESS = '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2';
 export const USDC_SOLANA_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 export const USDT_SOLANA_MINT = 'Es9vMFrzaCERmnn4Xw4Jp9Dzk1XjCK8dygBBhPokv9wg';
 
-// Platform wallet addresses for each chain
+// Platform wallet addresses for each chain (same EVM wallet works on both Ethereum and Base)
 export const PLATFORM_WALLETS = {
+  ethereum: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
   base: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
   solana: 'Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k',
 } as const;
 
 // Stablecoin configurations per chain
 export const STABLECOIN_CONFIG = {
+  ethereum: {
+    USDC: { address: USDC_ETHEREUM_ADDRESS, decimals: 6, supportsEIP3009: true },
+    USDT: { address: USDT_ETHEREUM_ADDRESS, decimals: 6, supportsEIP3009: false },
+  },
   base: {
     USDC: { address: USDC_BASE_ADDRESS, decimals: 6, supportsEIP3009: true },
     USDT: { address: USDT_BASE_ADDRESS, decimals: 6, supportsEIP3009: false },

@@ -61,7 +61,7 @@ function normalizeResourceUrl(resource: string | undefined, endpoint: string): s
 
 /**
  * Creates payment instructions object for 402 responses
- * Supports both USDC and USDT on Base chain
+ * Supports both USDC and USDT on Ethereum and Base chains
  * 
  * PAYMENT METHODS:
  * - EIP-3009 (transferWithAuthorization): USDC only (USDT doesn't support EIP-3009)
@@ -157,10 +157,10 @@ async function getConfidenceMetrics(): Promise<{
 
 function createPaymentInstructions() {
   return {
-    step1: "Obtain USDC or USDT on Base chain (chainId: 8453)",
+    step1: "Obtain USDC or USDT on Ethereum (chainId: 1) or Base (chainId: 8453)",
     step2_eip3009: "For USDC: Sign EIP-3009 authorization for the exact amount (USDC only)",
-    step2_rawTx: "For USDT or USDC: Send stablecoin to payTo address",
-    step3: "Include payment proof in X-PAYMENT header",
+    step2_rawTx: "For USDT or USDC: Send stablecoin to payTo address on either Ethereum or Base",
+    step3: "Include payment proof in X-PAYMENT header with network field",
     step3_eip3009: "EIP-3009: Base64-encoded authorization JSON",
     step3_rawTx: "Raw tx: Transaction hash (0x...) or Base64-encoded {txHash, amount, network} JSON",
     step4: "Retry the request with X-PAYMENT header",
@@ -169,14 +169,24 @@ function createPaymentInstructions() {
       { method: "raw-transaction-hash", tokens: ["USDC", "USDT"], description: "Direct transfer verified on-chain" },
       { method: "api-key", tokens: ["prepaid-credits"], description: "Use prepaid credits with X-API-KEY header (no blockchain required)" }
     ],
+    supportedNetworks: [
+      { network: "eip155:1", networkLegacy: "ethereum", chainId: 1, name: "Ethereum" },
+      { network: "eip155:8453", networkLegacy: "base", chainId: 8453, name: "Base" }
+    ],
     network: "eip155:8453",
     networkLegacy: "base",
     x402Network: "eip155:8453",
     chainId: 8453,
-    acceptedTokens: [
-      { symbol: "USDC", address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", name: "USD Coin", supportsEIP3009: true },
-      { symbol: "USDT", address: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2", name: "Tether USD", supportsEIP3009: false }
-    ],
+    acceptedTokens: {
+      ethereum: [
+        { symbol: "USDC", address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", name: "USD Coin", chainId: 1, supportsEIP3009: true },
+        { symbol: "USDT", address: "0xdAC17F958D2ee523a2206206994597C13D831ec7", name: "Tether USD", chainId: 1, supportsEIP3009: false }
+      ],
+      base: [
+        { symbol: "USDC", address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", name: "USD Coin", chainId: 8453, supportsEIP3009: true },
+        { symbol: "USDT", address: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2", name: "Tether USD", chainId: 8453, supportsEIP3009: false }
+      ]
+    },
     token: "USDC",
     tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     sdkExamples: {
@@ -186,13 +196,13 @@ function createPaymentInstructions() {
 
 const agent = new AgentPayments({
   privateKey: process.env.PRIVATE_KEY,
-  network: 'base'
+  network: 'ethereum' // or 'base'
 });
 
 const result = await agent.payAndCall({
   url: 'https://coinrailz.com/x402/gas-price-oracle',
   method: 'POST',
-  body: { chains: ['base', 'ethereum'] }
+  body: { chains: ['ethereum', 'base'] }
 });
 console.log(result.data);`
       },
@@ -203,13 +213,13 @@ from coinrailz import AgentPayments
 
 agent = AgentPayments(
     private_key=os.environ['PRIVATE_KEY'],
-    network='base'
+    network='ethereum'  # or 'base'
 )
 
 result = agent.pay_and_call(
     url='https://coinrailz.com/x402/gas-price-oracle',
     method='POST',
-    body={'chains': ['base', 'ethereum']}
+    body={'chains': ['ethereum', 'base']}
 )
 print(result['data'])`
       },
@@ -218,13 +228,13 @@ print(result['data'])`
         code: `# Step 1: Get a free wallet (if needed)
 curl -X POST https://coinrailz.com/x402/wallet/free \\
   -H "Content-Type: application/json" \\
-  -d '{"agent_id": "my-agent", "chain": "base-mainnet"}'
+  -d '{"agent_id": "my-agent", "chain": "ethereum-mainnet"}'
 
 # Step 2: Or use prepaid credits (easiest)
 curl -X POST https://coinrailz.com/x402/gas-price-oracle \\
   -H "Content-Type: application/json" \\
   -H "X-API-KEY: your-api-key" \\
-  -d '{"chains": ["base"]}'`
+  -d '{"chains": ["ethereum"]}'`
       },
       quickStart: "Fastest path: Buy credits at https://coinrailz.com/credits with credit card, then use X-API-KEY header (no blockchain required)"
     }
@@ -286,7 +296,6 @@ export function x402ResponseEnricher() {
           enriched.discoverable = true;
           
           // Add official Bazaar extensions for facilitator indexing (Feb 2026 fix)
-          // Format: extensions.bazaar with inputSchema/outputSchema per @x402/extensions/bazaar v2.0.0
           if (matchedService && matchedService.x402Compatible !== false) {
             try {
               const bazaarMetadata = buildBazaarDiscoveryMetadata(matchedService, 'POST');
@@ -295,22 +304,30 @@ export function x402ResponseEnricher() {
                 bazaar: bazaarMetadata
               };
             } catch (e) {
-              // Silently continue if metadata build fails - don't break the 402 response
             }
           }
           
           // x402scan requires CAIP-2 format in the `network` field and requires `amount` field
           // Keep networkLegacy for older x402-fetch clients that need "base"/"solana"
-          if (enriched.network === 'base' || !enriched.network) {
+          if (enriched.network === 'ethereum' || enriched.network === 'eip155:1') {
+            enriched.network = 'eip155:1';
+            enriched.networkLegacy = enriched.networkLegacy || 'ethereum';
+            enriched.x402Network = 'eip155:1';
+          } else if (enriched.network === 'base' || !enriched.network) {
             enriched.network = 'eip155:8453';
             enriched.networkLegacy = enriched.networkLegacy || 'base';
             enriched.x402Network = 'eip155:8453';
-          }
-          if (enriched.network === 'solana') {
+          } else if (enriched.network === 'solana') {
             enriched.network = 'solana:mainnet';
             enriched.networkLegacy = enriched.networkLegacy || 'solana';
             enriched.x402Network = 'solana:mainnet';
           }
+
+          enriched.supportedNetworks = [
+            { network: 'eip155:1', legacy: 'ethereum', chainId: 1 },
+            { network: 'eip155:8453', legacy: 'base', chainId: 8453 },
+          ];
+
           if (enriched.maxAmountRequired && !enriched.amount) {
             enriched.amount = enriched.maxAmountRequired;
           }
@@ -322,19 +339,21 @@ export function x402ResponseEnricher() {
           if (!enriched.extra) {
             enriched.extra = {};
           }
-          // Derive token name from asset address (don't hard-code)
           const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
           const USDT_BASE = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2";
+          const USDC_ETH = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+          const USDT_ETH = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
           const assetLower = (enriched.asset || "").toLowerCase();
-          if (assetLower === USDT_BASE.toLowerCase()) {
+          if (assetLower === USDT_BASE.toLowerCase() || assetLower === USDT_ETH.toLowerCase()) {
             enriched.extra.name = enriched.extra.name || "Tether USD";
           } else {
-            enriched.extra.name = enriched.extra.name || "USD Coin"; // Default to USDC
+            enriched.extra.name = enriched.extra.name || "USD Coin";
           }
           enriched.extra.version = enriched.extra.version || "2";
           enriched.extra.decimals = enriched.extra.decimals || 6;
-          enriched.extra.chainId = enriched.extra.chainId || 8453;
-          enriched.extra.chainName = enriched.extra.chainName || "Base";
+          const detectedChainId = assetLower === USDC_ETH.toLowerCase() || assetLower === USDT_ETH.toLowerCase() ? 1 : 8453;
+          enriched.extra.chainId = enriched.extra.chainId || detectedChainId;
+          enriched.extra.chainName = enriched.extra.chainName || (detectedChainId === 1 ? "Ethereum" : "Base");
           
           return enriched;
         });

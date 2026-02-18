@@ -836,6 +836,10 @@ async function isEligibleForFirstCallFree(ipAddress: string, userAgent: string |
 const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || "0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91";
 const SOLANA_PLATFORM_WALLET = "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k";
 
+// Stablecoin contract addresses on Ethereum mainnet
+const USDC_ETHEREUM = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" as const;
+const USDT_ETHEREUM = "0xdAC17F958D2ee523a2206206994597C13D831ec7" as const;
+
 // Stablecoin contract addresses on Base mainnet
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
 const USDT_BASE = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2" as const; // Bridged USDT on Base
@@ -845,7 +849,7 @@ const USDC_SOLANA = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const USDT_SOLANA = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 
 // Accepted stablecoins for x402 payments (EVM)
-const ACCEPTED_STABLECOINS = [USDC_BASE, USDT_BASE];
+const ACCEPTED_STABLECOINS = [USDC_BASE, USDT_BASE, USDC_ETHEREUM, USDT_ETHEREUM];
 // Accepted stablecoins for Solana
 const ACCEPTED_SOLANA_TOKENS = [USDC_SOLANA, USDT_SOLANA];
 
@@ -1482,9 +1486,10 @@ export function createPaymentOrchestrator(
     }
 
     let txHash: string | null = null;
-    let paymentChain: 'base' | 'solana' | null = null;
+    let paymentChain: 'base' | 'ethereum' | 'solana' | null = null;
 
     // Case 1: Raw EVM transaction hash (0x prefixed, 66 chars)
+    // Default to 'base' for backward compat; agents can specify network via JSON payload instead
     if (xPayment.startsWith("0x") && xPayment.length === 66) {
       txHash = xPayment;
       paymentChain = 'base';
@@ -1646,6 +1651,18 @@ export function createPaymentOrchestrator(
         // Also check for x402 facilitator format
         if (!txHash && decoded.x402 && decoded.x402.txHash) {
           txHash = decoded.x402.txHash;
+        }
+
+        // Detect chain from decoded payload network field
+        const payloadNetwork = decoded.network || payloadObj.network || decoded.chain;
+        if (payloadNetwork) {
+          const n = String(payloadNetwork).toLowerCase();
+          if (n === 'ethereum' || n === 'eip155:1' || n === 'ethereum-mainnet') {
+            paymentChain = 'ethereum';
+          } else if (n === 'base' || n === 'eip155:8453' || n === 'base-mainnet') {
+            paymentChain = 'base';
+          }
+          console.log(`🔐 Orchestrator: Network detected from payload: ${payloadNetwork} -> chain: ${paymentChain}`);
         }
         
         // Check for signature-based auth that includes tx hash
@@ -1869,10 +1886,12 @@ export function createPaymentOrchestrator(
     // If we have a transaction hash, verify it on-chain
     if (txHash) {
       try {
+        const evmChain = (paymentChain === 'ethereum' || paymentChain === 'base') ? paymentChain : 'base';
         const verificationResult = await verifyTransactionPayment(
           txHash,
           serviceName,
-          requiredAmount
+          requiredAmount,
+          evmChain
         );
 
         if (verificationResult.verified) {
@@ -1971,14 +1990,14 @@ export function createPaymentOrchestrator(
           return generatePaymentErrorResponse(
             res,
             'PAYMENT_VERIFICATION_FAILED',
-            `On-chain verification failed for transaction ${txHash?.substring(0, 20)}... - payment not confirmed on Base chain`,
-            `Verify: (1) Transaction is confirmed on Base chain, (2) Payment sent to platform wallet 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91, (3) Amount is at least $${microToUSD(requiredAmount)} USDC`,
+            `On-chain verification failed for transaction ${txHash?.substring(0, 20)}... - payment not confirmed on Ethereum or Base chain`,
+            `Verify: (1) Transaction is confirmed on Ethereum or Base, (2) Payment sent to platform wallet 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91, (3) Amount is at least $${microToUSD(requiredAmount)} USDC`,
             requestId,
             {
               recoverable: true,
               httpStatus: 402,
               expectedFormat: {
-                txHash: 'Confirmed Base chain transaction hash (0x + 64 hex chars)',
+                txHash: 'Confirmed Ethereum or Base chain transaction hash (0x + 64 hex chars)',
                 examples: [
                   `Send $${microToUSD(requiredAmount)}+ USDC to 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
                   'Wait for transaction confirmation',
@@ -2026,7 +2045,7 @@ export function createPaymentOrchestrator(
             recoverable: true,
             httpStatus: 400,
             expectedFormat: {
-              txHash: 'Valid, confirmed transaction hash from Base chain or Solana',
+              txHash: 'Valid, confirmed transaction hash from Ethereum, Base, or Solana',
               examples: [
                 'Ensure transaction is confirmed (not pending)',
                 'Use complete 66-character hash for EVM',
@@ -2161,6 +2180,54 @@ function generate402Response(
       },
       discoverable: false
     },
+    // Ethereum L1 - USDC
+    {
+      scheme: "exact",
+      network: "eip155:1",
+      networkLegacy: "ethereum",
+      x402Network: "eip155:1",
+      amount: requiredAmount.toString(),
+      maxAmountRequired: requiredAmount.toString(),
+      maxAmountRequiredUSD: priceUsd,
+      resource: resource,
+      description: baseDescription,
+      mimeType: "application/json",
+      payTo: PLATFORM_WALLET,
+      maxTimeoutSeconds: 60,
+      asset: USDC_ETHEREUM,
+      extra: {
+        name: "USD Coin",
+        version: "2",
+        decimals: 6,
+        chainId: 1,
+        chainName: "Ethereum"
+      },
+      discoverable: false
+    },
+    // Ethereum L1 - USDT
+    {
+      scheme: "exact",
+      network: "eip155:1",
+      networkLegacy: "ethereum",
+      x402Network: "eip155:1",
+      amount: requiredAmount.toString(),
+      maxAmountRequired: requiredAmount.toString(),
+      maxAmountRequiredUSD: priceUsd,
+      resource: resource,
+      description: baseDescription,
+      mimeType: "application/json",
+      payTo: PLATFORM_WALLET,
+      maxTimeoutSeconds: 60,
+      asset: USDT_ETHEREUM,
+      extra: {
+        name: "Tether USD",
+        version: "1",
+        decimals: 6,
+        chainId: 1,
+        chainName: "Ethereum"
+      },
+      discoverable: false
+    },
     // Solana - USDC
     {
       scheme: "exact",
@@ -2244,12 +2311,12 @@ function generate402Response(
     },
     facilitatorUrl: getFacilitatorUrl(),
     paymentInstructions: {
-      step1: "Obtain USDC or USDT on Base or Solana",
+      step1: "Obtain USDC or USDT on Ethereum, Base, or Solana",
       step2: "Send exact amount to platform wallet",
       step3: "Include transaction hash in X-PAYMENT header",
       step4: "Retry the request with X-PAYMENT header",
       supportedMethods: ["raw-transaction-hash", "eip3009-authorization", "api-key"],
-      supportedChains: ["base (eip155:8453)", "solana (solana:mainnet)"],
+      supportedChains: ["ethereum (eip155:1)", "base (eip155:8453)", "solana (solana:mainnet)"],
       supportedTokens: ["USDC", "USDT"]
     },
     alternativePaymentMethods: {

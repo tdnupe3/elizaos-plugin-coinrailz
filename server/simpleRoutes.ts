@@ -12401,8 +12401,8 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
   
   <!-- Primary SEO Meta Tags -->
   <title>${service.name} - AI Microservice | Coin Railz</title>
-  <meta name="description" content="${service.description} Price: ${service.priceUSD}. Pay with USDC on Base chain via x402 protocol." />
-  <meta name="keywords" content="${service.id}, ${service.name}, x402 microservice, AI agent service, ${service.category}, USDC payment, Base chain" />
+  <meta name="description" content="${service.description} Price: ${service.priceUSD}. Pay with USDC on Ethereum or Base via x402 protocol." />
+  <meta name="keywords" content="${service.id}, ${service.name}, x402 microservice, AI agent service, ${service.category}, USDC payment, Ethereum, Base chain" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="${pageUrl}" />
   

@@ -450,7 +450,7 @@ async function safeApiCall(endpoint, payload, txHash) {
               Stripe for Autonomous AI Agents
             </h1>
             <p className="text-xl text-blue-100 mb-8">
-              18 blockchain APIs powered by the x402 protocol. Pay per request with USDC on Base. No API keys, no registration, no subscriptions.
+              18 blockchain APIs powered by the x402 protocol. Pay per request with USDC on Ethereum or Base. No API keys, no registration, no subscriptions.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <Link href="/quickstart" data-testid="link-quickstart">
@@ -601,7 +601,7 @@ async function safeApiCall(endpoint, payload, txHash) {
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">USDC on Base</div>
+                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">USDC on Ethereum & Base</div>
                     <div className="flex items-center gap-2">
                       <code className="text-sm bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded flex-1 overflow-auto">
                         0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
@@ -711,7 +711,7 @@ async function safeApiCall(endpoint, payload, txHash) {
                 <div className="flex items-start gap-2">
                   <CheckCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                   <div>
-                    <strong>Base mainnet only:</strong> All payments must be USDC on Base Chain (ChainID 8453)
+                    <strong>Supported chains:</strong> All payments must be USDC on Ethereum (ChainID 1) or Base (ChainID 8453)
                   </div>
                 </div>
               </CardContent>
@@ -1147,20 +1147,20 @@ export const walletRiskTool: Tool = {
       },
       chain: {
         type: "string",
-        enum: ["base"],
-        default: "base"
+        enum: ["ethereum", "base"],
+        default: "ethereum"
       },
       txHash: {
         type: "string",
-        description: "Base USDC payment txHash to Coin Railz platform wallet"
+        description: "USDC payment txHash to Coin Railz platform wallet"
       }
     },
     required: ["walletAddress", "txHash"]
   },
   async execute(input, _context) {
-    const { walletAddress, chain = "base", txHash } = input as {
+    const { walletAddress, chain = "ethereum", txHash } = input as {
       walletAddress: string;
-      chain: "base";
+      chain: "ethereum" | "base";
       txHash: string;
     };
 
@@ -1173,7 +1173,7 @@ export const walletRiskTool: Tool = {
                         size="sm"
                         variant="outline"
                         className="absolute top-2 right-2"
-                        onClick={() => copyToClipboard(`// tools/walletRiskTool.ts\nimport type { Tool } from "@elizaos/core";\nimport { callWalletRisk } from "../coinrailzClient";\n\nexport const walletRiskTool: Tool = {\n  name: "wallet_risk",\n  description: "Check wallet risk score via Coin Railz x402 service",\n  inputSchema: {\n    type: "object",\n    properties: {\n      walletAddress: {\n        type: "string",\n        description: "Wallet address to check"\n      },\n      chain: {\n        type: "string",\n        enum: ["base"],\n        default: "base"\n      },\n      txHash: {\n        type: "string",\n        description: "Base USDC payment txHash to Coin Railz platform wallet"\n      }\n    },\n    required: ["walletAddress", "txHash"]\n  },\n  async execute(input, _context) {\n    const { walletAddress, chain = "base", txHash } = input as {\n      walletAddress: string;\n      chain: "base";\n      txHash: string;\n    };\n\n    const result = await callWalletRisk({ walletAddress, chain }, txHash);\n    return result;\n  }\n};`, 'Eliza tool')}
+                        onClick={() => copyToClipboard(`// tools/walletRiskTool.ts\nimport type { Tool } from "@elizaos/core";\nimport { callWalletRisk } from "../coinrailzClient";\n\nexport const walletRiskTool: Tool = {\n  name: "wallet_risk",\n  description: "Check wallet risk score via Coin Railz x402 service",\n  inputSchema: {\n    type: "object",\n    properties: {\n      walletAddress: {\n        type: "string",\n        description: "Wallet address to check"\n      },\n      chain: {\n        type: "string",\n        enum: ["ethereum", "base"],\n        default: "ethereum"\n      },\n      txHash: {\n        type: "string",\n        description: "USDC payment txHash to Coin Railz platform wallet"\n      }\n    },\n    required: ["walletAddress", "txHash"]\n  },\n  async execute(input, _context) {\n    const { walletAddress, chain = "ethereum", txHash } = input as {\n      walletAddress: string;\n      chain: "ethereum" | "base";\n      txHash: string;\n    };\n\n    const result = await callWalletRisk({ walletAddress, chain }, txHash);\n    return result;\n  }\n};`, 'Eliza tool')}
                         data-testid="button-copy-eliza-tool"
                       >
                         <Copy className="h-4 w-4" />
@@ -1380,7 +1380,7 @@ print("Wallet risk:", result)`}</code>
                       <div>
                         <h4 className="font-semibold mb-2">Fund & Pay</h4>
                         <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                          <li>• Fund a wallet with USDC on Base</li>
+                          <li>• Fund a wallet with USDC on Ethereum or Base</li>
                           <li>• Send payment to: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91</code></li>
                           <li>• Copy the transaction hash (txHash)</li>
                         </ul>

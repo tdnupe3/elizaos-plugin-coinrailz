@@ -558,7 +558,7 @@ export default function PredictionMarketsPage() {
                   </li>
                   <li className="flex items-center gap-2 text-white/80">
                     <CheckCircle className="w-4 h-4 text-green-400" />
-                    Pay with USDC on Base chain
+                    Pay with USDC on Ethereum or Base
                   </li>
                   <li className="flex items-center gap-2 text-white/80">
                     <CheckCircle className="w-4 h-4 text-green-400" />
@@ -583,7 +583,7 @@ export default function PredictionMarketsPage() {
           </h2>
           <p className="text-white/60 text-center mb-8 max-w-2xl mx-auto">
             If your agent doesn't have a crypto wallet yet, we provide free wallet creation via Coinbase CDP.
-            Fund it with USDC on Base and start making API calls immediately.
+            Fund it with USDC on Ethereum or Base and start making API calls immediately.
           </p>
           <Card className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 border-purple-500/30 max-w-2xl mx-auto">
             <CardContent className="py-8">
@@ -600,7 +600,7 @@ export default function PredictionMarketsPage() {
                     <span className="text-xl font-bold text-blue-400">2</span>
                   </div>
                   <h4 className="text-white font-medium mb-1">Fund with USDC</h4>
-                  <p className="text-white/50 text-xs">Send USDC on Base chain</p>
+                  <p className="text-white/50 text-xs">Send USDC on Ethereum or Base</p>
                 </div>
                 <div>
                   <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-3">

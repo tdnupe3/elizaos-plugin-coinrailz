@@ -719,7 +719,7 @@ function generateDynamic402Response(serviceSlug: string, req: Request, res: Resp
     }],
     facilitatorUrl: getFacilitatorUrl(),
     paymentInstructions: {
-      step1: "Obtain USDC on Base chain (chainId: 8453)",
+      step1: "Obtain USDC on Ethereum (chainId: 1) or Base (chainId: 8453)",
       step2: "Sign EIP-3009 authorization for the exact amount",
       step3: "Include Base64-encoded authorization in X-PAYMENT header",
       step4: "Retry the request with X-PAYMENT header",

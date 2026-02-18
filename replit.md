@@ -20,7 +20,7 @@ The platform also delivers production-grade device payment infrastructure for Io
 Coin Railz employs a USDC-first strategy, utilizing Coinbase CDP for wallet management, unified payment processing, an AI marketplace, and real-time revenue management.
 
 **Core Architectural Patterns & Decisions:**
-- **AI Agent Marketplace:** Leverages the x402 protocol for HTTP 402 payments on Base Chain, Coinbase CDP for wallet creation, and Alchemy RPC for verification. ERC-8004 Blockchain Identity is used for agent identities.
+- **AI Agent Marketplace:** Leverages the x402 protocol for HTTP 402 payments on Ethereum and Base chains, Coinbase CDP for wallet creation, and Alchemy RPC for verification. ERC-8004 Blockchain Identity is used for agent identities (deployed on Base only).
 - **Authentication:** Supports Coinbase OAuth, Replit OAuth, and email/password, with PostgreSQL as the backend.
 - **x402 Microservices**: 44 production services compatible with Coinbase Bazaar and x402scan, adhering to `x402Version: 2`.
 - **Discovery Engine**: Multi-layer mechanism with 9 active methods for identifying AI agents, including Coinbase Bazaar indexing. All 402 response changes must be additive only to maintain compatibility with existing discovery methods.

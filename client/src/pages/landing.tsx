@@ -154,7 +154,7 @@ export default function Landing() {
             {/* Trust Badges - Dual Rail Focus with Crypto Proof */}
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-6 sm:mb-8 text-sm text-gray-700">
               <div className="flex items-center space-x-2">
-                <Badge className="bg-blue-100 text-blue-800">✓ x402/USDC on Base</Badge>
+                <Badge className="bg-blue-100 text-blue-800">✓ x402/USDC on Ethereum & Base</Badge>
               </div>
               <div className="flex items-center space-x-2">
                 <Badge className="bg-green-100 text-green-800">✓ Stripe Prepaid Credits</Badge>

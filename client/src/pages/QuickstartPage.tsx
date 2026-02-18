@@ -376,7 +376,7 @@ if (response.status === 402) {
                   <Badge variant="secondary" className="text-xs">For AI Agents</Badge>
                 </div>
                 <p className="text-slate-400 text-sm mb-3">
-                  Pay per call with USDC on Base. No account needed.
+                  Pay per call with USDC on Ethereum or Base. No account needed.
                 </p>
                 <Link href="/x402" data-testid="link-x402">
                   <Button size="sm" variant="outline" className="w-full" data-testid="button-learn-x402">
@@ -455,7 +455,7 @@ if (response.status === 402) {
                   </Button>
                 </div>
                 <p className="text-slate-500 text-sm mt-2">
-                  x402 uses USDC on Base chain. Payment verification via x402.org facilitator.
+                  x402 uses USDC on Ethereum or Base. Payment verification via CDP facilitator.
                 </p>
               </TabsContent>
               

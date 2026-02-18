@@ -2001,7 +2001,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
   const agentCard = {
     protocolVersion: "0.3.0",
     name: "Coin Railz",
-    description: "Multi-chain x402 micropayment infrastructure for AI agents. 44+ pay-per-call API services for crypto analytics, trading signals, security audits, satellite data (NASA/ESA), real estate, banking, market intelligence, prediction markets, and traditional markets. Native Coinbase Agentic Wallet compatible. Pay with USDC on Base chain - prices from $0.05 to $10.00 per request.",
+    description: "Multi-chain x402 micropayment infrastructure for AI agents. 44+ pay-per-call API services for crypto analytics, trading signals, security audits, satellite data (NASA/ESA), real estate, banking, market intelligence, prediction markets, and traditional markets. Native Coinbase Agentic Wallet compatible. Pay with USDC on Ethereum or Base - prices from $0.05 to $10.00 per request.",
     url: baseUrl,
     version: "3.1.0",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,

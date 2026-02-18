@@ -120,7 +120,7 @@ export default function ProofOfExecution() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="stat-total-volume">${PLATFORM_STATS.totalVolumeUSD.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">USDC on Base Chain</p>
+            <p className="text-xs text-muted-foreground">USDC on Ethereum & Base</p>
           </CardContent>
         </Card>
 

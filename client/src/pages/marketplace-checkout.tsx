@@ -501,7 +501,7 @@ export default function MarketplaceCheckout() {
                     >
                       <Wallet className="w-6 h-6" />
                       <span className="font-medium">Crypto</span>
-                      <span className="text-xs text-gray-500">USDC on Base</span>
+                      <span className="text-xs text-gray-500">USDC on Ethereum & Base</span>
                     </button>
                   </div>
 
@@ -524,7 +524,7 @@ export default function MarketplaceCheckout() {
                   <p className="text-xs text-gray-500 text-center">
                     {paymentMethod === 'card' 
                       ? 'Secure payment powered by Stripe' 
-                      : 'Pay with USDC on Base Chain'}
+                      : 'Pay with USDC on Ethereum or Base'}
                   </p>
                 </>
               )}

@@ -187,7 +187,7 @@ export function generate402ResponseWithBazaar(
     }],
     facilitatorUrl,
     error: 'Payment required',
-    message: `This service costs ${service.priceUSD}. Pay with USDC on Base chain.`
+    message: `This service costs ${service.priceUSD}. Pay with USDC on Ethereum or Base chain.`
   };
 }
 

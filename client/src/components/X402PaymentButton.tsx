@@ -136,7 +136,7 @@ export function X402PaymentButton({
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Zap className="h-3 w-3 text-yellow-500" />
         <span>
-          Autonomous Payment • 2s Settlement • Base Chain • No KYC
+          Autonomous Payment • 2s Settlement • Ethereum & Base • No KYC
         </span>
       </div>
 
@@ -148,7 +148,7 @@ export function X402PaymentButton({
             {walletAddress}
           </code>
           <p className="text-xs text-muted-foreground">
-            Send <strong>{amount} USDC</strong> on <strong>Base Chain</strong> to complete payment
+            Send <strong>{amount} USDC</strong> on <strong>Ethereum or Base</strong> to complete payment
           </p>
         </div>
       )}

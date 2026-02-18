@@ -597,7 +597,7 @@ export default function SatelliteDataPage() {
                   </li>
                   <li className="flex items-center gap-2 text-white/80">
                     <CheckCircle className="w-4 h-4 text-green-400" />
-                    Pay with USDC on Base chain
+                    Pay with USDC on Ethereum or Base
                   </li>
                   <li className="flex items-center gap-2 text-white/80">
                     <CheckCircle className="w-4 h-4 text-green-400" />

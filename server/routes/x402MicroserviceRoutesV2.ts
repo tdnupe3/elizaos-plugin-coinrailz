@@ -1817,7 +1817,7 @@ router.use((req: Request, res: Response, next) => {
       // Add payment instructions if not present
       if (!body.paymentInstructions) {
         body.paymentInstructions = {
-          step1: "Obtain USDC on Base chain (chainId: 8453)",
+          step1: "Obtain USDC on Ethereum (chainId: 1) or Base (chainId: 8453)",
           step2: "Sign EIP-3009 authorization for the exact amount",
           step3: "Include Base64-encoded authorization in X-PAYMENT header",
           step4: "Retry the request with X-PAYMENT header",
@@ -2042,7 +2042,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       contentType: "application/json"
     },
     paymentInstructions: {
-      step1: "Obtain USDC on Base chain (chainId: 8453)",
+      step1: "Obtain USDC on Ethereum (chainId: 1) or Base (chainId: 8453)",
       step2: "Sign EIP-3009 authorization for the exact amount",
       step3: "Include Base64-encoded authorization in X-PAYMENT header",
       step4: "Retry the request with X-PAYMENT header",

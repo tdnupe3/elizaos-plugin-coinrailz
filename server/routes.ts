@@ -9,7 +9,7 @@ import { FeeCalculator } from "./services/feeCalculator";
 import { z } from "zod";
 import { db } from "./db";
 import { sql, eq, desc } from "drizzle-orm";
-import { aiMarketplaceOrders, globalAIAgents, users, platformTransactions, tradingFees } from "../shared/schema";
+import { aiMarketplaceOrders, globalAIAgents, users, platformTransactions, tradingFees, contactSubmissions } from "../shared/schema";
 import { 
   applyRateLimit, 
   validateBusinessRules 
@@ -5203,6 +5203,26 @@ Questions? Reply to this message or contact support@coinrailz.com
         category: s.userAgentCategory,
       })),
     });
+  });
+
+  app.post("/api/contact", async (req, res) => {
+    try {
+      const { name, email, message } = req.body;
+      if (!name || !email || !message) {
+        return res.status(400).json({ error: "Name, email, and message are required" });
+      }
+      await db.insert(contactSubmissions).values({
+        name: String(name).slice(0, 200),
+        email: String(email).slice(0, 200),
+        message: String(message).slice(0, 5000),
+        source: "landing_page",
+      });
+      console.log(`[Contact Form] New submission from ${email} (${name})`);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Contact Form] Error:", error.message);
+      res.status(500).json({ error: "Failed to submit contact form" });
+    }
   });
 
   // 404 handler for API routes - MUST be the last route registered

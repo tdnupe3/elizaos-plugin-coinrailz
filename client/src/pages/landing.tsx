@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -5,7 +6,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Activity, Users, DollarSign, TrendingUp, Bot, Network, Globe, Zap, Send, CreditCard, Repeat, Shield, Mail, USDCLogo, XRPLogo } from "@/lib/icons";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Activity, Users, DollarSign, TrendingUp, Bot, Network, Globe, Zap, Send, CreditCard, Repeat, Shield, Mail, USDCLogo, XRPLogo, Check } from "@/lib/icons";
 import coinRailzLogo from "@assets/Coin Railz Logo No BG.png";
 import { CoinbaseWalletIntegration } from "@/components/CoinbaseWalletIntegration";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -16,11 +19,18 @@ import { useSEO, seoConfigs } from "@/hooks/useSEO";
 import { FAQSection, InternalLinkingSection, PerformanceOptimizer } from "@/components/SEOEnhancer";
 import { trackEvent, trackBusinessEvent, trackConversion } from "@/lib/analytics";
 import { EnhanceImageSEO } from "@/components/ImageOptimizer";
+import { Code, Eye, ChevronRight } from "lucide-react";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactMessage, setContactMessage] = useState("");
+  const [contactSubmitted, setContactSubmitted] = useState(false);
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [selectedExample, setSelectedExample] = useState<string>("fire-alerts");
 
   // SEO optimization for landing page
   useSEO(seoConfigs.home);
@@ -167,11 +177,39 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* PRIMARY CTA - Pilot Credits as compact inline banner on mobile */}
-            <div className="max-w-md mx-auto mb-4 sm:mb-6">
+            {/* PRIMARY CTA - $10 Starter + Pilot Credits */}
+            <div className="max-w-lg mx-auto mb-6 sm:mb-8 space-y-3">
               <Link href="/pilots/buy">
                 <div 
-                  className="flex items-center justify-between border-2 border-cyan-400 bg-gradient-to-r from-cyan-50 to-blue-50 hover:shadow-lg transition-shadow cursor-pointer rounded-lg px-4 py-3"
+                  className="flex items-center justify-between border-2 border-green-400 bg-gradient-to-r from-green-50 to-emerald-50 hover:shadow-lg transition-shadow cursor-pointer rounded-lg px-4 py-3"
+                  data-testid="card-starter-credits"
+                  onClick={() => {
+                    trackEvent('click', 'landing_starter_cta', 'starter_credits_10');
+                    trackBusinessEvent('starter_credit_purchase_intent', { payment_method: 'stripe', user_type: 'new_customer', value: 10 });
+                  }}
+                >
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                      <Zap className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-green-900">$10 Starter Credits</div>
+                      <div className="text-xs text-green-700">Try any API instantly • Card or Crypto</div>
+                    </div>
+                  </div>
+                  <Button 
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm font-semibold flex-shrink-0 ml-2"
+                    size="sm"
+                    data-testid="button-starter-purchase"
+                  >
+                    Get Started →
+                  </Button>
+                </div>
+              </Link>
+
+              <Link href="/pilots/buy">
+                <div 
+                  className="flex items-center justify-between border border-gray-200 bg-white hover:shadow-md transition-shadow cursor-pointer rounded-lg px-4 py-2.5 mt-3"
                   data-testid="card-pilot-credits"
                   onClick={() => {
                     trackEvent('click', 'landing_pilot_cta', 'purchase_pilot_credits');
@@ -183,37 +221,13 @@ export default function Landing() {
                       <CreditCard className="w-4 h-4 text-cyan-600" />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold text-cyan-900">IoT/DePIN Pilot Credits</div>
-                      <div className="text-xs text-cyan-700">Card or USDC/USDT • Multi-Chain</div>
+                      <div className="text-xs font-semibold text-gray-800">Enterprise Pilot Credits — From $500</div>
+                      <div className="text-[10px] text-gray-500">Multi-chain USDC/USDT settlement</div>
                     </div>
                   </div>
-                  <Button 
-                    className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white text-xs flex-shrink-0 ml-2"
-                    size="sm"
-                    data-testid="button-stripe-purchase"
-                  >
-                    Purchase →
-                  </Button>
+                  <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />
                 </div>
               </Link>
-            </div>
-
-            {/* Stock & Forex Hero Cards - Compact row on mobile */}
-            <div className="grid grid-cols-2 gap-3 max-w-xl mx-auto mb-4 sm:mb-8">
-              <div className="flex items-center justify-between border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg px-3 py-2.5" data-testid="stock-sentiment-hero-card">
-                <div>
-                  <div className="text-xs font-semibold text-emerald-900">Stock Sentiment</div>
-                  <div className="text-[10px] text-emerald-700 hidden sm:block">Yahoo Finance data</div>
-                </div>
-                <Badge className="bg-emerald-100 text-emerald-800 font-bold text-xs">$0.40</Badge>
-              </div>
-              <div className="flex items-center justify-between border-2 border-indigo-300 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg px-3 py-2.5" data-testid="forex-sentiment-hero-card">
-                <div>
-                  <div className="text-xs font-semibold text-indigo-900">Forex Pulse</div>
-                  <div className="text-[10px] text-indigo-700 hidden sm:block">ECB/Frankfurter data</div>
-                </div>
-                <Badge className="bg-indigo-100 text-indigo-800 font-bold text-xs">$0.40</Badge>
-              </div>
             </div>
             
             {/* Key Stats - Verified counts only */}
@@ -229,6 +243,117 @@ export default function Landing() {
               <div className="text-center">
                 <div className="text-2xl sm:text-3xl font-bold text-purple-600">$0.10</div>
                 <div className="text-xs sm:text-sm text-gray-600">Starting Price</div>
+              </div>
+            </div>
+
+            {/* SEE WHAT YOU GET - Example API Responses */}
+            <div className="max-w-3xl mx-auto mb-8 sm:mb-12 px-4">
+              <div className="text-center mb-4">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">See What You Get</h2>
+                <p className="text-sm text-gray-500">Example API responses — this is exactly what your calls return</p>
+              </div>
+
+              <div className="flex flex-wrap justify-center gap-2 mb-4">
+                <button
+                  onClick={() => setSelectedExample("fire-alerts")}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    selectedExample === "fire-alerts"
+                      ? "bg-orange-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  Fire Alerts
+                </button>
+                <button
+                  onClick={() => setSelectedExample("gas-oracle")}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    selectedExample === "gas-oracle"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  Gas Oracle
+                </button>
+                <button
+                  onClick={() => setSelectedExample("token-price")}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    selectedExample === "token-price"
+                      ? "bg-purple-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  Token Price
+                </button>
+              </div>
+
+              <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-700">
+                <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">
+                      200 OK
+                    </Badge>
+                    <span className="text-[10px] text-gray-400">
+                      {selectedExample === "fire-alerts" && "$0.05/call"}
+                      {selectedExample === "gas-oracle" && "$0.10/call"}
+                      {selectedExample === "token-price" && "$0.25/call"}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-4 overflow-x-auto">
+                  <pre className="text-xs sm:text-sm text-gray-300 font-mono leading-relaxed whitespace-pre">
+{selectedExample === "fire-alerts" && `{
+  "service": "satellite-fire-alerts",
+  "source": "NASA FIRMS",
+  "data": {
+    "region": "California, US",
+    "active_fires": 12,
+    "alerts": [
+      {
+        "latitude": 34.052,
+        "longitude": -118.243,
+        "confidence": "high",
+        "brightness": 342.1,
+        "detection_time": "2026-02-22T08:15:00Z"
+      }
+    ],
+    "resolution": "375m",
+    "coverage": "global"
+  }
+}`}
+{selectedExample === "gas-oracle" && `{
+  "service": "gas-price-oracle",
+  "chain": "ethereum",
+  "data": {
+    "fast": { "gwei": 28.5, "usd_estimate": "$4.82" },
+    "standard": { "gwei": 22.1, "usd_estimate": "$3.74" },
+    "slow": { "gwei": 18.3, "usd_estimate": "$3.09" },
+    "base_fee": 17.8,
+    "block_number": 19847523,
+    "updated_at": "2026-02-22T13:00:00Z"
+  }
+}`}
+{selectedExample === "token-price" && `{
+  "service": "token-price",
+  "data": {
+    "symbol": "ETH",
+    "price_usd": 3245.67,
+    "change_24h": "+2.34%",
+    "volume_24h": "$18.2B",
+    "market_cap": "$390.1B",
+    "sources": ["Uniswap", "Sushiswap", "Curve"],
+    "updated_at": "2026-02-22T13:00:00Z"
+  }
+}`}
+                  </pre>
+                </div>
+                <div className="px-4 py-3 bg-gray-800/50 border-t border-gray-700 text-center">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider">Example Response — Actual data requires API credits</span>
+                </div>
               </div>
             </div>
 
@@ -343,6 +468,163 @@ export default function Landing() {
             </div>
           </div>
 
+          {/* IOT & SATELLITE DATA SECTION - DEVICE DATA MONETIZATION */}
+          <div className="mb-8 sm:mb-12 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 rounded-2xl p-4 sm:p-8 text-white">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">IoT & Satellite Data Payments</h2>
+              <p className="text-sm sm:text-base text-gray-300 max-w-2xl mx-auto mb-4">
+                AI agents pay IoT devices for data via x402 micropayments. Powered by NASA & ESA.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+                <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/50 text-xs">NASA Earthdata</Badge>
+                <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/50 text-xs">ESA Copernicus</Badge>
+                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/50 text-xs">Multi-Chain USDC</Badge>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+              <Link href="/satellite">
+                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <Globe className="w-4 h-4 text-cyan-400" />
+                      <CardTitle className="text-white text-sm">Satellite Data</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-gray-300 text-xs mb-2">Fire alerts, weather imagery, vegetation</p>
+                    <Badge className="bg-green-500/20 text-green-300 text-[10px]">From $0.02/call</Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/fleet">
+                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <Activity className="w-4 h-4 text-orange-400" />
+                      <CardTitle className="text-white text-sm">Fleet Telematics</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-gray-300 text-xs mb-2">Vehicle tracking, fuel analytics</p>
+                    <Badge className="bg-green-500/20 text-green-300 text-[10px]">From $0.01/event</Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/weather">
+                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <Network className="w-4 h-4 text-blue-400" />
+                      <CardTitle className="text-white text-sm">Weather Stations</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-gray-300 text-xs mb-2">Real-time environmental sensor data</p>
+                    <Badge className="bg-green-500/20 text-green-300 text-[10px]">From $0.005/reading</Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/iot">
+                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <Zap className="w-4 h-4 text-purple-400" />
+                      <CardTitle className="text-white text-sm">IoT Hub</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-gray-300 text-xs mb-2">Device registry, credits, D2D transfers</p>
+                    <Badge className="bg-green-500/20 text-green-300 text-[10px]">Full Dashboard</Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
+
+            <div className="text-center">
+              <Link href="/pilots/buy">
+                <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-6 py-3 text-sm font-medium shadow-lg" size="default">
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Get IoT Credits
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* PREDICTION MARKETS SECTION */}
+          <div className="mb-8 sm:mb-12 bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 rounded-2xl p-4 sm:p-8 text-white">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Prediction Market APIs</h2>
+              <p className="text-sm sm:text-base text-gray-300 max-w-2xl mx-auto mb-4">
+                One API for 99% of the $44B prediction market. Access Kalshi and Polymarket via x402 micropayments.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/50 text-xs">Kalshi (CFTC-Regulated)</Badge>
+                <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/50 text-xs">Polymarket</Badge>
+                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/50 text-xs">7 Endpoints</Badge>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+              <Link href="/predictions">
+                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <TrendingUp className="w-4 h-4 text-emerald-400" />
+                      <CardTitle className="text-white text-sm">Kalshi Markets</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-gray-300 text-xs mb-2">CFTC-regulated event contracts, odds, search</p>
+                    <Badge className="bg-green-500/20 text-green-300 text-[10px]">From $0.25/call</Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/predictions">
+                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <Activity className="w-4 h-4 text-orange-400" />
+                      <CardTitle className="text-white text-sm">Polymarket Data</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-gray-300 text-xs mb-2">Trending events, odds lookup, 15K+ markets</p>
+                    <Badge className="bg-green-500/20 text-green-300 text-[10px]">From $0.25/call</Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/predictions">
+                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <Shield className="w-4 h-4 text-purple-400" />
+                      <CardTitle className="text-white text-sm">Universal Odds</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-gray-300 text-xs mb-2">Cross-platform odds comparison and arbitrage</p>
+                    <Badge className="bg-green-500/20 text-green-300 text-[10px]">From $0.50/call</Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
+
+            <div className="text-center">
+              <Link href="/predictions">
+                <Button className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-6 py-3 text-sm font-medium shadow-lg" size="default">
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  Explore Prediction Market APIs
+                </Button>
+              </Link>
+            </div>
+          </div>
+
           {/* x402 SERVICES PRICING - REVENUE DRIVER */}
           <div className="text-center mb-8 sm:mb-12">
             <div className="mb-4 sm:mb-8">
@@ -418,195 +700,6 @@ export default function Landing() {
                 </Button>
               </a>
               <p className="text-sm text-gray-600 mt-3">Use your $1 free credit for 10 AI chats or 4 contract scans</p>
-            </div>
-          </div>
-
-          {/* IOT & SATELLITE DATA SECTION - DEVICE DATA MONETIZATION */}
-          <div className="mb-8 sm:mb-12 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 rounded-2xl p-4 sm:p-8 text-white">
-            <div className="text-center mb-8">
-              <div className="flex justify-center mb-4">
-                <div className="bg-white/10 rounded-full p-4">
-                  <Globe className="w-12 h-12 text-cyan-400" />
-                </div>
-              </div>
-              <h2 className="text-3xl font-bold mb-3">IoT & Satellite Data Payments</h2>
-              <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-4">
-                Production-grade device payment infrastructure. AI agents pay IoT devices for data via x402 micropayments.
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
-                <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/50">Powered by NASA Earthdata</Badge>
-                <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/50">ESA Copernicus</Badge>
-                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/50">Multi-Chain USDC</Badge>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <Link href="/satellite">
-                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <div className="bg-cyan-500/20 rounded-lg p-2">
-                        <Globe className="w-5 h-5 text-cyan-400" />
-                      </div>
-                      <CardTitle className="text-white text-base">Satellite Data</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-300 text-sm mb-2">Fire alerts, weather imagery, vegetation health</p>
-                    <Badge className="bg-green-500/20 text-green-300">From $0.02/call</Badge>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link href="/fleet">
-                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <div className="bg-orange-500/20 rounded-lg p-2">
-                        <Activity className="w-5 h-5 text-orange-400" />
-                      </div>
-                      <CardTitle className="text-white text-base">Fleet Telematics</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-300 text-sm mb-2">Vehicle tracking, fuel analytics, route optimization</p>
-                    <Badge className="bg-green-500/20 text-green-300">From $0.01/event</Badge>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link href="/weather">
-                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <div className="bg-blue-500/20 rounded-lg p-2">
-                        <Network className="w-5 h-5 text-blue-400" />
-                      </div>
-                      <CardTitle className="text-white text-base">Weather Stations</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-300 text-sm mb-2">Real-time environmental sensor data feeds</p>
-                    <Badge className="bg-green-500/20 text-green-300">From $0.005/reading</Badge>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link href="/iot">
-                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <div className="bg-purple-500/20 rounded-lg p-2">
-                        <Zap className="w-5 h-5 text-purple-400" />
-                      </div>
-                      <CardTitle className="text-white text-base">IoT Hub</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-300 text-sm mb-2">Device registry, credits system, D2D transfers</p>
-                    <Badge className="bg-green-500/20 text-green-300">Full Dashboard</Badge>
-                  </CardContent>
-                </Card>
-              </Link>
-            </div>
-
-            <div className="text-center">
-              <Link href="/pilots/buy">
-                <Button 
-                  className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-8 py-4 text-lg font-medium shadow-lg"
-                  size="lg"
-                >
-                  <CreditCard className="w-5 h-5 mr-2" />
-                  Purchase Pilot Credits - From $500
-                </Button>
-              </Link>
-              <p className="text-sm text-gray-400 mt-3">Multi-payment: Stripe card + Crypto USDC/USDT on Base, Polygon, Arbitrum</p>
-            </div>
-          </div>
-
-          {/* PREDICTION MARKETS SECTION */}
-          <div className="mb-8 sm:mb-12 bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 rounded-2xl p-4 sm:p-8 text-white">
-            <div className="text-center mb-8">
-              <div className="flex justify-center mb-4">
-                <div className="bg-white/10 rounded-full p-4">
-                  <TrendingUp className="w-12 h-12 text-emerald-400" />
-                </div>
-              </div>
-              <h2 className="text-3xl font-bold mb-3">Prediction Market APIs</h2>
-              <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-4">
-                One API for 99% of the $44B prediction market. AI agents access Kalshi and Polymarket data via x402 micropayments.
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
-                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/50">Kalshi (CFTC-Regulated)</Badge>
-                <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/50">Polymarket</Badge>
-                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/50">7 Endpoints</Badge>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-              <Link href="/predictions">
-                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <div className="bg-emerald-500/20 rounded-lg p-2">
-                        <TrendingUp className="w-5 h-5 text-emerald-400" />
-                      </div>
-                      <CardTitle className="text-white text-base">Kalshi Markets</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-300 text-sm mb-2">CFTC-regulated event contracts, odds, search</p>
-                    <Badge className="bg-green-500/20 text-green-300">From $0.25/call</Badge>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link href="/predictions">
-                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <div className="bg-orange-500/20 rounded-lg p-2">
-                        <Activity className="w-5 h-5 text-orange-400" />
-                      </div>
-                      <CardTitle className="text-white text-base">Polymarket Data</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-300 text-sm mb-2">Trending events, odds lookup, 15K+ market search</p>
-                    <Badge className="bg-green-500/20 text-green-300">From $0.25/call</Badge>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link href="/predictions">
-                <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all cursor-pointer h-full">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <div className="bg-purple-500/20 rounded-lg p-2">
-                        <Shield className="w-5 h-5 text-purple-400" />
-                      </div>
-                      <CardTitle className="text-white text-base">Universal Odds</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-300 text-sm mb-2">Cross-platform odds comparison and arbitrage</p>
-                    <Badge className="bg-green-500/20 text-green-300">From $0.50/call</Badge>
-                  </CardContent>
-                </Card>
-              </Link>
-            </div>
-
-            <div className="text-center">
-              <Link href="/predictions">
-                <Button 
-                  className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-8 py-4 text-lg font-medium shadow-lg"
-                  size="lg"
-                >
-                  <TrendingUp className="w-5 h-5 mr-2" />
-                  Explore Prediction Market APIs
-                </Button>
-              </Link>
-              <p className="text-sm text-gray-400 mt-3">$44B market coverage via x402 micropayments or prepaid credits</p>
             </div>
           </div>
 
@@ -930,6 +1023,94 @@ export default function Landing() {
         </div>
 
         
+      </div>
+
+      {/* CONTACT FORM */}
+      <div className="bg-gray-50 py-12 sm:py-16">
+        <div className="container mx-auto px-4 max-w-xl">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Get in Touch</h2>
+            <p className="text-sm text-gray-600">Questions about integration, pricing, or partnerships? We respond within 24 hours.</p>
+          </div>
+
+          {contactSubmitted ? (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center">
+              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                <Check className="w-6 h-6 text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-green-900 mb-2">Message Sent</h3>
+              <p className="text-sm text-green-700">Thank you for reaching out. We'll get back to you within 24 hours.</p>
+            </div>
+          ) : (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setContactSubmitting(true);
+                trackEvent('submit', 'contact_form', 'landing_page');
+                trackBusinessEvent('contact_form_submission', { source: 'landing_page' });
+                try {
+                  const res = await fetch('/api/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: contactName, email: contactEmail, message: contactMessage })
+                  });
+                  if (res.ok) {
+                    setContactSubmitted(true);
+                  }
+                } catch (err) {
+                  console.error('Contact form error:', err);
+                } finally {
+                  setContactSubmitting(false);
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  id="contact-name"
+                  type="text"
+                  required
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                  placeholder="Your name"
+                />
+              </div>
+              <div>
+                <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  id="contact-email"
+                  type="email"
+                  required
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                  placeholder="you@company.com"
+                />
+              </div>
+              <div>
+                <label htmlFor="contact-message" className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                <textarea
+                  id="contact-message"
+                  required
+                  rows={4}
+                  value={contactMessage}
+                  onChange={(e) => setContactMessage(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white resize-none"
+                  placeholder="Tell us about your use case or questions..."
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={contactSubmitting}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 text-sm font-semibold"
+              >
+                {contactSubmitting ? "Sending..." : "Send Message"}
+              </Button>
+            </form>
+          )}
+        </div>
       </div>
 
       {/* FAQ Section - Integrated into main content for better SEO */}

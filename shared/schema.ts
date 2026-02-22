@@ -6458,6 +6458,15 @@ export const onrampOrdersInsertSchema = createInsertSchema(onrampOrders).omit({
 export type OnrampOrder = typeof onrampOrders.$inferSelect;
 export type InsertOnrampOrder = z.infer<typeof onrampOrdersInsertSchema>;
 
+export const contactSubmissions = pgTable("contact_submissions", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  email: varchar("email", { length: 200 }).notNull(),
+  message: text("message").notNull(),
+  source: varchar("source", { length: 50 }).default("landing_page"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const onrampWebhookEvents = pgTable("onramp_webhook_events", {
   id: serial("id").primaryKey(),
   eventId: varchar("event_id").notNull().unique(),

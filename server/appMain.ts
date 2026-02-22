@@ -235,6 +235,28 @@ app.post('/api/test-route', (req, res) => {
   res.json({ success: true, message: 'Basic POST routing works', body: req.body, timestamp: new Date().toISOString() });
 });
 
+app.post('/api/contact', async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: "Name, email, and message are required" });
+    }
+    const { db } = await import("./db");
+    const { contactSubmissions } = await import("../shared/schema");
+    await db.insert(contactSubmissions).values({
+      name: String(name).slice(0, 200),
+      email: String(email).slice(0, 200),
+      message: String(message).slice(0, 5000),
+      source: "landing_page",
+    });
+    console.log(`[Contact Form] New submission from ${email} (${name})`);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("[Contact Form] Error:", error.message);
+    res.status(500).json({ error: "Failed to submit contact form" });
+  }
+});
+
 // WORKING ORDER ENDPOINT - Alternative path that works
 app.post('/api/orders/create-working', async (req, res) => {
   console.log('🎯 WORKING ORDER ENDPOINT HIT!');

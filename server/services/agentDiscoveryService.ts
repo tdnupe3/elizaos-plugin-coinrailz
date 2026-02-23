@@ -1082,11 +1082,11 @@ ${batchResults
       return;
     }
     
-    console.log('⏰ Initializing twice-daily discovery scheduler (8am/8pm)...');
+    console.log('⏰ Initializing once-daily discovery scheduler (8am UTC)...');
     
-    // Run twice daily (8am, 8pm) to avoid rate limits while maintaining coverage
-    this.cronJob = cron.schedule('0 8,20 * * *', async () => {
-      console.log('🕐 Twice-daily scheduled discovery starting...');
+    // Run once daily at 8am UTC (reduced from twice-daily to avoid Bazaar 429 rate limits)
+    this.cronJob = cron.schedule('0 8 * * *', async () => {
+      console.log('🕐 Daily scheduled discovery starting...');
       
       try {
         await this.runDiscovery({
@@ -1121,7 +1121,7 @@ ${batchResults
   startScheduler(): void {
     if (this.cronJob) {
       this.cronJob.start();
-      console.log('✅ Discovery scheduler started (runs twice daily at 8am/8pm)');
+      console.log('✅ Discovery scheduler started (runs once daily at 8am UTC)');
     }
   }
 

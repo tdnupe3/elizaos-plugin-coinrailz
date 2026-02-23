@@ -108,9 +108,9 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
 
         // Respect rate limits with adaptive delay to avoid 429s
         if (hasMore && currentPage < maxPages) {
-          // Use longer delay (2s) to harvest more pages without hitting rate limits
-          // Coinbase allows ~3 pages at 500ms, but 15+ pages at 2s delay
-          await this.sleep(2000);
+          // Use 7s delay to stay safely under Coinbase's 10 req/min rate limit
+          const delayMs = parseInt(process.env.X402_BAZAAR_DELAY_MS || '7000', 10);
+          await this.sleep(delayMs);
         }
       }
 

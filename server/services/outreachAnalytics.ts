@@ -14,7 +14,7 @@ interface OutreachEvent {
   campaignId: string;
   walletAddress: string;
   eventType: 'contact_attempted' | 'message_delivered' | 'report_viewed' | 'invoice_viewed' | 'payment_received' | 'response_received';
-  channel: 'xmtp' | 'on_chain_memo' | 'block_explorer' | 'nft_contact';
+  channel: 'on_chain_memo' | 'block_explorer' | 'nft_contact';
   timestamp: Date;
   metadata: {
     messageId?: string;
@@ -274,7 +274,7 @@ export class OutreachAnalytics {
     };
 
     // Channel performance
-    const channels = ['xmtp', 'on_chain_memo', 'block_explorer', 'nft_contact'];
+    const channels = ['on_chain_memo', 'block_explorer', 'nft_contact'];
     const channelPerformance: any = {};
     
     channels.forEach(channel => {
@@ -357,7 +357,7 @@ export class OutreachAnalytics {
       campaignId,
       walletAddress,
       eventType: 'contact_attempted',
-      channel: 'xmtp',
+      channel: 'on_chain_memo',
       metadata: { messageId: nanoid() }
     });
 
@@ -365,7 +365,7 @@ export class OutreachAnalytics {
       campaignId,
       walletAddress,
       eventType: 'message_delivered',
-      channel: 'xmtp',
+      channel: 'on_chain_memo',
       metadata: { messageId: nanoid() }
     });
 
@@ -373,7 +373,7 @@ export class OutreachAnalytics {
       campaignId,
       walletAddress,
       eventType: 'report_viewed',
-      channel: 'xmtp',
+      channel: 'on_chain_memo',
       metadata: { reportId: nanoid() }
     });
 
@@ -381,7 +381,7 @@ export class OutreachAnalytics {
       campaignId,
       walletAddress,
       eventType: 'response_received',
-      channel: 'xmtp',
+      channel: 'on_chain_memo',
       metadata: { responseContent: 'Interested in SDK integration. Let\'s discuss.' }
     });
 

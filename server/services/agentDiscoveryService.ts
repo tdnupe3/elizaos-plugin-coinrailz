@@ -480,11 +480,12 @@ export class AgentDiscoveryService {
     try {
       console.log(`🔍 Running ${adapterId} adapter (timeout: ${timeout}ms)...`);
 
-      // Health check first
+      // Health check first (15s timeout — external APIs like Coinbase/ElizaOS need more than 5s)
+      const healthCheckTimeout = parseInt(process.env.DISCOVERY_HEALTH_CHECK_TIMEOUT_MS || '15000', 10);
       const isHealthy = await Promise.race([
         adapter.healthCheck(),
         new Promise<boolean>((_, reject) => 
-          setTimeout(() => reject(new Error('Health check timeout')), 5000)
+          setTimeout(() => reject(new Error('Health check timeout')), healthCheckTimeout)
         )
       ]);
 
@@ -905,6 +906,8 @@ export class AgentDiscoveryService {
   private getAdapterTimeouts(priority: 'fast' | 'thorough' | 'maximum'): Record<string, number> {
     const timeouts = {
       fast: {
+        'x402-bazaar': 60000,
+        'elizaos-registry': 45000,
         'a2a-registry': 30000,
         'onchain-lookups': 45000,
         'discord-telegram': 30000,
@@ -912,6 +915,8 @@ export class AgentDiscoveryService {
         'social-scraper': 30000
       },
       thorough: {
+        'x402-bazaar': 120000,
+        'elizaos-registry': 90000,
         'a2a-registry': 60000,
         'onchain-lookups': 120000,
         'discord-telegram': 90000,
@@ -919,6 +924,8 @@ export class AgentDiscoveryService {
         'social-scraper': 120000
       },
       maximum: {
+        'x402-bazaar': 300000,
+        'elizaos-registry': 180000,
         'a2a-registry': 300000,
         'onchain-lookups': 600000,
         'discord-telegram': 300000,

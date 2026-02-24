@@ -4043,10 +4043,10 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
         console.log('✅ AgentDiscoveryService initialized post-listen');
       }).catch(err => console.error('❌ Failed to initialize AgentDiscoveryService:', err));
       
-      // Start XMTP agent scanner (ChatGPT-recommended nightly scans at 2 AM)
-      import('./schedulers/xmtpScanScheduler').then(({ startXMTPScanScheduler }) => {
-        startXMTPScanScheduler();
-      }).catch(err => console.error('❌ Failed to start XMTP scan scheduler:', err));
+      // DISABLED: XMTP is a dead protocol - scanner removed per user directive
+      // import('./schedulers/xmtpScanScheduler').then(({ startXMTPScanScheduler }) => {
+      //   startXMTPScanScheduler();
+      // }).catch(err => console.error('❌ Failed to start XMTP scan scheduler:', err));
       
       // DISABLED: Legacy discoveryScheduler - AgentDiscoveryService already handles this
       // The duplicate schedulers were causing race conditions where the second run would timeout

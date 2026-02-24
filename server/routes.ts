@@ -350,12 +350,7 @@ Questions? Reply to this message or contact support@coinrailz.com
   // Agent Discovery System Routes
   app.use('/api/discovery', agentDiscoveryRoutes);
 
-  // XMTP Discovery Routes (ChatGPT-recommended agent scanner)
-  app.use('/api/xmtp', await import('./routes/xmtpDiscoveryRoutes').then(m => m.default));
-
-  // XMTP Agent Outreach Routes (Personalized campaigns with $10 free credits)
-  // XMTP outreach DISABLED (Feb 14 2026) - XMTP is a dead protocol
-  // app.use('/api/xmtp-outreach', await import('./routes/xmtpAgentOutreachRoutes').then(m => m.default));
+  // XMTP routes removed — protocol deprecated
 
   // B2B Marketing Service Routes  
   app.use('/api/b2b-marketing', await import('./routes/b2bMarketingRoutes').then(m => m.default));

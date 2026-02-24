@@ -13,7 +13,6 @@
  */
 
 import { CommunicationOrchestrator } from './communicationOrchestrator';
-import { XMTPMessagingService } from './xmtpMessagingService';
 import { db } from '../db';
 import { outreachLogs, globalAIAgents, a2aTasks } from '../../shared/schema';
 import { nanoid } from 'nanoid';
@@ -33,7 +32,7 @@ interface FailoverAttempt {
 
 export class A2AFailoverPipeline {
   private communicationOrchestrator: CommunicationOrchestrator;
-  private xmtpService: XMTPMessagingService;
+  private xmtpService: any;
   private activeFailovers = new Map<string, FailoverAttempt>();
   private monitoringInterval: NodeJS.Timeout | null = null;
   
@@ -44,7 +43,7 @@ export class A2AFailoverPipeline {
   
   constructor() {
     this.communicationOrchestrator = new CommunicationOrchestrator();
-    this.xmtpService = XMTPMessagingService.getInstance();
+    this.xmtpService = null;
     
     console.log('🔄 A2A Failover Pipeline V2.0 initialized');
     

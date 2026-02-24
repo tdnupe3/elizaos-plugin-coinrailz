@@ -1,4 +1,3 @@
-import { XMTPMessagingService } from './xmtpMessagingService';
 import { onChainMessagingService } from './onchainMessagingService';
 import { VERIFIED_AGENT_TARGETS, AGENT_SOCIAL_CONTACTS } from './verifiedAgentTargets';
 import { Client, GatewayIntentBits } from 'discord.js';
@@ -17,7 +16,7 @@ interface OutreachResult {
 }
 
 export class RealAgentOutreach {
-  private xmtpService: XMTPMessagingService | null = null;
+  private xmtpService: any = null;
   private discordClient: Client | null = null;
   private discordReady = false;
   private devLiteMode = false;
@@ -28,7 +27,7 @@ export class RealAgentOutreach {
       this.devLiteMode = true;
       return;
     }
-    this.xmtpService = XMTPMessagingService.getInstance();
+    this.xmtpService = null;
     this.initializeDiscord();
   }
 

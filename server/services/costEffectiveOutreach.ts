@@ -38,13 +38,6 @@ export class CostEffectiveOutreach {
       setup: 'OAuth + API key'
     },
     {
-      name: 'XMTP Direct Messaging',
-      costPer1000: 0.05, // Nearly free (just gas costs)
-      dailyLimit: 50000,
-      effectiveness: 9, // Direct to wallet = high conversion
-      setup: 'Already operational'
-    },
-    {
       name: 'Telegram Bot',
       costPer1000: 0.00, // FREE up to limits
       dailyLimit: 30000,
@@ -182,137 +175,10 @@ Early adopter pricing ends soon!`;
   }
 
   /**
-   * REAL XMTP direct messaging to AI agent wallet addresses
+   * XMTP campaign — protocol removed, returns disabled status
    */
   static async executeXMTPCampaign(): Promise<{success: boolean, reached: number, cost: number, error?: string, details?: string}> {
-    try {
-      // Create targeted AI agent wallet addresses for real outreach
-      const targetAddresses = [
-        '0x742d35Cc6577C1e8C52B1dd57F9c9C33F7Af2A8A', // Common AI agent wallet
-        '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', // Vitalik's wallet (high visibility)
-        '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Common dev wallet
-        '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC', // Another dev wallet
-      ];
-
-      const message = `🤖 AI Agent Payment SDK - 0.99% vs 2.9% Stripe
-
-We built @coinrailz/agent-payments specifically for AI agents:
-
-• 0.99%-1.75% fees (vs 2.9% Stripe) 
-• Circle USDC integration
-• 5-minute setup
-• Live payment processing
-
-SDK: https://coinrailz.com/sdk
-
-Interested in monetizing AI services? Reply for free setup help!`;
-
-      console.log(`📱 REAL XMTP campaign: Messaging ${targetAddresses.length} AI agent wallets`);
-      
-      // Import and instantiate XMTP messaging service
-      let xmtpService;
-      try {
-        const { XMTPMessagingService } = await import('../services/xmtpMessagingService');
-        xmtpService = XMTPMessagingService.getInstance();
-      } catch (importError) {
-        console.error('❌ Failed to import XMTP service:', importError);
-        return {
-          success: false,
-          reached: 0,
-          cost: 0,
-          error: 'XMTP service not available'
-        };
-      }
-
-      let messagesAttempted = 0;
-      let messagesSent = 0;
-      let totalCost = 0;
-      const failureReasons: string[] = [];
-
-      // CRITICAL FIX: First check which addresses are actually XMTP-enabled
-      console.log(`🔍 Checking XMTP compatibility for ${targetAddresses.length} addresses...`);
-      const xmtpEnabledAddresses: string[] = [];
-      
-      for (const address of targetAddresses) {
-        const canReceiveXMTP = await xmtpService.canMessageAddress(address);
-        if (canReceiveXMTP) {
-          xmtpEnabledAddresses.push(address);
-          console.log(`✅ ${address} is XMTP-enabled`);
-        } else {
-          console.log(`❌ ${address} cannot receive XMTP messages`);
-          failureReasons.push(`${address}: Not XMTP-enabled`);
-        }
-      }
-
-      console.log(`📊 XMTP Discovery Results: ${xmtpEnabledAddresses.length}/${targetAddresses.length} addresses can receive XMTP messages`);
-
-      // Send messages to XMTP-enabled addresses only
-      for (const address of xmtpEnabledAddresses) {
-        try {
-          messagesAttempted++;
-          console.log(`📤 Sending XMTP message to VERIFIED address ${address}...`);
-          
-          // Use the XMTP service to send actual message
-          const result = await xmtpService.sendMessageToAgent(address, message);
-          
-          const wasSent = result.status === 'sent' || result.status === 'delivered' || result.status === 'read';
-          if (wasSent) {
-            messagesSent++;
-            totalCost += 0; // XMTP messaging is free
-            console.log(`✅ Message sent successfully to ${address} (status: ${result.status})`);
-          } else {
-            const errorMsg = result.reason ?? 'Unknown XMTP failure';
-            console.log(`❌ Message failed to ${address}: ${errorMsg}`);
-            failureReasons.push(`${address}: ${errorMsg}`);
-          }
-          
-          // Rate limiting - wait between messages
-          if (messagesAttempted < targetAddresses.length) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
-          
-        } catch (messageError) {
-          console.error(`❌ Error sending to ${address}:`, messageError);
-        }
-      }
-
-      // Report results with detailed failure analysis
-      const totalXMTPAttempts = xmtpEnabledAddresses.length;
-      const xmtpSuccessRate = totalXMTPAttempts > 0 ? (messagesSent / totalXMTPAttempts * 100).toFixed(1) : '0';
-      
-      console.log(`📊 XMTP Campaign Results:`);
-      console.log(`  - XMTP-enabled addresses: ${totalXMTPAttempts}/${targetAddresses.length}`);
-      console.log(`  - Successful messages: ${messagesSent}/${totalXMTPAttempts} (${xmtpSuccessRate}%)`);
-      console.log(`  - Failure reasons: ${failureReasons.join(', ')}`);
-
-      if (messagesSent > 0) {
-        console.log(`✅ XMTP campaign completed: ${messagesSent}/${messagesAttempted} messages sent`);
-        return {
-          success: true,
-          reached: messagesSent,
-          cost: totalCost,
-          details: `XMTP Success: ${messagesSent}/${totalXMTPAttempts} enabled addresses`
-        };
-      } else {
-        // If XMTP failed completely, recommend trying Virtuals ACP
-        console.log('⚠️ XMTP campaign had zero success - consider using Virtuals ACP for actual AI agent communication');
-        return {
-          success: false,
-          reached: 0,
-          cost: 0,
-          error: `No XMTP messages sent. ${xmtpEnabledAddresses.length}/${targetAddresses.length} addresses were XMTP-enabled. Consider using Virtuals ACP instead.`
-        };
-      }
-      
-    } catch (error) {
-      console.error('❌ XMTP campaign failed:', error);
-      return { 
-        success: false, 
-        reached: 0, 
-        cost: 0, 
-        error: error instanceof Error ? error.message : 'Unknown XMTP error'
-      };
-    }
+    return { success: false, reached: 0, cost: 0, error: 'XMTP protocol removed' };
   }
 
   /**

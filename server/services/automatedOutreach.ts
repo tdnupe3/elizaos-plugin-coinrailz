@@ -1,5 +1,4 @@
 import TelegramBot from 'node-telegram-bot-api';
-import { XMTPMessagingService } from './xmtpMessagingService.js';
 import { Client as DiscordClient, GatewayIntentBits, EmbedBuilder } from 'discord.js';
 import { db } from '../db';
 import { outreachLogs } from '../../shared/schema';
@@ -14,7 +13,7 @@ import { DEV_LITE_MODE } from '../buildModeDetection';
 export class AutomatedOutreachService {
   private telegramBot?: TelegramBot;
   private discordBot?: DiscordClient;
-  private xmtpService?: XMTPMessagingService;
+  private xmtpService?: any;
 
   constructor() {
     if (DEV_LITE_MODE) {
@@ -65,13 +64,7 @@ export class AutomatedOutreachService {
       console.log('✅ Discord bot initialized');
     }
 
-    // Initialize XMTP messaging service for REAL wallet outreach
-    try {
-      this.xmtpService = XMTPMessagingService.getInstance();
-      console.log('✅ XMTP messaging service initialized for real outreach');
-    } catch (error) {
-      console.log('❌ XMTP service initialization failed:', error);
-    }
+    this.xmtpService = null;
   }
 
   /**

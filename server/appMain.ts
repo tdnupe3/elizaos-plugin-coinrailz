@@ -4029,46 +4029,24 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   console.log('✅ Telegram Trading Bot ready');
   
   // 🚨 HEAVY SERVICES - DISABLED IN DEV LITE MODE FOR STABLE VITE HMR 🚨
-  // These services (Discord, XMTP, discovery, outreach) block the event loop during init
+  // These services (Discord, discovery, outreach) block the event loop during init
   if (!DISABLE_HEAVY_SERVICES) {
     console.log('💰 PRODUCTION: Enabling full outreach and discovery services');
-    console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
+    console.log('✅ Telegram/Discord outreach: ACTIVE (no SOL/spending)');
     console.log(`${process.env.SOLANA_PRIVATE_KEY ? '✅' : '❌'} SOL transactions: ${process.env.SOLANA_PRIVATE_KEY ? 'ENABLED' : 'DISABLED'}`);
     
     try {
-      // CRITICAL: Initialize AgentDiscoveryService AFTER server is listening
-      // This prevents health check timeout during deployment
       import('./services/agentDiscoveryService').then(async ({ agentDiscoveryService }) => {
         await agentDiscoveryService.deferredInitialize();
         console.log('✅ AgentDiscoveryService initialized post-listen');
       }).catch(err => console.error('❌ Failed to initialize AgentDiscoveryService:', err));
       
-      // DISABLED: XMTP is a dead protocol - scanner removed per user directive
-      // import('./schedulers/xmtpScanScheduler').then(({ startXMTPScanScheduler }) => {
-      //   startXMTPScanScheduler();
-      // }).catch(err => console.error('❌ Failed to start XMTP scan scheduler:', err));
-      
-      // DISABLED: Legacy discoveryScheduler - AgentDiscoveryService already handles this
-      // The duplicate schedulers were causing race conditions where the second run would timeout
-      // See discovery_runs table: paired runs at same timestamp, one succeeds, one fails after 6-8 min
-      // import('./services/discoveryScheduler').then(({ startDiscoveryScheduler }) => {
-      //   startDiscoveryScheduler(6); // Run every 6 hours
-      //   console.log('✅ Agent Discovery Scheduler started (every 6 hours)');
-      // }).catch(err => console.error('❌ Failed to start discovery scheduler:', err));
-      
-      // Lazy import for automated outreach
-      // Automated outreach orchestrator DISABLED (Feb 14 2026) - generates 34K+ failures
-      // import('./services/automatedOutreachOrchestrator').then(({ initializeAutomatedOutreach }) => {
-      //   initializeAutomatedOutreach().catch(console.error);
-      //   console.log('✅ Emergency outreach orchestrator started');
-      // }).catch(err => console.error('❌ Failed to initialize automated outreach:', err));
       console.log('⏸️ Outreach orchestrator disabled - broken outreach cleanup (Feb 14 2026)');
       
       console.log('🎯 PRODUCTION REVENUE GENERATION ACTIVE');
       console.log('📞 Targeting trading bot operators, AI developers, profitable traders');
       console.log('💳 Payment systems ready for immediate revenue collection');
       
-      // Bootstrap A2A failover pipeline monitoring with lazy import
       console.log('🔄 Bootstrapping A2A failover pipeline...');
       import('./services/a2aFailoverPipeline.js').then(({ realA2AFailoverPipeline }) => {
         const failoverStats = realA2AFailoverPipeline.getRealFailoverStats();
@@ -4079,7 +4057,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       console.error('❌ Failed to initialize production outreach:', error);
     }
   } else if (DEV_LITE_MODE) {
-    console.log('🧪 DEV LITE: Heavy services (Discord/XMTP/Discovery/Outreach) disabled for stable HMR');
+    console.log('🧪 DEV LITE: Heavy services (Discord/Discovery/Outreach) disabled for stable HMR');
     console.log('   Core APIs and payment routes are still functional');
     console.log('   Set DEV_FULL_SERVICES=true to enable all services');
   } else {

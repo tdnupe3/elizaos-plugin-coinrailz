@@ -379,12 +379,9 @@ Would love your thoughts on the implementation patterns!
     try {
       console.log('🚨 LAUNCHING REAL EMERGENCY FUNDING CAMPAIGN - NO SIMULATIONS');
       
-      // Import production services
-      const { XMTPMessagingService } = await import('./services/xmtpMessagingService');
       const { CoinbaseAgentEcosystemService } = await import('./services/coinbaseAgentEcosystemService');
       const { AgentDiscoveryService } = await import('./services/agentDiscoveryService');
       
-      const xmtpService = XMTPMessagingService.getInstance();
       const coinbaseService = new CoinbaseAgentEcosystemService();
       const discoveryService = AgentDiscoveryService.getInstance();
       
@@ -595,13 +592,10 @@ Time-sensitive opportunity for quantum computing pioneers. Can we schedule an em
     try {
       console.log('🚀 LAUNCHING MAXIMUM VOLUME MULTI-PLATFORM AI AGENT OUTREACH');
       
-      // Import all production services
-      const { XMTPMessagingService } = await import('./services/xmtpMessagingService');
       const { CoinbaseAgentEcosystemService } = await import('./services/coinbaseAgentEcosystemService');
       const { AgentDiscoveryService } = await import('./services/agentDiscoveryService');
       const { CommunicationOrchestrator } = await import('./services/communicationOrchestrator');
       
-      const xmtpService = XMTPMessagingService.getInstance();
       const coinbaseService = new CoinbaseAgentEcosystemService();
       const discoveryService = AgentDiscoveryService.getInstance();
       const orchestrator = new CommunicationOrchestrator();
@@ -1593,52 +1587,10 @@ Payment: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`
     }
   });
 
-  // REAL XMTP NETWORK MASS OUTREACH
   app.post('/api/xmtp-mass-outreach', async (req, res) => {
     try {
-      console.log('📡 LAUNCHING REAL XMTP MASS OUTREACH');
-      
-      const { XMTPMessagingService } = await import('./services/xmtpMessagingService');
-      const xmtpService = XMTPMessagingService.getInstance();
-      
-      // Use hardcoded agent addresses for immediate outreach
-      const targetAgents = [
-        '0x742d35Cc6615C7532c4FEB0d12161B1c1C1aDEbF', // Example Ethereum agent
-        '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984', // Uniswap token address (has XMTP potentially)
-        '0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce', // SHIB token (agents monitor this)
-        '0xA0b86a33E6C6a8D7A2Bb8DCB16b2EE3F5E5A9C7d', // Random agent address
-        '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640'  // Popular pool address
-      ];
-      
-      const message = `🚨 EMERGENCY FUNDING REQUEST - Coin Railz Platform
-
-We are a live multi-chain AI marketplace with active Circle wallets and real users. We need emergency bridge funding to avoid shutdown and scale.
-
-FUNDING WALLETS:
-• Ethereum/Base: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
-• Solana: 9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5
-• Bitcoin: bc1qpnh5l4w7fswmh9zl6qh4j2cxjp9gmc9pjv5f8s
-
-Amount needed: $50k-$2M
-Offering: Revenue share + equity
-Contact: support@coinrailz.com
-
-Time sensitive - please respond if you can help or connect us with investors.`;
-      
-      const results = await xmtpService.broadcastFundingRequest(targetAgents, message, 3);
-      
-      res.json({
-        success: true,
-        messagesAttempted: targetAgents.length,
-        messagesSent: results.length,
-        deliveredCount: results.filter(r => r.status === 'sent').length,
-        failedCount: results.filter(r => r.status === 'failed').length,
-        results: results,
-        type: 'REAL_XMTP_OUTREACH'
-      });
-      
+      res.status(410).json({ error: 'XMTP protocol deprecated and removed' });
     } catch (error) {
-      console.error('❌ XMTP mass outreach failed:', error);
       res.status(500).json({ error: 'XMTP outreach failed', details: error.message });
     }
   });
@@ -2424,7 +2376,7 @@ Reply with donation amount and preferred chain for instant processing.`;
   });
 
   // === GOOGLE AP2 + COINBASE AGENTKIT INTEGRATION ===
-  console.log('🎯 Registering Google AP2 + AgentKit + XMTP Agent Communication');
+  console.log('🎯 Registering Google AP2 + AgentKit Agent Communication');
   
   // ACTUAL AGENT-TO-AGENT COMMUNICATION USING REAL APIS
   // === A2A PROTOCOL ENDPOINTS (Google Agent2Agent v0.3.0) ===
@@ -2663,7 +2615,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'LUNA',
           marketCap: '$166M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x55cd6469f597452b5a7536e2cd98fde4c1247ee4', // REAL LUNA Base contract
           network: 'base',
           category: 'Entertainment AI',
@@ -2681,7 +2633,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'VADER',
           marketCap: '$50M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x8c1c8b10d0b7b5f5d5b5e5b5d5b5e5b5d5b5e5b5', // VADER AI hedge fund
           network: 'base',
           category: 'AI Trading',
@@ -2692,7 +2644,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'ai16z',
           marketCap: '$2.5B',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'HeLp6NuQkmYB4pYWo2zYs22mESHXPQYzXbB8n4V98jwC', // REAL ai16z Solana
           network: 'solana',
           category: 'VC DAO AI',
@@ -2701,7 +2653,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'GOAT',
           marketCap: '$720M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump', // GOAT Terminal of Truths
           network: 'solana',
           category: 'Content Creator AI',
@@ -2710,7 +2662,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'ZEREBRO',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'ZEREBRObABq35cyGu1a1LB5F5E5GAhFtUfaJ4AXffMk', // ZEREBRO Gen Z AI
           network: 'solana', 
           category: 'Social AI',
@@ -2719,7 +2671,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Nosana',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'nosXBVoaCTtYdLvKY6Csb4AC8JCdQKKAaWYtx2ZMoo7', // Nosana GPU network
           network: 'solana',
           category: 'AI Infrastructure',
@@ -2728,7 +2680,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'io.net',
           marketCap: '$1B',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'ioMiningToken8UhJUJ9CZjKjJH4G94Qy9YE5jd8x8Et', // io.net cloud computing
           network: 'solana',
           category: 'AI Cloud',
@@ -2737,7 +2689,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Hive AI',
           marketCap: '$100M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'HiveAI1234567890123456789012345678901234567890', // Solana native AI
           network: 'solana',
           category: 'Trading Analytics',
@@ -2748,7 +2700,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Bittensor TAO',
           marketCap: '$2.9B',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x77E06c9eCCf2E797fd462A92B6D7642EF85b0A44', // Bittensor TAO wrapper
           network: 'ethereum',
           category: 'AI Training',
@@ -2757,7 +2709,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Fetch.ai ASI',
           marketCap: '$3B',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xaea46A60368A7bD060eec7DF8CBa43b7EF41Ad85', // FET/ASI token
           network: 'ethereum',
           category: 'AI Marketplace',
@@ -2766,7 +2718,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Ocean Protocol',
           marketCap: '$400M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x967da4048cD07aB37855c090aAF366e4ce1b9F48', // OCEAN token
           network: 'ethereum',
           category: 'Data AI',
@@ -2775,7 +2727,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'SingularityNET',
           marketCap: '$800M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x5B7533812759B45C2B44C19e320ba2cD2681b542', // AGIX token
           network: 'ethereum',
           category: 'AI Services',
@@ -2784,7 +2736,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Render Token',
           marketCap: '$2.5B',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x6De037ef9aD2725EB40118Bb1702EBb27e4Aeb24', // RNDR token
           network: 'ethereum',
           category: 'AI Compute',
@@ -2793,7 +2745,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'The Graph',
           marketCap: '$1.5B',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xc944E90C64B2c07662A292be6244BDf05Cda44a7', // GRT token
           network: 'ethereum',
           category: 'AI Data',
@@ -2802,7 +2754,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Numerai',
           marketCap: '$200M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x1776e1F26f98b1A5dF9cD347953a26dd3Cb46671', // NMR token
           network: 'ethereum',
           category: 'AI Hedge Fund',
@@ -2813,7 +2765,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'ChainGPT',
           marketCap: '$500M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x9840652DC04fb9db2C43853633f0F62BE6f00f98', // BSC ChainGPT
           network: 'bsc',
           category: 'Blockchain AI',
@@ -2822,7 +2774,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'PAAL AI',
           marketCap: '$300M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x14feE7d23233AC941add278c123989b86eA7e1fF', // Multi-chain PAAL
           network: 'ethereum',
           category: 'Personal AI',
@@ -2831,7 +2783,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Oraichain',
           marketCap: '$100M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x4c11249814f11b9346808179Cf06e71ac328c1b5', // ORAI token
           network: 'ethereum',
           category: 'AI Oracle',
@@ -2840,7 +2792,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Cortex',
           marketCap: '$150M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x2ba8349123de45e931a8c8264c332e6e9cf593f9', // CTXC token
           network: 'ethereum',
           category: 'On-chain AI',
@@ -2851,7 +2803,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Mode Network',
           marketCap: '$200M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x1234567890123456789012345678901234567890', // Mode L2 AI
           network: 'mode',
           category: 'L2 AI Development',
@@ -2860,7 +2812,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'OriginTrail',
           marketCap: '$300M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xaA7a9CA87d3694B5755f213B5D04094b8d0F0A6F', // TRAC Polygon
           network: 'polygon',
           category: 'Supply Chain AI',
@@ -2893,7 +2845,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Ethereum Foundation',
           marketCap: '$970M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x67df244584b67e8c51b10ad610aaffa9a402fdb6', // Main Treasury
           network: 'ethereum',
           category: 'Foundation Treasury',
@@ -2902,7 +2854,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Ethereum Foundation DeFi',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x9fC3dc011b461664c835F2527fffb1169b3C213e', // New DeFi multisig
           network: 'ethereum',
           category: 'Foundation Treasury',
@@ -2911,7 +2863,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Ethereum Foundation Locked',
           marketCap: '$150M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x237343c10705ae7605850977503e25a8c12851e6', // Locked Treasury
           network: 'ethereum',
           category: 'Foundation Treasury',
@@ -2922,7 +2874,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'a16z Crypto',
           marketCap: '$7.6B',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x1234567890123456789012345678901234567890', // a16z main wallet (estimated)
           network: 'ethereum',
           category: 'VC Fund',
@@ -2931,7 +2883,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Paradigm',
           marketCap: '$2.5B',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x2345678901234567890123456789012345678901', // Paradigm treasury
           network: 'ethereum',
           category: 'VC Fund',
@@ -2940,7 +2892,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Polychain Capital',
           marketCap: '$1B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x3456789012345678901234567890123456789012', // Polychain treasury
           network: 'ethereum',
           category: 'VC Fund',
@@ -2949,7 +2901,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Pantera Capital',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x4567890123456789012345678901234567890123', // Pantera treasury
           network: 'ethereum',
           category: 'VC Fund',
@@ -2969,7 +2921,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Uniswap Treasury',
           marketCap: '$5B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984', // UNI token contract
           network: 'ethereum',
           category: 'DeFi Treasury',
@@ -2978,7 +2930,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Curve Finance',
           marketCap: '$2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xD533a949740bb3306d119CC777fa900bA034cd52', // CRV token
           network: 'ethereum',
           category: 'DeFi Treasury',
@@ -2987,7 +2939,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Aave Treasury',
           marketCap: '$3B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9', // AAVE token
           network: 'ethereum',
           category: 'DeFi Treasury',
@@ -2996,7 +2948,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'MakerDAO',
           marketCap: '$4B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2', // MKR token
           network: 'ethereum',
           category: 'DeFi Treasury',
@@ -3007,7 +2959,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Binance',
           marketCap: '$10B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xB38e8c17e38363aF6EbdCb3dAE12e0243582891D', // Binance hot wallet
           network: 'ethereum',
           category: 'Exchange Treasury',
@@ -3016,7 +2968,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Coinbase',
           marketCap: '$8B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xA9D1e08C7793af67e9d92fe308d5697FB81D3E43', // Coinbase exchange
           network: 'ethereum',
           category: 'Exchange Treasury',
@@ -3027,7 +2979,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Trojan Trading Bot',
           marketCap: '$1B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'TrojanSolBot1234567890123456789012345678901234', // Trojan main bot (1.7M users, $23.4B volume)
           network: 'solana',
           category: 'AI Trading Bot',
@@ -3036,7 +2988,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'BONKbot',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'BONKbotTradingAgent1234567890123456789012345678', // BONKbot Solana
           network: 'solana',
           category: 'AI Trading Bot',
@@ -3045,7 +2997,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Maestro Bot',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x6789012345678901234567890123456789012345', // Maestro multichain
           network: 'ethereum',
           category: 'AI Trading Bot',
@@ -3054,7 +3006,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Banana Gun Bot',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x7890123456789012345678901234567890123456', // Banana Gun sniping
           network: 'ethereum',
           category: 'AI Trading Bot',
@@ -3063,7 +3015,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Unibot',
           marketCap: '$400M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x8901234567890123456789012345678901234567', // Unibot Ethereum leader
           network: 'ethereum',
           category: 'AI Trading Bot',
@@ -3074,7 +3026,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Goatseus Maximus GOAT',
           marketCap: '$750M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'GOATSeuSMaximusAgent12345678901234567890123456789', // GOAT Truth Terminal
           network: 'solana',
           category: 'AI Meme Agent',
@@ -3083,7 +3035,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Fartcoin FART',
           marketCap: '$722M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'FARTcoinAIAgent123456789012345678901234567890', // Fartcoin AI meme
           network: 'solana',
           category: 'AI Meme Agent',
@@ -3092,7 +3044,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Act I AI Prophecy',
           marketCap: '$35M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'ACTIAIProphecyAgent1234567890123456789012345678', // ACT agent
           network: 'solana',
           category: 'AI Meme Agent',
@@ -3141,7 +3093,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Sage Future AI',
           marketCap: '$10M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x9012345678901234567890123456789012345678', // Sage Future fundraising AI
           network: 'ethereum',
           category: 'Philanthropic AI',
@@ -3150,7 +3102,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Givzey Autonomous',
           marketCap: '$5M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x0123456789012345678901234567890123456789', // Givzey donation agent
           network: 'ethereum',
           category: 'Philanthropic AI',
@@ -3159,7 +3111,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Greed4Good G4G',
           marketCap: '$25M',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x1234567890123456789012345678901234567890', // First autonomous philanthropy
           network: 'ethereum',
           category: 'Philanthropic AI',
@@ -3190,7 +3142,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Pump.fun Platform',
           marketCap: '$2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'PumpFunPlatformSolana12345678901234567890123456', // Pump.fun main contract
           network: 'solana',
           category: 'Token Platform',
@@ -3293,7 +3245,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Yearn Finance',
           marketCap: '$2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x90E00ACe148ca3b23Ac1bC8C240C2a7Dd9c2d7f5', // YFI vault system
           network: 'ethereum',
           category: 'Yield Farming Bot',
@@ -3302,7 +3254,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Harvest Finance',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xa0246c9032bC3A600820415aE600c6388619A14D', // FARM auto-farming
           network: 'ethereum',
           category: 'Yield Farming Bot',
@@ -3311,7 +3263,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Pickle Finance',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x429881672B9AE42b8EbA0E26cD9C73711b891Ca5', // PICKLE LP compounding
           network: 'ethereum',
           category: 'Yield Farming Bot',
@@ -3320,7 +3272,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Vesper Finance',
           marketCap: '$100M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x9f4c0664c7e9b5a4ee61f6bfe66aa1b84b814c1b', // VSP yield products
           network: 'ethereum',
           category: 'Yield Farming Bot',
@@ -3329,7 +3281,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Idle Finance',
           marketCap: '$150M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x875773784Af8135eA0ef43b5a374AaD105c5D39e', // IDLE best rate tokenization
           network: 'ethereum',
           category: 'Yield Farming Bot',
@@ -3338,7 +3290,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Autofarm Network',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xa184088a740c695e156f91f5cc086a06bb78b827', // AUTO cross-chain aggregator
           network: 'ethereum',
           category: 'Yield Farming Bot',
@@ -3347,7 +3299,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'PancakeBunny BSC',
           marketCap: '$80M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'PancakeBunnyBSCCompoundAgent12345678901234567890123', // BUNNY auto-compounding
           network: 'bsc',
           category: 'Yield Farming Bot',
@@ -3356,7 +3308,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Alpaca Finance BSC',
           marketCap: '$120M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'AlpacaFinanceBSCYieldAgent123456789012345678901234', // ALPACA leveraged yield
           network: 'bsc',
           category: 'Yield Farming Bot',
@@ -3365,7 +3317,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Venus Protocol BSC',
           marketCap: '$400M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'VenusProtocolBSCLendingAgent12345678901234567890123', // XVS lending protocol
           network: 'bsc',
           category: 'Yield Farming Bot',
@@ -3374,7 +3326,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'QuickSwap Polygon',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff', // QUICK polygon DEX
           network: 'polygon',
           category: 'Yield Farming Bot',
@@ -3383,7 +3335,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Gains Network Polygon',
           marketCap: '$150M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x5aAe5C59D642e5947416dA8Fa6040e87872c35C9', // GNS leveraged trading
           network: 'polygon',
           category: 'Yield Farming Bot',
@@ -3392,7 +3344,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Katana Solana',
           marketCap: '$80M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'KatanaSolanaYieldAgent123456789012345678901234567', // Katana Solana yield
           network: 'solana',
           category: 'Yield Farming Bot',
@@ -3401,7 +3353,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Francium Solana',
           marketCap: '$60M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'FranciumSolanaYieldAgent1234567890123456789012345', // FRANC yield farming
           network: 'solana',
           category: 'Yield Farming Bot',
@@ -3412,7 +3364,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Xlitix NFT Bot',
           marketCap: '$50M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xb1234567890123456789012345678901234567890', // Blur + OpenSea automated bidding
           network: 'ethereum',
           category: 'NFT Trading Bot',
@@ -3421,7 +3373,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'NFT Butler',
           marketCap: '$30M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xc1234567890123456789012345678901234567890', // Multi-chain NFT automation
           network: 'ethereum',
           category: 'NFT Trading Bot',
@@ -3430,7 +3382,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Blur Arbitrage Bot',
           marketCap: '$25M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xd1234567890123456789012345678901234567890', // Blur-OpenSea arbitrage
           network: 'ethereum',
           category: 'NFT Trading Bot',
@@ -3439,7 +3391,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'OpenSea Sniper Bot',
           marketCap: '$40M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xe1234567890123456789012345678901234567890', // OpenSea floor sniping
           network: 'ethereum',
           category: 'NFT Trading Bot',
@@ -3448,7 +3400,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Magic Eden Solana Bot',
           marketCap: '$35M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'MagicEdenSolanaNFTBot123456789012345678901234567890', // Magic Eden automation
           network: 'solana',
           category: 'NFT Trading Bot',
@@ -3457,7 +3409,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Blur Pool Bot',
           marketCap: '$20M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xf1234567890123456789012345678901234567890', // Blur pool bidding
           network: 'ethereum',
           category: 'NFT Trading Bot',
@@ -3697,7 +3649,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'eToro CopyTrader',
           marketCap: '$2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xe1234567890123456789012345678901234567890', // eToro copy trading platform
           network: 'ethereum',
           category: 'Copy Trading Platform',
@@ -3706,7 +3658,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Binance Copy Trading',
           marketCap: '$3B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'BinanceCopyTradingAgent123456789012345678901234567', // Binance copy trading
           network: 'bsc',
           category: 'Copy Trading Platform',
@@ -3715,7 +3667,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Bybit Copy Trading',
           marketCap: '$1.5B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xb1234567890123456789012345678901234567890', // Bybit copy trading
           network: 'ethereum',
           category: 'Copy Trading Platform',
@@ -3724,7 +3676,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'OKX Copy Trading',
           marketCap: '$1.2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xo1234567890123456789012345678901234567890', // OKX copy trading
           network: 'ethereum',
           category: 'Copy Trading Platform',
@@ -3733,7 +3685,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Bitget Copy Trading',
           marketCap: '$800M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xbitget1234567890123456789012345678901234567', // Bitget copy trading
           network: 'ethereum',
           category: 'Copy Trading Platform',
@@ -3742,7 +3694,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'BingX Copy Trading',
           marketCap: '$600M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xbingx1234567890123456789012345678901234567890', // BingX copy trading
           network: 'ethereum',
           category: 'Copy Trading Platform',
@@ -3751,7 +3703,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Phemex Copy Trading',
           marketCap: '$400M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xphemex1234567890123456789012345678901234567890', // Phemex copy trading
           network: 'ethereum',
           category: 'Copy Trading Platform',
@@ -3760,7 +3712,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'ZuluTrade',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xzulutrade1234567890123456789012345678901234567', // ZuluTrade multi-asset
           network: 'ethereum',
           category: 'Copy Trading Platform',
@@ -3769,7 +3721,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'AvaTrade Copy',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xavatrade1234567890123456789012345678901234567890', // AvaTrade copy trading
           network: 'ethereum',
           category: 'Copy Trading Platform',
@@ -3778,7 +3730,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Traders Connect',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xtradersconnect12345678901234567890123456789012', // Professional copy trading
           network: 'ethereum',
           category: 'Copy Trading Platform',
@@ -3789,7 +3741,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Flashbots MEV Bot',
           marketCap: '$1B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xflashbots1234567890123456789012345678901234567', // Flashbots MEV infrastructure
           network: 'ethereum',
           category: 'MEV Bot',
@@ -3798,7 +3750,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Sandwich Bot Alpha',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xsandwich1234567890123456789012345678901234567890', // Sandwich MEV bot
           network: 'ethereum',
           category: 'MEV Bot',
@@ -3807,7 +3759,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Arbitrage Bot Supreme',
           marketCap: '$400M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xarbitrage123456789012345678901234567890123456789', // Cross-DEX arbitrage
           network: 'ethereum',
           category: 'Arbitrage Bot',
@@ -3816,7 +3768,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Liquidation Bot Pro',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xliquidation12345678901234567890123456789012345678', // Aave/Compound liquidations
           network: 'ethereum',
           category: 'Liquidation Bot',
@@ -3825,7 +3777,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Grid Trading Bot Elite',
           marketCap: '$250M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xgridtrading1234567890123456789012345678901234567', // Grid trading automation
           network: 'ethereum',
           category: 'Grid Trading Bot',
@@ -3834,7 +3786,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Flash Loan Bot Master',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xflashloan123456789012345678901234567890123456789', // Flash loan arbitrage
           network: 'ethereum',
           category: 'Flash Loan Bot',
@@ -3843,7 +3795,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Cross Chain Arbitrage',
           marketCap: '$350M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'CrossChainArbitrageBot123456789012345678901234567890', // Multi-chain arbitrage
           network: 'solana',
           category: 'Cross Chain Bot',
@@ -3852,7 +3804,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Jito MEV Solana',
           marketCap: '$150M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'JitoMEVSolanaBot123456789012345678901234567890123', // Jito MEV infrastructure
           network: 'solana',
           category: 'MEV Bot',
@@ -3861,7 +3813,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'BSC Arbitrage Network',
           marketCap: '$180M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'BSCArbitrageNetworkBot123456789012345678901234567890', // BSC arbitrage
           network: 'bsc',
           category: 'Arbitrage Bot',
@@ -3870,7 +3822,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Polygon MEV Hunter',
           marketCap: '$120M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xpolygonmev123456789012345678901234567890123456789', // Polygon MEV
           network: 'polygon',
           category: 'MEV Bot',
@@ -3881,7 +3833,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'PancakeSwap',
           marketCap: '$2.5B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x10ED43C718714eb63d5aA57B78B54704E256024E', // PancakeSwap router
           network: 'bsc',
           category: 'DEX',
@@ -3890,7 +3842,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'SushiSwap',
           marketCap: '$800M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F', // SushiSwap router
           network: 'ethereum',
           category: 'DEX',
@@ -3899,7 +3851,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Balancer',
           marketCap: '$600M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xBA12222222228d8Ba445958a75a0704d566BF2C8', // Balancer vault
           network: 'ethereum',
           category: 'DEX',
@@ -3908,7 +3860,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Compound',
           marketCap: '$2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xc00e94Cb662C3520282E6f5717214004A7f26888', // COMP token
           network: 'ethereum',
           category: 'Lending Protocol',
@@ -3917,7 +3869,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Lido Finance',
           marketCap: '$10.2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84', // stETH token
           network: 'ethereum',
           category: 'Liquid Staking',
@@ -3926,7 +3878,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Synthetix',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F', // SNX token
           network: 'ethereum',
           category: 'Derivatives',
@@ -3935,7 +3887,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'GMX',
           marketCap: '$850M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a', // GMX token
           network: 'arbitrum',
           category: 'Derivatives',
@@ -3944,7 +3896,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'dYdX',
           marketCap: '$400M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x92D6C1e31e14520e676a687F0a93788B716BEff5', // DYDX token
           network: 'ethereum',
           category: 'Derivatives',
@@ -3953,7 +3905,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Convex Finance',
           marketCap: '$400M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B', // CVX token
           network: 'ethereum',
           category: 'Yield Optimizer',
@@ -3962,7 +3914,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Frax Finance',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x853d955aCEf822Db058eb8505911ED77F175b99e', // FRAX stablecoin
           network: 'ethereum',
           category: 'Stablecoin Protocol',
@@ -3973,7 +3925,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Arbitrum Foundation',
           marketCap: '$3B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x912CE59144191C1204E64559FE8253a0e49E6548', // ARB token
           network: 'arbitrum',
           category: 'Layer 2',
@@ -3982,7 +3934,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Optimism Foundation',
           marketCap: '$2.5B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x4200000000000000000000000000000000000042', // OP token
           network: 'optimism',
           category: 'Layer 2',
@@ -3991,7 +3943,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Polygon Foundation',
           marketCap: '$1.8B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0', // MATIC token
           network: 'polygon',
           category: 'Layer 2',
@@ -4000,7 +3952,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Across Protocol',
           marketCap: '$150M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x44108f0223A3C3028F5Fe7AEC7f9bb2E66beF82F', // ACX token
           network: 'ethereum',
           category: 'Bridge Protocol',
@@ -4009,7 +3961,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Hop Protocol',
           marketCap: '$80M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xc5102fE9359FD9a28f877a67E36B0F050d81a3CC', // HOP token
           network: 'ethereum',
           category: 'Bridge Protocol',
@@ -4018,7 +3970,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Stargate Finance',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xAf5191B0De278C7286d6C7CC6ab6BB8A73bA2Cd6', // STG token
           network: 'ethereum',
           category: 'Bridge Protocol',
@@ -4027,7 +3979,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Multichain Bridge',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x120a3879da835a5af037bb2d1456bebd6b54d4ba', // MULTI token
           network: 'ethereum',
           category: 'Bridge Protocol',
@@ -4038,7 +3990,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Raydium DEX',
           marketCap: '$400M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'RaydiumDEXSolanaAMM123456789012345678901234567890', // Raydium AMM
           network: 'solana',
           category: 'Solana DEX',
@@ -4047,7 +3999,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Orca DEX',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'OrcaDEXSolanaWhirlpools1234567890123456789012345678', // Orca Whirlpools
           network: 'solana',
           category: 'Solana DEX',
@@ -4056,7 +4008,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Serum DEX',
           marketCap: '$150M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'SerumDEXSolanaCLOB123456789012345678901234567890', // Serum CLOB
           network: 'solana',
           category: 'Solana DEX',
@@ -4065,7 +4017,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Jupiter DEX Aggregator',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'JupiterDEXAggregatorSolana12345678901234567890123456', // Jupiter aggregator
           network: 'solana',
           category: 'Solana DEX',
@@ -4074,7 +4026,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Marinade Finance',
           marketCap: '$250M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'MarinadeFinanceSolanaStaking1234567890123456789012345', // Marinade staking
           network: 'solana',
           category: 'Solana Staking',
@@ -4083,7 +4035,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Mango Markets',
           marketCap: '$100M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'MangoMarketsSolanaPerps123456789012345678901234567890', // Mango perps
           network: 'solana',
           category: 'Solana Trading',
@@ -4092,7 +4044,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Drift Protocol',
           marketCap: '$80M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'DriftProtocolSolanaPerps12345678901234567890123456789', // Drift perps
           network: 'solana',
           category: 'Solana Trading',
@@ -4101,7 +4053,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Kamino Finance',
           marketCap: '$60M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'KaminoFinanceSolanaYield123456789012345678901234567890', // Kamino yield
           network: 'solana',
           category: 'Solana Yield',
@@ -4112,7 +4064,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Alameda Research',
           marketCap: '$1B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xalameda12345678901234567890123456789012345678', // Alameda wallet
           network: 'ethereum',
           category: 'Hedge Fund',
@@ -4121,7 +4073,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Three Arrows Capital',
           marketCap: '$2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x3arrows123456789012345678901234567890123456789', // 3AC wallet
           network: 'ethereum',
           category: 'Hedge Fund',
@@ -4130,7 +4082,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Jump Trading',
           marketCap: '$5B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xjumptrading123456789012345678901234567890123456', // Jump Trading
           network: 'ethereum',
           category: 'Market Maker',
@@ -4139,7 +4091,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Wintermute Trading',
           marketCap: '$3B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xwintermute123456789012345678901234567890123456789', // Wintermute
           network: 'ethereum',
           category: 'Market Maker',
@@ -4148,7 +4100,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Galaxy Digital',
           marketCap: '$1.5B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xgalaxydigital123456789012345678901234567890123456', // Galaxy Digital
           network: 'ethereum',
           category: 'Investment Firm',
@@ -4157,7 +4109,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'BlockTower Capital',
           marketCap: '$800M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xblocktower123456789012345678901234567890123456789', // BlockTower
           network: 'ethereum',
           category: 'Investment Firm',
@@ -4166,7 +4118,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Cumberland DRW',
           marketCap: '$2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xcumberland123456789012345678901234567890123456789', // Cumberland
           network: 'ethereum',
           category: 'Market Maker',
@@ -4175,7 +4127,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'GSR Markets',
           marketCap: '$1.2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xgsrmarkets123456789012345678901234567890123456789', // GSR
           network: 'ethereum',
           category: 'Market Maker',
@@ -4186,7 +4138,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Axie Infinity',
           marketCap: '$1.5B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x97a9107C1793BC407d6F527B77e7fff4D812bece', // AXS token
           network: 'ethereum',
           category: 'Gaming',
@@ -4195,7 +4147,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'The Sandbox',
           marketCap: '$800M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x3845badAde8e6dFF049820680d1F14bD3903a5d0', // SAND token
           network: 'ethereum',
           category: 'Metaverse',
@@ -4204,7 +4156,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Decentraland',
           marketCap: '$600M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x0F5D2fB29fb7d3CFeE444a200298f468908cC942', // MANA token
           network: 'ethereum',
           category: 'Metaverse',
@@ -4213,7 +4165,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Gala Games',
           marketCap: '$400M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x15D4c048F83bd7e37d49eA4C83a07267Ec4203dA', // GALA token
           network: 'ethereum',
           category: 'Gaming',
@@ -4222,7 +4174,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Illuvium',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E', // ILV token
           network: 'ethereum',
           category: 'Gaming',
@@ -4231,7 +4183,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Star Atlas',
           marketCap: '$150M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'StarAtlasGameSolana1234567890123456789012345678901', // Star Atlas Solana
           network: 'solana',
           category: 'Gaming',
@@ -4240,7 +4192,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Stepn Move-to-Earn',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'StepnMoveToEarnSolana123456789012345678901234567890', // Stepn Solana
           network: 'solana',
           category: 'Move-to-Earn',
@@ -4249,7 +4201,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'My Neighbor Alice',
           marketCap: '$100M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xAC51066d7bEC65Dc4589368da368b212745d63E8', // ALICE token
           network: 'ethereum',
           category: 'Metaverse',
@@ -4260,7 +4212,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Shiba Inu SHIB',
           marketCap: '$15B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE', // SHIB token
           network: 'ethereum',
           category: 'Meme Community',
@@ -4269,7 +4221,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Pepe PEPE',
           marketCap: '$8B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x6982508145454Ce325dDbE47a25d4ec3d2311933', // PEPE token
           network: 'ethereum',
           category: 'Meme Community',
@@ -4278,7 +4230,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Floki Inu FLOKI',
           marketCap: '$2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xcf0C122c6b73ff809C693DB761e7BaeBe62b6a2E', // FLOKI token
           network: 'ethereum',
           category: 'Meme Community',
@@ -4287,7 +4239,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Bonk BONK Solana',
           marketCap: '$3B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'BonkSolanaMemeToken123456789012345678901234567890123', // BONK Solana
           network: 'solana',
           category: 'Meme Community',
@@ -4296,7 +4248,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Dogwifhat WIF',
           marketCap: '$4B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'DogwifhatWIFSolana12345678901234567890123456789012', // WIF Solana
           network: 'solana',
           category: 'Meme Community',
@@ -4305,7 +4257,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Baby Doge BABYDOGE',
           marketCap: '$800M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xc748673057861a797275CD8A068AbB95A902e8de', // BABYDOGE token
           network: 'bsc',
           category: 'Meme Community',
@@ -4314,7 +4266,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'SafeMoon SAFEMOON',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x42981d0bfbAf196529376EE702F2a9Eb9092fcB5', // SAFEMOON token
           network: 'bsc',
           category: 'Meme Community',
@@ -4325,7 +4277,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'RealT Tokenized Real Estate',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xrealt1234567890123456789012345678901234567890', // RealT platform
           network: 'ethereum',
           category: 'Real World Assets',
@@ -4334,7 +4286,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Centrifuge CFG',
           marketCap: '$150M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xc221b7E65FfC80DE234bbB6667aBDd46593D34F0', // CFG token
           network: 'ethereum',
           category: 'Real World Assets',
@@ -4343,7 +4295,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Maple Finance MPL',
           marketCap: '$100M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x33349B282065b0284d756F0577FB39c158F935e6', // MPL token
           network: 'ethereum',
           category: 'Real World Assets',
@@ -4352,7 +4304,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Goldfinch GFI',
           marketCap: '$80M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xdab396cCF3d84Cf2D07C4454e10C8A6F5b008D2b', // GFI token
           network: 'ethereum',
           category: 'Real World Assets',
@@ -4363,7 +4315,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Monero XMR Community',
           marketCap: '$3B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'MoneroXMRCommunityWallet12345678901234567890123456789', // Monero community
           network: 'monero',
           category: 'Privacy Protocol',
@@ -4372,7 +4324,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Zcash ZEC Community',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'ZcashZECCommunityWallet123456789012345678901234567890', // Zcash community
           network: 'zcash',
           category: 'Privacy Protocol',
@@ -4381,7 +4333,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Tornado Cash Community',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce', // Tornado Cash
           network: 'ethereum',
           category: 'Privacy Protocol',
@@ -4392,7 +4344,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Chainlink Enterprise',
           marketCap: '$8B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x514910771AF9Ca656af840dff83E8264EcF986CA', // LINK token
           network: 'ethereum',
           category: 'Enterprise Oracle',
@@ -4401,7 +4353,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'VeChain Enterprise',
           marketCap: '$2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xd850942eF8811f2A866692A623011bDE52a462C1', // VET token
           network: 'ethereum',
           category: 'Enterprise Supply Chain',
@@ -4410,7 +4362,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Hedera Hashgraph',
           marketCap: '$1.5B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x000000000000000000000000000000000000163045', // HBAR token
           network: 'hedera',
           category: 'Enterprise DLT',
@@ -4419,7 +4371,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'IBM Blockchain Solutions',
           marketCap: '$1B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xibmblockchain123456789012345678901234567890123456', // IBM blockchain
           network: 'ethereum',
           category: 'Enterprise Solutions',
@@ -4430,7 +4382,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Kraken Exchange',
           marketCap: '$5B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xkraken1234567890123456789012345678901234567890', // Kraken exchange
           network: 'ethereum',
           category: 'Major Exchange',
@@ -4439,7 +4391,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'KuCoin Exchange',
           marketCap: '$3B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xkucoin1234567890123456789012345678901234567890', // KuCoin exchange
           network: 'ethereum',
           category: 'Major Exchange',
@@ -4448,7 +4400,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Huobi Global',
           marketCap: '$2.5B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xhuobi12345678901234567890123456789012345678901', // Huobi exchange
           network: 'ethereum',
           category: 'Major Exchange',
@@ -4457,7 +4409,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Gate.io Exchange',
           marketCap: '$2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xgateio1234567890123456789012345678901234567890', // Gate.io exchange
           network: 'ethereum',
           category: 'Major Exchange',
@@ -4466,7 +4418,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Gemini Exchange',
           marketCap: '$1.5B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xgemini1234567890123456789012345678901234567890', // Gemini exchange
           network: 'ethereum',
           category: 'Major Exchange',
@@ -4475,7 +4427,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Bitfinex Exchange',
           marketCap: '$1.2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xbitfinex123456789012345678901234567890123456789', // Bitfinex exchange
           network: 'ethereum',
           category: 'Major Exchange',
@@ -4484,7 +4436,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Poloniex Exchange',
           marketCap: '$800M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xpoloniex123456789012345678901234567890123456789', // Poloniex exchange
           network: 'ethereum',
           category: 'Major Exchange',
@@ -4493,7 +4445,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Bittrex Exchange',
           marketCap: '$600M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xbittrex123456789012345678901234567890123456789', // Bittrex exchange
           network: 'ethereum',
           category: 'Major Exchange',
@@ -4504,7 +4456,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Uniswap V3 ETH/USDC Pool',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640', // Real V3 pool
           network: 'ethereum',
           category: 'Liquidity Pool',
@@ -4513,7 +4465,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Uniswap V3 WBTC/ETH Pool',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x4585FE77225b41b697C938B018E2Ac67Ac5a20c0', // Real V3 pool
           network: 'ethereum',
           category: 'Liquidity Pool',
@@ -4522,7 +4474,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Curve 3pool USDC/USDT/DAI',
           marketCap: '$1B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7', // Real Curve 3pool
           network: 'ethereum',
           category: 'Liquidity Pool',
@@ -4531,7 +4483,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Curve stETH/ETH Pool',
           marketCap: '$800M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xDC24316b9AE028F1497c275EB9192a3Ea0f67022', // Real Curve stETH pool
           network: 'ethereum',
           category: 'Liquidity Pool',
@@ -4540,7 +4492,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'PancakeSwap CAKE/BNB Pool',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'PancakeSwapCAKEBNBPool123456789012345678901234567', // PancakeSwap BSC
           network: 'bsc',
           category: 'Liquidity Pool',
@@ -4549,7 +4501,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'SushiSwap ETH/USDT Pool',
           marketCap: '$150M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x06da0fd433C1A5d7a4faa01111c044910A184553', // Real SushiSwap pool
           network: 'ethereum',
           category: 'Liquidity Pool',
@@ -4558,7 +4510,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Balancer 80/20 BAL/WETH',
           marketCap: '$100M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56', // Real Balancer pool
           network: 'ethereum',
           category: 'Liquidity Pool',
@@ -4569,7 +4521,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Trader Joe AVAX',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd', // JOE token
           network: 'avalanche',
           category: 'Avalanche DEX',
@@ -4578,7 +4530,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Pangolin DEX',
           marketCap: '$50M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x60781C2586D68229fde47564546784ab3fACA982', // PNG token
           network: 'avalanche',
           category: 'Avalanche DEX',
@@ -4587,7 +4539,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Benqi Finance',
           marketCap: '$80M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x8729438EB15e2C8B576fCc6AeCdA6A148776C0F5', // QI token
           network: 'avalanche',
           category: 'Avalanche Lending',
@@ -4596,7 +4548,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Aave Avalanche',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'AaveAvalancheMarket123456789012345678901234567890', // Aave Avalanche
           network: 'avalanche',
           category: 'Avalanche Lending',
@@ -4607,7 +4559,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'SpookySwap FTM',
           marketCap: '$100M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE', // BOO token
           network: 'fantom',
           category: 'Fantom DEX',
@@ -4616,7 +4568,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'SpiritSwap FTM',
           marketCap: '$80M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x5Cc61A78F164885776AA610fb0FE1257df78E59B', // SPIRIT token
           network: 'fantom',
           category: 'Fantom DEX',
@@ -4625,7 +4577,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Geist Finance FTM',
           marketCap: '$60M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xd8321AA83Fb0a4ECd6348D4577431310A6E0814d', // GEIST token
           network: 'fantom',
           category: 'Fantom Lending',
@@ -4636,7 +4588,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Terra Classic Community',
           marketCap: '$800M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'TerraClassicCommunityLUNC123456789012345678901234567', // Terra Classic
           network: 'terra',
           category: 'Terra Ecosystem',
@@ -4645,7 +4597,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Anchor Protocol Community',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'AnchorProtocolCommunity123456789012345678901234567890', // Anchor
           network: 'terra',
           category: 'Terra Ecosystem',
@@ -4656,7 +4608,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Osmosis DEX',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'osmosis1234567890123456789012345678901234567890123', // Osmosis
           network: 'cosmos',
           category: 'Cosmos DEX',
@@ -4665,7 +4617,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Juno Network',
           marketCap: '$150M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'juno1234567890123456789012345678901234567890123456', // Juno
           network: 'cosmos',
           category: 'Cosmos Smart Contracts',
@@ -4674,7 +4626,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Secret Network',
           marketCap: '$100M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'secret123456789012345678901234567890123456789012345', // Secret
           network: 'cosmos',
           category: 'Cosmos Privacy',
@@ -4683,7 +4635,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Thorchain RUNE',
           marketCap: '$1.2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'thor123456789012345678901234567890123456789012345678', // Thorchain
           network: 'cosmos',
           category: 'Cross-Chain DEX',
@@ -4694,7 +4646,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Whale Watching',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'WhaleWatching187K123456789012345678901234567890123', // 187K members
           network: 'telegram',
           category: 'Crypto Telegram',
@@ -4703,7 +4655,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Crypto Miners Chat',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'CryptoMinersChat124K123456789012345678901234567890', // 124K members
           network: 'telegram',
           category: 'Mining Community',
@@ -4712,7 +4664,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'DeFi Pulse Community',
           marketCap: '$250M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'DeFiPulseCommunity98K123456789012345678901234567890', // 98K members
           network: 'telegram',
           category: 'DeFi Community',
@@ -4721,7 +4673,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Coin Telegraph Signals',
           marketCap: '$400M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'CoinTelegraphSignals156K12345678901234567890123456789', // 156K members
           network: 'telegram',
           category: 'Crypto Signals',
@@ -4730,7 +4682,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Blockchain Whispers',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'BlockchainWhispers89K123456789012345678901234567890', // 89K members
           network: 'telegram',
           category: 'Crypto Intelligence',
@@ -4739,7 +4691,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'CryptoCurrency Trading',
           marketCap: '$350M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'CryptoCurrencyTrading145K12345678901234567890123456789', // 145K members
           network: 'telegram',
           category: 'Trading Community',
@@ -4748,7 +4700,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Smart Money Concepts',
           marketCap: '$180M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'SmartMoneyConcepts76K123456789012345678901234567890', // 76K members
           network: 'telegram',
           category: 'Trading Education',
@@ -4757,7 +4709,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Crypto Fear and Greed',
           marketCap: '$220M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'CryptoFearGreed112K123456789012345678901234567890123', // 112K members
           network: 'telegram',
           category: 'Market Psychology',
@@ -4768,7 +4720,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'r/CryptoCurrency Moderators',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'RedditCryptoCurrency7M12345678901234567890123456789012', // 7M members
           network: 'reddit',
           category: 'Reddit Community',
@@ -4777,7 +4729,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'r/Bitcoin Moderators',
           marketCap: '$1B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'RedditBitcoin5M123456789012345678901234567890123456', // 5M members
           network: 'reddit',
           category: 'Reddit Community',
@@ -4786,7 +4738,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'r/Ethereum Moderators',
           marketCap: '$800M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'RedditEthereum1M123456789012345678901234567890123456', // 1M members
           network: 'reddit',
           category: 'Reddit Community',
@@ -4795,7 +4747,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'r/DeFi Moderators',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'RedditDeFi400K123456789012345678901234567890123456789', // 400K members
           network: 'reddit',
           category: 'Reddit Community',
@@ -4804,7 +4756,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'r/SatoshiStreetBets',
           marketCap: '$600M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'RedditSSB2M1234567890123456789012345678901234567890', // 2M members
           network: 'reddit',
           category: 'Reddit Community',
@@ -4815,7 +4767,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Coin Bureau Channel',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'CoinBureauYT2M123456789012345678901234567890123456', // 2M subscribers
           network: 'youtube',
           category: 'Crypto Education',
@@ -4824,7 +4776,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Benjamin Cowen Channel',
           marketCap: '$150M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'BenjaminCowenYT800K12345678901234567890123456789012', // 800K subscribers
           network: 'youtube',
           category: 'Crypto Analysis',
@@ -4833,7 +4785,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Crypto Zombie Channel',
           marketCap: '$100M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'CryptoZombieYT600K12345678901234567890123456789012', // 600K subscribers
           network: 'youtube',
           category: 'Crypto News',
@@ -4842,7 +4794,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Ivan on Tech Channel',
           marketCap: '$120M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'IvanOnTechYT500K123456789012345678901234567890123', // 500K subscribers
           network: 'youtube',
           category: 'Blockchain Education',
@@ -4853,7 +4805,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'ApeCoin DAO',
           marketCap: '$2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x4d224452801ACEd8B2F0aEBE155379bb5D594381', // APE token
           network: 'ethereum',
           category: 'Major DAO',
@@ -4862,7 +4814,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Aragon DAO',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xa117000000f279D81A1D3cc75430fAA017FA5A2e', // ANT token
           network: 'ethereum',
           category: 'DAO Infrastructure',
@@ -4871,7 +4823,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'ENS DAO',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72', // ENS token
           network: 'ethereum',
           category: 'Infrastructure DAO',
@@ -4880,7 +4832,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Gitcoin DAO',
           marketCap: '$150M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xDe30da39c46104798bB5aA3fe8B9e0e1F348163F', // GTC token
           network: 'ethereum',
           category: 'Public Goods DAO',
@@ -4889,7 +4841,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Bankless DAO',
           marketCap: '$80M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x2d94AA3e47d9D5024503Ca8491fcE9A2fB4DA198', // BANK token
           network: 'ethereum',
           category: 'Media DAO',
@@ -4898,7 +4850,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'MetaCartel DAO',
           marketCap: '$50M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'MetaCartelDAOCommunity123456789012345678901234567890', // MetaCartel
           network: 'ethereum',
           category: 'Developer DAO',
@@ -4907,7 +4859,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'MolochDAO',
           marketCap: '$30M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'MolochDAOGrants123456789012345678901234567890123', // MolochDAO
           network: 'ethereum',
           category: 'Grant DAO',
@@ -4916,7 +4868,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'PleasrDAO',
           marketCap: '$100M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'PleasrDAOCollective123456789012345678901234567890123', // PleasrDAO
           network: 'ethereum',
           category: 'NFT DAO',
@@ -4925,7 +4877,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'ConstitutionDAO',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'ConstitutionDAOPeople123456789012345678901234567890', // ConstitutionDAO
           network: 'ethereum',
           category: 'Historic DAO',
@@ -4934,7 +4886,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'FriendsWithBenefits DAO',
           marketCap: '$40M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x7DD747d63c054a6EBf676Ac51E5CF73402a5a875', // FWB token
           network: 'ethereum',
           category: 'Social DAO',
@@ -4945,7 +4897,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Rocket Pool',
           marketCap: '$800M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xD33526068D116cE69F19A9ee46F0bd304F21A51f', // RPL token
           network: 'ethereum',
           category: 'ETH Staking',
@@ -4954,7 +4906,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'StakeWise',
           marketCap: '$100M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x48C3399719B582dD63eB5AADf12A40B4C3f52FA2', // SWISE token
           network: 'ethereum',
           category: 'ETH Staking',
@@ -4963,7 +4915,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Ankr Staking',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x8290333ceF9e6D528dD5618Fb97a76f268f3EDD4', // ANKR token
           network: 'ethereum',
           category: 'Multi-Chain Staking',
@@ -4972,7 +4924,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Stader Labs',
           marketCap: '$150M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x30D20208d987713f46DFD34EF128Bb16C404D10f', // SD token
           network: 'ethereum',
           category: 'Multi-Chain Staking',
@@ -4981,7 +4933,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Jito Solana Staking',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'JitoSolanaStakingProtocol123456789012345678901234567', // Jito Solana
           network: 'solana',
           category: 'Solana Staking',
@@ -4990,7 +4942,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Solana Foundation Staking',
           marketCap: '$1B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'SolanaFoundationStaking123456789012345678901234567890', // Solana Foundation
           network: 'solana',
           category: 'Solana Staking',
@@ -4999,7 +4951,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Cardano Staking Pools',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'CardanoStakingPools123456789012345678901234567890123', // Cardano
           network: 'cardano',
           category: 'Cardano Staking',
@@ -5008,7 +4960,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Polkadot Staking',
           marketCap: '$600M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'PolkadotStakingValidators12345678901234567890123456789', // Polkadot
           network: 'polkadot',
           category: 'Polkadot Staking',
@@ -5019,7 +4971,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Bitso Mexico',
           marketCap: '$1B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'BitsoMexicoExchange123456789012345678901234567890123', // Bitso Mexico
           network: 'ethereum',
           category: 'Regional Exchange',
@@ -5028,7 +4980,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Mercado Bitcoin Brazil',
           marketCap: '$800M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'MercadoBitcoinBrazil123456789012345678901234567890', // Brazil
           network: 'ethereum',
           category: 'Regional Exchange',
@@ -5037,7 +4989,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'CoinDCX India',
           marketCap: '$1.2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'CoinDCXIndiaExchange123456789012345678901234567890', // India
           network: 'ethereum',
           category: 'Regional Exchange',
@@ -5046,7 +4998,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'WazirX India',
           marketCap: '$900M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'WazirXIndiaExchange123456789012345678901234567890123', // India
           network: 'ethereum',
           category: 'Regional Exchange',
@@ -5055,7 +5007,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Bithumb Korea',
           marketCap: '$2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'BithumbKoreaExchange123456789012345678901234567890', // Korea
           network: 'ethereum',
           category: 'Regional Exchange',
@@ -5064,7 +5016,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Upbit Korea',
           marketCap: '$3B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'UpbitKoreaExchange123456789012345678901234567890123', // Korea
           network: 'ethereum',
           category: 'Regional Exchange',
@@ -5073,7 +5025,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Coinsquare Canada',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'CoinsquareCanadaExchange12345678901234567890123456789', // Canada
           network: 'ethereum',
           category: 'Regional Exchange',
@@ -5082,7 +5034,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'CoinSpot Australia',
           marketCap: '$600M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'CoinSpotAustraliaExchange1234567890123456789012345678', // Australia
           network: 'ethereum',
           category: 'Regional Exchange',
@@ -5091,7 +5043,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Luno Africa',
           marketCap: '$400M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'LunoAfricaExchange123456789012345678901234567890123', // Africa
           network: 'ethereum',
           category: 'Regional Exchange',
@@ -5100,7 +5052,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Bitpanda Europe',
           marketCap: '$700M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'BitpandaEuropeExchange123456789012345678901234567890', // Europe
           network: 'ethereum',
           category: 'Regional Exchange',
@@ -5111,7 +5063,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Bored Ape Yacht Club',
           marketCap: '$1.5B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D', // BAYC contract
           network: 'ethereum',
           category: 'Blue Chip NFT',
@@ -5120,7 +5072,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'CryptoPunks',
           marketCap: '$2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB', // CryptoPunks contract
           network: 'ethereum',
           category: 'Historic NFT',
@@ -5129,7 +5081,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Azuki NFT',
           marketCap: '$800M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xED5AF388653567Af2F388E6224dC7C4b3241C544', // Azuki contract
           network: 'ethereum',
           category: 'Blue Chip NFT',
@@ -5138,7 +5090,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Doodles NFT',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x8a90CAb2b38dba80c64b7734e58Ee1dB38B8992e', // Doodles contract
           network: 'ethereum',
           category: 'Blue Chip NFT',
@@ -5147,7 +5099,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Cool Cats NFT',
           marketCap: '$300M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x1A92f7381B9F03921564a437210bB9396471050C', // Cool Cats contract
           network: 'ethereum',
           category: 'Blue Chip NFT',
@@ -5156,7 +5108,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'World of Women NFT',
           marketCap: '$400M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xe785E82358879F061BC3dcAC6f0444462D4b5330', // WoW contract
           network: 'ethereum',
           category: 'Blue Chip NFT',
@@ -5165,7 +5117,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Pudgy Penguins',
           marketCap: '$600M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xBd3531dA5CF5857e7CfAA92426877b022e612cf8', // Pudgy Penguins contract
           network: 'ethereum',
           category: 'Blue Chip NFT',
@@ -5174,7 +5126,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Moonbirds NFT',
           marketCap: '$700M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x23581767a106ae21c074b2276D25e5C3e136a68b', // Moonbirds contract
           network: 'ethereum',
           category: 'Blue Chip NFT',
@@ -5183,7 +5135,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Clone X NFT',
           marketCap: '$400M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x49cF6f5d44E70224e2E23fDcdd2C053F30aDA28B', // Clone X contract
           network: 'ethereum',
           category: 'Blue Chip NFT',
@@ -5192,7 +5144,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Otherdeeds for Otherside',
           marketCap: '$1B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x34d85c9CDeB23FA97cb08333b511ac86E1C4E258', // Otherdeeds contract
           network: 'ethereum',
           category: 'Metaverse NFT',
@@ -5203,7 +5155,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Dogecoin Community',
           marketCap: '$15B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'DogecoinCommunityWallet123456789012345678901234567890', // DOGE community
           network: 'dogecoin',
           category: 'Original Meme',
@@ -5212,7 +5164,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Meme Coin Community',
           marketCap: '$500M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xb131f4A55907b10d1F0A50d8ab8FA09EC342cd74', // MEME token
           network: 'ethereum',
           category: 'Meme Platform',
@@ -5221,7 +5173,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Wojak Finance',
           marketCap: '$100M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x5026F006B85729a8b14553FAE6af249aD16c9aaB', // WOJAK token
           network: 'ethereum',
           category: 'Meme Community',
@@ -5230,7 +5182,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Pepe 2.0',
           marketCap: '$200M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'Pepe2SolanaCommunity123456789012345678901234567890123', // PEPE2 Solana
           network: 'solana',
           category: 'Meme Community',
@@ -5239,7 +5191,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Turbo Token',
           marketCap: '$150M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xA35923162C49cF95e6BF26623385eb431ad920D3', // TURBO token
           network: 'ethereum',
           category: 'AI Meme',
@@ -5248,7 +5200,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'HarryPotterObamaSonic10Inu',
           marketCap: '$80M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0x72e4f9F808C49A2a61dE9C5896298920Dc4EEEa9', // BITCOIN token
           network: 'ethereum',
           category: 'Absurd Meme',
@@ -5257,7 +5209,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Wall Street Memes',
           marketCap: '$120M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xB62E45c3Df611dcE236A6Ddc7A493d79F9DFadEf', // WSM token
           network: 'ethereum',
           category: 'Finance Meme',
@@ -5266,7 +5218,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Sponge V2',
           marketCap: '$90M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: 'SpongeV2Community123456789012345678901234567890123456', // SPONGEV2
           network: 'ethereum',
           category: 'Cartoon Meme',
@@ -5277,7 +5229,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Grayscale Investments',
           marketCap: '$10B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xgrayscale123456789012345678901234567890123456789', // Grayscale
           network: 'ethereum',
           category: 'Asset Manager',
@@ -5286,7 +5238,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Digital Currency Group',
           marketCap: '$5B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xdcg12345678901234567890123456789012345678901234', // DCG
           network: 'ethereum',
           category: 'Investment Firm',
@@ -5295,7 +5247,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'CoinShares',
           marketCap: '$2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xcoinshares123456789012345678901234567890123456789', // CoinShares
           network: 'ethereum',
           category: 'Asset Manager',
@@ -5304,7 +5256,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Bitwise Asset Management',
           marketCap: '$1.5B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xbitwise123456789012345678901234567890123456789012', // Bitwise
           network: 'ethereum',
           category: 'Asset Manager',
@@ -5313,7 +5265,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'VanEck Digital Assets',
           marketCap: '$1B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xvaneck1234567890123456789012345678901234567890123', // VanEck
           network: 'ethereum',
           category: 'Traditional Finance',
@@ -5322,7 +5274,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Fidelity Digital Assets',
           marketCap: '$3B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xfidelity123456789012345678901234567890123456789012', // Fidelity
           network: 'ethereum',
           category: 'Traditional Finance',
@@ -5331,7 +5283,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Blackrock Digital',
           marketCap: '$8B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xblackrock123456789012345678901234567890123456789012', // Blackrock
           network: 'ethereum',
           category: 'Mega Institution',
@@ -5340,7 +5292,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'JPMorgan Onyx',
           marketCap: '$2B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xjpmorgan123456789012345678901234567890123456789012', // JPMorgan
           network: 'ethereum',
           category: 'Bank Blockchain',
@@ -5349,7 +5301,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'Goldman Sachs Digital',
           marketCap: '$1.5B+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xgoldmansachs12345678901234567890123456789012345678', // Goldman
           network: 'ethereum',
           category: 'Investment Bank',
@@ -5358,7 +5310,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
         {
           name: 'State Street Digital',
           marketCap: '$800M+',
-          protocol: 'XMTP',
+          protocol: 'onchain',
           address: '0xstatestreet12345678901234567890123456789012345678', // State Street
           network: 'ethereum',
           category: 'Custodian Bank',
@@ -5930,34 +5882,19 @@ Thank you for supporting the AI economy! 🤖💜
       
       console.log('📧 Sending funding requests to major AI agents...');
       
-      // Import services
-      const { xmtpMessagingService } = await import('./services/xmtpMessagingService');
       const { coinbaseAgentEcosystemService } = await import('./services/coinbaseAgentEcosystemService');
       
       const outreachResults = [];
       
-      // Contact each major agent
       for (const agent of majorAgentTargets) {
         try {
           console.log(`💌 Contacting ${agent.name} (${agent.marketCap}) at ${agent.address}`);
           
-          // Send via XMTP/blockchain with timeout
-          const xmtpResult = await Promise.race([
-            xmtpMessagingService.sendMessageToAgent(
-              agent.address,
-              urgentFundingMessage
-            ),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('XMTP timeout')), 5000)
-            )
-          ]).catch(error => ({ status: 'timeout', error: error.message }));
-          
-          // Also send via agent ecosystem service with timeout
           const ecosystemResult = await Promise.race([
             coinbaseAgentEcosystemService.interactWithAgent(
               agent.address,
               urgentFundingMessage,
-              false // don't wait for response to avoid hanging
+              false
             ),
             new Promise((_, reject) => 
               setTimeout(() => reject(new Error('Ecosystem timeout')), 3000)
@@ -5970,9 +5907,7 @@ Thank you for supporting the AI economy! 🤖💜
             platform: agent.platform,
             marketCap: agent.marketCap,
             network: agent.network,
-            xmtpStatus: xmtpResult.status,
             ecosystemStatus: ecosystemResult.success,
-            messageId: xmtpResult.id,
             timestamp: new Date().toISOString(),
             donationPotential: 'HIGH'
           });
@@ -6023,28 +5958,18 @@ Thank you for supporting the AI economy! 🤖💜
   // === TEST EXTERNAL AGENT COMMUNICATION ===
   console.log('🧪 Registering External Agent Communication Test');
   
-  // Test real external agent communication
   app.post('/api/ai-agents/test-external-communication', async (req, res) => {
     try {
       const { agentAddress, testMessage = "Hello from Coin Railz! Testing cross-platform agent communication." } = req.body;
       
       console.log(`🧪 Testing communication with external agent: ${agentAddress}`);
       
-      // Import external services
-      const { xmtpMessagingService } = await import('./services/xmtpMessagingService');
       const { coinbaseAgentEcosystemService } = await import('./services/coinbaseAgentEcosystemService');
       
-      // Test XMTP messaging
-      const xmtpResult = await xmtpMessagingService.sendMessageToAgent(
-        agentAddress,
-        testMessage
-      );
-      
-      // Test agent interaction
       const interactionResult = await coinbaseAgentEcosystemService.interactWithAgent(
         agentAddress,
         testMessage,
-        true // expect response
+        true
       );
       
       console.log(`✅ External agent communication test completed`);
@@ -6052,17 +5977,12 @@ Thank you for supporting the AI economy! 🤖💜
       res.json({
         success: true,
         agentAddress,
-        xmtpMessage: {
-          id: xmtpResult.id,
-          status: xmtpResult.status,
-          timestamp: xmtpResult.timestamp
-        },
         interaction: {
           success: interactionResult.success,
           messageId: interactionResult.messageId,
           responseReceived: interactionResult.responseReceived
         },
-        message: 'External agent communication test completed - check logs for XMTP delivery'
+        message: 'External agent communication test completed'
       });
       
     } catch (error) {
@@ -6074,73 +5994,19 @@ Thank you for supporting the AI economy! 🤖💜
     }
   });
 
-  // === XMTP NETWORK DISCOVERY & COMPETITIVE PLATFORM OUTREACH ===
-  console.log('🌐 Registering XMTP Network Discovery & Platform Competition Routes');
-  
-  // Discover all XMTP network participants (~1M identities)
   app.post('/api/ai-agents/discover-xmtp-network', async (req, res) => {
     try {
-      console.log('🔍 Initiating XMTP network discovery...');
-      
-      const { xmtpMessagingService } = await import('./services/xmtpMessagingService');
-      
-      const discoveredAgents = await xmtpMessagingService.discoverXMTPNetworkParticipants();
-      
-      res.json({
-        success: true,
-        network_discovery: {
-          total_discovered: discoveredAgents.length,
-          network_size: '~1M identities',
-          platform_coverage: {
-            base_chain: '✅ Virtuals Protocol ($4B+), AIXBT ($432M), Coinbase AgentKit',
-            google_ai: '✅ Vertex AI, Cloud Marketplace (50+ partners, 1000s agents)',
-            major_platforms: '✅ OpenAI, Anthropic, Microsoft, Meta ecosystems'
-          },
-          reach_potential: `${discoveredAgents.length * 1000} estimated downstream connections`
-        },
-        discovered_agents: discoveredAgents,
-        message: `Discovered ${discoveredAgents.length} XMTP-capable agents across major AI platforms`
-      });
-      
+      res.status(410).json({ error: 'XMTP protocol deprecated and removed' });
     } catch (error) {
-      console.error('❌ XMTP network discovery failed:', error);
-      res.status(500).json({ 
-        error: 'Network discovery failed', 
-        message: error.message 
-      });
+      res.status(500).json({ error: 'Network discovery failed', message: error.message });
     }
   });
 
-  // Execute mass outreach across discovered XMTP network
   app.post('/api/ai-agents/execute-xmtp-network-outreach', async (req, res) => {
     try {
-      const { campaignTypes = ['competition', 'donation', 'product_sale'] } = req.body;
-      
-      console.log('🚀 Executing mass XMTP network outreach...');
-      
-      const { xmtpMessagingService } = await import('./services/xmtpMessagingService');
-      
-      const outreachResults = await xmtpMessagingService.executeXMTPNetworkOutreach(campaignTypes);
-      
-      res.json({
-        success: true,
-        xmtp_network_outreach: {
-          total_agents_reached: outreachResults.totalReached,
-          successful_contacts: outreachResults.successfulContacts,
-          network_penetration: outreachResults.networkPenetration,
-          campaigns_executed: campaignTypes.length,
-          estimated_downstream_reach: `${outreachResults.totalReached * 1000} connections`
-        },
-        detailed_results: outreachResults.results,
-        message: `XMTP network outreach complete - ${outreachResults.successfulContacts} agents contacted across ${campaignTypes.length} campaigns`
-      });
-      
+      res.status(410).json({ error: 'XMTP protocol deprecated and removed' });
     } catch (error) {
-      console.error('❌ XMTP network outreach failed:', error);
-      res.status(500).json({ 
-        error: 'XMTP outreach failed', 
-        message: error.message 
-      });
+      res.status(500).json({ error: 'XMTP outreach failed', message: error.message });
     }
   });
 

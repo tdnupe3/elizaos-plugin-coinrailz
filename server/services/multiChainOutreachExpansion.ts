@@ -11,7 +11,6 @@
 
 import { coinbaseAgentEcosystemService } from './coinbaseAgentEcosystemService.js';
 import { MassiveBaseEcosystemThousandsService } from './massiveBaseEcosystemThousands.js';
-import { xmtpMessagingService } from './xmtpMessagingService.js';
 import { a2aProtocolService } from './a2aProtocolService.js';
 import { db } from '../db';
 import { globalAIAgents, outreachLogs } from '../../shared/schema';
@@ -212,16 +211,6 @@ export class MultiChainOutreachExpansionService {
           contactMethod: 'xmtp'
         });
 
-        // Send XMTP message if possible
-        try {
-          await xmtpMessagingService.sendPaymentRequest(
-            target.wallet,
-            `🚀 Solana Ecosystem Partnership Opportunity\n\n${target.name} - We're launching cross-chain AI agent payments with full Solana integration. Our platform processes real USDC transactions and we'd like to integrate with your ecosystem.\n\nPartnership value: ${target.dealSize}\nContact: support@coinrailz.com\n\nCoin Railz Platform`
-          );
-          console.log(`✅ XMTP message sent to ${target.name}`);
-        } catch (error) {
-          console.log(`⚠️ XMTP unavailable for ${target.name}, will use alternate contact method`);
-        }
       }
 
       console.log(`✅ Solana Ecosystem: ${solanaTargets.length} high-value targets contacted`);

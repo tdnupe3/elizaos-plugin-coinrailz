@@ -18,7 +18,6 @@ import { discoveryRuns, discoveredAgents, agentOutreachMessages } from '@shared/
 import { eq, and, isNotNull, isNull, sql, desc, gte } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
-import { XMTPAgentOutreachService } from './xmtpAgentOutreach';
 
 interface DiscoveredAgent {
   source: string;
@@ -371,17 +370,9 @@ export async function runDiscoveryNow(): Promise<number> {
 }
 
 /**
- * Run automated outreach to newly discovered agents with XMTP
- * Delegates to XMTPAgentOutreachService which handles:
- * - Quality score filtering (xmtpQualityScore >= 60)
- * - Personalized message generation
- * - Multi-channel fallback (XMTP → Discord → Telegram → GitHub → Email)
- * - Rate limiting (1 msg/sec)
- * 
- * NOTE: Manual API trigger only - not auto-triggered after discovery runs
- * This ensures human oversight until XMTP delivery is verified in production
+ * Run automated outreach — XMTP removed, returns no-op
  */
-export async function runAutomatedOutreach(options: {
+export async function runAutomatedOutreach(_options: {
   minQualityScore?: number;
   maxAgents?: number;
   onlyXMTP?: boolean;
@@ -392,68 +383,8 @@ export async function runAutomatedOutreach(options: {
   skipped: number;
   creditsOffered: number;
 }> {
-  const {
-    minQualityScore = 60,
-    maxAgents = 50,
-    onlyXMTP = true,  // Default to XMTP-only for automated campaigns
-  } = options;
-  
-  console.log(`\n🤖 Starting automated outreach campaign`);
-  console.log(`   Quality filter: score >= ${minQualityScore}`);
-  console.log(`   Max agents: ${maxAgents}`);
-  console.log(`   XMTP only: ${onlyXMTP}`);
-  
-  try {
-    // Use existing XMTPAgentOutreachService for proven logic
-    const outreachService = XMTPAgentOutreachService.getInstance();
-    
-    const campaign = await outreachService.runOutreachCampaign({
-      minQualityScore,
-      maxAgents,
-      onlyXMTP,
-    });
-    
-    // Record campaign in database for tracking
-    const campaignId = `auto-${Date.now()}`;
-    for (const result of campaign.results) {
-      if (result.status === 'sent') {
-        await recordOutreachMessage(
-          result.agentId,
-          result.channel,
-          result.agentUrl,
-          'partnership_offer',
-          result.message || 'Message sent via XMTPAgentOutreachService',
-          campaignId
-        ).then(messageId => updateOutreachStatus(messageId, 'sent'))
-         .catch(err => console.error('Failed to record outreach:', err));
-      }
-    }
-    
-    console.log(`\n📊 Automated outreach campaign completed:`);
-    console.log(`   Targeted: ${campaign.totalTargeted}`);
-    console.log(`   Sent: ${campaign.messagesSent}`);
-    console.log(`   Failed: ${campaign.messagesFailed}`);
-    console.log(`   Skipped: ${campaign.messagesSkipped}`);
-    console.log(`   Credits offered: $${campaign.creditsOffered}`);
-    
-    return {
-      targeted: campaign.totalTargeted,
-      sent: campaign.messagesSent,
-      failed: campaign.messagesFailed,
-      skipped: campaign.messagesSkipped,
-      creditsOffered: campaign.creditsOffered,
-    };
-    
-  } catch (error) {
-    console.error('❌ Automated outreach failed:', error);
-    return {
-      targeted: 0,
-      sent: 0,
-      failed: 0,
-      skipped: 0,
-      creditsOffered: 0,
-    };
-  }
+  console.log('⏸️ Automated outreach disabled — XMTP protocol removed');
+  return { targeted: 0, sent: 0, failed: 0, skipped: 0, creditsOffered: 0 };
 }
 
 /**
@@ -566,9 +497,8 @@ export async function getAgentsReadyForOutreach(options: {
 }
 
 /**
- * Get outreach recommendations using XMTPAgentOutreachService
+ * Get outreach recommendations — XMTP removed, returns empty
  */
-export async function getOutreachRecommendations(limit = 20): Promise<any[]> {
-  const outreachService = XMTPAgentOutreachService.getInstance();
-  return outreachService.getOutreachRecommendations(limit);
+export async function getOutreachRecommendations(_limit = 20): Promise<any[]> {
+  return [];
 }

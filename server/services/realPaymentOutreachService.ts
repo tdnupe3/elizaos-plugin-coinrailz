@@ -5,19 +5,18 @@
  * NO MORE FAKE CONSOLE LOGGING - THIS SENDS REAL MESSAGES
  */
 
-import { XMTPMessagingService } from './xmtpMessagingService';
 import { sendEmail } from '../sendgridService';
 import { legitimatePaymentRequestService } from './legitimatePaymentRequestService';
 import { ethers } from 'ethers';
 import { CoinbaseCDPService } from './coinbaseCDPService';
 
 export class RealPaymentOutreachService {
-  private xmtpService: XMTPMessagingService;
+  private xmtpService: any;
   private provider: ethers.JsonRpcProvider;
   private platformWallet: ethers.Wallet | null = null;
 
   constructor() {
-    this.xmtpService = XMTPMessagingService.getInstance();
+    this.xmtpService = null;
     this.provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
   }
 

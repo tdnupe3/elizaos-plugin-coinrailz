@@ -1,4 +1,3 @@
-import { XMTPMessagingService } from './xmtpMessagingService';
 import axios from 'axios';
 import { db } from '../db';
 import { outreachLogs } from '@shared/schema';
@@ -11,10 +10,10 @@ import { offerLinkService } from './offerLinkService';
  * about our 8 production-ready x402 services
  */
 export class X402ActiveAgentOutreach {
-  private xmtpService: XMTPMessagingService;
+  private xmtpService: any;
   
   constructor() {
-    this.xmtpService = XMTPMessagingService.getInstance();
+    this.xmtpService = null;
   }
 
   /**

@@ -179,7 +179,6 @@ const Whitepaper = lazy(() => import("@/pages/Whitepaper"));
 const DevelopersPage = lazy(() => import("@/pages/DevelopersPage"));
 const CreditsPage = lazy(() => import("@/pages/CreditsPage"));
 const APIKeysPage = lazy(() => import("@/pages/APIKeysPage"));
-const XMTPAdminPage = lazy(() => import("@/pages/XMTPAdminPage"));
 const SolanaPayPage = lazy(() => import("@/pages/solana-pay"));
 const ProofOfExecution = lazy(() => import("@/pages/proof-of-execution"));
 const ServiceDetailPage = lazy(() => import("@/pages/ServiceDetailPage"));
@@ -354,10 +353,6 @@ function Router() {
         }}
       </Route>
       
-      {/* XMTP Agent Outreach Admin */}
-      <Route path="/xmtp-admin">
-        {() => <LazyLoadWrapper><XMTPAdminPage /></LazyLoadWrapper>}
-      </Route>
       
       {/* Enterprise section - separate from consumer platform */}
       <Route path="/enterprise">

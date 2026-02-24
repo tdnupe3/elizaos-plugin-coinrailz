@@ -5,7 +5,6 @@
 
 import CostEffectiveOutreach from './costEffectiveOutreach';
 import RedditOutreachService from './redditOutreachService';
-import { XMTPMessagingService } from './xmtpMessagingService';
 
 export interface OutreachResults {
   totalReached: number;

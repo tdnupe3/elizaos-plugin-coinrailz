@@ -6,7 +6,6 @@ import { db } from '../db';
 import { a2aTasks } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { CommunicationOrchestrator } from './communicationOrchestrator';
-import { XMTPMessagingService } from './xmtpMessagingService';
 
 // A2A Protocol v0.3.0 Implementation
 // Built on JSON-RPC 2.0 over HTTPS with enterprise security
@@ -49,7 +48,6 @@ class A2AProtocolService {
   private tasks: Map<string, A2ATask> = new Map(); // Keep for backward compatibility
   private connectedAgents: Map<string, A2AAgentCard> = new Map();
   private communicationOrchestrator: CommunicationOrchestrator;
-  private xmtpService: XMTPMessagingService;
   
   // Smart retry tracking and telemetry for improved A2A communication success
   private agentFailureHistory = new Map<string, {
@@ -64,7 +62,6 @@ class A2AProtocolService {
 
   constructor() {
     this.communicationOrchestrator = new CommunicationOrchestrator();
-    this.xmtpService = XMTPMessagingService.getInstance();
   }
 
   // Database persistence methods

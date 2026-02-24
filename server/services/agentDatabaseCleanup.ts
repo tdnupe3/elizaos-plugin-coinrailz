@@ -10,7 +10,6 @@
 import { db } from '../db';
 import { discoveredAgents } from '@shared/schema';
 import { eq, sql, and } from 'drizzle-orm';
-import { XMTPAgentScanner } from './xmtpAgentScanner';
 
 export class AgentDatabaseCleanup {
   /**
@@ -41,7 +40,7 @@ export class AgentDatabaseCleanup {
       console.log(`📋 Found ${agentsWithoutCanonical.length} agents without canonical URL`);
 
       for (const agent of agentsWithoutCanonical) {
-        const canonical = XMTPAgentScanner.normalizeURL(agent.url);
+        const canonical = new URL(agent.url).origin + new URL(agent.url).pathname.replace(/\/+$/, '');
         
         await db
           .update(discoveredAgents)

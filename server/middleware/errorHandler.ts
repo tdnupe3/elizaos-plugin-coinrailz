@@ -14,10 +14,21 @@ export class GlobalErrorHandler {
     });
 
     // Handle uncaught exceptions
-    process.on('uncaughtException', (error) => {
+    process.on('uncaughtException', (error: any) => {
       console.error('Uncaught Exception:', error);
-      // Log but don't crash in development
+      const isTransient = error.code === 'ECONNRESET'
+        || error.code === 'ECONNREFUSED'
+        || error.code === 'ETIMEDOUT'
+        || error.code === 'EPIPE'
+        || error.message?.includes('socket hang up')
+        || error.message?.includes('Connection terminated unexpectedly')
+        || error.message?.includes('fetch failed');
+      if (isTransient) {
+        console.warn('⚠️ Transient network error caught — server continues running');
+        return;
+      }
       if (process.env.NODE_ENV === 'production') {
+        console.error('💀 Fatal uncaught exception — exiting');
         process.exit(1);
       }
     });

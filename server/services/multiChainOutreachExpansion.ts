@@ -24,7 +24,7 @@ interface ExpansionTarget {
   protocol: 'coinbase_agentkit' | 'x402_bazaar' | 'solana_agents' | 'xrpl_hooks' | 'circle_apis' | 'mcp_direct' | 'acp_rest';
   priority: 'critical' | 'high' | 'medium';
   dealSize: string;
-  contactMethod: 'xmtp' | 'blockchain_message' | 'api_direct' | 'webhook';
+  contactMethod: 'blockchain_message' | 'api_direct' | 'webhook';
 }
 
 export class MultiChainOutreachExpansionService {
@@ -152,7 +152,7 @@ export class MultiChainOutreachExpansionService {
           protocol: 'coinbase_agentkit',
           priority: 'high',
           dealSize: '$10K-$100K',
-          contactMethod: 'xmtp'
+          contactMethod: 'blockchain_message'
         });
       }
 
@@ -199,7 +199,6 @@ export class MultiChainOutreachExpansionService {
 
       console.log(`🎯 Targeting ${solanaTargets.length} major Solana ecosystem players...`);
 
-      // Send outreach messages via XMTP and blockchain messaging
       for (const target of solanaTargets) {
         await this.storeDiscoveredAgent({
           name: target.name,
@@ -208,7 +207,7 @@ export class MultiChainOutreachExpansionService {
           protocol: 'solana_agents',
           priority: target.priority,
           dealSize: target.dealSize,
-          contactMethod: 'xmtp'
+          contactMethod: 'blockchain_message'
         });
 
       }
@@ -222,7 +221,7 @@ export class MultiChainOutreachExpansionService {
           majorProtocols: solanaTargets.length,
           criticalTargets: solanaTargets.filter(t => t.priority === 'critical').length,
           totalPotentialValue: solanaTargets.reduce((acc, t) => acc + parseInt(t.dealSize.replace(/[^\d]/g, '')), 0),
-          platform: 'Solana + XMTP Messaging'
+          platform: 'Solana Messaging'
         }
       };
 

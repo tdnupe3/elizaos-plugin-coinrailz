@@ -24,7 +24,6 @@ export interface AgentContact {
     farcaster?: string;
     push_protocol?: boolean;
     dialect?: boolean;
-    xmtp?: boolean;
   };
   marketCap?: string;
   verified: boolean;
@@ -197,9 +196,6 @@ export class CommunicationOrchestrator {
       if (contact.endpoints.push_protocol) {
         channels.push({ name: 'push_protocol', endpoint: contact.walletAddress, priority: 2 });
       }
-      if (contact.endpoints.xmtp) {
-        channels.push({ name: 'xmtp', endpoint: contact.walletAddress, priority: 3 });
-      }
     }
 
     if (contact.network === 'solana') {
@@ -242,7 +238,6 @@ export class CommunicationOrchestrator {
     this.deliveryProviders.set('email', new EmailProvider());
     this.deliveryProviders.set('push_protocol', new PushProtocolProvider());
     this.deliveryProviders.set('dialect', new DialectProvider());
-    this.deliveryProviders.set('xmtp', new XMTPProvider());
     this.deliveryProviders.set('telegram', new TelegramProvider());
     this.deliveryProviders.set('twitter', new TwitterProvider());
   }
@@ -379,25 +374,13 @@ class DialectProvider implements DeliveryProvider {
   }
 }
 
-// XMTP PROVIDER - Existing implementation
-class XMTPProvider implements DeliveryProvider {
+class OnChainProvider implements DeliveryProvider {
   async deliver(params: any): Promise<any> {
-    try {
-      // Use existing XMTP service
-      console.log(`💌 Sending XMTP to ${params.target.walletAddress}`);
-      
-      return {
-        success: false, // We know this fails for most agents
-        error: 'Agent not reachable via XMTP',
-        cost: 0
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-        cost: 0
-      };
-    }
+    return {
+      success: false,
+      error: 'On-chain messaging not available',
+      cost: 0
+    };
   }
 }
 

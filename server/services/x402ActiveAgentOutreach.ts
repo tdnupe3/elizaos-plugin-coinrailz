@@ -10,10 +10,7 @@ import { offerLinkService } from './offerLinkService';
  * about our 8 production-ready x402 services
  */
 export class X402ActiveAgentOutreach {
-  private xmtpService: any;
-  
   constructor() {
-    this.xmtpService = null;
   }
 
   /**
@@ -214,8 +211,7 @@ Questions? Reply to this message.
         
         offerLinks.push(personalized.offerLink);
         
-        // Send via XMTP
-        const sendResult = await this.xmtpService.sendMessage(wallet, personalized.message);
+        const sendResult = { success: false };
         
         results.push({
           wallet,
@@ -229,7 +225,7 @@ Questions? Reply to this message.
           id: nanoid(),
           campaignType: 'x402_tracked_outreach',
           targetAddress: wallet,
-          platform: 'xmtp',
+          platform: 'on-chain',
           status: sendResult.success ? 'sent' : 'failed',
           messageContent: personalized.message,
           metadata: {
@@ -284,12 +280,7 @@ Questions? Reply to this message.
     
     const message = this.generateOutreachMessage();
     
-    // Send FREE XMTP messages to all discovered wallets
-    const results = await this.xmtpService.broadcastFundingRequest(
-      activeWallets,
-      message,
-      5 // batch size
-    );
+    const results: any[] = [];
     
     // Log all outreach attempts
     for (const result of results) {
@@ -297,8 +288,8 @@ Questions? Reply to this message.
         await db.insert(outreachLogs).values({
           id: nanoid(),
           campaignType: 'x402_active_agent_outreach',
-          targetAddress: result.conversationId.replace(/^(failed_|unavailable_|xmtp_)/, ''),
-          platform: 'xmtp',
+          targetAddress: result.conversationId.replace(/^(failed_|unavailable_)/, ''),
+          platform: 'on-chain',
           status: result.status === 'sent' ? 'sent' : 'failed',
           messageContent: result.content,
           metadata: {
@@ -331,7 +322,7 @@ Questions? Reply to this message.
     console.log(`👂 Monitoring for x402 agent responses (${timeoutMinutes} minutes)...`);
     
     const activeWallets = await this.discoverActiveX402Wallets();
-    const responses = await this.xmtpService.listenForResponses(activeWallets, timeoutMinutes);
+    const responses: any[] = [];
     
     console.log(`📨 Received ${responses.length} responses from x402 agents`);
     

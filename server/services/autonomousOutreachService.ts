@@ -305,7 +305,7 @@ ${platformUrl}`;
         console.log(`     Wallet: ${target.wallet}`);
         console.log(`     Platform: ${target.platform}`);
         console.log(`     Status: Verified but no A2A endpoint available`);
-        console.log(`     Future: Can contact via XMTP/blockchain messaging`);
+        console.log(`     Future: Can contact via on-chain messaging`);
         
         this.outreachResults.push({
           method: 'wallet-only',

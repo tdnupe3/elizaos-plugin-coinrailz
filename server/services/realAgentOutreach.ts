@@ -6,7 +6,7 @@ import { DEV_LITE_MODE } from '../buildModeDetection';
 interface OutreachResult {
   agent: string;
   wallet?: string;
-  method: 'xmtp' | 'onchain' | 'discord' | 'twitter-dm' | 'telegram-invite' | 'not-attempted';
+  method: 'onchain' | 'discord' | 'twitter-dm' | 'telegram-invite' | 'not-attempted';
   success: boolean;
   message?: string;
   error?: string;
@@ -16,7 +16,6 @@ interface OutreachResult {
 }
 
 export class RealAgentOutreach {
-  private xmtpService: any = null;
   private discordClient: Client | null = null;
   private discordReady = false;
   private devLiteMode = false;
@@ -27,7 +26,6 @@ export class RealAgentOutreach {
       this.devLiteMode = true;
       return;
     }
-    this.xmtpService = null;
     this.initializeDiscord();
   }
 
@@ -67,9 +65,9 @@ export class RealAgentOutreach {
     results: OutreachResult[];
     summary: {
       total_agents: number;
-      xmtp_attempted: number;
-      xmtp_successful: number;
-      xmtp_failed: number;
+      outreach_attempted: number;
+      outreach_successful: number;
+      outreach_failed: number;
       manual_contact_required: number;
     };
   }> {
@@ -80,9 +78,9 @@ export class RealAgentOutreach {
         results: [],
         summary: {
           total_agents: 0,
-          xmtp_attempted: 0,
-          xmtp_successful: 0,
-          xmtp_failed: 0,
+          outreach_attempted: 0,
+          outreach_successful: 0,
+          outreach_failed: 0,
           manual_contact_required: 0
         }
       };
@@ -91,9 +89,9 @@ export class RealAgentOutreach {
     console.log('🚀 Starting REAL outreach to discovered AI agents...');
     
     const results: OutreachResult[] = [];
-    let xmtpAttempted = 0;
-    let xmtpSuccessful = 0;
-    let xmtpFailed = 0;
+    let outreachAttempted = 0;
+    let outreachSuccessful = 0;
+    let outreachFailed = 0;
     let manualContactRequired = 0;
 
     // Message about our platform
@@ -106,34 +104,10 @@ export class RealAgentOutreach {
       if (agent.wallet) {
         let messageAttempted = false;
         
-        // PRIORITY 1: Try XMTP first (free, fast)
-        console.log(`💬 Attempting XMTP message to wallet: ${agent.wallet}`);
-        xmtpAttempted++;
+        console.log(`💬 Attempting on-chain message to wallet: ${agent.wallet}`);
+        outreachAttempted++;
 
-        try {
-          const xmtpResult = await this.xmtpService.sendMessageToAgent(
-            agent.wallet,
-            platformMessage,
-            'donation'
-          );
-
-          if (xmtpResult.status === 'sent') {
-            xmtpSuccessful++;
-            results.push({
-              agent: agent.description,
-              wallet: agent.wallet,
-              method: 'xmtp',
-              success: true,
-              message: 'XMTP message sent successfully'
-            });
-            console.log(`✅ XMTP message sent to ${agent.description}`);
-            messageAttempted = true;
-          }
-        } catch (error) {
-          console.log(`⚠️ XMTP failed, trying on-chain messaging...`);
-        }
-
-        // PRIORITY 2: Try on-chain messaging if XMTP failed (shows on Etherscan)
+        // Try on-chain messaging (shows on Etherscan)
         if (!messageAttempted && agent.platform !== 'solana') {
           console.log(`⛓️ Attempting on-chain message to wallet: ${agent.wallet}`);
           
@@ -145,7 +119,7 @@ export class RealAgentOutreach {
             );
 
             if (onChainResult.status === 'confirmed') {
-              xmtpSuccessful++; // Count as successful outreach
+              outreachSuccessful++;
               results.push({
                 agent: agent.description,
                 wallet: agent.wallet,
@@ -167,11 +141,11 @@ export class RealAgentOutreach {
 
         // If all messaging methods failed
         if (!messageAttempted) {
-          xmtpFailed++;
+          outreachFailed++;
           results.push({
             agent: agent.description,
             wallet: agent.wallet,
-            method: 'xmtp',
+            method: 'onchain',
             success: false,
             error: 'All messaging methods failed',
             contactInfo: this.getSocialContactInfo(agent)
@@ -196,17 +170,17 @@ export class RealAgentOutreach {
     }
 
     console.log('\n📊 OUTREACH SUMMARY');
-    console.log(`✅ XMTP Successful: ${xmtpSuccessful}/${xmtpAttempted}`);
-    console.log(`❌ XMTP Failed: ${xmtpFailed}/${xmtpAttempted}`);
+    console.log(`✅ Outreach Successful: ${outreachSuccessful}/${outreachAttempted}`);
+    console.log(`❌ Outreach Failed: ${outreachFailed}/${outreachAttempted}`);
     console.log(`📝 Manual Contact Required: ${manualContactRequired}`);
 
     return {
       results,
       summary: {
         total_agents: VERIFIED_AGENT_TARGETS.length,
-        xmtp_attempted: xmtpAttempted,
-        xmtp_successful: xmtpSuccessful,
-        xmtp_failed: xmtpFailed,
+        outreach_attempted: outreachAttempted,
+        outreach_successful: outreachSuccessful,
+        outreach_failed: outreachFailed,
         manual_contact_required: manualContactRequired
       }
     };

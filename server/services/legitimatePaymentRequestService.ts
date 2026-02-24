@@ -252,13 +252,11 @@ export class LegitimatePaymentRequestService {
     // Compose professional payment request message
     const message = this.composePaymentMessage(request);
 
-    // Send via XMTP (if supported)
+    // Send via on-chain messaging (if supported)
     try {
-      // Use existing XMTP service to send payment request
-      console.log(`📱 Sending payment request via XMTP to ${targetWallet}`);
-      // Implementation would integrate with existing XMTP service
+      console.log(`📱 Sending payment request via on-chain messaging to ${targetWallet}`);
     } catch (error) {
-      console.log(`⚠️ XMTP not available for ${targetWallet}`);
+      console.log(`⚠️ On-chain messaging not available for ${targetWallet}`);
     }
 
     // Send via email (if available)

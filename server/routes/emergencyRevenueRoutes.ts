@@ -27,7 +27,7 @@ router.post('/execute-emergency-campaign', async (req, res) => {
     const results = {
       telegram: { sent: 0, groups: [] as string[] },
       discord: { sent: 0, servers: [] as string[] },
-      xmtp: { sent: 0, wallets: [] as string[] },
+      onChain: { sent: 0, wallets: [] as string[] },
       github: { created: 0, repos: [] as string[] },
       totalReach: 0,
       estimatedRevenue: '$0',
@@ -45,15 +45,15 @@ router.post('/execute-emergency-campaign', async (req, res) => {
       console.error('❌ Telegram campaign failed:', error);
     }
 
-    // 2. XMTP WALLET MESSAGING - Direct outreach to profitable wallets
-    console.log('💰 Targeting profitable crypto wallets via XMTP...');
+    // 2. ON-CHAIN WALLET MESSAGING - Direct outreach to profitable wallets
+    console.log('💰 Targeting profitable crypto wallets via on-chain messaging...');
     try {
-      const xmtpResults = await outreachService.executeXMTPOutreach();
-      results.xmtp = xmtpResults;
-      results.totalReach += xmtpResults.sent;
-      console.log(`✅ XMTP: ${xmtpResults.sent} wallet messages sent`);
+      const onChainResults = await outreachService.executeCampaign();
+      results.onChain = onChainResults;
+      results.totalReach += onChainResults.sent;
+      console.log(`✅ On-chain: ${onChainResults.sent} wallet messages sent`);
     } catch (error) {
-      console.error('❌ XMTP campaign failed:', error);
+      console.error('❌ On-chain campaign failed:', error);
     }
 
     // 3. GITHUB ISSUES - Target AI agent repositories
@@ -75,7 +75,7 @@ router.post('/execute-emergency-campaign', async (req, res) => {
 
     for (const wallet of topTraders) {
       try {
-        // Emergency funding message via XMTP
+        // Emergency funding message via on-chain
         console.log(`📧 Targeting wallet: ${wallet.slice(0, 8)}...`);
       } catch (error) {
         console.error(`❌ Failed to contact wallet ${wallet}:`, error);

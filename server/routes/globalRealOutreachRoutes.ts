@@ -2,7 +2,7 @@
  * 🌍 GLOBAL REAL OUTREACH ROUTES
  * 
  * Massive scaling to additional geographic markets with REAL message delivery
- * NO SIMULATION - ACTUAL XMTP AND EMAIL OUTREACH
+ * NO SIMULATION - ACTUAL ON-CHAIN AND EMAIL OUTREACH
  */
 
 import express from 'express';
@@ -453,7 +453,7 @@ router.post('/massive-real-outreach', async (req, res) => {
       message: `🌍 MASSIVE REAL GLOBAL OUTREACH COMPLETE: ${results.summary.organizationsReached}/${targets.length} organizations reached`,
       execution: {
         realDelivery: true,
-        deliveryMethod: 'XMTP + Email',
+        deliveryMethod: 'On-chain + Email',
         totalTargets: targets.length,
         organizationsReached: results.summary.organizationsReached,
         channelSuccessRate: results.summary.deliveryRate,
@@ -472,7 +472,7 @@ router.post('/massive-real-outreach', async (req, res) => {
         optimistic_15_percent: Math.round(totalPotentialRevenue * 0.15)
       },
       results: results.results,
-      methodology: 'REAL XMTP + Email outreach to verified global organizations - zero simulation',
+      methodology: 'REAL on-chain + Email outreach to verified global organizations - zero simulation',
       compliance: 'All payments require explicit organizational approval',
       nextSteps: [
         'Monitor real-time payment confirmations',

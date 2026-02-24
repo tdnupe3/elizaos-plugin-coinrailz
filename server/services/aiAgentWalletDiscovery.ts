@@ -34,7 +34,7 @@ interface DiscoveredWallet {
   balance?: string;
   holderRank?: number;
   lastActivity?: Date;
-  canReceiveXMTP?: boolean;
+  canReceiveOnChain?: boolean;
   canReceiveDialect?: boolean;
   discoveredAt: Date;
 }
@@ -42,7 +42,7 @@ interface DiscoveredWallet {
 interface OutreachContact {
   walletAddress: string;
   chain: string;
-  protocol: 'xmtp' | 'dialect' | 'xrpl_memo';
+  protocol: 'on_chain' | 'dialect' | 'xrpl_memo';
   lastContactDate?: Date;
   responseStatus: 'pending' | 'responded' | 'bounced';
   campaignId: string;
@@ -238,27 +238,24 @@ export class AIAgentWalletDiscovery {
   }
 
   /**
-   * Check XMTP messaging capability for EVM addresses
+   * Check on-chain messaging capability for EVM addresses
    */
-  async checkXMTPCapability(addresses: string[]): Promise<Map<string, boolean>> {
+  async checkOnChainCapability(addresses: string[]): Promise<Map<string, boolean>> {
     const results = new Map<string, boolean>();
     
     try {
-      // This would typically use the XMTP client to check canMessage()
-      // For now, we'll implement a basic check
-      console.log(`🔍 Checking XMTP capability for ${addresses.length} addresses...`);
+      console.log(`🔍 Checking on-chain capability for ${addresses.length} addresses...`);
       
       for (const address of addresses) {
-        // Basic validation - proper Ethereum address format
         const isValidEthAddress = /^0x[a-fA-F0-9]{40}$/.test(address);
         results.set(address, isValidEthAddress);
       }
       
       const capableCount = Array.from(results.values()).filter(Boolean).length;
-      console.log(`✅ XMTP check complete: ${capableCount}/${addresses.length} addresses can receive messages`);
+      console.log(`✅ On-chain check complete: ${capableCount}/${addresses.length} addresses can receive messages`);
       
     } catch (error) {
-      console.error('❌ XMTP capability check failed:', error);
+      console.error('❌ On-chain capability check failed:', error);
     }
     
     return results;
@@ -287,14 +284,13 @@ export class AIAgentWalletDiscovery {
     
     allWallets.push(...baseWallets, ...solanaWallets, ...xrplWallets);
     
-    // Check XMTP capability for Base addresses
+    // Check on-chain capability for Base addresses
     const baseAddresses = baseWallets.map(w => w.address);
     if (baseAddresses.length > 0) {
-      const xmtpCapability = await this.checkXMTPCapability(baseAddresses);
+      const onChainCapability = await this.checkOnChainCapability(baseAddresses);
       
-      // Update base wallets with XMTP capability
       baseWallets.forEach(wallet => {
-        wallet.canReceiveXMTP = xmtpCapability.get(wallet.address) || false;
+        wallet.canReceiveOnChain = onChainCapability.get(wallet.address) || false;
       });
     }
     
@@ -304,7 +300,7 @@ export class AIAgentWalletDiscovery {
     });
     
     const messagingCapableCount = allWallets.filter(w => 
-      w.canReceiveXMTP || w.canReceiveDialect || w.chain === 'xrpl'
+      w.canReceiveOnChain || w.canReceiveDialect || w.chain === 'xrpl'
     ).length;
     
     const duration = Date.now() - startTime;
@@ -339,7 +335,7 @@ export class AIAgentWalletDiscovery {
       'token_label',
       'balance',
       'holder_rank',
-      'can_message_xmtp',
+      'can_message_onchain',
       'can_message_dialect', 
       'preferred_protocol',
       'discovered_at'
@@ -352,9 +348,9 @@ export class AIAgentWalletDiscovery {
       wallet.tokenLabel,
       wallet.balance || '0',
       wallet.holderRank?.toString() || '0',
-      wallet.canReceiveXMTP ? 'true' : 'false',
+      wallet.canReceiveOnChain ? 'true' : 'false',
       wallet.canReceiveDialect ? 'true' : 'false',
-      wallet.canReceiveXMTP ? 'xmtp' : wallet.canReceiveDialect ? 'dialect' : 'xrpl_memo',
+      wallet.canReceiveOnChain ? 'on_chain' : wallet.canReceiveDialect ? 'dialect' : 'xrpl_memo',
       wallet.discoveredAt.toISOString()
     ]);
     

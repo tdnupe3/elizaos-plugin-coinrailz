@@ -259,7 +259,7 @@ export class TelegramRevenueService {
     const apis = [
       "Circle Wallet Management API: $500-$5K/month per client",
       "Multi-chain Payment Processing API: $1K-$25K/month", 
-      "XMTP Messaging Infrastructure API: $200-$10K/month",
+      "On-chain Messaging Infrastructure API: $200-$10K/month",
       "Real-time Balance Sync API: $300-$15K/month",
       "Automated Fee Collection API: $400-$20K/month",
       "KYC/AML Compliance API: $1K-$50K/month"

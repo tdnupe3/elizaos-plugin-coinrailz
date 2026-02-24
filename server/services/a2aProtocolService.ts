@@ -103,7 +103,7 @@ class A2AProtocolService {
     const results = [];
 
     try {
-      // Use XMTP messaging to contact wallet addresses from the existing network
+      // Use on-chain messaging to contact wallet addresses from the existing network
       const walletAddresses = [
         '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91', // Primary target
         '0x1234567890123456789012345678901234567890', // Additional entities (placeholder)

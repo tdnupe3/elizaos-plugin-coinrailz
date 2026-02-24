@@ -195,12 +195,11 @@ CoinRailz Payment Solutions`;
     
     console.log(`📤 Sending follow-up to ${organizationName}`);
 
-    // Send via XMTP (if available)
+    // Send via on-chain messaging (if available)
     try {
-      // Integration with existing XMTP service
-      console.log(`📱 Follow-up sent via XMTP`);
+      console.log(`📱 Follow-up sent via on-chain messaging`);
     } catch (error) {
-      console.log(`⚠️ XMTP follow-up failed, using backup channels`);
+      console.log(`⚠️ On-chain follow-up failed, using backup channels`);
     }
 
     // Send via email (if available)

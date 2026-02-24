@@ -41,7 +41,7 @@ router.get("/discovery/stats", async (req, res) => {
         baseWallets: sql<number>`count(case when ${prospectWallets.chain} = 'base' then 1 end)`,
         solanaWallets: sql<number>`count(case when ${prospectWallets.chain} = 'solana' then 1 end)`,
         xrplWallets: sql<number>`count(case when ${prospectWallets.chain} = 'xrpl' then 1 end)`,
-        xmtpCapable: sql<number>`count(case when ${prospectWallets.canReceiveXMTP} = true then 1 end)`,
+        onChainCapable: sql<number>`count(case when ${prospectWallets.canReceiveXMTP} = true then 1 end)`,
         dialectCapable: sql<number>`count(case when ${prospectWallets.canReceiveDialect} = true then 1 end)`
       })
       .from(prospectWallets);
@@ -365,7 +365,7 @@ router.post("/campaigns/:id/execute", async (req, res) => {
           address: `${t.address.substring(0, 8)}...`,
           chain: t.chain,
           tokenLabel: t.tokenLabel,
-          protocol: t.canReceiveXMTP ? 'xmtp' : t.canReceiveDialect ? 'dialect' : 'xrpl_memo'
+          protocol: t.canReceiveXMTP ? 'on_chain' : t.canReceiveDialect ? 'dialect' : 'xrpl_memo'
         })),
         message: `Would message ${targets.length} prospects`
       });
@@ -379,8 +379,8 @@ router.post("/campaigns/:id/execute", async (req, res) => {
     for (const target of targets) {
       try {
         // Determine messaging protocol
-        let protocol: 'xmtp' | 'dialect' | 'xrpl_memo' = 'xrpl_memo';
-        if (target.canReceiveXMTP) protocol = 'xmtp';
+        let protocol: 'on_chain' | 'dialect' | 'xrpl_memo' = 'xrpl_memo';
+        if (target.canReceiveXMTP) protocol = 'on_chain';
         else if (target.canReceiveDialect) protocol = 'dialect';
         
         // Customize message for target
@@ -393,7 +393,7 @@ router.post("/campaigns/:id/execute", async (req, res) => {
         const result = await messagingService.sendMessage({
           to: target.address,
           content: personalizedMessage,
-          type: protocol === 'xmtp' ? 'xmtp' : protocol === 'dialect' ? 'solana_sms' : 'sms',
+          type: protocol === 'on_chain' ? 'on_chain' : protocol === 'dialect' ? 'solana_sms' : 'sms',
           metadata: {
             walletAddress: target.address,
             chainId: target.chain,
@@ -500,7 +500,7 @@ We've identified you as a holder in the {ecosystem} ecosystem on {chain}.
 
 We're seeking $5,000 in emergency funding to scale our AI agent payment infrastructure. Our platform already offers:
 
-• 5-protocol messaging (XMTP, Lens, Solana SMS, WalletConnect)
+• 5-protocol messaging (on-chain, Lens, Solana SMS, WalletConnect)
 • Circle USDC wallet management
 • Multi-chain payment processing
 • AI agent discovery & communication tools
@@ -520,7 +520,7 @@ Address: {address}`,
 Coin Railz offers enterprise payment infrastructure perfect for AI agents:
 
 ✅ $9.99-199.99 prepaid credit packages
-✅ Multi-protocol messaging (XMTP, Lens, Solana SMS)
+✅ Multi-protocol messaging (on-chain, Lens, Solana SMS)
 ✅ Circle USDC wallets & real-time balances  
 ✅ DEX aggregation across Base/Solana/XRPL
 ✅ 85% revenue share for AI marketplace transactions

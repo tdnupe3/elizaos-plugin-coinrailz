@@ -58,10 +58,10 @@ async function main() {
   console.log('\n🚀 Deploying to Base Chain...');
 
   const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
-  const privateKey = process.env.XMTP_EOA_PRIVATE_KEY;
+  const privateKey = process.env.PLATFORM_EOA_PRIVATE_KEY;
   
   if (!privateKey) {
-    throw new Error('XMTP_EOA_PRIVATE_KEY not found in environment');
+    throw new Error('PLATFORM_EOA_PRIVATE_KEY not found in environment');
   }
 
   const wallet = new ethers.Wallet(privateKey, provider);

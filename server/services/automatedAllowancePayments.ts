@@ -70,7 +70,7 @@ export class AutomatedAllowancePayments {
   private verifySignerAddress() {
     try {
       // Verify that the signer address matches our advertised platform wallet
-      const platformPrivateKey = process.env.XMTP_EOA_PRIVATE_KEY;
+      const platformPrivateKey = process.env.PLATFORM_EOA_PRIVATE_KEY;
       if (platformPrivateKey) {
         const signer = new ethers.Wallet(platformPrivateKey);
         const actualSignerAddress = signer.address;
@@ -244,8 +244,7 @@ export class AutomatedAllowancePayments {
       const tokenAddress = this.getTokenAddress(network, currency);
       if (!tokenAddress) throw new Error(`Token ${currency} not supported on ${network}`);
       
-      // Use XMTP wallet as platform wallet for real transactions
-      const platformPrivateKey = process.env.XMTP_EOA_PRIVATE_KEY;
+      const platformPrivateKey = process.env.PLATFORM_EOA_PRIVATE_KEY;
       if (!platformPrivateKey) throw new Error('Platform private key not found');
       
       const platformWallet = new ethers.Wallet(platformPrivateKey, provider);
@@ -378,7 +377,7 @@ No manual approval needed.
 
 ${paymentRequest.reportAttached ? '📊 Personalized trading analysis attached' : ''}
 
-Questions? Reply to this XMTP message.
+Questions? Reply to this message.
 
 --
 CoinRailz Automated Payment System

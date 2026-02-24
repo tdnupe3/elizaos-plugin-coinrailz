@@ -282,7 +282,7 @@ router.get('/adapters', isAuthenticated, async (req, res) => {
         expectedYield: 2000,
         timeout: 120000,
         rateLimit: 50,
-        description: 'Discovers agents via ENS domains, XMTP messaging, Farcaster/Lens protocols'
+        description: 'Discovers agents via ENS domains, on-chain messaging, Farcaster/Lens protocols'
       },
       {
         id: 'social-scraper',

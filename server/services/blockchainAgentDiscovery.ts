@@ -41,7 +41,6 @@ export class BlockchainAgentDiscoveryService {
               source: 'blockchain-wallet-discovery',
               wallet: walletAddress,
               channels: {
-                xmtp: true,
                 push_protocol: true,
                 webhook: agentCard.endpoints?.['message/send']
               },
@@ -73,7 +72,6 @@ export class BlockchainAgentDiscoveryService {
               source: 'blockchain-basename-discovery',
               wallet: walletAddress,
               channels: {
-                xmtp: true,
                 webhook: agentCard.endpoints?.['message/send']
               },
               capabilities: agentCard.capabilities || {},

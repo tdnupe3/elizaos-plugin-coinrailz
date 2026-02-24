@@ -186,8 +186,7 @@ export class ERC8004AgentDiscovery {
             metadata,
             channels: agentCard?.endpoints ? {
               a2a: !!agentCard.endpoints.a2a,
-              mcp: !!agentCard.endpoints.mcp,
-              xmtp: true
+              mcp: !!agentCard.endpoints.mcp
             } : null,
             lastSeenAt: new Date(),
             verifiedAt: registration.isActive ? new Date() : null,

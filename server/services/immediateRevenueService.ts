@@ -41,10 +41,10 @@ export class ImmediateRevenueService {
     }
 
     // 2. MESSAGING CREDITS - IMMEDIATE
-    console.log('\n💬 ACTIVATING XMTP MESSAGING CREDITS:');
+    console.log('\n💬 ACTIVATING ON-CHAIN MESSAGING CREDITS:');
     const messagingCredits = await this.activateMessagingCredits();
     if (messagingCredits.active) {
-      implementedStreams.push('XMTP Messaging Credits: $0.01-$1 per message');
+      implementedStreams.push('On-chain Messaging Credits: $0.01-$1 per message');
       console.log('   ✅ Blockchain messaging payment system ACTIVE');
       console.log('   💰 Pricing: $0.01 (standard), $0.10 (priority), $1 (urgent)');
     } else {
@@ -129,11 +129,11 @@ export class ImmediateRevenueService {
   }
 
   private async activateMessagingCredits(): Promise<{active: boolean, reason?: string}> {
-    // XMTP messaging is already operational - just need to add payment layer
-    console.log('      🔗 XMTP messaging system: Already operational');
+    // On-chain messaging is already operational - just need to add payment layer
+    console.log('      🔗 On-chain messaging system: Already operational');
     console.log('      💳 Payment integration: Need to add micro-payment layer');
     
-    // For now, return true since XMTP messaging works, just need to add billing
+    // For now, return true since on-chain messaging works, just need to add billing
     return { active: true };
   }
 

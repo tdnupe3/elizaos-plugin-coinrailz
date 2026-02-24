@@ -81,14 +81,6 @@ export class CostEffectiveOutreach {
         estimatedCost: Math.min(25, monthlyBudget * 0.5)
       },
       {
-        channel: 'XMTP Direct',
-        targetAudience: 'AI agent wallet addresses from discovery system',
-        message: 'Direct wallet message with SDK integration offer',
-        budget: 5, // Just gas costs
-        expectedReach: 25000, // Use discovered agent addresses
-        estimatedCost: 5
-      },
-      {
         channel: 'Discord Manual',
         targetAudience: 'Base Ecosystem, Coinbase Developer, AI/ML servers',
         message: 'Strategic participation + SDK mentions in relevant discussions',
@@ -175,13 +167,6 @@ Early adopter pricing ends soon!`;
   }
 
   /**
-   * XMTP campaign — protocol removed, returns disabled status
-   */
-  static async executeXMTPCampaign(): Promise<{success: boolean, reached: number, cost: number, error?: string, details?: string}> {
-    return { success: false, reached: 0, cost: 0, error: 'XMTP protocol removed' };
-  }
-
-  /**
    * Discord manual outreach strategy
    */
   static async executeDiscordStrategy(): Promise<{success: boolean, communities: string[], strategy: string}> {
@@ -264,13 +249,7 @@ Early adopter pricing ends soon!`;
     totalReached += redditResult.reached;
     totalCost += redditResult.cost;
 
-    // 2. XMTP direct messaging (minimal cost)
-    const xmtpResult = await this.executeXMTPCampaign();
-    results.push({ channel: 'XMTP', ...xmtpResult });
-    totalReached += xmtpResult.reached;
-    totalCost += xmtpResult.cost;
-
-    // 3. Discord manual strategy (free)
+    // 2. Discord manual strategy (free)
     const discordResult = await this.executeDiscordStrategy();
     results.push({ channel: 'Discord', ...discordResult });
     totalReached += 5000; // Estimated reach

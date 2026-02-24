@@ -594,7 +594,6 @@ Campaign: ${campaign.id}`;
       const analytics = this.getCampaignAnalytics();
       console.log('📊 OUTREACH ANALYTICS:', analytics);
       
-      // Also trigger direct XMTP outreach to wallet addresses
       await this.executeBlockchainOutreach();
       
     } catch (error) {

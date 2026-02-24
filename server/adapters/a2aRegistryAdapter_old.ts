@@ -355,8 +355,7 @@ export class A2ARegistryAdapter extends BaseDiscoveryAdapter {
           
           normalizedAgent.channels = {
             ...normalizedAgent.channels,
-            farcaster: `@${agent.username}`,
-            xmtp: true
+            farcaster: `@${agent.username}`
           };
           
           agents.push(normalizedAgent);
@@ -468,7 +467,6 @@ export class A2ARegistryAdapter extends BaseDiscoveryAdapter {
       telegram: rawData.telegram || rawData.social?.telegram,
       twitter: rawData.twitter || rawData.social?.twitter,
       farcaster: rawData.farcaster || rawData.social?.farcaster,
-      xmtp: rawData.supports_xmtp || rawData.xmtp_enabled || false,
       push_protocol: rawData.supports_push || rawData.push_enabled || false
     };
   }

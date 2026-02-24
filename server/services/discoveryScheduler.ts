@@ -2,11 +2,11 @@
  * Discovery Scheduler Service
  * 
  * Runs master-agent-discovery every 6 hours and stores results in PostgreSQL
- * Handles deduplication, XMTP verification, and automated outreach
+ * Handles deduplication, verification, and automated outreach
  * 
  * Automated Outreach Flow:
  * 1. Discovery run completes → finds new agents
- * 2. Auto-outreach targets agents with XMTP addresses (programmatic inboxes)
+ * 2. Auto-outreach targets agents with on-chain addresses (programmatic inboxes)
  * 3. Messages tracked in agent_outreach_messages table
  * 4. Rate-limited to avoid spam (1 message/second, max 50/campaign)
  */
@@ -228,7 +228,7 @@ export async function executeDiscoveryRun(runType: 'scheduled' | 'manual' | 'tri
   }
 }
 
-export async function getXmtpReachableAgents(): Promise<any[]> {
+export async function getReachableAgents(): Promise<any[]> {
   return db
     .select()
     .from(discoveredAgents)
@@ -299,7 +299,7 @@ export async function updateOutreachStatus(
 export async function getDiscoveryStats(): Promise<{
   totalAgents: number;
   newAgents: number;
-  xmtpReachable: number;
+  reachable: number;
   lastRunAt: Date | null;
   totalRuns: number;
 }> {
@@ -312,7 +312,7 @@ export async function getDiscoveryStats(): Promise<{
     .from(discoveredAgents)
     .where(eq(discoveredAgents.status, 'new'));
   
-  const [xmtpCount] = await db
+  const [reachableCount] = await db
     .select({ count: sql<number>`count(*)` })
     .from(discoveredAgents)
     .where(isNotNull(discoveredAgents.xmtpAddress));
@@ -330,7 +330,7 @@ export async function getDiscoveryStats(): Promise<{
   return {
     totalAgents: Number(agentCount?.count || 0),
     newAgents: Number(newCount?.count || 0),
-    xmtpReachable: Number(xmtpCount?.count || 0),
+    reachable: Number(reachableCount?.count || 0),
     lastRunAt: lastRun?.startedAt || null,
     totalRuns: Number(runCount?.count || 0),
   };
@@ -370,12 +370,12 @@ export async function runDiscoveryNow(): Promise<number> {
 }
 
 /**
- * Run automated outreach — XMTP removed, returns no-op
+ * Run automated outreach — disabled, returns no-op
  */
 export async function runAutomatedOutreach(_options: {
   minQualityScore?: number;
   maxAgents?: number;
-  onlyXMTP?: boolean;
+  onlyReachable?: boolean;
 } = {}): Promise<{
   targeted: number;
   sent: number;
@@ -383,7 +383,7 @@ export async function runAutomatedOutreach(_options: {
   skipped: number;
   creditsOffered: number;
 }> {
-  console.log('⏸️ Automated outreach disabled — XMTP protocol removed');
+  console.log('⏸️ Automated outreach disabled');
   return { targeted: 0, sent: 0, failed: 0, skipped: 0, creditsOffered: 0 };
 }
 
@@ -469,14 +469,14 @@ export async function getOutreachStats(): Promise<{
 }
 
 /**
- * Get agents ready for outreach (have XMTP, quality score >= 60, not yet contacted)
+ * Get agents ready for outreach (have address, quality score >= 60, not yet contacted)
  */
 export async function getAgentsReadyForOutreach(options: {
   limit?: number;
   minQualityScore?: number;
-  onlyXMTPReachable?: boolean;
+  onlyReachable?: boolean;
 } = {}): Promise<any[]> {
-  const { limit = 100, minQualityScore = 60, onlyXMTPReachable = false } = options;
+  const { limit = 100, minQualityScore = 60, onlyReachable = false } = options;
   
   const conditions = [
     isNotNull(discoveredAgents.xmtpAddress),
@@ -484,7 +484,7 @@ export async function getAgentsReadyForOutreach(options: {
     gte(discoveredAgents.xmtpQualityScore, minQualityScore),
   ];
   
-  if (onlyXMTPReachable) {
+  if (onlyReachable) {
     conditions.push(eq(discoveredAgents.xmtpStatus, 'reachable'));
   }
   
@@ -497,7 +497,7 @@ export async function getAgentsReadyForOutreach(options: {
 }
 
 /**
- * Get outreach recommendations — XMTP removed, returns empty
+ * Get outreach recommendations — returns empty
  */
 export async function getOutreachRecommendations(_limit = 20): Promise<any[]> {
   return [];

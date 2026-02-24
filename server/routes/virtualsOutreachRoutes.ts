@@ -6,7 +6,7 @@ const virtualsService = VirtualsACPService.getInstance();
 
 /**
  * Execute Virtuals ACP funding campaign (the REAL AI agent protocol)
- * Alternative to XMTP that actually works with AI agents
+ * Native AI agent protocol for direct communication
  */
 router.post('/virtuals-acp-campaign', async (req, res) => {
   try {

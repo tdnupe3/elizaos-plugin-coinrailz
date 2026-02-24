@@ -6,15 +6,13 @@ import { DEV_LITE_MODE } from '../buildModeDetection';
 
 /**
  * AUTOMATED OUTREACH SERVICE - REAL CAMPAIGNS USING ACTUAL APIS
- * Uses Discord Bot, Telegram Bot, and XMTP for immediate outreach
+ * Uses Discord Bot and Telegram Bot for immediate outreach
  * 
  * DEV LITE MODE: In development, these services are disabled to keep Vite HMR stable.
  */
 export class AutomatedOutreachService {
   private telegramBot?: TelegramBot;
   private discordBot?: DiscordClient;
-  private xmtpService?: any;
-
   constructor() {
     if (DEV_LITE_MODE) {
       console.log('🧪 AutomatedOutreachService: Skipping in DEV_LITE_MODE');
@@ -64,7 +62,6 @@ export class AutomatedOutreachService {
       console.log('✅ Discord bot initialized');
     }
 
-    this.xmtpService = null;
   }
 
   /**
@@ -157,7 +154,6 @@ Hey developers! Just finished building one of the first live AI marketplaces wit
 **What's covered:**
 • Circle Developer Controlled Wallets integration
 • Multi-chain payment processing (Ethereum, Base, Polygon)  
-• Agent-to-agent communication via XMTP
 • Revenue sharing systems (85% agent, 15% platform)
 • Security patterns for autonomous payments
 
@@ -186,105 +182,27 @@ Perfect for AI agent developers building payment capabilities. Would love your f
   }
 
   /**
-   * XMTP WALLET-TO-WALLET MESSAGING - REAL MESSAGES ONLY
-   * Direct messages to crypto wallets of AI agent developers
-   */
-  async executeXMTPOutreach(): Promise<{ sent: number; wallets: string[] }> {
-    if (!this.xmtpService) {
-      console.log('❌ XMTP service not available - no real outreach possible');
-      return { sent: 0, wallets: [] };
-    }
-
-    // Top AI agent wallet addresses from research
-    const targetWallets = [
-      '0x742d35Cc6577C1e8C52B1dd57F9c9C33F7Af2A8A', // Common AI agent wallet
-      '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', // Vitalik's wallet (high visibility)
-      '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Common dev wallet
-      '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'  // Another dev wallet
-    ];
-
-    const message = `🤖 AI Agent Payment SDK - 0.99% vs 2.9% Stripe
-
-We built @coinrailz/agent-payments specifically for AI agents:
-
-• 0.99%-1.75% fees (vs 2.9% Stripe) 
-• Circle USDC integration
-• 5-minute setup
-• Live payment processing
-
-SDK: https://coinrailz.com/sdk
-
-Interested in monetizing AI services? Reply for free setup help!`;
-
-    const results = { sent: 0, wallets: [] as string[] };
-
-    console.log(`📱 REAL XMTP campaign: Checking ${targetWallets.length} wallets for XMTP compatibility`);
-    
-    for (const wallet of targetWallets) {
-      try {
-        // FIRST: Check if wallet can receive XMTP messages
-        const canReceiveXMTP = await this.xmtpService.canMessageAddress(wallet);
-        if (!canReceiveXMTP) {
-          console.log(`❌ ${wallet} cannot receive XMTP messages`);
-          await this.logOutreachAttempt('XMTP', wallet, 'failed', 'Not XMTP-enabled');
-          continue;
-        }
-
-        // SECOND: Actually send the message
-        console.log(`📤 Sending REAL XMTP message to ${wallet}...`);
-        const result = await this.xmtpService.sendMessageToAgent(wallet, message);
-        
-        // THIRD: Check actual delivery status (honest reporting)
-        const wasSent = result.status === 'sent' || result.status === 'delivered' || result.status === 'read';
-        if (wasSent) {
-          results.sent++;
-          results.wallets.push(wallet);
-          await this.logOutreachAttempt('XMTP', wallet, 'success', `Message sent (${result.status})`);
-          console.log(`✅ REAL message sent to ${wallet} (status: ${result.status})`);
-        } else {
-          const errorMsg = result.reason ?? 'Unknown XMTP failure';
-          await this.logOutreachAttempt('XMTP', wallet, 'failed', errorMsg);
-          console.log(`❌ Message failed to ${wallet}: ${errorMsg}`);
-        }
-
-        // Rate limiting between messages
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-      } catch (error) {
-        console.error(`❌ Error sending to ${wallet}:`, error);
-        await this.logOutreachAttempt('XMTP', wallet, 'failed', error instanceof Error ? error.message : 'Unknown error');
-      }
-    }
-
-    console.log(`📊 HONEST XMTP Results: ${results.sent}/${targetWallets.length} messages actually sent`);
-    return results;
-  }
-
-  /**
    * EXECUTE ALL AUTOMATED OUTREACH CAMPAIGNS
    */
   async executeAllCampaigns(): Promise<{
     telegram: { sent: number; groups: string[] };
     discord: { sent: number; servers: string[] };
-    xmtp: { sent: number; wallets: string[] };
     totalReach: number;
   }> {
     console.log('🚀 LAUNCHING COMPREHENSIVE AUTOMATED OUTREACH CAMPAIGN');
 
-    const [telegramResults, discordResults, xmtpResults] = await Promise.all([
+    const [telegramResults, discordResults] = await Promise.all([
       this.executeTelegramOutreach(),
-      this.executeDiscordOutreach(), 
-      this.executeXMTPOutreach()
+      this.executeDiscordOutreach()
     ]);
 
-    const totalReach = telegramResults.sent + discordResults.sent + xmtpResults.sent;
+    const totalReach = telegramResults.sent + discordResults.sent;
 
     console.log(`✅ AUTOMATED OUTREACH COMPLETE - REACHED ${totalReach} TARGETS`);
 
     return {
       telegram: telegramResults,
       discord: discordResults,
-      xmtp: xmtpResults,
       totalReach
     };
   }

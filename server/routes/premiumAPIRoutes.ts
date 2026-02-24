@@ -87,7 +87,7 @@ router.get('/market/data', async (req: AuthenticatedRequest, res) => {
 
 /**
  * 💰 PRO TIER ENDPOINTS ($49.99)
- * Advanced features including DEX aggregation and XMTP
+ * Advanced features including DEX aggregation and on-chain messaging
  */
 
 // DEX aggregation (Pro tier and above)
@@ -120,10 +120,10 @@ router.get('/dex/aggregate', requireTier(2), async (req: AuthenticatedRequest, r
   }
 });
 
-// XMTP messaging (Pro tier and above)
-router.post('/xmtp/send-message', requireTier(2), async (req: AuthenticatedRequest, res) => {
+// On-chain messaging (Pro tier and above)
+router.post('/messaging/send', requireTier(2), async (req: AuthenticatedRequest, res) => {
   try {
-    console.log(`📨 XMTP message requested by agent ${req.agentId}`);
+    console.log(`📨 On-chain message requested by agent ${req.agentId}`);
     
     const { to, message } = req.body;
     
@@ -133,8 +133,8 @@ router.post('/xmtp/send-message', requireTier(2), async (req: AuthenticatedReque
       });
     }
     
-    // Send XMTP message
-    const result = await sendXMTPMessage(to, message, req.agentId);
+    // Send on-chain message
+    const result = await sendOnChainMessage(to, message, req.agentId);
     
     res.json({
       success: true,
@@ -145,8 +145,8 @@ router.post('/xmtp/send-message', requireTier(2), async (req: AuthenticatedReque
     });
     
   } catch (error) {
-    console.error('XMTP message error:', error);
-    res.status(500).json({ error: 'Failed to send XMTP message' });
+    console.error('On-chain message error:', error);
+    res.status(500).json({ error: 'Failed to send on-chain message' });
   }
 });
 
@@ -287,8 +287,8 @@ async function aggregateDEXPrices(tokenIn: string, tokenOut: string, amount: str
   ];
 }
 
-async function sendXMTPMessage(to: string, message: string, fromAgent: string): Promise<any> {
-  // In production, this would use XMTP SDK
+async function sendOnChainMessage(to: string, message: string, fromAgent: string): Promise<any> {
+  // In production, this would use on-chain messaging
   return {
     messageId: `msg_${Date.now()}`,
     timestamp: new Date().toISOString()

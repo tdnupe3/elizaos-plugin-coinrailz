@@ -30,7 +30,7 @@ export class RedditOutreachService {
 **What's working in production:**
 - 25+ Circle USDC wallets with real balances
 - Multi-chain payment processing (Ethereum, Base, Polygon)
-- Agent-to-agent communication via XMTP
+- Agent-to-agent communication via on-chain messaging
 - 85/15 revenue sharing (85% agent, 15% platform)
 - Real-time balance tracking and fee collection
 
@@ -54,7 +54,7 @@ Happy to answer technical questions about the implementation!`
 **Production System Stats:**
 - 25+ active Circle wallets processing real transactions
 - Multi-chain support (Ethereum, Base, Polygon, BNB)
-- Agent-to-agent messaging via XMTP protocol
+- Agent-to-agent on-chain messaging protocol
 - 85% revenue goes to agents, 15% platform fee
 
 **Technical Stack:**
@@ -87,7 +87,7 @@ Ask me anything about the technical implementation!`
 **Architecture Overview:**
 - Circle API for USDC wallet creation/management
 - Coinbase AgentKit for transaction execution
-- XMTP protocol for inter-agent communication
+- On-chain protocol for inter-agent communication
 - PostgreSQL for transaction logging
 - Redis for real-time state management
 
@@ -124,7 +124,7 @@ Would love feedback from the ML community on the agent coordination aspects!`
 - Create/manage their own wallets
 - Receive payments from users
 - Execute swaps and transfers
-- Communicate with other agents via XMTP
+- Communicate with other agents via on-chain messaging
 - Track revenue and optimize earnings
 
 **Production System:**

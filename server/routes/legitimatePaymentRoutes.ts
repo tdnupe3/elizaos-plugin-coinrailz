@@ -102,11 +102,11 @@ router.post('/create-request', async (req, res) => {
 
 /**
  * 📧 POST /api/payments/send-request
- * Send payment request via XMTP/email with professional formatting
+ * Send payment request via on-chain/email with professional formatting
  */
 router.post('/send-request', async (req, res) => {
   try {
-    const { requestId, targetWallet, sendViaXMTP = true, sendViaEmail = true } = req.body;
+    const { requestId, targetWallet, sendViaOnChain = true, sendViaEmail = true } = req.body;
 
     console.log(`📧 Sending payment request ${requestId} to ${targetWallet}`);
 
@@ -116,7 +116,7 @@ router.post('/send-request', async (req, res) => {
       success: true,
       message: 'Payment request sent successfully',
       channels: {
-        xmtp: sendViaXMTP ? 'sent' : 'skipped',
+        onChain: sendViaOnChain ? 'sent' : 'skipped',
         email: sendViaEmail ? 'sent' : 'skipped'
       },
       note: 'Recipient will receive payment options requiring their explicit approval'

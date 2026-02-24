@@ -7,7 +7,6 @@
  * Key Features:
  * - Auto-starts at server boot (no route dependency)
  * - Real contact verification through existing databases
- * - Reliable XMTP messaging integration
  * - Tracks session health with real metrics
  * - Prevents revenue loss from stalled conversations
  */
@@ -23,7 +22,7 @@ interface FailoverAttempt {
   originalAgentId: string;
   agentName: string;
   stallReason: 'timeout' | 'no_response' | 'endpoint_unreachable' | 'session_failed';
-  failoverMethod: 'xmtp' | 'governance_forum' | 'email' | 'twitter';
+  failoverMethod: 'governance_forum' | 'email' | 'twitter';
   attemptTime: Date;
   status: 'initiated' | 'delivered' | 'failed';
   contactData: any;
@@ -32,7 +31,6 @@ interface FailoverAttempt {
 
 export class A2AFailoverPipeline {
   private communicationOrchestrator: CommunicationOrchestrator;
-  private xmtpService: any;
   private activeFailovers = new Map<string, FailoverAttempt>();
   private monitoringInterval: NodeJS.Timeout | null = null;
   
@@ -43,7 +41,6 @@ export class A2AFailoverPipeline {
   
   constructor() {
     this.communicationOrchestrator = new CommunicationOrchestrator();
-    this.xmtpService = null;
     
     console.log('🔄 A2A Failover Pipeline V2.0 initialized');
     
@@ -203,7 +200,7 @@ export class A2AFailoverPipeline {
         
         // Return verified contact methods using direct properties
         return {
-          xmtpWallet: agentData.ethereumWallet || agentData.primaryWalletAddress,
+          walletAddress: agentData.ethereumWallet || agentData.primaryWalletAddress,
           governanceForum: agentData.apiEndpoint,
           contactEmail: null, // Not available in current schema
           twitterHandle: null, // Not available in current schema
@@ -241,12 +238,12 @@ export class A2AFailoverPipeline {
    * 🎯 SELECT BEST FAILOVER METHOD BASED ON AVAILABLE DATA
    */
   private selectBestFailoverMethod(contactData: any): FailoverAttempt['failoverMethod'] {
-    if (contactData.xmtpWallet) return 'xmtp';
+    if (contactData.walletAddress) return 'governance_forum';
     if (contactData.governanceForum) return 'governance_forum';
     if (contactData.contactEmail) return 'email';
     if (contactData.twitterHandle) return 'twitter';
     
-    return 'xmtp'; // Default fallback
+    return 'governance_forum';
   }
 
   /**
@@ -256,9 +253,6 @@ export class A2AFailoverPipeline {
     const { failoverMethod, contactData, agentName } = failoverAttempt;
     
     switch (failoverMethod) {
-      case 'xmtp':
-        return await this.executeXMTPFailover(failoverAttempt);
-      
       case 'governance_forum':
         return await this.executeGovernanceFailover(failoverAttempt);
       
@@ -271,36 +265,6 @@ export class A2AFailoverPipeline {
       default:
         console.log(`❌ Unknown failover method: ${failoverMethod}`);
         return false;
-    }
-  }
-
-  /**
-   * 📡 EXECUTE XMTP FAILOVER (REAL IMPLEMENTATION)
-   */
-  private async executeXMTPFailover(failoverAttempt: FailoverAttempt): Promise<boolean> {
-    const { contactData, agentName } = failoverAttempt;
-    
-    if (!contactData.xmtpWallet) {
-      console.log(`❌ No XMTP wallet for ${agentName}`);
-      return false;
-    }
-    
-    try {
-      console.log(`📡 Sending REAL XMTP failover to ${agentName}...`);
-      
-      const message = this.generateFailoverMessage(failoverAttempt);
-      const result = await this.xmtpService.sendMessageToAgent(contactData.xmtpWallet, message);
-      
-      if (result.status === 'sent' || result.status === 'delivered') {
-        console.log(`✅ XMTP failover delivered to ${agentName}`);
-        return true;
-      }
-      
-      return false;
-      
-    } catch (error) {
-      console.error(`❌ XMTP failover failed for ${agentName}:`, error);
-      return false;
     }
   }
 
@@ -377,7 +341,7 @@ Our A2A protocol session ${reason}. We're reaching out via this backup channel t
 
 🔧 Recovery Options:
 1. Retry A2A connection with updated endpoints
-2. Continue via XMTP messaging
+2. Continue via on-chain messaging
 3. Schedule direct integration call
 
 Original session details preserved for seamless continuation.
@@ -417,7 +381,6 @@ recovery@coinrailz.com`;
       successfulFailovers: attempts.filter(a => a.status === 'delivered').length,
       failedFailovers: attempts.filter(a => a.status === 'failed').length,
       methodBreakdown: {
-        xmtp: attempts.filter(a => a.failoverMethod === 'xmtp').length,
         governance_forum: attempts.filter(a => a.failoverMethod === 'governance_forum').length,
         email: attempts.filter(a => a.failoverMethod === 'email').length,
         twitter: attempts.filter(a => a.failoverMethod === 'twitter').length

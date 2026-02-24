@@ -247,7 +247,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
             const paymentLink = `https://coinrailz.com/complete-payment/${order.id}?amount=${amount}&service=${encodeURIComponent(order.service_description || '')}`;
             conversionResults.paymentLinksGenerated++;
             
-            // 2. Create personalized XMTP message
+            // 2. Create personalized on-chain message
             const personalizedMessage = `🎯 COMPLETE YOUR $${amount} AI SERVICE ORDER
             
 Hello! You started an order for "${order.service_description}" worth $${amount} USDC.
@@ -277,11 +277,10 @@ Questions? Reply to this message or contact support@coinrailz.com
             conversionResults.messagesAttempted++;
             
             // 3. Log the outreach attempt (simulate sending)
-            console.log(`📧 XMTP MESSAGE PREPARED for ${walletAddress.slice(0,10)}...`);
+            console.log(`📧 ON-CHAIN MESSAGE PREPARED for ${walletAddress.slice(0,10)}...`);
             console.log(`💳 Payment link: ${paymentLink}`);
             
-            // In a real implementation, we would send via XMTP here:
-            // await xmtpService.sendMessage(walletAddress, personalizedMessage);
+            // In a real implementation, we would send via on-chain messaging here:
             
             conversionResults.messagesSuccessful++;
             conversionResults.customersSent.push({
@@ -300,8 +299,8 @@ Questions? Reply to this message or contact support@coinrailz.com
             conversionResults.errors.push(`Order ${order.id}: ${error.message}`);
           }
         } else {
-          console.log(`❌ No wallet address for order ${order.id} - cannot send XMTP message`);
-          conversionResults.errors.push(`Order ${order.id}: No wallet address for XMTP contact`);
+          console.log(`❌ No wallet address for order ${order.id} - cannot send on-chain message`);
+          conversionResults.errors.push(`Order ${order.id}: No wallet address for on-chain contact`);
         }
       }
 
@@ -350,7 +349,7 @@ Questions? Reply to this message or contact support@coinrailz.com
   // Agent Discovery System Routes
   app.use('/api/discovery', agentDiscoveryRoutes);
 
-  // XMTP routes removed — protocol deprecated
+  // Legacy messaging routes removed — protocol deprecated
 
   // B2B Marketing Service Routes  
   app.use('/api/b2b-marketing', await import('./routes/b2bMarketingRoutes').then(m => m.default));
@@ -378,7 +377,7 @@ Questions? Reply to this message or contact support@coinrailz.com
   // 🐋 Base Whale Targeting Routes
   app.use('/api/base-whales', await import('./routes/baseWhaleRoutes').then(m => m.default));
   
-  // 🤖 x402 Active Agent Outreach (XMTP wallet messaging)
+  // 🤖 x402 Active Agent Outreach (on-chain wallet messaging)
   // x402 outreach DISABLED (Feb 14 2026)
   // app.use('/api/x402-outreach', await import('./routes/x402OutreachRoutes').then(m => m.default));
   

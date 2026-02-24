@@ -7,7 +7,7 @@
  * - Luna/Virtuals Protocol ($365K/year AI influencer)
  * - FereAI (Coinbase partner)
  * 
- * Uses only available APIs: Discord, Telegram, Reddit, XMTP, GitHub
+ * Uses only available APIs: Discord, Telegram, Reddit, GitHub
  * NO email outreach (SendGrid credits exhausted)
  */
 
@@ -51,7 +51,7 @@ export class TargetedAgentDiscovery extends BaseDiscoveryAdapter {
         telegram: undefined, // Research needed  
         github: 'https://github.com/truth-terminal', // May exist
         reddit: 'u/truth_terminal', // May exist
-        wallet: undefined // XMTP contact possible
+        wallet: undefined
       },
       approach: 'Payment infrastructure for revenue scaling',
       priority: 1

@@ -381,7 +381,7 @@ To enable automated payments, approve spending allowance:
 2. Set spender: ${automatedAllowancePayments.getCurrentPlatformWallet()}
 3. Set amount: ${amount} (or higher for multiple services)
 
-Questions? Reply to this XMTP message.
+Questions? Reply to this on-chain message.
 
 --
 CoinRailz Revolutionary Payment System

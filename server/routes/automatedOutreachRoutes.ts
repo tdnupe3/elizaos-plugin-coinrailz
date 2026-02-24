@@ -11,25 +11,25 @@ import LowCostOutreachOrchestrator from '../services/lowCostOutreachOrchestrator
 export const automatedOutreachRouter = Router();
 
 /**
- * Execute immediate XMTP campaign to discovered AI agents
+ * Execute immediate on-chain campaign to discovered AI agents
  */
-automatedOutreachRouter.post('/outreach/xmtp-campaign', async (req, res) => {
+automatedOutreachRouter.post('/outreach/on-chain-campaign', async (req, res) => {
   try {
-    console.log('🚀 Executing immediate XMTP campaign...');
+    console.log('🚀 Executing immediate on-chain campaign...');
     
-    const result = await CostEffectiveOutreach.executeXMTPCampaign();
+    const result = await CostEffectiveOutreach.executeCampaign();
     
     if (!result.success) {
       return res.status(501).json({
         success: false,
-        error: result.error || 'XMTP outreach not implemented',
-        message: 'XMTP messaging requires real implementation - currently not functional'
+        error: result.error || 'On-chain outreach not implemented',
+        message: 'On-chain messaging requires real implementation - currently not functional'
       });
     }
     
     res.json({
       success: result.success,
-      campaign: 'XMTP Direct Messaging',
+      campaign: 'On-chain Direct Messaging',
       reached: result.reached,
       cost: result.cost,
       efficiency: result.reached / Math.max(result.cost, 0.01),
@@ -37,10 +37,10 @@ automatedOutreachRouter.post('/outreach/xmtp-campaign', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ XMTP campaign failed:', error);
+    console.error('❌ On-chain campaign failed:', error);
     res.status(500).json({
       success: false,
-      error: 'XMTP campaign execution failed',
+      error: 'On-chain campaign execution failed',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
@@ -144,7 +144,7 @@ automatedOutreachRouter.get('/outreach/status', async (req, res) => {
     res.json({
       success: true,
       systems: {
-        xmtp: {
+        onChain: {
           operational: true,
           cost: '$2-5 per 1000 messages',
           description: 'Direct messaging to AI agent wallets'
@@ -167,7 +167,7 @@ automatedOutreachRouter.get('/outreach/status', async (req, res) => {
         }
       },
       recommendations: [
-        'Execute XMTP campaign immediately (highest ROI)',
+        'Execute on-chain campaign immediately (highest ROI)',
         'Set up Reddit OAuth for automated posting',
         'Monitor engagement and optimize messaging'
       ]

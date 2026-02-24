@@ -153,10 +153,10 @@ export class OnChainX402Outreach {
       // Get message data
       const messageData = this.generateMessageData();
       
-      // Use the funded XMTP EOA wallet (has $34+ ETH)
-      const privateKey = process.env.XMTP_EOA_PRIVATE_KEY;
+      // Use the funded EOA wallet (has $34+ ETH)
+      const privateKey = process.env.EOA_PRIVATE_KEY;
       if (!privateKey) {
-        throw new Error('XMTP_EOA_PRIVATE_KEY not configured');
+        throw new Error('EOA_PRIVATE_KEY not configured');
       }
       
       const wallet = new ethers.Wallet(privateKey, this.baseProvider);

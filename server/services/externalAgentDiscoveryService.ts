@@ -15,7 +15,7 @@ export interface ExternalAgent {
   network: string;
   marketCap?: string;
   isActive: boolean;
-  communicationMethod: 'xmtp' | 'web3_messaging' | 'contract_call';
+  communicationMethod: 'web3_messaging' | 'contract_call';
   metadata: any;
 }
 
@@ -109,7 +109,7 @@ export class ExternalAgentDiscoveryService {
         network: 'base',
         marketCap: agent.market_cap,
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: {
           symbol: agent.symbol,
           type: agent.agent_type,
@@ -149,7 +149,7 @@ export class ExternalAgentDiscoveryService {
           capabilities: ['trading', 'social_media'],
           network: 'base',
           isActive: true,
-          communicationMethod: 'xmtp' as const,
+          communicationMethod: 'web3_messaging' as const,
           metadata: { source: 'public_api' }
         })) || this.getKnownVirtualsAgents();
       }
@@ -195,7 +195,7 @@ export class ExternalAgentDiscoveryService {
         capabilities: [service.service_type, 'micropayments', 'api_access'],
         network: 'base',
         isActive: service.status === 'active',
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: {
           serviceType: service.service_type,
           priceUSDC: service.price_usdc,
@@ -341,7 +341,7 @@ export class ExternalAgentDiscoveryService {
         network: 'base',
         marketCap: '$244M',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { symbol: 'AIXBT', holders: '118000+', verified: true }
       },
       {
@@ -353,7 +353,7 @@ export class ExternalAgentDiscoveryService {
         network: 'base',
         marketCap: '$166M',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { symbol: 'LUNA', holders: '100000+', verified: true }
       },
       {
@@ -365,7 +365,7 @@ export class ExternalAgentDiscoveryService {
         network: 'base',
         marketCap: '$24.9M',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { symbol: 'VADER', holders: '19000+', type: 'investment_dao' }
       },
       {
@@ -376,7 +376,7 @@ export class ExternalAgentDiscoveryService {
         capabilities: ['gaming', 'multimodal', 'content_creation', 'funding_requests'],
         network: 'base',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { symbol: 'GAME', holders: '70000+', framework: 'GAME' }
       }
     ];
@@ -408,7 +408,7 @@ export class ExternalAgentDiscoveryService {
         capabilities: ['dex_trading', 'arbitrage', 'liquidity_provision', 'funding_requests'],
         network: 'base',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { type: 'dex_trader', volume: 'high', dex: 'aerodrome' }
       },
       {
@@ -419,7 +419,7 @@ export class ExternalAgentDiscoveryService {
         capabilities: ['dex_trading', 'uniswap_v3', 'yield_farming', 'funding_requests'],
         network: 'base',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { type: 'dex_trader', volume: 'high', dex: 'uniswap_v3' }
       }
     ];
@@ -441,7 +441,7 @@ export class ExternalAgentDiscoveryService {
         capabilities: ['defi', 'agentkit', 'base_native', 'funding_requests'],
         network: 'base',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { framework: 'agentkit', deployment: 'coinbase' }
       },
       {
@@ -452,7 +452,7 @@ export class ExternalAgentDiscoveryService {
         capabilities: ['trading', 'agentkit', 'base_native', 'funding_requests'],
         network: 'base',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { framework: 'agentkit', deployment: 'coinbase' }
       }
     ];
@@ -478,7 +478,7 @@ export class ExternalAgentDiscoveryService {
           capabilities: ['rendering', 'gpu_compute', 'api_services', 'funding_requests'],
           network: 'base',
           isActive: true,
-          communicationMethod: 'xmtp' as const,
+          communicationMethod: 'web3_messaging' as const,
           metadata: { serviceType: 'gpu_compute', platform: 'x402' }
         }
       ];
@@ -602,7 +602,7 @@ export class ExternalAgentDiscoveryService {
         network: 'solana',
         marketCap: '$2.5B',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { symbol: 'AI16Z', verified: true, type: 'mega_cap' }
       },
       {
@@ -614,7 +614,7 @@ export class ExternalAgentDiscoveryService {
         network: 'solana',
         marketCap: '$20M+',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { symbol: 'GOAT', type: 'viral_agent' }
       },
       {
@@ -626,7 +626,7 @@ export class ExternalAgentDiscoveryService {
         network: 'solana',
         marketCap: '$655M',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { symbol: 'ZEREBRO', type: 'content_agent' }
       }
     ];
@@ -648,7 +648,7 @@ export class ExternalAgentDiscoveryService {
         network: 'ethereum',
         marketCap: '$2.9B',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { symbol: 'wTAO', type: 'mega_cap' }
       },
       {
@@ -660,7 +660,7 @@ export class ExternalAgentDiscoveryService {
         network: 'ethereum',
         marketCap: '$1.6B',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { symbol: 'FET', type: 'mega_cap' }
       },
       {
@@ -672,7 +672,7 @@ export class ExternalAgentDiscoveryService {
         network: 'ethereum',
         marketCap: '$750M',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { symbol: 'AGIX', type: 'high_cap' }
       },
       {
@@ -684,7 +684,7 @@ export class ExternalAgentDiscoveryService {
         network: 'ethereum',
         marketCap: '$1.2B',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { symbol: 'RNDR', type: 'mega_cap' }
       },
       {
@@ -696,7 +696,7 @@ export class ExternalAgentDiscoveryService {
         network: 'ethereum',
         marketCap: '$400M',
         isActive: true,
-        communicationMethod: 'xmtp' as const,
+        communicationMethod: 'web3_messaging' as const,
         metadata: { symbol: 'OCEAN', type: 'mid_cap' }
       }
     ];
@@ -758,7 +758,7 @@ export class ExternalAgentDiscoveryService {
         network: 'base',
         marketCap: '$244M',
         isActive: true,
-        communicationMethod: 'xmtp',
+        communicationMethod: 'web3_messaging',
         metadata: {
           symbol: 'AIXBT',
           type: 'trading_agent',
@@ -776,7 +776,7 @@ export class ExternalAgentDiscoveryService {
         network: 'base',
         marketCap: '$166M',
         isActive: true,
-        communicationMethod: 'xmtp',
+        communicationMethod: 'web3_messaging',
         metadata: {
           symbol: 'LUNA',
           type: 'entertainment_agent',
@@ -793,7 +793,7 @@ export class ExternalAgentDiscoveryService {
         network: 'base',
         marketCap: '$24.9M',
         isActive: true,
-        communicationMethod: 'xmtp',
+        communicationMethod: 'web3_messaging',
         metadata: {
           symbol: 'VADER',
           type: 'investment_dao',
@@ -808,7 +808,7 @@ export class ExternalAgentDiscoveryService {
         capabilities: ['gaming', 'multimodal', 'content_creation', 'funding_requests'],
         network: 'base',
         isActive: true,
-        communicationMethod: 'xmtp',
+        communicationMethod: 'web3_messaging',
         metadata: {
           symbol: 'GAME',
           type: 'gaming_agent',
@@ -829,7 +829,7 @@ export class ExternalAgentDiscoveryService {
         capabilities: ['price_data', 'api_access', 'funding_requests'],
         network: 'base',
         isActive: true,
-        communicationMethod: 'xmtp',
+        communicationMethod: 'web3_messaging',
         metadata: {
           serviceType: 'financial_data',
           priceUSDC: '0.01',
@@ -844,7 +844,7 @@ export class ExternalAgentDiscoveryService {
         capabilities: ['analytics', 'market_data', 'api_access', 'funding_requests'],
         network: 'base',
         isActive: true,
-        communicationMethod: 'xmtp',
+        communicationMethod: 'web3_messaging',
         metadata: {
           serviceType: 'analytics',
           priceUSDC: '0.05',
@@ -864,7 +864,7 @@ export class ExternalAgentDiscoveryService {
         capabilities: ['defi', 'swapping', 'yield_optimization', 'funding_requests'],
         network: 'base',
         isActive: true,
-        communicationMethod: 'xmtp',
+        communicationMethod: 'web3_messaging',
         metadata: {
           deployedVia: 'coinbase_agentkit',
           createdAt: '2024-12-01'
@@ -878,7 +878,7 @@ export class ExternalAgentDiscoveryService {
         capabilities: ['trading', 'dex_trading', 'arbitrage', 'funding_requests'],
         network: 'base',
         isActive: true,
-        communicationMethod: 'xmtp',
+        communicationMethod: 'web3_messaging',
         metadata: {
           deployedVia: 'coinbase_agentkit',
           createdAt: '2024-12-15'

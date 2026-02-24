@@ -65,7 +65,7 @@ export class OnChainMessagingService {
       console.log(`📝 Message: ${message.substring(0, 100)}...`);
 
       // Get private key for signing
-      const privateKey = process.env.XMTP_EOA_PRIVATE_KEY;
+      const privateKey = process.env.EOA_PRIVATE_KEY;
       if (!privateKey) {
         throw new Error('Private key not available for on-chain messaging');
       }

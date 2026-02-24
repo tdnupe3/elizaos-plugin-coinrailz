@@ -163,7 +163,7 @@ router.post('/launch-experimental-campaign', async (req, res) => {
         networks: ['ethereum', 'base'],
         maxAge: 24
       },
-      outreachMethods = ['xmtp', 'on_chain_memo'],
+      outreachMethods = ['on_chain', 'on_chain_memo'],
       maxContacts = 25
     } = req.body;
     
@@ -261,7 +261,7 @@ router.post('/test-agent-outreach', async (req, res) => {
     const {
       walletAddress,
       network = 'ethereum',
-      outreachMethod = 'xmtp',
+      outreachMethod = 'on_chain',
       agentType = 'trading_bot',
       estimatedVolume = 25000
     } = req.body;

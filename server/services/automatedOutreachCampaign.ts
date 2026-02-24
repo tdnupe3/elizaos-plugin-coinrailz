@@ -17,7 +17,7 @@ interface AgentProfile {
 
 interface CampaignConfig {
   name: string;
-  channel: 'xmtp' | 'twitter' | 'discord';
+  channel: 'twitter' | 'discord';
   targetMinScore?: number;
   targetMaxAttempts?: number;
   maxAgentsPerRun?: number;
@@ -111,64 +111,6 @@ export class AutomatedOutreachCampaign {
           
           sent++;
           console.log(`📧 Queued Twitter outreach to @${twitterHandle}`);
-        }
-      } catch (error: any) {
-        console.error(`❌ Failed to send to agent ${agent.id}:`, error.message);
-        failed++;
-      }
-    }
-
-    return { sent, failed, messages: results };
-  }
-
-  async executeXMTPCampaign(config: CampaignConfig): Promise<{ sent: number; failed: number; messages: any[] }> {
-    const agents = await this.selectTargetAgents(config);
-    const results: any[] = [];
-    let sent = 0;
-    let failed = 0;
-
-    for (const agent of agents) {
-      try {
-        if (!agent.wallet) {
-          console.log(`⏭️  No wallet for agent ${agent.url}`);
-          continue;
-        }
-
-        const message = agentOutreachTemplates.generateXMTPMessage(agent);
-        
-        if (config.dryRun) {
-          console.log(`\n🔍 DRY RUN - Would send XMTP to ${agent.wallet}:`);
-          console.log(message);
-          results.push({
-            agentId: agent.id,
-            wallet: agent.wallet,
-            message,
-            status: 'dry-run',
-          });
-          sent++;
-        } else {
-          // TODO: Integrate with XMTP SDK to actually send
-          // For now, just track in database
-          await this.trackOutreach({
-            campaignId: null,
-            prospectWalletId: agent.id,
-            protocol: 'xmtp',
-            messageContent: message,
-            status: 'queued',
-            metadata: { wallet: agent.wallet, agentUrl: agent.url },
-          });
-
-          await this.updateAgentContactAttempts(agent.id);
-
-          results.push({
-            agentId: agent.id,
-            wallet: agent.wallet,
-            message,
-            status: 'queued',
-          });
-          
-          sent++;
-          console.log(`📧 Queued XMTP outreach to ${agent.wallet}`);
         }
       } catch (error: any) {
         console.error(`❌ Failed to send to agent ${agent.id}:`, error.message);

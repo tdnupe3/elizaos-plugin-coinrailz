@@ -2,10 +2,9 @@
  * 🚀 EXPERIMENTAL: DIRECT BLOCKCHAIN MESSAGING & AUTOMATED CAMPAIGNS
  * 
  * CUTTING-EDGE APPROACH: Run automated campaigns that reach AI agents through:
- * 1. XMTP direct wallet messaging
- * 2. On-chain transaction memos
- * 3. NFT-based contact cards
- * 4. Smart contract event monitoring
+ * 1. On-chain transaction memos
+ * 2. NFT-based contact cards
+ * 3. Smart contract event monitoring
  * 
  * This pushes the boundaries of what's possible in B2B outreach!
  */
@@ -24,7 +23,7 @@ interface ExperimentalCampaign {
     networks: string[];
     maxAge: number; // hours
   };
-  outreachMethods: ('xmtp' | 'on_chain_memo' | 'nft_contact' | 'smart_contract_event')[];
+  outreachMethods: ('on_chain_memo' | 'nft_contact' | 'smart_contract_event')[];
   valueFirstStrategy: {
     reportType: string;
     reportValue: number;
@@ -46,7 +45,7 @@ interface ExperimentalCampaign {
 interface BlockchainContact {
   walletAddress: string;
   network: string;
-  contactMethod: 'xmtp' | 'on_chain_memo' | 'nft_contact';
+  contactMethod: 'on_chain_memo' | 'nft_contact';
   messageId: string;
   deliveredAt: Date;
   status: 'sent' | 'delivered' | 'viewed' | 'responded';
@@ -79,7 +78,7 @@ export class ExperimentalOutreachCampaigns {
       name,
       status: 'planning',
       targetCriteria,
-      outreachMethods: options.outreachMethods || ['xmtp', 'on_chain_memo'],
+      outreachMethods: options.outreachMethods || ['on_chain_memo'],
       valueFirstStrategy: options.valueFirstStrategy || {
         reportType: 'profit_opportunity',
         reportValue: 500,
@@ -203,10 +202,6 @@ export class ExperimentalOutreachCampaigns {
     };
     
     switch (method) {
-      case 'xmtp':
-        await this.sendXMTPMessage(agent, report, invoice, contact);
-        break;
-        
       case 'on_chain_memo':
         await this.sendOnChainMemo(agent, report, invoice, contact);
         break;
@@ -222,44 +217,6 @@ export class ExperimentalOutreachCampaigns {
     
     this.blockchainContacts.set(contactId, contact);
     campaign.results.messagesDelivered++;
-  }
-
-  /**
-   * 📱 EXPERIMENTAL: Send direct XMTP message to wallet
-   */
-  private async sendXMTPMessage(agent: any, report: any, invoice: any, contact: BlockchainContact) {
-    try {
-      console.log(`📱 EXPERIMENTAL: Sending XMTP message to ${agent.walletAddress}`);
-      
-      const message = cryptoInvoiceReportGenerator.generateInvoiceMessage(invoice);
-      
-      // TODO: Integrate with existing XMTP infrastructure
-      // Use our existing XMTP wallet addresses for sending
-      
-      const xmtpMessage = {
-        to: agent.walletAddress,
-        content: message,
-        attachments: [
-          {
-            type: 'trading_report',
-            data: report,
-            preview: 'Personalized Trading Analysis - Click to view full report'
-          },
-          {
-            type: 'crypto_invoice',
-            data: invoice,
-            preview: `Payment request: ${invoice.amount} ${invoice.currency}`
-          }
-        ]
-      };
-      
-      console.log(`XMTP message prepared for ${agent.walletAddress}:`, xmtpMessage.content.substring(0, 100) + '...');
-      contact.status = 'delivered';
-      
-    } catch (error) {
-      console.error('XMTP message failed:', error);
-      contact.status = 'sent'; // Keep as sent since we tried
-    }
   }
 
   /**
@@ -463,7 +420,7 @@ export class ExperimentalOutreachCampaigns {
           reportValue: 2000,
           invoiceAmount: 999
         },
-        outreachMethods: ['xmtp', 'smart_contract_event'],
+        outreachMethods: ['smart_contract_event'],
         maxContacts: 10
       })
     ]);

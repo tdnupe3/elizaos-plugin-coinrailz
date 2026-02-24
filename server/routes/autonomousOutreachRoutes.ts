@@ -85,7 +85,7 @@ router.post('/discover', async (req, res) => {
 
 /**
  * POST /api/outreach/message-agents
- * Actually message discovered agents via XMTP wallet messaging
+ * Actually message discovered agents via on-chain wallet messaging
  */
 router.post('/message-agents', async (req, res) => {
   try {

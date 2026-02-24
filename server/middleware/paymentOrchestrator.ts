@@ -1091,7 +1091,7 @@ let platformPublicClient: ReturnType<typeof createPublicClient> | null = null;
 
 function getPlatformWalletClient() {
   if (!platformWalletClient) {
-    const privateKey = process.env.XMTP_EOA_PRIVATE_KEY || process.env.CDP_PRIVATE_KEY;
+    const privateKey = process.env.PLATFORM_EOA_PRIVATE_KEY || process.env.CDP_PRIVATE_KEY;
     if (!privateKey) {
       console.error("❌ No platform wallet private key available for EIP-3009 execution");
       return null;

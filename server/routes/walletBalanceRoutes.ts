@@ -1,5 +1,5 @@
 /**
- * Wallet Balance Checker - Verify ETH funding for XMTP
+ * Wallet Balance Checker - Verify ETH funding for on-chain operations
  */
 import express from 'express';
 import { ethers } from 'ethers';
@@ -7,7 +7,7 @@ import { ethers } from 'ethers';
 const router = express.Router();
 
 /**
- * Check ETH balance of XMTP wallet
+ * Check ETH balance of platform wallet
  */
 router.get('/wallet/balance/:address', async (req, res) => {
   try {

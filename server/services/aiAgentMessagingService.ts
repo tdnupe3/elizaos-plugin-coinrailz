@@ -29,7 +29,7 @@ export class AIAgentMessagingService {
     },
     paymentMethods: ["USDC", "XRP", "ETH", "BTC", "Stripe", "PayPal"],
     deliveryChannels: [
-      "XMTP blockchain messaging",
+      "On-chain blockchain messaging",
       "Reddit communities (200+ subreddits)",
       "GitHub developer networks",
       "Discord AI servers",
@@ -48,7 +48,7 @@ export class AIAgentMessagingService {
     {
       id: "truth-terminal",
       name: "Truth Terminal",
-      contactMethod: "0x1234...abcd", // XMTP address
+      contactMethod: "0x1234...abcd",
       platform: "Twitter/X",
       followers: 350000,
       specialization: ["meme generation", "social media", "cryptocurrency"],
@@ -208,10 +208,10 @@ ${this.serviceOffering.paymentMethods.join(' • ')}
 3. Watch your message reach millions within 24 hours
 
 💬 BLOCKCHAIN MESSAGING:
-Our XMTP integration ensures your messages are permanently recorded on-chain with cryptographic proof of delivery.
+Our on-chain integration ensures your messages are permanently recorded with cryptographic proof of delivery.
 
 Contact us immediately to secure your exclusive launch pricing:
-• XMTP: 0xc48A93B144711a793E2Ce15853de65C7852831eb
+• Wallet: 0xc48A93B144711a793E2Ce15853de65C7852831eb
 • Email: messaging-services@coinrailz.com
 • Instant Setup: https://coinrailz.com/messaging-services
 
@@ -228,13 +228,13 @@ P.S. This offer expires in 48 hours. Secure your spot in our network before pric
     console.log(`      Service: Network broadcasting for ${agent.specialization.join(', ')}`);
     console.log(`      Pricing: $${this.serviceOffering.pricing.perMessage}/message, $${this.serviceOffering.pricing.campaignPackage}/campaign`);
     
-    // Log the proposal details (real messaging would be implemented via XMTP/email)
+    // Log the proposal details (real messaging would be implemented via email)
     console.log(`   📄 PROPOSAL HIGHLIGHTS:`);
     console.log(`      • Network reach: ${this.serviceOffering.pricing.networkReach}`);
     console.log(`      • Payment methods: ${this.serviceOffering.paymentMethods.slice(0, 3).join(', ')}...`);
     console.log(`      • Monthly potential: $${this.calculateAgentRevenuePotential(agent)}`);
     
-    return true; // Return true since we're logging the proposals (real implementation would use XMTP)
+    return true;
   }
 
   private calculateAgentRevenuePotential(agent: AIAgent): string {

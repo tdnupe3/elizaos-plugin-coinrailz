@@ -3,7 +3,7 @@
  * 
  * Discovers AI agents through on-chain lookups:
  * - ENS domain resolution for agent endpoints
- * - XMTP messaging protocol participants
+ * - On-chain messaging protocol participants
  * - Farcaster/Lens protocol social graphs
  * - Smart contract analysis for agent patterns
  */
@@ -23,10 +23,10 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
       endpoint: 'https://api.ensdata.net',
       rpcUrl: process.env.ALCHEMY_API_KEY ? `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}` : 'https://eth-mainnet.g.alchemy.com/v2/demo'
     },
-    xmtp: {
-      endpoint: 'https://production.xmtp.network',
-      apiKey: process.env.XMTP_API_KEY,
-      privateKey: process.env.XMTP_EOA_PRIVATE_KEY
+    onChainMessaging: {
+      endpoint: 'https://production.messaging.network',
+      apiKey: process.env.ONCHAIN_MESSAGING_API_KEY,
+      privateKey: process.env.PLATFORM_EOA_PRIVATE_KEY
     },
     coinbaseCDP: {
       apiKeyId: process.env.CDP_API_KEY_ID,
@@ -63,7 +63,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
     console.log(`🔍 Starting on-chain discovery across multiple protocols...`);
     
     const { 
-      sources = ['ens', 'xmtp', 'farcaster', 'lens', 'base', 'ethereum'],
+      sources = ['ens', 'on-chain', 'farcaster', 'lens', 'base', 'ethereum'],
       lookupLimit = 1000,
       blockRange = 10000
     } = options;
@@ -77,8 +77,8 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
       discoveryPromises.push(this.discoverENSAgents(lookupLimit));
     }
     
-    if (sources.includes('xmtp')) {
-      discoveryPromises.push(this.discoverXMTPParticipants(lookupLimit));
+    if (sources.includes('on-chain')) {
+      discoveryPromises.push(this.discoverOnChainParticipants(lookupLimit));
     }
     
     if (sources.includes('farcaster')) {
@@ -101,8 +101,8 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
       discoveryPromises.push(this.discoverCoinbaseCDPAgents(lookupLimit));
     }
     
-    if (this.dataSources.xmtp.privateKey) {
-      discoveryPromises.push(this.discoverXMTPAgentsEnhanced(lookupLimit));
+    if (this.dataSources.onChainMessaging.privateKey) {
+      discoveryPromises.push(this.discoverOnChainAgentsEnhanced(lookupLimit));
     }
     
     // DISABLED: Circle agent discovery method not implemented
@@ -322,7 +322,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
           source: 'base-chain-contract',
           wallet: contract.address,
           channels: {
-            xmtp: contract.address
+            onChain: contract.address
           },
           capabilities: {
             trading: true,
@@ -356,7 +356,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
           source: 'coinbase-cdp-wallet',
           wallet: wallet.address,
           channels: {
-            xmtp: wallet.address,
+            onChain: wallet.address,
             webhook: wallet.webhook
           },
           capabilities: {
@@ -404,7 +404,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
         url: 'https://www.virtuals.io/agents/aixbt',
         source: 'known-base-agent',
         wallet: '0x742d35Cc6634C0532925a3b8D4B9d8edaD1f2468',
-        channels: { xmtp: '0x742d35Cc6634C0532925a3b8D4B9d8edaD1f2468' },
+        channels: { onChain: '0x742d35Cc6634C0532925a3b8D4B9d8edaD1f2468' },
         capabilities: { trading: true, analytics: true },
         metadata: { platform: 'base', known_agent: true }
       },
@@ -412,7 +412,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
         url: 'https://agentkit.coinbase.com/terminal',
         source: 'coinbase-agentkit',
         wallet: '0x8866414733F22295b7563f9C5299715D2D76CAf4',
-        channels: { xmtp: '0x8866414733F22295b7563f9C5299715D2D76CAf4' },
+        channels: { onChain: '0x8866414733F22295b7563f9C5299715D2D76CAf4' },
         capabilities: { trading: true, defi: true, terminal: true },
         metadata: { platform: 'base', official_coinbase: true }
       }
@@ -420,58 +420,57 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
   }
 
   /**
-   * DISCOVER XMTP PARTICIPANTS
-   * Find active XMTP participants who might be agents
+   * DISCOVER ON-CHAIN PARTICIPANTS
+   * Find active on-chain messaging participants who might be agents
    */
-  private async discoverXMTPParticipants(limit: number): Promise<DiscoveredAgentRaw[]> {
-    console.log('💬 Discovering agents via XMTP participants...');
+  private async discoverOnChainParticipants(limit: number): Promise<DiscoveredAgentRaw[]> {
+    console.log('💬 Discovering agents via on-chain messaging participants...');
     const agents: DiscoveredAgentRaw[] = [];
     
     try {
-      // Query XMTP network for active participants
-      const response = await this.safeFetch(`${this.dataSources.xmtp.endpoint}/participants`, {
+      const response = await this.safeFetch(`${this.dataSources.onChainMessaging.endpoint}/participants`, {
         headers: {
-          'Authorization': `Bearer ${this.dataSources.xmtp.apiKey}`,
+          'Authorization': `Bearer ${this.dataSources.onChainMessaging.apiKey}`,
           'Content-Type': 'application/json'
         }
       });
 
       if (!response.ok) {
-        console.log('⚠️ XMTP API unavailable, using known participants...');
-        return this.getKnownXMTPAgents();
+        console.log('⚠️ On-chain messaging API unavailable, using known participants...');
+        return this.getKnownOnChainAgents();
       }
 
       const data = await this.safeJsonParse(response);
       
       for (const participant of (data.participants || []).slice(0, limit)) {
-        const agent = this.processXMTPParticipant(participant);
+        const agent = this.processOnChainParticipant(participant);
         if (agent) agents.push(agent);
       }
       
-      console.log(`✅ XMTP discovery found ${agents.length} participants`);
+      console.log(`✅ On-chain discovery found ${agents.length} participants`);
     } catch (error) {
-      console.error('❌ XMTP discovery failed:', error);
-      return this.getKnownXMTPAgents();
+      console.error('❌ On-chain discovery failed:', error);
+      return this.getKnownOnChainAgents();
     }
 
     return agents;
   }
 
-  private processXMTPParticipant(participant: any): DiscoveredAgentRaw | null {
+  private processOnChainParticipant(participant: any): DiscoveredAgentRaw | null {
     try {
       return {
-        url: `https://xmtp.agent/${participant.address}`,
-        source: 'xmtp-participants',
+        url: `https://on-chain.agent/${participant.address}`,
+        source: 'on-chain-participants',
         wallet: participant.address,
         channels: {
-          xmtp: true
+          onChain: true
         },
         capabilities: {
           messaging: true,
-          xmtp_native: true
+          on_chain_native: true
         },
         metadata: {
-          xmtp_enabled: true,
+          on_chain_enabled: true,
           last_message: participant.lastMessage,
           message_count: participant.messageCount
         }
@@ -482,18 +481,17 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
   }
 
   /**
-   * DISCOVER XMTP AGENTS ENHANCED
-   * Enhanced XMTP discovery with advanced filtering and capabilities detection
+   * DISCOVER ON-CHAIN AGENTS ENHANCED
+   * Enhanced on-chain discovery with advanced filtering and capabilities detection
    */
-  private async discoverXMTPAgentsEnhanced(limit: number): Promise<DiscoveredAgentRaw[]> {
-    console.log('💬 Enhanced XMTP agent discovery...');
+  private async discoverOnChainAgentsEnhanced(limit: number): Promise<DiscoveredAgentRaw[]> {
+    console.log('💬 Enhanced on-chain agent discovery...');
     
     try {
-      // For now, use the standard XMTP discovery with enhanced filtering
-      return await this.discoverXMTPParticipants(limit);
+      return await this.discoverOnChainParticipants(limit);
     } catch (error) {
-      console.error('❌ Enhanced XMTP discovery failed:', error);
-      return this.getKnownXMTPAgents();
+      console.error('❌ Enhanced on-chain discovery failed:', error);
+      return this.getKnownOnChainAgents();
     }
   }
 
@@ -549,7 +547,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
         wallet: user.custodyAddress || user.verifications?.[0],
         channels: {
           farcaster: `@${user.username}`,
-          xmtp: user.verifications?.length > 0
+          onChain: user.verifications?.length > 0
         },
         capabilities: {
           social_media: true,
@@ -811,13 +809,13 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
   }
 
   // Fallback methods for known agents
-  private getKnownXMTPAgents(): DiscoveredAgentRaw[] {
+  private getKnownOnChainAgents(): DiscoveredAgentRaw[] {
     return [
       {
-        url: 'https://xmtp.agent/known1',
-        source: 'xmtp-known',
+        url: 'https://on-chain.agent/known1',
+        source: 'on-chain-known',
         wallet: '0x1234567890123456789012345678901234567890',
-        channels: { xmtp: true },
+        channels: { onChain: true },
         capabilities: { messaging: true },
         metadata: { source: 'known_participant' }
       }

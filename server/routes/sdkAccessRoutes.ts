@@ -207,13 +207,13 @@ function getSDKPackages(productId: number): any {
         name: 'Coinrailz TypeScript SDK (Pro)',
         version: '1.2.0',
         download_url: 'https://cdn.coinrailz.com/sdk/typescript/pro/v1.2.0.tar.gz',
-        features: ['Advanced API access', 'DEX integration', 'P2P transfers', 'XMTP messaging']
+        features: ['Advanced API access', 'DEX integration', 'P2P transfers', 'On-chain messaging']
       },
       python: {
         name: 'Coinrailz Python SDK (Pro)',
         version: '1.2.0', 
         download_url: 'https://cdn.coinrailz.com/sdk/python/pro/v1.2.0.tar.gz',
-        features: ['Advanced API access', 'DEX integration', 'P2P transfers', 'XMTP messaging']
+        features: ['Advanced API access', 'DEX integration', 'P2P transfers', 'On-chain messaging']
       },
       react: {
         name: 'Coinrailz React Components (Pro)',
@@ -275,7 +275,7 @@ function validateLicenseKey(licenseKey: string, subscription: any): boolean {
 function getEnabledFeatures(productId: number): string[] {
   const features = {
     1: ['basic_api', 'wallet_creation', 'price_feeds'],
-    2: ['basic_api', 'wallet_creation', 'price_feeds', 'dex_integration', 'p2p_transfers', 'xmtp_messaging'],
+    2: ['basic_api', 'wallet_creation', 'price_feeds', 'dex_integration', 'p2p_transfers', 'on_chain_messaging'],
     3: ['all_features', 'white_label', 'custom_deployment', 'priority_support', 'enterprise_apis']
   };
   

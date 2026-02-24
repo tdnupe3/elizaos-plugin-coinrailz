@@ -118,7 +118,7 @@ router.get("/metrics", async (_req: Request, res: Response) => {
         elizaOSAgentsDiscovered: 242,
         lunaSuccessTx: lunaSuccess.rows?.[0] ?? null,
         recentOnChainTxs: recentOnChainTxs.rows ?? [],
-        channels: ["On-chain Base", "A2A Protocol", "GitHub", "Twitter/X", "Discord", "XMTP", "Direct API"],
+        channels: ["On-chain Base", "A2A Protocol", "GitHub", "Twitter/X", "Discord", "Direct API"],
         platformBreakdown: outreachStats.rows ?? []
       },
       circleEcosystem: {

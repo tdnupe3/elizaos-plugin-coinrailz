@@ -68,9 +68,8 @@ export class CoinbaseIdBaseEthOutreach {
   }
 
   private async initializeWallet() {
-    if (!this.wallet && process.env.XMTP_EOA_PRIVATE_KEY) {
-      // Use the same private key that XMTP services use successfully
-      const privateKey = process.env.XMTP_EOA_PRIVATE_KEY;
+    if (!this.wallet && process.env.PLATFORM_EOA_PRIVATE_KEY) {
+      const privateKey = process.env.PLATFORM_EOA_PRIVATE_KEY;
       this.wallet = new ethers.Wallet(privateKey, this.provider);
       console.log(`🔑 Platform wallet initialized: ${this.wallet.address}`);
     }

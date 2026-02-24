@@ -333,29 +333,15 @@ export class OnChainAgentOutreach {
 
   private async sendMultiChannelInvoice(invoice: CryptoInvoiceWithValue, agent: OnChainAgent) {
     try {
-      // 1. EXPERIMENTAL: Try XMTP messaging if they support it
-      await this.tryXMTPMessage(agent.walletAddress, invoice);
-      
-      // 2. Create on-chain memo transaction (tiny amount with data)
+      // 1. Create on-chain memo transaction (tiny amount with data)
       await this.sendOnChainMemo(agent.walletAddress, invoice);
       
-      // 3. Post to block explorer comments (if supported)
+      // 2. Post to block explorer comments (if supported)
       await this.tryBlockExplorerComment(agent.walletAddress, invoice);
       
       console.log(`✅ Multi-channel invoice sent to ${agent.walletAddress}`);
     } catch (error) {
       console.error('Failed to send multi-channel invoice:', error);
-    }
-  }
-
-  private async tryXMTPMessage(walletAddress: string, invoice: CryptoInvoiceWithValue) {
-    // Use our existing XMTP infrastructure
-    try {
-      console.log(`📱 Attempting XMTP message to ${walletAddress}`);
-      // TODO: Integrate with existing XMTP service
-      // Send structured message with invoice + report
-    } catch (error) {
-      console.log(`XMTP not available for ${walletAddress}`);
     }
   }
 

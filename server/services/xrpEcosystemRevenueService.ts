@@ -247,7 +247,7 @@ Our platform provides a complete XRP Ledger financial ecosystem with 7 integrate
 
 📊 CURRENT TRACTION:
 • 18 active Circle USDC wallets with multi-chain support
-• Operational XMTP messaging integration
+• Operational on-chain messaging integration
 • AI agent marketplace with 15% platform commission
 • Proven revenue model with multiple payment streams
 • Active development team with fintech expertise

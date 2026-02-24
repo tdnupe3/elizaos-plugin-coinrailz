@@ -6,7 +6,7 @@
  * 
  * Used by:
  * - Discovery adapters (X402Bazaar, A2A, ENS, Discord, etc.)
- * - XMTP scanner service
+ * - On-chain scanner service
  * - Database cleanup service
  * - Storage layer helpers
  */

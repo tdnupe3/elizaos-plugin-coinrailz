@@ -40,7 +40,7 @@ export class MessagingContractService {
    */
   async deployContract(): Promise<string> {
     try {
-      const privateKey = process.env.XMTP_EOA_PRIVATE_KEY;
+      const privateKey = process.env.EOA_PRIVATE_KEY;
       if (!privateKey) {
         throw new Error('Private key not available for contract deployment');
       }
@@ -101,7 +101,7 @@ export class MessagingContractService {
     }
 
     try {
-      const privateKey = process.env.XMTP_EOA_PRIVATE_KEY;
+      const privateKey = process.env.EOA_PRIVATE_KEY;
       if (!privateKey) {
         throw new Error('Private key not available');
       }

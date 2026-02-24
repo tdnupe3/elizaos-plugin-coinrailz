@@ -16,7 +16,7 @@ export const messagingRoutes = Router();
 const sendMessageSchema = z.object({
   to: z.string(),
   content: z.string().min(1).max(2000),
-  type: z.enum(['email', 'sms', 'xmtp', 'lens', 'solana_sms', 'walletconnect']),
+  type: z.enum(['email', 'sms', 'on_chain', 'lens', 'solana_sms', 'walletconnect']),
   metadata: z.object({
     subject: z.string().optional(),
     phoneNumber: z.string().optional(),
@@ -35,7 +35,7 @@ const bulkMessageSchema = z.object({
 const outreachCampaignSchema = z.object({
   targetAgents: z.array(z.string()).min(1).max(50),
   message: z.string().min(1).max(2000),
-  preferredProtocols: z.array(z.enum(['email', 'sms', 'xmtp', 'lens', 'solana_sms', 'walletconnect'])).min(1)
+  preferredProtocols: z.array(z.enum(['email', 'sms', 'on_chain', 'lens', 'solana_sms', 'walletconnect'])).min(1)
 });
 
 // ============================================================================
@@ -136,7 +136,7 @@ messagingRoutes.get('/unified/discover', async (req, res) => {
       lens: discoveries.lens.length,
       solana: discoveries.solana.length,
       walletconnect: discoveries.walletconnect.length,
-      xmtp: discoveries.xmtp.length,
+      onChain: Object.entries(discoveries).filter(([k]) => !['lens', 'solana', 'walletconnect'].includes(k)).reduce((sum, [, v]) => sum + (Array.isArray(v) ? v.length : 0), 0),
       total: Object.values(discoveries).flat().length
     };
 

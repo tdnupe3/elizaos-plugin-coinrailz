@@ -1,6 +1,6 @@
 /**
  * Unified Messaging Service
- * Integrates all messaging protocols: Email, SMS, XMTP, Lens, Solana SMS, WalletConnect
+ * Integrates all messaging protocols: Email, SMS, Lens, Solana SMS, WalletConnect
  */
 
 import { customerNotificationService } from './customerNotificationService';
@@ -11,7 +11,7 @@ import { walletConnectMessagingService } from './walletConnectMessagingService';
 interface UnifiedMessage {
   to: string;
   content: string;
-  type: 'email' | 'sms' | 'xmtp' | 'lens' | 'solana_sms' | 'walletconnect';
+  type: 'email' | 'sms' | 'lens' | 'solana_sms' | 'walletconnect';
   metadata?: {
     subject?: string;
     phoneNumber?: string;
@@ -34,7 +34,6 @@ export class UnifiedMessagingService {
   private protocols = {
     email: customerNotificationService,
     sms: customerNotificationService,
-    xmtp: customerNotificationService,
     lens: lensMessagingService,
     solana_sms: solanaSmsService,
     walletconnect: walletConnectMessagingService
@@ -64,13 +63,6 @@ export class UnifiedMessagingService {
         case 'sms':
           result = await customerNotificationService.sendSMS(
             message.metadata?.phoneNumber || message.to,
-            message.content
-          );
-          break;
-
-        case 'xmtp':
-          result = await customerNotificationService.sendXMTPMessage(
-            message.to,
             message.content
           );
           break;
@@ -147,8 +139,7 @@ export class UnifiedMessagingService {
     const discoveries = {
       lens: [],
       solana: [],
-      walletconnect: [],
-      xmtp: []
+      walletconnect: []
     };
 
     try {
@@ -161,9 +152,6 @@ export class UnifiedMessagingService {
       // Discover on WalletConnect
       discoveries.walletconnect = await walletConnectMessagingService.discoverWalletConnectAgents();
       
-      // XMTP discovery (would need to be implemented)
-      discoveries.xmtp = [];
-
       const totalAgents = Object.values(discoveries).flat().length;
       console.log(`🤖 Discovered ${totalAgents} AI agents across all protocols`);
 
@@ -237,7 +225,6 @@ export class UnifiedMessagingService {
     return {
       email: customerNotificationService.isEmailAvailable(),
       sms: customerNotificationService.isSMSAvailable(),
-      xmtp: customerNotificationService.isXMTPAvailable(),
       lens: lensMessagingService.isAvailable(),
       solana_sms: solanaSmsService.isAvailable(),
       walletconnect: walletConnectMessagingService.isAvailable()
@@ -260,12 +247,6 @@ export class UnifiedMessagingService {
         cost: '$0.05 per SMS',
         rateLimits: '100/hour',
         availability: customerNotificationService.isSMSAvailable()
-      },
-      xmtp: customerNotificationService.getXMTPInfo?.() || {
-        protocol: 'XMTP',
-        cost: 'Free',
-        rateLimits: '1000/hour',
-        availability: customerNotificationService.isXMTPAvailable()
       },
       lens: lensMessagingService.getMessagingInfo(),
       solana_sms: solanaSmsService.getMessagingInfo(),

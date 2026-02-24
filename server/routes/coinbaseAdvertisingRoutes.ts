@@ -125,7 +125,7 @@ router.post('/create-payment-intent', async (req: Request, res: Response) => {
     }
 
     // Critical: Verify platform wallet readiness before accepting payment
-    if (!process.env.XMTP_EOA_PRIVATE_KEY) {
+    if (!process.env.PLATFORM_EOA_PRIVATE_KEY) {
       return res.status(503).json({
         success: false,
         error: 'Service temporarily unavailable - platform wallet not configured'
@@ -197,7 +197,7 @@ router.post('/create-paypal-order', async (req: Request, res: Response) => {
     }
 
     // Critical: Verify platform wallet readiness before accepting payment
-    if (!process.env.XMTP_EOA_PRIVATE_KEY) {
+    if (!process.env.PLATFORM_EOA_PRIVATE_KEY) {
       return res.status(503).json({
         success: false,
         error: 'Service temporarily unavailable - platform wallet not configured'

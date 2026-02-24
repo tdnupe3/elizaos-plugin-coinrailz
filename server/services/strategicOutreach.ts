@@ -5,7 +5,6 @@
  * - Discord Bot API (available)
  * - Telegram Bot API (available) 
  * - GitHub API (available)
- * - XMTP wallet messaging (available)
  * 
  * NO email outreach (SendGrid exhausted)
  * Focus on value proposition over volume
@@ -18,7 +17,7 @@ import axios from 'axios';
 interface OutreachTarget {
   name: string;
   revenue: string;
-  contactMethod: 'discord' | 'telegram' | 'github' | 'xmtp';
+  contactMethod: 'discord' | 'telegram' | 'github';
   contactInfo: string;
   message: string;
   priority: number;

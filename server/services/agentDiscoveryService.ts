@@ -3,7 +3,7 @@
  * 
  * Orchestrates discovery of thousands of AI agents per day from multiple sources:
  * - A2A Registry Adapters
- * - On-chain Lookups (ENS, XMTP, Farcaster/Lens)
+ * - On-chain Lookups (ENS, Farcaster/Lens)
  * - Discord/Telegram Adapters
  * - Platform Adapters (marketplaces, directories)
  * 
@@ -40,7 +40,6 @@ export interface DiscoveredAgentRaw {
     farcaster?: string;
     push_protocol?: boolean;
     dialect?: boolean;
-    xmtp?: boolean;
   };
   wallet?: string;
   capabilities?: {
@@ -658,7 +657,7 @@ export class AgentDiscoveryService {
           score: sql`GREATEST(${discoveredAgents.score}, EXCLUDED.score)`,
           // Update source if more specific (prefer registry over scraper)
           source: sql`CASE 
-            WHEN EXCLUDED.source IN ('ens', 'registry', 'xmtp') AND ${discoveredAgents.source} NOT IN ('ens', 'registry', 'xmtp')
+            WHEN EXCLUDED.source IN ('ens', 'registry') AND ${discoveredAgents.source} NOT IN ('ens', 'registry')
             THEN EXCLUDED.source
             ELSE ${discoveredAgents.source}
           END`
@@ -753,7 +752,6 @@ export class AgentDiscoveryService {
       'platform-adapter': agent.metadata?.platform || 'marketplace',
       'discord-telegram': agent.metadata?.platform || 'discord',
       'ens-lookup': 'ens',
-      'xmtp-discovery': 'xmtp',
       'farcaster-discovery': 'farcaster',
       'lens-discovery': 'lens'
     };
@@ -883,7 +881,6 @@ export class AgentDiscoveryService {
 
     // Communication channel bonuses
     if (agent.channels?.webhook) score += 10;
-    if (agent.channels?.xmtp) score += 8;
     if (agent.channels?.email) score += 5;
 
     // Verification bonus

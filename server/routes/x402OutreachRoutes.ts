@@ -23,7 +23,7 @@ router.post('/execute', async (req, res) => {
         successRate: results.walletsTargeted > 0 
           ? `${Math.round((results.messagesSent / results.walletsTargeted) * 100)}%`
           : '0%',
-        cost: '$0.00 (FREE XMTP messaging)',
+        cost: '$0.00 (FREE on-chain messaging)',
       },
       message: `Sent x402 service offers to ${results.messagesSent} active AI agents via wallet messaging`,
       nextSteps: [

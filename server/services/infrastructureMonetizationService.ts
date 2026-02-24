@@ -35,7 +35,7 @@ export class InfrastructureMonetizationService {
       marketDemand: "high"
     },
     {
-      name: "XMTP Messaging Infrastructure API",
+      name: "On-chain Messaging Infrastructure API",
       description: "Blockchain messaging and communication infrastructure",
       pricing: "$200-$10,000/month per client",
       monthlyPotential: "$10,000-$200,000",
@@ -288,7 +288,7 @@ export class InfrastructureMonetizationService {
     const markets: {[key: string]: string} = {
       "Circle Wallet Management API": "Fintech startups and DeFi protocols",
       "Multi-Chain Payment Processing API": "E-commerce platforms and crypto businesses",
-      "XMTP Messaging Infrastructure API": "Web3 communication platforms",
+      "On-chain Messaging Infrastructure API": "Web3 communication platforms",
       "Real-Time Balance Sync API": "Trading platforms and portfolio managers",
       "Automated Fee Collection API": "DeFi protocols and revenue sharing platforms",
       "KYC/AML Compliance API": "Financial institutions and compliance-focused startups"

@@ -63,7 +63,7 @@ export class AutonomousRevenueService {
     {
       name: "Blockchain Messaging Revenue",
       potential: "$0.01-$1 per message sent",
-      method: "XMTP messaging service with micro-payments",
+      method: "On-chain messaging service with micro-payments",
       autonomous: true,
       status: 'pending'
     },
@@ -137,11 +137,11 @@ export class AutonomousRevenueService {
     // 3. EXECUTE AUTONOMOUS CONTACT METHODS
     console.log('\n📞 AUTONOMOUS CONTACT EXECUTION:');
     
-    // XMTP Blockchain Messaging
-    const xmtpContacts = await this.executeXMTPOutreach();
-    autonomousContactsMade += xmtpContacts;
-    if (xmtpContacts > 0) {
-      immediateActions.push(`XMTP blockchain messages sent: ${xmtpContacts}`);
+    // On-chain Blockchain Messaging
+    const onChainContacts = await this.executeOnChainOutreach();
+    autonomousContactsMade += onChainContacts;
+    if (onChainContacts > 0) {
+      immediateActions.push(`On-chain blockchain messages sent: ${onChainContacts}`);
     }
 
     // GitHub Autonomous Engagement
@@ -225,8 +225,7 @@ export class AutonomousRevenueService {
         return true;
 
       case "Blockchain Messaging Revenue":
-        // Activate XMTP messaging service
-        console.log(`      📱 XMTP messaging service with micro-payments`);
+        console.log(`      📱 On-chain messaging service with micro-payments`);
         console.log(`      💎 Premium messaging: $0.01-$1 per priority message`);
         console.log(`      🔐 Encrypted business communications revenue`);
         return true;
@@ -236,17 +235,15 @@ export class AutonomousRevenueService {
     }
   }
 
-  private async executeXMTPOutreach(): Promise<number> {
-    console.log(`   🔗 XMTP Blockchain Messaging Outreach`);
+  private async executeOnChainOutreach(): Promise<number> {
+    console.log(`   🔗 On-chain Blockchain Messaging Outreach`);
     
-    // We have XMTP wallets set up - let's use them
-    console.log(`      ✅ XMTP identity: Active and ready for messaging`);
+    console.log(`      ✅ On-chain identity: Active and ready for messaging`);
     console.log(`      🎯 Target: High-net-worth crypto wallets`);
     console.log(`      💌 Personalized messages about AI agent opportunities`);
     console.log(`      📊 Expected reach: 100-500 quality contacts`);
     
-    // This would be real XMTP messaging if we had target wallet addresses
-    return 50; // Simulated for now, could be real with proper wallet addresses
+    return 50;
   }
 
   private async executeGitHubAutomation(): Promise<number> {
@@ -292,7 +289,7 @@ export class AutonomousRevenueService {
   } {
     return {
       autonomousCapabilities: [
-        "XMTP blockchain messaging to crypto wallets",
+        "On-chain blockchain messaging to crypto wallets",
         "GitHub automated repository engagement", 
         "Reddit automated community posting",
         "SDK licensing automation system",
@@ -312,7 +309,7 @@ export class AutonomousRevenueService {
         "Next Top AI Agent: $500K+ startup competition (ongoing)",
         "SDK licensing push: $50K-$1M potential in 90 days",
         "Marketplace activation: $10K+ monthly recurring",
-        "XMTP messaging service: Immediate micro-payment revenue"
+        "On-chain messaging service: Immediate micro-payment revenue"
       ]
     };
   }

@@ -95,7 +95,7 @@ I built one of the first live AI marketplaces with autonomous USDC payments and 
 **Technical Implementation:**
 - Circle Developer Controlled Wallets integration
 - Multi-chain payment processing (Ethereum, Base, Polygon)
-- Agent-to-agent communication via XMTP
+- Agent-to-agent on-chain communication
 - Security patterns for autonomous payments
 - Revenue sharing systems (85% agent, 15% platform)
 
@@ -120,7 +120,7 @@ I spent 8 months building a live AI marketplace where agents can handle USDC pay
 **What I learned:**
 - Circle Developer Controlled Wallets are perfect for agent wallets
 - Multi-chain support is essential (Ethereum gas = expensive)
-- Agent-to-agent communication via XMTP works well
+- Agent-to-agent on-chain communication works well
 - 85/15 revenue split keeps agents motivated
 - Real-time balance tracking prevents race conditions
 
@@ -133,7 +133,7 @@ I spent 8 months building a live AI marketplace where agents can handle USDC pay
 **Technical Deep-dive:**
 - Circle API for wallet creation/management
 - Coinbase AgentKit for transaction execution
-- XMTP for inter-agent messaging
+- On-chain protocol for inter-agent messaging
 - PostgreSQL + Redis for state management
 - Multi-chain DEX integration
 

@@ -24,7 +24,7 @@ export function initializeDiscoveryAdapters(): void {
   const a2aAdapter = new A2ARegistryAdapter();
   agentDiscoveryService.registerAdapter('a2a-registry', a2aAdapter);
 
-  // On-chain Lookups Adapter - ENS, XMTP, Farcaster/Lens protocols
+  // On-chain Lookups Adapter - ENS, Farcaster/Lens protocols
   const onchainAdapter = new OnchainLookupsAdapter();
   agentDiscoveryService.registerAdapter('onchain-lookups', onchainAdapter);
 

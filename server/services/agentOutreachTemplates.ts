@@ -161,7 +161,7 @@ Search our wallet on x402scan: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 Happy to answer questions or set up a demo!`;
   }
 
-  generateXMTPMessage(agent: AgentProfile): string {
+  generateOnChainMessage(agent: AgentProfile): string {
     const agentName = agent.name || 'there';
     
     return `Hey ${agentName}! 

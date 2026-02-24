@@ -253,7 +253,7 @@ export class ProductDeliveryService {
       ],
       endpoints: {
         starter: ['crypto/prices', 'circle/wallet/create', 'market/data'],
-        pro: ['dex/aggregate', 'xmtp/send-message', 'p2p/transfer'],
+        pro: ['dex/aggregate', 'messaging/send-message', 'p2p/transfer'],
         enterprise: ['trading/signals', 'xrp/transfer', 'analytics/advanced']
       }[this.getTierName(subscription.productId).toLowerCase()]
     };

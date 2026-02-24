@@ -261,7 +261,7 @@ export class MassiveBaseEcosystemDiscovery {
           description: target.description,
           contactStatus: 'available',
           isVerified: true,
-          deliveryChannels: ['blockchain', 'xmtp'],
+          deliveryChannels: ['blockchain', 'on-chain'],
           successfulCampaigns: 0,
           totalCampaigns: 0
         }).onConflictDoNothing();

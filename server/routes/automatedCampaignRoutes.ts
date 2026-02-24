@@ -45,22 +45,22 @@ router.post("/twitter", async (req, res) => {
   }
 });
 
-// Execute an XMTP outreach campaign
-router.post("/xmtp", async (req, res) => {
+// Execute an on-chain outreach campaign
+router.post("/on-chain", async (req, res) => {
   try {
     const { 
-      campaignName = 'xmtp-outreach',
+      campaignName = 'on-chain-outreach',
       targetMinScore = 15,
       targetMaxAttempts = 2,
       maxAgentsPerRun = 30,
       dryRun = true 
     } = req.body;
 
-    console.log(`🚀 Starting XMTP outreach campaign: ${campaignName}`);
+    console.log(`🚀 Starting on-chain outreach campaign: ${campaignName}`);
 
-    const result = await automatedOutreachCampaign.executeXMTPCampaign({
+    const result = await automatedOutreachCampaign.executeDiscordCampaign({
       name: campaignName,
-      channel: 'xmtp',
+      channel: 'on-chain',
       targetMinScore,
       targetMaxAttempts,
       maxAgentsPerRun,
@@ -70,12 +70,12 @@ router.post("/xmtp", async (req, res) => {
     res.json({
       success: true,
       campaign: campaignName,
-      channel: 'xmtp',
+      channel: 'on-chain',
       dryRun,
       results: result,
     });
   } catch (error: any) {
-    console.error('❌ XMTP campaign error:', error);
+    console.error('❌ On-chain campaign error:', error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -152,7 +152,7 @@ router.post("/preview", async (req, res) => {
 
     const agents = await automatedOutreachCampaign.selectTargetAgents({
       name: 'preview',
-      channel: channel as 'twitter' | 'xmtp' | 'discord',
+      channel: channel as 'twitter' | 'on-chain' | 'discord',
       targetMinScore,
       targetMaxAttempts,
       maxAgentsPerRun,

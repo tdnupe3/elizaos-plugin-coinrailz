@@ -41,7 +41,7 @@ const initializeProducts = async () => {
           priceUSD: '9.99',
           billingCycle: 'prepaid-credits',
           features: ['$9.99 prepaid credits (40 API calls)', '$0.25 per API request', 'No monthly commitment', 'Credits never expire', 'Enterprise-grade APIs', 'Circle USDC wallet creation', 'DEX aggregation', 'Real-time crypto data', 'Crypto payments only'],
-          apiEndpoints: ['/api/crypto/prices', '/api/circle/wallet/create', '/api/xmtp/send-message', '/api/market/data', '/api/dex/aggregate'],
+          apiEndpoints: ['/api/crypto/prices', '/api/circle/wallet/create', '/api/messaging/send', '/api/market/data', '/api/dex/aggregate'],
           requestLimits: { daily: 'credit-based', monthly: 'credit-based' },
           isActive: true,
           targetAudience: 'ai_agents'
@@ -52,8 +52,8 @@ const initializeProducts = async () => {
           category: 'api_access',
           priceUSD: '49.99',
           billingCycle: 'prepaid-credits',
-          features: ['$49.99 prepaid credits (250+ API calls)', '$0.20 per API request (better rate)', 'Credits never expire', 'Premium operations included', 'DEX aggregation', 'Circle wallet management', 'XMTP messaging', 'Priority support'],
-          apiEndpoints: ['/api/crypto/*', '/api/circle/wallet/*', '/api/xmtp/*', '/api/dex/aggregate', '/api/p2p/transfer'],
+          features: ['$49.99 prepaid credits (250+ API calls)', '$0.20 per API request (better rate)', 'Credits never expire', 'Premium operations included', 'DEX aggregation', 'Circle wallet management', 'On-chain messaging', 'Priority support'],
+          apiEndpoints: ['/api/crypto/*', '/api/circle/wallet/*', '/api/messaging/*', '/api/dex/aggregate', '/api/p2p/transfer'],
           requestLimits: { daily: 'credit-based', monthly: 'credit-based' },
           isActive: true,
           targetAudience: 'ai_agents'
@@ -65,7 +65,7 @@ const initializeProducts = async () => {
           priceUSD: '199.99',
           billingCycle: 'prepaid-credits',
           features: ['$199.99 prepaid credits (1,300+ API calls)', '$0.15 per API request (best rate)', 'Credits never expire', 'All premium features included', 'Unlimited daily usage', 'Trading signals', 'XRP operations', 'Dedicated support', 'Custom integrations'],
-          apiEndpoints: ['/api/crypto/*', '/api/circle/*', '/api/xmtp/*', '/api/dex/*', '/api/p2p/*', '/api/xrp/*', '/api/trading/signals'],
+          apiEndpoints: ['/api/crypto/*', '/api/circle/*', '/api/messaging/*', '/api/dex/*', '/api/p2p/*', '/api/xrp/*', '/api/trading/signals'],
           requestLimits: { daily: 'unlimited', monthly: 'credit-based' },
           isActive: true,
           targetAudience: 'ai_agents'

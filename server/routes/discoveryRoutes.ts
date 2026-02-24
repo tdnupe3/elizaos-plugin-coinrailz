@@ -15,7 +15,7 @@ import {
   stopDiscoveryScheduler,
   runDiscoveryNow,
   getAgentsForOutreach,
-  getXmtpReachableAgents,
+  getReachableAgents as getOnChainReachableAgents,
   runAutomatedOutreach,
   getOutreachStats,
   getAgentsReadyForOutreach,
@@ -665,7 +665,7 @@ router.get('/api/discovery/agents', async (req: Request, res: Response) => {
   try {
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
     const status = req.query.status as string;
-    const hasXmtp = req.query.hasXmtp === 'true';
+    const hasOnChain = req.query.hasOnChain === 'true';
     
     const agents = await db
       .select({
@@ -688,7 +688,7 @@ router.get('/api/discovery/agents', async (req: Request, res: Response) => {
     if (status) {
       filteredAgents = filteredAgents.filter(a => a.status === status);
     }
-    if (hasXmtp) {
+    if (hasOnChain) {
       filteredAgents = filteredAgents.filter(a => a.xmtpAddress);
     }
     
@@ -709,12 +709,12 @@ router.get('/api/discovery/agents', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/discovery/agents/xmtp-reachable
- * Get agents with verified XMTP reachability
+ * GET /api/discovery/agents/on-chain-reachable
+ * Get agents with verified on-chain reachability
  */
-router.get('/api/discovery/agents/xmtp-reachable', async (req: Request, res: Response) => {
+router.get('/api/discovery/agents/on-chain-reachable', async (req: Request, res: Response) => {
   try {
-    const agents = await getXmtpReachableAgents();
+    const agents = await getOnChainReachableAgents();
     res.json({
       success: true,
       data: {
@@ -723,10 +723,10 @@ router.get('/api/discovery/agents/xmtp-reachable', async (req: Request, res: Res
       },
     });
   } catch (error) {
-    console.error('Error getting XMTP-reachable agents:', error);
+    console.error('Error getting on-chain reachable agents:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to get XMTP-reachable agents',
+      error: 'Failed to get on-chain reachable agents',
     });
   }
 });
@@ -883,16 +883,16 @@ router.post('/api/discovery/scheduler/stop', async (req: Request, res: Response)
 /**
  * POST /api/discovery/outreach/run
  * Trigger automated outreach campaign to discovered agents
- * Uses XMTPAgentOutreachService for proven messaging logic
+ * Uses agent outreach service for proven messaging logic
  */
 router.post('/api/discovery/outreach/run', async (req: Request, res: Response) => {
   try {
-    const { minQualityScore, maxAgents, onlyXMTP } = req.body || {};
+    const { minQualityScore, maxAgents, onlyOnChain } = req.body || {};
     
     const result = await runAutomatedOutreach({
       minQualityScore: minQualityScore ? parseInt(minQualityScore) : undefined,
       maxAgents: maxAgents ? parseInt(maxAgents) : undefined,
-      onlyXMTP: onlyXMTP !== undefined ? Boolean(onlyXMTP) : undefined,
+      onlyOnChain: onlyOnChain !== undefined ? Boolean(onlyOnChain) : undefined,
     });
     
     res.json({
@@ -931,18 +931,18 @@ router.get('/api/discovery/outreach/stats', async (req: Request, res: Response) 
 
 /**
  * GET /api/discovery/outreach/ready
- * Get agents ready for outreach (have XMTP, quality score >= 60, not yet contacted)
+ * Get agents ready for outreach (have on-chain address, quality score >= 60, not yet contacted)
  */
 router.get('/api/discovery/outreach/ready', async (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 100;
     const minQualityScore = parseInt(req.query.minQualityScore as string) || 60;
-    const onlyXMTPReachable = req.query.onlyXMTPReachable === 'true';
+    const onlyOnChainReachable = req.query.onlyOnChainReachable === 'true';
     
     const agents = await getAgentsReadyForOutreach({
       limit,
       minQualityScore,
-      onlyXMTPReachable,
+      onlyOnChainReachable: onlyOnChainReachable,
     });
     
     res.json({
@@ -961,7 +961,7 @@ router.get('/api/discovery/outreach/ready', async (req: Request, res: Response) 
 
 /**
  * GET /api/discovery/outreach/recommendations
- * Get outreach recommendations (high-quality XMTP-reachable agents)
+ * Get outreach recommendations (high-quality on-chain reachable agents)
  */
 router.get('/api/discovery/outreach/recommendations', async (req: Request, res: Response) => {
   try {

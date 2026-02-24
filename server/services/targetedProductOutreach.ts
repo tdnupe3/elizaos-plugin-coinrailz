@@ -233,7 +233,7 @@ export class TargetedProductOutreachService {
         description: 'High-value bundle for scaling agents - 250+ API calls with better rates',
         features: [
           'DEX aggregation access',
-          'XMTP messaging capabilities',
+          'On-chain messaging capabilities',
           'Priority support included',
           'Better $0.20 per request rate'
         ],

@@ -302,7 +302,7 @@ ${target.ecosystem.toUpperCase()} Division`;
       for (const target of chunk) {
         const discountMessage = this.generateEthDiscountMessage(target);
         
-        // In real implementation, this would send via XMTP, Base chain messaging, etc.
+        // In real implementation, this would send via on-chain messaging, etc.
         // For now, we log the successful message preparation
         console.log(`💰 ETH discount message prepared for ${target.name} (${target.wallet.slice(0, 8)}...)`);
       }

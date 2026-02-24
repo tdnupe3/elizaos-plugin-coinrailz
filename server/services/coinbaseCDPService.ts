@@ -346,7 +346,7 @@ export class CoinbaseCDPService {
   }
 
   /**
-   * Get or create persistent platform wallet for XMTP messaging
+   * Get or create persistent platform wallet for on-chain messaging
    * Ensures single consistent identity for external agent communication
    */
   async getOrCreatePlatformWallet(): Promise<CDPWallet> {
@@ -372,7 +372,7 @@ export class CoinbaseCDPService {
         };
       }
 
-      const account = await this.safeCreateAccount('platform-wallet-xmtp-messaging');
+      const account = await this.safeCreateAccount('platform-wallet-messaging');
       
       const platformWallet: CDPWallet = {
         id: account.address,
@@ -384,7 +384,7 @@ export class CoinbaseCDPService {
         user_id: 'platform_wallet'
       };
 
-      console.log(`✅ Created new platform wallet for XMTP messaging: ${account.address}`);
+      console.log(`✅ Created new platform wallet for on-chain messaging: ${account.address}`);
       
       // Persist for consistent identity across restarts
       process.env.PLATFORM_WALLET_ADDRESS = account.address;

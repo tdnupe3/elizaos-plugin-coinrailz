@@ -6,7 +6,7 @@
  * We must only disable services during the actual bundling/compilation, NOT runtime.
  * 
  * DEV LITE MODE: In development, defer heavy background services to prevent
- * Vite HMR WebSocket connection drops. Services like Discord, XMTP, discovery
+ * Vite HMR WebSocket connection drops. Services like Discord, discovery
  * adapters can block the event loop during initialization, starving HMR heartbeats.
  */
 
@@ -47,7 +47,7 @@ export const DISABLE_BACKGROUND_SERVICES =
   IS_VITE_BUILD;
 
 // Disable heavy outreach/discovery services in dev to prevent Vite HMR drops
-// These services (Discord, XMTP, discovery, outreach) block the event loop during init
+// These services (Discord, discovery, outreach) block the event loop during init
 export const DISABLE_HEAVY_SERVICES = DISABLE_BACKGROUND_SERVICES || DEV_LITE_MODE;
 
 // Global flag that can be checked anywhere

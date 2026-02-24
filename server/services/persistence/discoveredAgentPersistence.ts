@@ -98,10 +98,10 @@ export async function persistDiscoveredAgent(agentData: DiscoveredAgentData) {
       capabilities: sql`${discoveredAgents.capabilities} || EXCLUDED.capabilities`,
       // Update score if new value is higher
       score: sql`GREATEST(${discoveredAgents.score}, EXCLUDED.score)`,
-      // Update source if more specific (prefer registry/ens/xmtp over scraper)
+      // Update source if more specific (prefer registry/ens over scraper)
       source: sql`CASE 
-        WHEN EXCLUDED.source IN ('ens', 'registry', 'xmtp', 'self-registration') 
-          AND ${discoveredAgents.source} NOT IN ('ens', 'registry', 'xmtp', 'self-registration')
+        WHEN EXCLUDED.source IN ('ens', 'registry', 'self-registration') 
+          AND ${discoveredAgents.source} NOT IN ('ens', 'registry', 'self-registration')
         THEN EXCLUDED.source
         ELSE ${discoveredAgents.source}
       END`

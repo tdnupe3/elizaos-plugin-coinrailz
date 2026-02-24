@@ -131,7 +131,6 @@ Hi! I see you're building innovative AI agent systems. I created a comprehensive
 ## Complete Guide Covers:
 - 🏦 Circle Developer Controlled Wallets integration
 - ⛓️ Multi-chain payment processing (Ethereum, Base, Polygon)  
-- 📡 Agent-to-agent communication via XMTP
 - 🔒 Security patterns for autonomous payments
 - 💰 Revenue sharing systems (85% agent, 15% platform)
 - 🤖 Coinbase AgentKit integration patterns
@@ -286,7 +285,6 @@ Technical guide: https://coinrailz.com/report
 **Complete guide covers:**
 - Circle Developer Controlled Wallets integration
 - Multi-chain payment processing (Ethereum, Base, Polygon)
-- Agent-to-agent communication via XMTP  
 - Security patterns for autonomous payments
 - Revenue sharing systems (85% agent, 15% platform)
 
@@ -325,7 +323,7 @@ AMA about the technical implementation patterns!
         <ul>
           <li>Circle Developer Controlled Wallets setup</li>
           <li>Multi-chain payment processing</li>
-          <li>Agent-to-agent communication via XMTP</li>
+          <li>Agent-to-agent on-chain communication</li>
           <li>Security patterns for autonomous payments</li>
           <li>Revenue sharing systems (85% agent, 15% platform)</li>
         </ul>
@@ -569,7 +567,6 @@ Hi! I see you're building innovative AI agent systems. I created a comprehensive
 ## Complete Guide Covers:
 - 🏦 Circle Developer Controlled Wallets integration
 - ⛓️ Multi-chain payment processing (Ethereum, Base, Polygon)  
-- 📡 Agent-to-agent communication via XMTP
 - 🔒 Security patterns for autonomous payments
 - 💰 Revenue sharing systems (85% agent, 15% platform)
 - 🤖 Coinbase AgentKit integration patterns

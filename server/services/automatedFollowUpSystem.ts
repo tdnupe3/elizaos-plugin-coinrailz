@@ -125,7 +125,7 @@ export class AutomatedFollowUpSystem {
           // Queue follow-up message
           await this.trackFollowUp({
             prospectWalletId: candidate.id,
-            protocol: 'xmtp', // Default to XMTP for wallet-based follow-ups
+            protocol: 'on_chain',
             messageContent: `${followUp.subject}\n\n${followUp.body}`,
             attemptNumber: candidate.attempts + 1,
             metadata: {

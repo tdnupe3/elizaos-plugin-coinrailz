@@ -50,26 +50,7 @@ export class LowCostOutreachOrchestrator {
     results.totalReached += redditResults.totalReach;
     results.totalCost += redditResults.cost;
 
-    // 2. XMTP Direct Messaging (nearly free, high conversion)
-    console.log('💬 Executing XMTP direct messaging...');
-    try {
-      const xmtpResults = await CostEffectiveOutreach.executeXMTPCampaign();
-      
-      results.channelBreakdown.push({
-        channel: 'XMTP Direct',
-        reached: xmtpResults.reached,
-        cost: xmtpResults.cost,
-        efficiency: xmtpResults.reached / Math.max(xmtpResults.cost, 0.01)
-      });
-      
-      results.totalReached += xmtpResults.reached;
-      results.totalCost += xmtpResults.cost;
-      
-    } catch (error) {
-      console.log('⚠️ XMTP campaign skipped (service unavailable)');
-    }
-
-    // 3. Manual Discord Strategy (free, high engagement)
+    // 2. Manual Discord Strategy (free, high engagement)
     console.log('🎮 Setting up Discord manual strategy...');
     const discordStrategy = await CostEffectiveOutreach.executeDiscordStrategy();
     
@@ -149,11 +130,6 @@ export class LowCostOutreachOrchestrator {
 📱 **Reddit API Setup** ($25/month for 100k reach):
 ${RedditOutreachService.getSetupInstructions()}
 
-💬 **XMTP Direct Messaging** ($2-5/month in gas):
-- Already operational in your platform
-- Messages sent directly to AI agent wallet addresses
-- Highest conversion rate (direct to developer)
-
 🎮 **Discord Manual Strategy** (FREE):
 1. Join communities: Base Ecosystem, Coinbase Developer, AI/ML servers
 2. Participate genuinely before promoting
@@ -203,7 +179,7 @@ This strategy gets maximum developer reach for minimal cost!
     const emergencyActions = [
       '📱 Manual Reddit posting in all AI/ML subreddits TODAY',
       '🔥 Post "Show HN" on Hacker News during peak hours',
-      '💬 Direct XMTP messages to all discovered AI agents',
+      '💬 Direct on-chain messages to all discovered AI agents',
       '🎮 Join Discord communities and share SDK immediately',
       '📧 Email existing contacts about early adopter pricing',
       '🎯 Direct outreach to known AI agent developers on Twitter/LinkedIn',
@@ -215,7 +191,7 @@ This strategy gets maximum developer reach for minimal cost!
 
 Hour 1-2: Reddit API setup and initial posts
 Hour 3-4: Hacker News Show HN post + Discord joins
-Hour 5-6: XMTP direct messaging campaign
+Hour 5-6: On-chain direct messaging campaign
 Hour 7-24: Monitor engagement, reply to comments
 Hour 25-48: Follow up with interested developers
 

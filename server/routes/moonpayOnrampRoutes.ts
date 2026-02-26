@@ -62,9 +62,9 @@ router.post('/sign-url', async (req: Request, res: Response) => {
   try {
     const { url } = parsed;
 
-    // Extract the query string from the URL for signing (MoonPay signs the query string only)
+    // Extract the query string from the URL for signing (MoonPay signs the raw query string WITHOUT leading '?')
     const urlObj = new URL(url);
-    const queryString = urlObj.search;
+    const queryString = urlObj.search.startsWith('?') ? urlObj.search.slice(1) : urlObj.search;
 
     const signature = crypto
       .createHmac('sha256', process.env.MOONPAY_SECRET_KEY)

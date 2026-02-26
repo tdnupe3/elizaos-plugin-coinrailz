@@ -1802,6 +1802,11 @@ router.use((req: Request, res: Response, next) => {
       body.facilitators = getAllFacilitatorUrls();
       body.walletProviders = ["coinbase-cdp", "moonpay-agents", "any-evm"];
       
+      // Also inject into extensions so Bazaar/Dexter indexers that look inside extensions find it
+      if (!body.extensions) body.extensions = {};
+      body.extensions.facilitators = getAllFacilitatorUrls();
+      body.extensions.walletProviders = ["coinbase-cdp", "moonpay-agents", "any-evm"];
+      
       // Inject discoverable:true + enriched fields into each payment requirement
       body.accepts = body.accepts.map((paymentReq: any) => {
         const enriched = {
@@ -4782,13 +4787,18 @@ router.post("/ai-inference",
         return res.status(400).json({ success: false, error: "prompt is required" });
       }
 
-      // Model pricing tiers — price already verified by x402 at base rate ($0.05)
-      const SUPPORTED_MODELS: Record<string, string> = {
-        'gpt-4o-mini': 'gpt-4o-mini',
-        'gpt-4o': 'gpt-4o',
-        'gpt-4-turbo': 'gpt-4-turbo',
-      };
-      const model = SUPPORTED_MODELS[requestedModel] || 'gpt-4o-mini';
+      // This endpoint is priced at $0.05 for gpt-4o-mini only.
+      // Higher-tier models (gpt-4o at $0.25, gpt-4-turbo at $0.50) will be separate endpoints when launched.
+      if (requestedModel && requestedModel !== 'gpt-4o-mini' && requestedModel !== undefined) {
+        return res.status(400).json({
+          success: false,
+          error: "Model not available at this price tier",
+          reason: `The /x402/ai-inference endpoint ($0.05) only supports gpt-4o-mini. GPT-4o ($0.25) and GPT-4-turbo ($0.50) endpoints are coming soon as dedicated services.`,
+          supported_model: "gpt-4o-mini",
+          available_at: "https://coinrailz.com/x402/ai-inference"
+        });
+      }
+      const model = 'gpt-4o-mini';
 
       const { default: OpenAI } = await import('openai');
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });

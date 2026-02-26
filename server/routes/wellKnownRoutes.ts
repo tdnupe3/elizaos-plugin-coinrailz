@@ -2455,7 +2455,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       paymentRails: ["x402-USDC", "stripe", "sdk-payments", "agentic-wallet"],  // Available payment methods
       totalServicesAvailable: 47,       // Current service count in catalog (44 x402 + 2 SDK + satellite)
       agenticWalletCompatible: true,    // Native Coinbase Agentic Wallet support
-      networksSupported: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "solana:101"],   // Primary blockchain networks (CAIP-2 format)
+      networksSupported: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"],   // Primary blockchain networks (CAIP-2 format)
       networkSupported: "eip155:8453",   // Primary blockchain network (CAIP-2 format) - kept for backwards compatibility
       paymentAsset: "USDC",              // Primary payment token
       sdkPackages: {
@@ -2770,11 +2770,11 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       docker: "tdnupe3/agent-payments",
       processingFee: "1.5% + $0.01"
     },
-    networks: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "solana:101"],
+    networks: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"],
     walletProviders: ["coinbase-cdp", "moonpay-agents", "any-evm"],
     facilitators: [
       "https://api.cdp.coinbase.com/platform/v2/x402",
-      "https://dexter.cash"
+      "https://x402.dexter.cash"
     ],
     endpoints: [
       // Trader-Focused Services (10 services)

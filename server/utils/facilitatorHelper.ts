@@ -15,7 +15,7 @@
 
 const CDP_FACILITATOR_URL = 'https://api.cdp.coinbase.com/platform/v2/x402';
 const PUBLIC_FACILITATOR_URL = 'https://x402.org/facilitator';
-const DEXTER_FACILITATOR_URL = 'https://dexter.cash';
+const DEXTER_FACILITATOR_URL = 'https://x402.dexter.cash';
 
 /**
  * Get the PRIMARY facilitator URL for 402 responses

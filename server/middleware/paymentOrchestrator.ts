@@ -834,7 +834,10 @@ async function isEligibleForFirstCallFree(ipAddress: string, userAgent: string |
 
 // Platform wallets to receive payments (EVM and Solana)
 const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || "0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91";
-const SOLANA_PLATFORM_WALLET = "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k";
+// SOLANA_PLATFORM_WALLET: original platform Solana wallet
+// DEXTER_SOLANA_WALLET: wallet assigned by Dexter facilitator during onboarding (receives Dexter-routed Solana payments)
+const SOLANA_PLATFORM_WALLET = process.env.DEXTER_SOLANA_WALLET || "BmUPzSupHJu2kW4cL27dF7Vc2JaZTwXKzFsRuagPDtL8";
+const SOLANA_PLATFORM_WALLET_LEGACY = "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k";
 
 // Stablecoin contract addresses on Ethereum mainnet
 const USDC_ETHEREUM = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" as const;
@@ -889,6 +892,7 @@ interface SolanaPaymentResult {
 const PLATFORM_TOKEN_ACCOUNTS: Record<string, string> = {};
 
 // Initialize platform token accounts lazily
+// Returns all valid ATAs for a given mint (Dexter wallet + legacy wallet)
 async function getPlatformTokenAccount(mintAddress: string): Promise<string | null> {
   const cacheKey = `${SOLANA_PLATFORM_WALLET}:${mintAddress}`;
   if (PLATFORM_TOKEN_ACCOUNTS[cacheKey]) {
@@ -910,6 +914,23 @@ async function getPlatformTokenAccount(mintAddress: string): Promise<string | nu
     console.error(`❌ Failed to derive platform ATA: ${error.message}`);
     return null;
   }
+}
+
+// Get ALL valid ATAs for a given mint (Dexter wallet + legacy wallet for backward compat)
+async function getAllPlatformTokenAccounts(mintAddress: string): Promise<string[]> {
+  const accounts: string[] = [];
+  try {
+    const { PublicKey } = await import("@solana/web3.js");
+    const { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } = await import("@solana/spl-token");
+    const mint = new PublicKey(mintAddress);
+    for (const walletAddr of [SOLANA_PLATFORM_WALLET, SOLANA_PLATFORM_WALLET_LEGACY]) {
+      try {
+        const ata = getAssociatedTokenAddressSync(new PublicKey(walletAddr), mint, false, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+        accounts.push(ata.toBase58());
+      } catch (_) {}
+    }
+  } catch (_) {}
+  return [...new Set(accounts)]; // deduplicate
 }
 
 async function verifySolanaPayment(signature: string, expectedAmount: number, maxRetries: number = 6): Promise<SolanaPaymentResult> {
@@ -952,18 +973,20 @@ async function verifySolanaPayment(signature: string, expectedAmount: number, ma
   
   try {
     
-    // Get platform ATAs for accepted tokens
-    const usdcPlatformATA = await getPlatformTokenAccount(USDC_SOLANA);
-    const usdtPlatformATA = await getPlatformTokenAccount(USDT_SOLANA);
+    // Get platform ATAs for accepted tokens — includes both Dexter wallet and legacy wallet
+    const [usdcATAs, usdtATAs] = await Promise.all([
+      getAllPlatformTokenAccounts(USDC_SOLANA),
+      getAllPlatformTokenAccounts(USDT_SOLANA),
+    ]);
     
-    if (!usdcPlatformATA && !usdtPlatformATA) {
+    if (usdcATAs.length === 0 && usdtATAs.length === 0) {
       return { verified: false, error: "Cannot derive platform token accounts" };
     }
     
-    // Build mapping of ATA -> mint for verification
+    // Build mapping of ATA -> mint for verification (all wallets)
     const ataToMint: Record<string, { mint: string; name: string }> = {};
-    if (usdcPlatformATA) ataToMint[usdcPlatformATA] = { mint: USDC_SOLANA, name: 'USDC' };
-    if (usdtPlatformATA) ataToMint[usdtPlatformATA] = { mint: USDT_SOLANA, name: 'USDT' };
+    for (const ata of usdcATAs) ataToMint[ata] = { mint: USDC_SOLANA, name: 'USDC' };
+    for (const ata of usdtATAs) ataToMint[ata] = { mint: USDT_SOLANA, name: 'USDT' };
     const platformATAs = Object.keys(ataToMint);
     
     // SECURITY: Verify balance increase via postTokenBalances

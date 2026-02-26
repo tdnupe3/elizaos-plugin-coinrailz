@@ -18,8 +18,12 @@ import { serviceCatalogService } from "../services/serviceCatalogService";
 import { db } from "../db";
 import { x402PaymentIntents } from "@shared/schema";
 import { sql, gte, eq } from "drizzle-orm";
-import { getFacilitatorUrl, NETWORK_LEGACY, NETWORK_CAIP2 } from "../utils/facilitatorHelper";
+import { getFacilitatorUrl, getDexterFacilitatorUrl, NETWORK_LEGACY, NETWORK_CAIP2 } from "../utils/facilitatorHelper";
 import { buildBazaarDiscoveryMetadata } from "../discovery/officialBazaarIntegration";
+
+const DEXTER_SOLANA_WALLET = process.env.DEXTER_SOLANA_WALLET || "BmUPzSupHJu2kW4cL27dF7Vc2JaZTwXKzFsRuagPDtL8";
+const USDC_SOLANA_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const SOLANA_MAINNET = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 
 const CANONICAL_BASE_URL = process.env.PUBLIC_URL || 'https://coinrailz.com';
 // FIXED (Jan 11, 2026): Call getFacilitatorUrl() per-request, not at module load
@@ -317,10 +321,15 @@ export function x402ResponseEnricher() {
             enriched.network = 'eip155:8453';
             enriched.networkLegacy = enriched.networkLegacy || 'base';
             enriched.x402Network = 'eip155:8453';
-          } else if (enriched.network === 'solana') {
-            enriched.network = 'solana:mainnet';
+          } else if (enriched.network === 'solana' || enriched.network === 'solana:mainnet') {
+            // Normalize to official CAIP-2 Solana mainnet chain ID (required by Dexter facilitator)
+            enriched.network = SOLANA_MAINNET;
             enriched.networkLegacy = enriched.networkLegacy || 'solana';
-            enriched.x402Network = 'solana:mainnet';
+            enriched.x402Network = SOLANA_MAINNET;
+            // Tag Solana entries with Dexter as facilitator (Dexter handles ~50% of Solana x402 volume)
+            if (!enriched.facilitator) {
+              enriched.facilitator = getDexterFacilitatorUrl();
+            }
           }
 
           enriched.supportedNetworks = [
@@ -358,6 +367,30 @@ export function x402ResponseEnricher() {
           return enriched;
         });
         
+        // Add Solana (via Dexter) as a second payment option on every 402 challenge.
+        // This is additive — existing EVM entries are untouched.
+        // Dexter facilitator handles verification via https://x402.dexter.cash
+        const evmEntry = body.accepts?.[0];
+        const hasSolanaEntry = body.accepts?.some((a: any) => (a.network || '').includes('solana'));
+        if (evmEntry && evmEntry.maxAmountRequired && !hasSolanaEntry) {
+          body.accepts.push({
+            scheme: "exact",
+            network: SOLANA_MAINNET,
+            networkLegacy: "solana",
+            asset: USDC_SOLANA_MINT,
+            maxAmountRequired: evmEntry.maxAmountRequired,
+            amount: evmEntry.maxAmountRequired,
+            maxAmountRequiredUSD: evmEntry.maxAmountRequiredUSD,
+            payTo: DEXTER_SOLANA_WALLET,
+            resource: evmEntry.resource,
+            description: evmEntry.description,
+            mimeType: evmEntry.mimeType || "application/json",
+            facilitator: getDexterFacilitatorUrl(),
+            discoverable: true,
+            extra: { name: "USD Coin", decimals: 6, chainName: "Solana" }
+          });
+        }
+
         const firstAccept = body.accepts?.[0];
         if (!body.resource && firstAccept) {
           body.resource = {

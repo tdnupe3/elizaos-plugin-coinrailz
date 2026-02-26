@@ -1828,10 +1828,15 @@ router.use((req: Request, res: Response, next) => {
           enriched.networkLegacy = enriched.networkLegacy || 'base';
           enriched.x402Network = 'eip155:8453';
         }
-        if (enriched.network === 'solana') {
-          enriched.network = 'solana:mainnet';
+        if (enriched.network === 'solana' || enriched.network === 'solana:mainnet') {
+          // Use official CAIP-2 Solana mainnet chain ID (required by Dexter facilitator)
+          enriched.network = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
           enriched.networkLegacy = enriched.networkLegacy || 'solana';
-          enriched.x402Network = 'solana:mainnet';
+          enriched.x402Network = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
+          // Tag Solana entries with Dexter as the facilitator
+          if (!enriched.facilitator) {
+            enriched.facilitator = 'https://x402.dexter.cash';
+          }
         }
         if (enriched.maxAmountRequired && !enriched.amount) {
           enriched.amount = enriched.maxAmountRequired;

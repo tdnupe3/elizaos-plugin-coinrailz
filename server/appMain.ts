@@ -3792,6 +3792,16 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       console.warn('⚠️ Transak on-ramp routes failed to load:', error);
     }
     
+    // === MOONPAY FIAT ON-RAMP ROUTES (key-gated, returns 503 if unconfigured) ===
+    try {
+      const moonpayOnrampRoutes = (await import('./routes/moonpayOnrampRoutes.js')).default;
+      app.use('/api/onramp/moonpay', moonpayOnrampRoutes);
+      const moonpayConfigured = !!(process.env.MOONPAY_PUBLISHABLE_KEY && process.env.MOONPAY_SECRET_KEY);
+      console.log(`✅ MoonPay on-ramp routes registered (pre-Vite) [configured: ${moonpayConfigured}]`);
+    } catch (error) {
+      console.warn('⚠️ MoonPay on-ramp routes failed to load:', error);
+    }
+    
     // NOTE: Solana Pay routes are now registered pre-static for BOTH environments (see above)
     
     try {

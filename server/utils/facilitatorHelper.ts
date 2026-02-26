@@ -15,6 +15,7 @@
 
 const CDP_FACILITATOR_URL = 'https://api.cdp.coinbase.com/platform/v2/x402';
 const PUBLIC_FACILITATOR_URL = 'https://x402.org/facilitator';
+const DEXTER_FACILITATOR_URL = 'https://dexter.cash';
 
 /**
  * Get the PRIMARY facilitator URL for 402 responses
@@ -31,10 +32,18 @@ export function getFacilitatorUrl(): string {
 }
 
 /**
+ * Get the Dexter facilitator URL (dominant Solana + Base facilitator, ~50% of daily x402 volume)
+ */
+export function getDexterFacilitatorUrl(): string {
+  return DEXTER_FACILITATOR_URL;
+}
+
+/**
  * Get all supported facilitator URLs (for discovery endpoints)
+ * Includes CDP (primary) and Dexter (dominant market facilitator)
  */
 export function getAllFacilitatorUrls(): string[] {
-  return [PUBLIC_FACILITATOR_URL, CDP_FACILITATOR_URL];
+  return [CDP_FACILITATOR_URL, DEXTER_FACILITATOR_URL];
 }
 
 /**

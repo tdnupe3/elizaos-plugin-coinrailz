@@ -22,10 +22,11 @@ Coin Railz employs a USDC-first strategy, utilizing Coinbase CDP for wallet mana
 **Core Architectural Patterns & Decisions:**
 - **AI Agent Marketplace:** Leverages the x402 protocol for HTTP 402 payments on Ethereum and Base chains, Coinbase CDP for wallet creation, and Alchemy RPC for verification. ERC-8004 Blockchain Identity is used for agent identities (deployed on Base only).
 - **Authentication:** Supports Coinbase OAuth, Replit OAuth, and email/password, with PostgreSQL as the backend.
-- **x402 Microservices**: 44 production services compatible with Coinbase Bazaar and x402scan, adhering to `x402Version: 2`.
+- **x402 Microservices**: 59 production services compatible with Coinbase Bazaar and x402scan, adhering to `x402Version: 2`.
 - **Discovery Engine**: Multi-layer mechanism with 9 active methods for identifying AI agents, including Coinbase Bazaar indexing. All 402 response changes must be additive only to maintain compatibility with existing discovery methods.
 - **Payment Intent Ledger**: Durable ledger for state transitions and replay protection of payment intents.
-- **Hybrid Facilitator**: Dynamically uses CDP facilitator if available, otherwise falls back to x402.org for payment processing.
+- **Hybrid Facilitator**: Dynamically uses CDP facilitator if available, with Dexter (dexter.cash) as a second facilitator advertised in all discovery signals. Dexter processes ~50% of global daily x402 transactions. Seller registration at dexter.cash/facilitator required to activate routing.
+- **AI Inference Gateway v1.0.0**: x402-protected pay-per-call LLM endpoint at `POST /x402/ai-inference`. Supports GPT-4o-mini ($0.05), GPT-4o ($0.25), GPT-4-turbo ($0.50) via USDC on Base. Returns 503 if OPENAI_API_KEY not set. First-call-free enabled. Requires `OPENAI_API_KEY` secret.
 - **Crypto Checkout Architecture**: Endpoints for creating pending orders and verifying on-chain payments.
 - **Multi-chain Capability**: Supports payment acceptance on 8 chains with same-chain settlement.
 - **ACP Integration**: Endpoints (`/acp/v1/*`) for catalog, checkout, and order management, integrating with Stripe for digital product fulfillment.
@@ -74,3 +75,6 @@ Coin Railz employs a USDC-first strategy, utilizing Coinbase CDP for wallet mana
 - **Kalshi:** Prediction market data.
 - **Polymarket:** Prediction market data.
 - **Transak:** White-label fiat-to-crypto on-ramp for USDC/USDT purchases.
+- **MoonPay:** White-label fiat-to-crypto on-ramp (API keys pending — set MOONPAY_PUBLISHABLE_KEY and MOONPAY_SECRET_KEY). Routes exist at `/api/onramp/moonpay/*` and return 503 until keys configured. MoonPay Agents compatible (native x402/Base/USDC).
+- **Dexter (dexter.cash):** Compatible x402 payment facilitator advertised in all discovery signals. Processes ~50% of global daily x402 transactions. Seller registration at dexter.cash/facilitator required to activate routing.
+- **OpenAI API:** Powers AI Inference Gateway (x402), smart contract audits, Telegram bot, and microservices. Requires `OPENAI_API_KEY` secret.

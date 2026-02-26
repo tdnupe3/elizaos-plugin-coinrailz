@@ -81,7 +81,9 @@ export type ServiceName =
   | "weather-station-data"
   | "iot-sensor-reading"
   | "iot-device-stream"
-  | "iot-bulk-data";
+  | "iot-bulk-data"
+  // AI Inference Services
+  | "ai-inference";
 
 /**
  * Type guard to check if a string is a valid ServiceName
@@ -190,6 +192,9 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   "iot-sensor-reading": 25000,         // $0.025 - Single sensor reading
   "iot-device-stream": 250000,         // $0.25 - Real-time data stream (per minute)
   "iot-bulk-data": 500000,             // $0.50 - Bulk historical data export
+  
+  // AI INFERENCE SERVICES (pay-per-call LLM access via x402)
+  "ai-inference": 50000,               // $0.05 - GPT-4o-mini default (competitive with ecosystem avg $0.12)
 };
 
 /**
@@ -278,6 +283,9 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   "iot-sensor-reading": 0.025,
   "iot-device-stream": 0.25,
   "iot-bulk-data": 0.50,
+  
+  // AI Inference Services
+  "ai-inference": 0.05,  // $0.05 for gpt-4o-mini (competitive with ecosystem avg $0.12)
 };
 
 /**

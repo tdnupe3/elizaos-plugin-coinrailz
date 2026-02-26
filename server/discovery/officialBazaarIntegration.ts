@@ -273,6 +273,8 @@ export function createOfficialBazaarRouter(): Router {
         fields: ['input.type', 'input.method', 'input.bodyType', 'input.body', 'output.type', 'output.format', 'output.example']
       },
       facilitatorUrl: getCdpFacilitatorUrl(),
+      facilitators: ["https://api.cdp.coinbase.com/platform/v2/x402", "https://dexter.cash"],
+      walletProviders: ["coinbase-cdp", "moonpay-agents", "any-evm"],
       totalServices: x402Services.length,
       servicesWithBazaarMetadata: x402Services.length,
       discoveryEndpoints: {

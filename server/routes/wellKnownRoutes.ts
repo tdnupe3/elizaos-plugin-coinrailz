@@ -7,7 +7,7 @@
 
 import { Router, Request, Response } from 'express';
 import { SERVICE_PRICING_USD } from '@shared/pricing';
-import { getFacilitatorUrl } from '../utils/facilitatorHelper';
+import { getFacilitatorUrl, getAllFacilitatorUrls } from '../utils/facilitatorHelper';
 import { trackDiscovery } from '../middleware/hitTracker';
 
 const router = Router();
@@ -62,7 +62,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
   
   const a2aAgentCard = {
     name: "Coin Railz Multi-Chain Payment Infrastructure",
-    description: "Production-grade blockchain infrastructure for AI agents. 44+ x402 micropayment services across 8 chains (7 EVM + Solana) + Native Coinbase Agentic Wallet support + Satellite Data APIs (NASA/ESA) + SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker) + Real Estate + Banking + Trading + Market Intelligence + Traditional Markets. Processing fee: 1.5% + $0.01 per transaction.",
+    description: "Production-grade blockchain infrastructure for AI agents. 44+ x402 micropayment services across 8 chains (7 EVM + Solana) + Native Coinbase Agentic Wallet support + MoonPay Agents compatible + Satellite Data APIs (NASA/ESA) + AI Inference (GPT-4o, GPT-4o-mini) + SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker) + Real Estate + Banking + Trading + Market Intelligence + Traditional Markets. Processing fee: 1.5% + $0.01 per transaction.",
     version: "0.6.0",
     agentId: "coinrailz-x402-infrastructure",
     
@@ -2771,6 +2771,11 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       processingFee: "1.5% + $0.01"
     },
     networks: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "solana:101"],
+    walletProviders: ["coinbase-cdp", "moonpay-agents", "any-evm"],
+    facilitators: [
+      "https://api.cdp.coinbase.com/platform/v2/x402",
+      "https://dexter.cash"
+    ],
     endpoints: [
       // Trader-Focused Services (10 services)
       {
@@ -2828,14 +2833,14 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         methods: ["POST"],
         price_usd: 1.0,
         auth: "x402",
-        description: "Basic smart contract security scan with safety score and vulnerability checks",
+        description: "AI-powered smart contract security scanning — detects OWASP Smart Contract Top 10 vulnerabilities including reentrancy, integer overflow, access control issues, and front-running risks. Supports Solidity contracts on Ethereum, Base, Polygon, Arbitrum, and BSC. Returns severity-ranked findings with remediation recommendations.",
         status: "healthy",
         category: "security",
         input_schema: {
           type: "object",
           properties: {
-            contractAddress: { type: "string", description: "Smart contract address" },
-            chain: { type: "string", description: "Blockchain network" }
+            contractAddress: { type: "string", description: "Smart contract address (0x...)" },
+            chain: { type: "string", description: "Blockchain: ethereum, base, polygon, arbitrum, bsc" }
           },
           required: ["contractAddress", "chain"]
         }
@@ -3452,11 +3457,34 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         status: "healthy",
         category: "satellite-data",
         input_schema: { type: "object", properties: { lat: { type: "number", description: "Latitude" }, lon: { type: "number", description: "Longitude" }, area_km2: { type: "number", description: "Area in square kilometers (optional)" } }, required: ["lat", "lon"] }
+      },
+      // AI Inference Gateway
+      {
+        path: "/x402/ai-inference",
+        methods: ["GET", "POST"],
+        price_usd: 0.05,
+        auth: "x402",
+        name: "AI Inference Gateway",
+        description: "Pay-per-call AI inference — access GPT-4o-mini, GPT-4o, and GPT-4-turbo via x402 micropayment. No API keys, no subscriptions, no rate limits. USDC on Base.",
+        status: "healthy",
+        category: "ai-inference",
+        models: ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo"],
+        input_schema: {
+          type: "object",
+          properties: {
+            prompt: { type: "string", description: "The prompt or user message" },
+            model: { type: "string", description: "Model name: gpt-4o-mini ($0.05), gpt-4o ($0.25), gpt-4-turbo ($0.50)" },
+            maxTokens: { type: "number", description: "Max response tokens (default: 1024)" },
+            systemPrompt: { type: "string", description: "Optional system prompt" }
+          },
+          required: ["prompt"]
+        }
       }
     ],
     x402: {
       protocol_version: "2.0.0",
       facilitator: getFacilitatorUrl(),
+      facilitators: getAllFacilitatorUrls(),
       payment_network: "eip155:8453",
       payment_token: {
         symbol: "USDC",
@@ -3478,8 +3506,8 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       discovery_enabled: true
     },
     commerce: {
-      total_services: 47,
-      categories: ["discovery", "trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence", "prediction-markets", "traditional-markets", "satellite-data"],
+      total_services: 59,
+      categories: ["discovery", "trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence", "prediction-markets", "traditional-markets", "satellite-data", "ai-inference"],
       platform_commission: 15,
       minimum_payment: 0.10,
       maximum_payment: 10000

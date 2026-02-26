@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { paymentMiddleware, Network } from "x402-express";
 import { facilitator } from "@coinbase/x402";
 import { db } from "../db";
-import { getFacilitatorUrl, NETWORK_LEGACY, NETWORK_CAIP2, USDC_BASE_ADDRESS, USDT_BASE_ADDRESS, PLATFORM_WALLETS, STABLECOIN_CONFIG } from "../utils/facilitatorHelper";
+import { getFacilitatorUrl, getAllFacilitatorUrls, NETWORK_LEGACY, NETWORK_CAIP2, USDC_BASE_ADDRESS, USDT_BASE_ADDRESS, PLATFORM_WALLETS, STABLECOIN_CONFIG } from "../utils/facilitatorHelper";
 import { sql, eq, and, gt } from "drizzle-orm";
 import { instantApiKeyGrants } from "@shared/schema";
 import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD } from "@shared/pricing";
@@ -517,21 +517,21 @@ const x402Routes = {
       discoverable: true,
       resource: `${PUBLIC_BASE_URL}/x402/contract-scan`,
       name: "Contract Security Scanner",
-      description: "Basic smart contract security scan with safety score and vulnerability checks",
+      description: "AI-powered smart contract security scanning — detects OWASP Smart Contract Top 10 vulnerabilities including reentrancy, integer overflow, access control issues, and front-running risks. Supports Solidity contracts on Ethereum, Base, Polygon, Arbitrum, and BSC. Returns severity-ranked findings with remediation recommendations.",
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
       inputSchema: {
         bodyFields: {
-          contractAddress: { type: "string", description: "Smart contract address", required: true },
-          chain: { type: "string", description: "Blockchain network", required: true }
+          contractAddress: { type: "string", description: "Smart contract address (0x...)", required: true },
+          chain: { type: "string", description: "Blockchain network: ethereum, base, polygon, arbitrum, bsc", required: true }
         }
       },
       schema: {
         input: {
           type: "object",
           properties: {
-            contractAddress: { type: "string", description: "Smart contract address" },
-            chain: { type: "string", description: "Blockchain network" }
+            contractAddress: { type: "string", description: "Smart contract address (0x...)" },
+            chain: { type: "string", description: "Blockchain: ethereum, base, polygon, arbitrum, bsc" }
           },
           required: ["contractAddress", "chain"]
         },
@@ -539,7 +539,8 @@ const x402Routes = {
           type: "object",
           properties: {
             safetyScore: { type: "number", description: "Security score 0-100" },
-            vulnerabilities: { type: "array", description: "List of detected vulnerabilities" }
+            vulnerabilities: { type: "array", description: "Severity-ranked list of detected vulnerabilities with remediation recommendations" },
+            owasp_coverage: { type: "string", description: "OWASP Smart Contract Top 10 coverage summary" }
           }
         }
       }
@@ -1724,6 +1725,46 @@ const x402Routes = {
       }
     },
   },
+  "POST /ai-inference": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["ai-inference"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/ai-inference`,
+      name: "AI Inference Gateway",
+      description: "Pay-per-call AI inference — access GPT-4o-mini, GPT-4o, and GPT-4-turbo via x402 micropayment. No API keys, no subscriptions, no rate limits. USDC on Base. GPT-4o-mini: $0.05, GPT-4o: $0.25, GPT-4-turbo: $0.50.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 60,
+      inputSchema: {
+        bodyFields: {
+          prompt: { type: "string", description: "The prompt or user message to send to the model", required: true },
+          model: { type: "string", description: "Model: gpt-4o-mini (default, $0.05), gpt-4o ($0.25), gpt-4-turbo ($0.50)" },
+          maxTokens: { type: "number", description: "Maximum tokens in response (default: 1024)" },
+          systemPrompt: { type: "string", description: "Optional system prompt to set context" }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            prompt: { type: "string", description: "The prompt or user message" },
+            model: { type: "string", description: "Model name (gpt-4o-mini, gpt-4o, gpt-4-turbo)" },
+            maxTokens: { type: "number", description: "Max response tokens" },
+            systemPrompt: { type: "string", description: "System prompt" }
+          },
+          required: ["prompt"]
+        },
+        output: {
+          type: "object",
+          properties: {
+            content: { type: "string", description: "Model response text" },
+            model: { type: "string", description: "Model used" },
+            usage: { type: "object", description: "Token usage stats" }
+          }
+        }
+      }
+    },
+  },
 };
 
 // CRITICAL FIX: x402-express never writes `discoverable` or `facilitatorUrl` into 402 responses
@@ -1755,7 +1796,11 @@ router.use((req: Request, res: Response, next) => {
       }
       
       // Inject facilitatorUrl at top level (x402scan requirement) - V2 format
-      body.facilitatorUrl = getFacilitatorUrl(); // x402 V2 facilitator
+      body.facilitatorUrl = getFacilitatorUrl(); // x402 V2 facilitator (CDP primary)
+      
+      // Advertise all compatible facilitators (CDP + Dexter) and wallet providers
+      body.facilitators = getAllFacilitatorUrls();
+      body.walletProviders = ["coinbase-cdp", "moonpay-agents", "any-evm"];
       
       // Inject discoverable:true + enriched fields into each payment requirement
       body.accepts = body.accepts.map((paymentReq: any) => {
@@ -2154,7 +2199,8 @@ const serviceEndpoints = [
   "polymarket-events", "polymarket-odds", "polymarket-search", "prediction-market-odds",
   "kalshi-markets", "kalshi-odds", "kalshi-search",
   "agent-create-wallet",
-  "stock-sentiment", "forex-sentiment"
+  "stock-sentiment", "forex-sentiment",
+  "ai-inference"
 ];
 
 // Import creditsService for API key validation on GET requests
@@ -2281,6 +2327,26 @@ const getServiceHandlers: Record<string, (req: Request) => Promise<any>> = {
   "forex-sentiment": async (req) => await forexSentimentService({ 
     pair: req.query.pair as string || 'EUR/USD'
   }),
+  "ai-inference": async (req) => {
+    if (!process.env.OPENAI_API_KEY) {
+      return { error: "AI inference service not configured", reason: "OPENAI_API_KEY not set" };
+    }
+    const prompt = req.query.prompt as string || 'Hello';
+    const model = (req.query.model as string) || 'gpt-4o-mini';
+    const maxTokens = Number(req.query.maxTokens) || 1024;
+    const { default: OpenAI } = await import('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const completion = await openai.chat.completions.create({
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: maxTokens
+    });
+    return {
+      content: completion.choices[0]?.message?.content || '',
+      model: completion.model,
+      usage: completion.usage
+    };
+  },
 };
 
 serviceEndpoints.forEach(endpoint => {
@@ -4690,6 +4756,71 @@ router.post("/iot-bulk-data",
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
       await trackRequest("iot-bulk-data", req.body, null, responseTime, SERVICE_PRICING_USD["iot-bulk-data"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+// ============================================================
+// AI INFERENCE GATEWAY — x402 pay-per-call LLM access
+// ============================================================
+router.post("/ai-inference",
+  createPaymentOrchestrator("ai-inference", SERVICE_PRICING_MICRO["ai-inference"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(503).json({
+          success: false,
+          error: "AI inference service not configured",
+          reason: "OPENAI_API_KEY environment variable not set. Contact support@coinrailz.com."
+        });
+      }
+
+      const { prompt, model: requestedModel, maxTokens, systemPrompt } = req.body;
+
+      if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+        return res.status(400).json({ success: false, error: "prompt is required" });
+      }
+
+      // Model pricing tiers — price already verified by x402 at base rate ($0.05)
+      const SUPPORTED_MODELS: Record<string, string> = {
+        'gpt-4o-mini': 'gpt-4o-mini',
+        'gpt-4o': 'gpt-4o',
+        'gpt-4-turbo': 'gpt-4-turbo',
+      };
+      const model = SUPPORTED_MODELS[requestedModel] || 'gpt-4o-mini';
+
+      const { default: OpenAI } = await import('openai');
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+      const messages: { role: 'system' | 'user'; content: string }[] = [];
+      if (systemPrompt && typeof systemPrompt === 'string') {
+        messages.push({ role: 'system', content: systemPrompt });
+      }
+      messages.push({ role: 'user', content: prompt });
+
+      const completion = await openai.chat.completions.create({
+        model,
+        messages,
+        max_tokens: Math.min(Number(maxTokens) || 1024, 4096),
+      });
+
+      const result = {
+        success: true,
+        content: completion.choices[0]?.message?.content || '',
+        model: completion.model,
+        usage: completion.usage,
+        finishReason: completion.choices[0]?.finish_reason,
+        serviceVersion: "1.0.0"
+      };
+
+      const responseTime = Date.now() - startTime;
+      await trackRequest("ai-inference", req.body, result, responseTime, SERVICE_PRICING_USD["ai-inference"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "ai-inference", { model, promptLength: prompt.length });
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("ai-inference", req.body, null, responseTime, SERVICE_PRICING_USD["ai-inference"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   })

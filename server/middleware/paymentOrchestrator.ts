@@ -856,8 +856,13 @@ const ACCEPTED_STABLECOINS = [USDC_BASE, USDT_BASE, USDC_ETHEREUM, USDT_ETHEREUM
 // Accepted stablecoins for Solana
 const ACCEPTED_SOLANA_TOKENS = [USDC_SOLANA, USDT_SOLANA];
 
-// Solana RPC connection (uses Helius or public RPC)
-const SOLANA_RPC_URL = process.env.HELIUS_RPC_URL || process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+// Solana RPC connection (uses Helius if API key available, otherwise public RPC)
+const _heliusApiKey = process.env.HELIUS_API_KEY;
+const SOLANA_RPC_URL = (_heliusApiKey ? `https://mainnet.helius-rpc.com/?api-key=${_heliusApiKey}` : null)
+  || process.env.HELIUS_RPC_URL
+  || process.env.SOLANA_RPC_URL
+  || "https://api.mainnet-beta.solana.com";
+
 let solanaConnection: Connection | null = null;
 
 function getSolanaConnection(): Connection {
@@ -917,6 +922,7 @@ async function getPlatformTokenAccount(mintAddress: string): Promise<string | nu
 }
 
 // Get ALL valid ATAs for a given mint (Dexter wallet + legacy wallet for backward compat)
+// CRITICAL: getAssociatedTokenAddressSync(mint, owner, ...) — mint FIRST, owner SECOND.
 async function getAllPlatformTokenAccounts(mintAddress: string): Promise<string[]> {
   const accounts: string[] = [];
   try {
@@ -925,7 +931,8 @@ async function getAllPlatformTokenAccounts(mintAddress: string): Promise<string[
     const mint = new PublicKey(mintAddress);
     for (const walletAddr of [SOLANA_PLATFORM_WALLET, SOLANA_PLATFORM_WALLET_LEGACY]) {
       try {
-        const ata = getAssociatedTokenAddressSync(new PublicKey(walletAddr), mint, false, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+        // Correct order: mint first, owner (wallet) second
+        const ata = getAssociatedTokenAddressSync(mint, new PublicKey(walletAddr), false, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
         accounts.push(ata.toBase58());
       } catch (_) {}
     }
@@ -994,6 +1001,25 @@ async function verifySolanaPayment(signature: string, expectedAmount: number, ma
     const postTokenBalances = tx.meta?.postTokenBalances || [];
     const preTokenBalances = tx.meta?.preTokenBalances || [];
     
+    console.log(`🔍 [SOLANA-VERIFY] sig=${signature.substring(0,12)}...`);
+    console.log(`🔍 [SOLANA-VERIFY] platformATAs: ${JSON.stringify(platformATAs)}`);
+    console.log(`🔍 [SOLANA-VERIFY] postTokenBalances count: ${postTokenBalances.length}`);
+    
+    const accountKeysDebug = tx.transaction.message.accountKeys;
+    console.log(`🔍 [SOLANA-VERIFY] accountKeys count: ${accountKeysDebug.length}`);
+    accountKeysDebug.slice(0, 6).forEach((k: any, i: number) => {
+      const addr = typeof k === 'string' ? k : (k?.pubkey?.toBase58?.() || k?.pubkey?.toString?.() || k?.toBase58?.() || String(k));
+      console.log(`🔍 [SOLANA-VERIFY]   key[${i}]: ${addr}`);
+    });
+    postTokenBalances.forEach((pb: any, i: number) => {
+      const k = accountKeysDebug[pb.accountIndex];
+      const addr = typeof k === 'string' ? k : (k?.pubkey?.toBase58?.() || k?.pubkey?.toString?.() || k?.toBase58?.() || String(k));
+      console.log(`🔍 [SOLANA-VERIFY]   post[${i}] idx=${pb.accountIndex} addr=${addr} mint=${pb.mint?.substring(0,8)} ui=${pb.uiTokenAmount?.uiAmount}`);
+    });
+    preTokenBalances.forEach((pb: any, i: number) => {
+      console.log(`🔍 [SOLANA-VERIFY]   pre[${i}] idx=${pb.accountIndex} ui=${pb.uiTokenAmount?.uiAmount}`);
+    });
+    
     let verifiedTransfer: { amount: number; mint: string; tokenName: string; from: string } | null = null;
     
     for (const postBalance of postTokenBalances) {
@@ -1022,6 +1048,7 @@ async function verifySolanaPayment(signature: string, expectedAmount: number, ma
         }
       }
       
+      console.log(`🔍 [SOLANA-VERIFY]   checking idx=${accountIndex} addr=${accountAddress} inPlatformATAs=${platformATAs.includes(accountAddress)}`);
       if (!accountAddress || !platformATAs.includes(accountAddress)) continue;
       
       const ataInfo = ataToMint[accountAddress];

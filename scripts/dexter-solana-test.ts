@@ -16,11 +16,14 @@ import {
   getAccount,
 } from "@solana/spl-token";
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = "https://coinrailz.com";
 const FACILITATOR_URL = "https://x402.dexter.cash";
 const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 const SELLER_WALLET = new PublicKey("BmUPzSupHJu2kW4cL27dF7Vc2JaZTwXKzFsRuagPDtL8");
-const RPC_URL = "https://api.mainnet-beta.solana.com";
+const HELIUS_KEY = process.env.HELIUS_API_KEY;
+const RPC_URL = HELIUS_KEY
+  ? `https://mainnet.helius-rpc.com/?api-key=${HELIUS_KEY}`
+  : "https://api.mainnet-beta.solana.com";
 
 async function ensureSellerAtaExists(
   connection: Connection,

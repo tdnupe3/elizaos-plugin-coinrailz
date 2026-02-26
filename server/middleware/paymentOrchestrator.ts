@@ -1001,25 +1001,6 @@ async function verifySolanaPayment(signature: string, expectedAmount: number, ma
     const postTokenBalances = tx.meta?.postTokenBalances || [];
     const preTokenBalances = tx.meta?.preTokenBalances || [];
     
-    console.log(`🔍 [SOLANA-VERIFY] sig=${signature.substring(0,12)}...`);
-    console.log(`🔍 [SOLANA-VERIFY] platformATAs: ${JSON.stringify(platformATAs)}`);
-    console.log(`🔍 [SOLANA-VERIFY] postTokenBalances count: ${postTokenBalances.length}`);
-    
-    const accountKeysDebug = tx.transaction.message.accountKeys;
-    console.log(`🔍 [SOLANA-VERIFY] accountKeys count: ${accountKeysDebug.length}`);
-    accountKeysDebug.slice(0, 6).forEach((k: any, i: number) => {
-      const addr = typeof k === 'string' ? k : (k?.pubkey?.toBase58?.() || k?.pubkey?.toString?.() || k?.toBase58?.() || String(k));
-      console.log(`🔍 [SOLANA-VERIFY]   key[${i}]: ${addr}`);
-    });
-    postTokenBalances.forEach((pb: any, i: number) => {
-      const k = accountKeysDebug[pb.accountIndex];
-      const addr = typeof k === 'string' ? k : (k?.pubkey?.toBase58?.() || k?.pubkey?.toString?.() || k?.toBase58?.() || String(k));
-      console.log(`🔍 [SOLANA-VERIFY]   post[${i}] idx=${pb.accountIndex} addr=${addr} mint=${pb.mint?.substring(0,8)} ui=${pb.uiTokenAmount?.uiAmount}`);
-    });
-    preTokenBalances.forEach((pb: any, i: number) => {
-      console.log(`🔍 [SOLANA-VERIFY]   pre[${i}] idx=${pb.accountIndex} ui=${pb.uiTokenAmount?.uiAmount}`);
-    });
-    
     let verifiedTransfer: { amount: number; mint: string; tokenName: string; from: string } | null = null;
     
     for (const postBalance of postTokenBalances) {
@@ -1048,7 +1029,6 @@ async function verifySolanaPayment(signature: string, expectedAmount: number, ma
         }
       }
       
-      console.log(`🔍 [SOLANA-VERIFY]   checking idx=${accountIndex} addr=${accountAddress} inPlatformATAs=${platformATAs.includes(accountAddress)}`);
       if (!accountAddress || !platformATAs.includes(accountAddress)) continue;
       
       const ataInfo = ataToMint[accountAddress];

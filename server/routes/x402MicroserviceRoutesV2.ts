@@ -1732,13 +1732,13 @@ const x402Routes = {
       discoverable: true,
       resource: `${PUBLIC_BASE_URL}/x402/ai-inference`,
       name: "AI Inference Gateway",
-      description: "Pay-per-call AI inference — access GPT-4o-mini, GPT-4o, and GPT-4-turbo via x402 micropayment. No API keys, no subscriptions, no rate limits. USDC on Base. GPT-4o-mini: $0.05, GPT-4o: $0.25, GPT-4-turbo: $0.50.",
+      description: "Pay-per-call GPT-4o-mini inference via x402 micropayment. No API keys, no subscriptions, no rate limits. Send any prompt, get an AI response. USDC on Base, $0.05 per call.",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
       inputSchema: {
         bodyFields: {
           prompt: { type: "string", description: "The prompt or user message to send to the model", required: true },
-          model: { type: "string", description: "Model: gpt-4o-mini (default, $0.05), gpt-4o ($0.25), gpt-4-turbo ($0.50)" },
+          model: { type: "string", description: "Model: gpt-4o-mini (only supported model at this endpoint)" },
           maxTokens: { type: "number", description: "Maximum tokens in response (default: 1024)" },
           systemPrompt: { type: "string", description: "Optional system prompt to set context" }
         }
@@ -1748,7 +1748,7 @@ const x402Routes = {
           type: "object",
           properties: {
             prompt: { type: "string", description: "The prompt or user message" },
-            model: { type: "string", description: "Model name (gpt-4o-mini, gpt-4o, gpt-4-turbo)" },
+            model: { type: "string", description: "Model name (only gpt-4o-mini supported at this endpoint)" },
             maxTokens: { type: "number", description: "Max response tokens" },
             systemPrompt: { type: "string", description: "System prompt" }
           },
@@ -2337,12 +2337,11 @@ const getServiceHandlers: Record<string, (req: Request) => Promise<any>> = {
       return { error: "AI inference service not configured", reason: "OPENAI_API_KEY not set" };
     }
     const prompt = req.query.prompt as string || 'Hello';
-    const model = (req.query.model as string) || 'gpt-4o-mini';
     const maxTokens = Number(req.query.maxTokens) || 1024;
     const { default: OpenAI } = await import('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const completion = await openai.chat.completions.create({
-      model,
+      model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: maxTokens
     });
@@ -4787,15 +4786,13 @@ router.post("/ai-inference",
         return res.status(400).json({ success: false, error: "prompt is required" });
       }
 
-      // This endpoint is priced at $0.05 for gpt-4o-mini only.
-      // Higher-tier models (gpt-4o at $0.25, gpt-4-turbo at $0.50) will be separate endpoints when launched.
-      if (requestedModel && requestedModel !== 'gpt-4o-mini' && requestedModel !== undefined) {
+      // This endpoint supports gpt-4o-mini only at $0.05 per call.
+      if (requestedModel && requestedModel !== 'gpt-4o-mini') {
         return res.status(400).json({
           success: false,
-          error: "Model not available at this price tier",
-          reason: `The /x402/ai-inference endpoint ($0.05) only supports gpt-4o-mini. GPT-4o ($0.25) and GPT-4-turbo ($0.50) endpoints are coming soon as dedicated services.`,
-          supported_model: "gpt-4o-mini",
-          available_at: "https://coinrailz.com/x402/ai-inference"
+          error: "Unsupported model",
+          reason: "This endpoint only supports gpt-4o-mini. Omit the model field or set it to 'gpt-4o-mini'.",
+          supported_model: "gpt-4o-mini"
         });
       }
       const model = 'gpt-4o-mini';

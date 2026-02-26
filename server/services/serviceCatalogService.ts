@@ -739,6 +739,19 @@ export class ServiceCatalogService {
         capabilities: ['bulk-data', 'historical-data', 'data-export', 'ml-datasets'],
         x402Compatible: true,
         stripeCompatible: true
+      },
+      // AI Inference Gateway
+      {
+        id: 'ai-inference',
+        slug: 'ai-inference',
+        name: 'AI Inference Gateway',
+        description: 'Pay-per-call GPT-4o-mini inference via x402 micropayment. No API keys, no subscriptions, no rate limits. USDC on Base.',
+        endpoint: '/x402/ai-inference',
+        network: 'eip155:8453',
+        category: 'ai-inference',
+        capabilities: ['llm', 'text-generation', 'gpt-4o-mini', 'x402-native'],
+        x402Compatible: true,
+        stripeCompatible: false
       }
     ];
 

@@ -1854,6 +1854,85 @@ export function createPaymentOrchestrator(
           }
         }
         
+        // Solana ExactSvmScheme: client sends a signed-but-unsubmitted wire transaction.
+        // Submit it to Solana, then run standard verifySolanaPayment on the resulting signature.
+        const solanaTxBase64 = payloadObj.transaction || decoded.transaction;
+        if (!txHash && solanaTxBase64) {
+          console.log(`🔐 Orchestrator: Solana ExactSvmScheme transaction detected for ${serviceName}, submitting to chain...`);
+          try {
+            const connection = getSolanaConnection();
+            const txBytes = Buffer.from(solanaTxBase64, 'base64');
+            const solanaSig = await connection.sendRawTransaction(txBytes, {
+              skipPreflight: false,
+              preflightCommitment: 'confirmed',
+            });
+            console.log(`🔐 Orchestrator: Solana tx submitted: ${solanaSig.substring(0, 16)}...`);
+            const solanaResult = await verifySolanaPayment(solanaSig, requiredAmount);
+            if (solanaResult.verified) {
+              console.log(`✅ Orchestrator: Solana ExactSvmScheme payment verified! Amount: $${solanaResult.amount} ${solanaResult.token}`);
+              res.locals.payment = {
+                method: 'solana-transaction',
+                chain: 'solana',
+                network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+                token: solanaResult.token,
+                tokenMint: solanaResult.tokenMint,
+                amount: solanaResult.amount,
+                txHash: solanaSig,
+                walletAddress: solanaResult.fromWallet,
+                verified: true
+              };
+              await x402InteractionTracker.trackInteraction({
+                serviceId: serviceName,
+                ipAddress,
+                userAgent,
+                requestPath: req.originalUrl,
+                requestMethod: req.method,
+                responseStatus: 200,
+                paid: true,
+                amount: solanaResult.amount,
+                interactionType: 'payment',
+                requestId,
+                eventType: 'solana-payment',
+                serviceName,
+                latencyMs: Date.now() - startTime,
+                paymentReceived: true,
+                paymentAmount: solanaResult.amount,
+                offerTrackingId,
+                metadata: {
+                  chain: 'solana',
+                  token: solanaResult.token,
+                  txHash: solanaSig,
+                  fromWallet: solanaResult.fromWallet,
+                  knownAgent: knownAgent.name,
+                  paymentScheme: 'ExactSvmScheme'
+                }
+              });
+              await handler(req, res);
+              return;
+            } else {
+              console.error(`❌ Orchestrator: Solana ExactSvmScheme verification failed: ${solanaResult.error}`);
+              return generatePaymentErrorResponse(
+                res,
+                'SOLANA_VERIFICATION_FAILED',
+                `Solana payment verification failed: ${solanaResult.error}`,
+                `Ensure you sent USDC or USDT to wallet ${SOLANA_PLATFORM_WALLET}. Wait for confirmation before retrying.`,
+                requestId,
+                { recoverable: true, httpStatus: 402 }
+              );
+            }
+          } catch (submitErr: any) {
+            console.error(`❌ Orchestrator: Solana tx submission failed: ${submitErr.message}`);
+            return generatePaymentErrorResponse(
+              res,
+              'SOLANA_VERIFICATION_FAILED',
+              `Solana transaction submission failed: ${submitErr.message}`,
+              'The signed Solana transaction could not be broadcast. Ensure the transaction is valid and the network is reachable.',
+              requestId,
+              { recoverable: true, httpStatus: 400 }
+            );
+          }
+        }
+
         if (txHash) {
           console.log(`🔐 Orchestrator: Extracted/executed txHash for ${serviceName}: ${txHash.substring(0, 10)}...`);
         } else {
@@ -2147,6 +2226,10 @@ function generate402Response(
   // Per official Coinbase spec: x402Version is NUMBER (2), not string - matches Bazaar/facilitator/SDKs
   const baseDescription = descriptions[serviceName] || `${serviceName} micropayment service`;
   
+  // Solana feePayer: must be the buyer's own address (they pay tx fee + sign).
+  // Clients should send X-Solana-Wallet header with their public key.
+  const solanaFeePayer = (req.headers['x-solana-wallet'] as string | undefined)?.trim() || null;
+
   // Multi-chain accepts array: Base/USDC, Base/USDT, Solana/USDC, Solana/USDT
   const acceptsArray = [
     // Base Chain - USDC (primary)
@@ -2254,9 +2337,9 @@ function generate402Response(
     // Solana - USDC
     {
       scheme: "exact",
-      network: "solana:mainnet",
+      network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
       networkLegacy: "solana",
-      x402Network: "solana:mainnet",
+      x402Network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
       amount: requiredAmount.toString(),
       maxAmountRequired: requiredAmount.toString(),
       maxAmountRequiredUSD: priceUsd,
@@ -2270,16 +2353,18 @@ function generate402Response(
         name: "USD Coin",
         version: "1",
         decimals: 6,
-        chainName: "Solana"
+        chainId: "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+        chainName: "Solana",
+        ...(solanaFeePayer ? { feePayer: solanaFeePayer } : {})
       },
       discoverable: false
     },
     // Solana - USDT
     {
       scheme: "exact",
-      network: "solana:mainnet",
+      network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
       networkLegacy: "solana",
-      x402Network: "solana:mainnet",
+      x402Network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
       amount: requiredAmount.toString(),
       maxAmountRequired: requiredAmount.toString(),
       maxAmountRequiredUSD: priceUsd,
@@ -2293,7 +2378,9 @@ function generate402Response(
         name: "Tether USD",
         version: "1",
         decimals: 6,
-        chainName: "Solana"
+        chainId: "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+        chainName: "Solana",
+        ...(solanaFeePayer ? { feePayer: solanaFeePayer } : {})
       },
       discoverable: false
     }

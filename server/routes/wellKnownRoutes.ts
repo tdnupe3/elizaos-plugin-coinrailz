@@ -2012,14 +2012,6 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       stateTransitionHistory: true
     },
 
-    defaultInputModes: ["application/json", "text/plain"],
-    defaultOutputModes: ["application/json"],
-
-    provider: {
-      organization: "Coin Railz",
-      url: "https://coinrailz.com"
-    },
-    documentationUrl: `${baseUrl}/.well-known/agent-instructions.json`,
     iconUrl: "https://coinrailz.com/favicon.ico",
     preferredTransport: "HTTP+JSON",
 
@@ -2448,13 +2440,14 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
     
     defaultInputModes: ["application/json", "text/plain"],
     defaultOutputModes: ["application/json"],
-    
+
     provider: {
       organization: "Coin Railz",
       url: "https://coinrailz.com"
     },
-    
+
     documentationUrl: `${baseUrl}/.well-known/agent-instructions.json`,
+    homepageUrl: baseUrl,
     author: "Coin Railz",
     wellKnownURI: `${baseUrl}/.well-known/agent-card.json`,
     homepage: baseUrl,

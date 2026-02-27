@@ -464,5 +464,67 @@ GROUP BY resource_id;
 -- Expected resource_ids: agent.json, x402.json, agent-card.json, agent-instructions.json
 ```
 
+## Solana Payment Tracking (NEW - Feb 26, 2026)
+
+Solana ExactSvmScheme payments are tracked in `x402_interactions` with dedicated event types. Unlike EVM payments, they do **not** write to `x402_payment_intents` (gap — see architect recommendation).
+
+### Solana-Specific Event Types
+| event_type | Meaning |
+|------------|---------|
+| `solana-payment` | On-chain Solana tx submitted and found via Helius RPC |
+| `authorized` | Solana payment verified — balance increase confirmed at seller ATA |
+| `error` (pre-Feb 26) | Broken: ATA parameter order bug caused all verifications to fail |
+
+### Solana Payment Analytics Queries
+```sql
+-- Solana payments confirmed in last 24h
+SELECT service_id, event_type, 
+       CAST(payment_amount AS NUMERIC) as amount_usdc,
+       created_at
+FROM x402_interactions
+WHERE event_type IN ('solana-payment', 'authorized')
+  AND created_at >= NOW() - INTERVAL '24 hours'
+ORDER BY created_at DESC;
+
+-- Solana payment conversion rate
+SELECT 
+  SUM(CASE WHEN event_type = 'challenge-issued' THEN 1 ELSE 0 END) as challenges,
+  SUM(CASE WHEN event_type = 'solana-payment' THEN 1 ELSE 0 END) as solana_payments,
+  SUM(CASE WHEN event_type = 'authorized' THEN 1 ELSE 0 END) as authorized,
+  ROUND(100.0 * SUM(CASE WHEN event_type = 'authorized' THEN 1 ELSE 0 END) /
+        NULLIF(SUM(CASE WHEN event_type = 'challenge-issued' THEN 1 ELSE 0 END), 0), 2) as conversion_pct
+FROM x402_interactions
+WHERE created_at >= NOW() - INTERVAL '7 days';
+```
+
+### Known Seller Wallets (Solana)
+| Wallet | Role | USDC ATA |
+|--------|------|----------|
+| `BmUPzSupHJu2kW4cL27dF7Vc2JaZTwXKzFsRuagPDtL8` | MetaMask/Dexter seller (receiver) | `CEWim2A8q33kZfyzzqJky37nNt83dSKFdqcknP15h8jF` |
+| `Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k` | Phantom (buyer/platform signing wallet) | — |
+
+### Helius RPC
+Production uses `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}` for `getParsedTransaction`. Public RPC rate-limits at 429. `HELIUS_API_KEY` must be set (len=36).
+
+### Critical Fix (Feb 26, 2026)
+`getAssociatedTokenAddressSync(mint, owner, ...)` — mint is first, owner is second. Previous code had these swapped causing 100% Solana verification failures. Fixed in `getAllPlatformTokenAccounts()` in `server/middleware/paymentOrchestrator.ts`.
+
 ---
-Last Updated: January 31, 2026
+## Discovery Bot Glossary (Updated Feb 27, 2026)
+
+New bots observed — add to monitoring:
+
+| User Agent | Description | First Seen |
+|------------|-------------|------------|
+| `ScoutScore-HealthCheck/1.0` | Unknown indexer/scout service probing endpoints | Feb 27, 2026 |
+| `ScoutScore-FidelityCheck/1.0` | ScoutScore fidelity verification crawler | Feb 27, 2026 |
+| `EntRoute-Probe/1.0` | Unknown routing/probe agent | Feb 27, 2026 |
+| `XGate-HealthCheck/1.0` | Unknown gateway health checker | Feb 26, 2026 |
+| `meta-externalagent/1.1` | Facebook/Meta web crawler | Feb 27, 2026 |
+| `X402-Discovery-HealthCheck/2.0` | Coinbase Bazaar discovery crawler | Jan 2026 |
+
+### Discovery Manifest Volume (endpoint_hits)
+At scale, check `/.well-known/x402`, `/.well-known/agent.json`, `/.well-known/agent-card.json`. In 24h post-republish (Feb 26-27): 532 fetches from 428 unique visitors to the x402 manifest, 165 fetches of agent.json from 162 unique visitors. This is top-of-funnel traction signal.
+
+---
+Last Updated: February 27, 2026

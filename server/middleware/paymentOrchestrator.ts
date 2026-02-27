@@ -17,7 +17,7 @@ import { x402InteractionTracker } from "../services/x402InteractionTracker";
 import { nanoid } from "nanoid";
 import { db } from "../db";
 import { sql, and, eq, gt, or, isNull } from "drizzle-orm";
-import { x402Interactions } from "@shared/schema";
+import { x402Interactions, x402PaymentIntents } from "@shared/schema";
 // CBOR library - use createRequire for ESM compatibility
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
@@ -1531,6 +1531,24 @@ export function createPaymentOrchestrator(
       paymentChain = 'solana';
       console.log(`🔐 Orchestrator: Solana signature detected for ${serviceName}: ${xPayment.substring(0, 10)}...`);
       
+      // REPLAY PROTECTION: Check for existing intent before verifying
+      const solanaExisting = await db
+        .select()
+        .from(x402PaymentIntents)
+        .where(and(eq(x402PaymentIntents.txHash, xPayment), eq(x402PaymentIntents.serviceName, serviceName)))
+        .limit(1);
+      if (solanaExisting.length > 0) {
+        const existingStatus = solanaExisting[0].status;
+        if (existingStatus === 'SUCCEEDED') {
+          console.warn(`⚠️ Orchestrator: Solana signature replay rejected for ${serviceName}: ${xPayment.substring(0, 16)}...`);
+          return generatePaymentErrorResponse(res, 'SOLANA_REPLAY_REJECTED', 'Payment signature already used for this service', 'Each Solana transaction signature can only be used once per service.', requestId, { recoverable: false, httpStatus: 402 });
+        }
+        if (existingStatus === 'PENDING') {
+          console.warn(`⚠️ Orchestrator: Duplicate concurrent Solana request for ${serviceName}: ${xPayment.substring(0, 16)}...`);
+          return generatePaymentErrorResponse(res, 'SOLANA_DUPLICATE_REQUEST', 'Concurrent payment request in progress', 'A payment with this signature is already being processed.', requestId, { recoverable: false, httpStatus: 402 });
+        }
+      }
+
       // Verify Solana payment directly
       const solanaResult = await verifySolanaPayment(xPayment, requiredAmount);
       
@@ -1549,6 +1567,23 @@ export function createPaymentOrchestrator(
           walletAddress: solanaResult.fromWallet,
           verified: true
         };
+
+        // Write PENDING intent — unique constraint blocks any concurrent replay from here
+        const solanaIntentId = nanoid();
+        const solanaExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+        await db.insert(x402PaymentIntents).values({
+          id: solanaIntentId,
+          txHash: xPayment,
+          network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+          serviceName,
+          payer: solanaResult.fromWallet || '',
+          amount: solanaResult.amount.toString(),
+          status: 'PENDING',
+          retries: 0,
+          expiresAt: solanaExpiresAt,
+          metadata: { chain: 'solana', token: solanaResult.token, paymentScheme: 'direct' },
+        }).onConflictDoNothing();
+        console.log(`📝 Solana intent ${solanaIntentId} created as PENDING`);
         
         // Track successful Solana payment
         await x402InteractionTracker.trackInteraction({
@@ -1577,8 +1612,20 @@ export function createPaymentOrchestrator(
           }
         });
         
-        // Execute the handler
-        await handler(req, res);
+        // Execute the handler — mark SUCCEEDED on completion, FAILED on error
+        try {
+          await handler(req, res);
+          await db.update(x402PaymentIntents)
+            .set({ status: 'SUCCEEDED', succeededAt: new Date(), updatedAt: new Date() })
+            .where(and(eq(x402PaymentIntents.txHash, xPayment), eq(x402PaymentIntents.serviceName, serviceName)));
+          console.log(`✅ Solana intent marked SUCCEEDED for ${serviceName}`);
+        } catch (handlerErr: any) {
+          await db.update(x402PaymentIntents)
+            .set({ status: 'FAILED', lastError: handlerErr.message, updatedAt: new Date() })
+            .where(and(eq(x402PaymentIntents.txHash, xPayment), eq(x402PaymentIntents.serviceName, serviceName)));
+          console.error(`❌ Solana intent marked FAILED for ${serviceName}: ${handlerErr.message}`);
+          throw handlerErr;
+        }
         return;
       } else {
         console.error(`❌ Orchestrator: Solana payment verification failed: ${solanaResult.error}`);
@@ -1874,6 +1921,25 @@ export function createPaymentOrchestrator(
               preflightCommitment: 'confirmed',
             });
             console.log(`🔐 Orchestrator: Solana tx submitted: ${solanaSig.substring(0, 16)}...`);
+
+            // REPLAY PROTECTION: Check for existing intent on this signature before verifying
+            const svmExisting = await db
+              .select()
+              .from(x402PaymentIntents)
+              .where(and(eq(x402PaymentIntents.txHash, solanaSig), eq(x402PaymentIntents.serviceName, serviceName)))
+              .limit(1);
+            if (svmExisting.length > 0) {
+              const svmStatus = svmExisting[0].status;
+              if (svmStatus === 'SUCCEEDED') {
+                console.warn(`⚠️ Orchestrator: ExactSvmScheme replay rejected for ${serviceName}: ${solanaSig.substring(0, 16)}...`);
+                return generatePaymentErrorResponse(res, 'SOLANA_REPLAY_REJECTED', 'Payment signature already used for this service', 'Each Solana transaction signature can only be used once per service.', requestId, { recoverable: false, httpStatus: 402 });
+              }
+              if (svmStatus === 'PENDING') {
+                console.warn(`⚠️ Orchestrator: Duplicate concurrent ExactSvmScheme request for ${serviceName}: ${solanaSig.substring(0, 16)}...`);
+                return generatePaymentErrorResponse(res, 'SOLANA_DUPLICATE_REQUEST', 'Concurrent payment request in progress', 'A payment with this signature is already being processed.', requestId, { recoverable: false, httpStatus: 402 });
+              }
+            }
+
             const solanaResult = await verifySolanaPayment(solanaSig, requiredAmount);
             if (solanaResult.verified) {
               console.log(`✅ Orchestrator: Solana ExactSvmScheme payment verified! Amount: $${solanaResult.amount} ${solanaResult.token}`);
@@ -1888,6 +1954,24 @@ export function createPaymentOrchestrator(
                 walletAddress: solanaResult.fromWallet,
                 verified: true
               };
+
+              // Write PENDING intent — unique constraint blocks any concurrent replay from here
+              const svmIntentId = nanoid();
+              const svmExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+              await db.insert(x402PaymentIntents).values({
+                id: svmIntentId,
+                txHash: solanaSig,
+                network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+                serviceName,
+                payer: solanaResult.fromWallet || '',
+                amount: solanaResult.amount.toString(),
+                status: 'PENDING',
+                retries: 0,
+                expiresAt: svmExpiresAt,
+                metadata: { chain: 'solana', token: solanaResult.token, paymentScheme: 'ExactSvmScheme' },
+              }).onConflictDoNothing();
+              console.log(`📝 ExactSvmScheme intent ${svmIntentId} created as PENDING`);
+
               await x402InteractionTracker.trackInteraction({
                 serviceId: serviceName,
                 ipAddress,
@@ -1914,7 +1998,21 @@ export function createPaymentOrchestrator(
                   paymentScheme: 'ExactSvmScheme'
                 }
               });
-              await handler(req, res);
+
+              // Execute handler — mark SUCCEEDED on completion, FAILED on error
+              try {
+                await handler(req, res);
+                await db.update(x402PaymentIntents)
+                  .set({ status: 'SUCCEEDED', succeededAt: new Date(), updatedAt: new Date() })
+                  .where(and(eq(x402PaymentIntents.txHash, solanaSig), eq(x402PaymentIntents.serviceName, serviceName)));
+                console.log(`✅ ExactSvmScheme intent marked SUCCEEDED for ${serviceName}`);
+              } catch (handlerErr: any) {
+                await db.update(x402PaymentIntents)
+                  .set({ status: 'FAILED', lastError: handlerErr.message, updatedAt: new Date() })
+                  .where(and(eq(x402PaymentIntents.txHash, solanaSig), eq(x402PaymentIntents.serviceName, serviceName)));
+                console.error(`❌ ExactSvmScheme intent marked FAILED for ${serviceName}: ${handlerErr.message}`);
+                throw handlerErr;
+              }
               return;
             } else {
               console.error(`❌ Orchestrator: Solana ExactSvmScheme verification failed: ${solanaResult.error}`);

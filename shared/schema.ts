@@ -4270,8 +4270,8 @@ export const x402PaymentIntents = pgTable(
   "x402_payment_intents",
   {
     id: varchar("id").primaryKey(), // Unique intent ID
-    txHash: varchar("tx_hash", { length: 66 }).notNull(), // Ethereum tx hash (0x + 64 chars)
-    network: varchar("network").notNull(), // base, ethereum, polygon, etc
+    txHash: varchar("tx_hash", { length: 200 }).notNull(), // EVM tx hash (66 chars) or Solana signature (87-88 chars base58)
+    network: varchar("network").notNull(), // base, ethereum, polygon, solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp, etc
     serviceName: varchar("service_name").notNull(), // Which service being paid for
     payer: varchar("payer").notNull(), // Sender wallet address
     amount: numeric("amount", { precision: 18, scale: 6 }).notNull(), // Payment amount

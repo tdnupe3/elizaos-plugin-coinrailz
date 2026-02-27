@@ -212,7 +212,7 @@ async function main() {
       kitSigner.address,
       "2/2 — Fire Alerts   ($0.05)",
       "/x402/fire-alerts",
-      { lat: 34.05, lon: -118.24, radius_km: 50, days: 1 }
+      { west: -118.7, south: 33.7, east: -117.8, north: 34.4, days: 1 }
     ),
   });
 

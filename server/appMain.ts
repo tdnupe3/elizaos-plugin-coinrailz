@@ -93,6 +93,7 @@ const { connectionManager } = await import("./services/connectionManager");
 const { peezyService } = await import('./services/peezyIntegrationService');
 const a2aWrapperRoutes = (await import('./routes/a2aWrapperRoutes')).default;
 const a2aBridgeRoutes = (await import('./routes/a2aBridgeRoutes.js')).default;
+const a2aCoinRailzRoutes = (await import('./routes/a2aCoinRailzRoutes')).default;
 const agentCardRoutes = (await import('./routes/agentCardRoutes')).default;
 const wellKnownRoutes = (await import('./routes/wellKnownRoutes')).default;
 const discoveryRoutes = (await import('./routes/discoveryRoutes')).default;
@@ -761,6 +762,10 @@ console.log('✅ A2A API Wrapper routes registered - OpenAI/Anthropic/Cohere now
 // === A2A BRIDGE ADAPTERS - CHATGPT POINT 6 ===
 console.log('🌉 Registering A2A Bridge Adapters with /.well-known/agent-card.json endpoints...');
 app.use(a2aBridgeRoutes);
+
+// A2A v1 interaction endpoint — POST /a2a/v1/message/send (HTTP+JSON, A2A 0.3.0 compliant)
+app.use(a2aCoinRailzRoutes);
+console.log('✅ A2A v1 interaction endpoint registered - POST /a2a/v1/message/send now live');
 
 // Register Agent Card routes for marketplace agent discovery
 console.log('🎯 Registering Agent Card routes for A2A discovery of marketplace agents...');

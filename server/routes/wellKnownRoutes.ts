@@ -2002,16 +2002,27 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
     protocolVersion: "0.3.0",
     name: "Coin Railz",
     description: "Multi-chain x402 micropayment infrastructure for AI agents. 44+ pay-per-call API services for crypto analytics, trading signals, security audits, satellite data (NASA/ESA), real estate, banking, market intelligence, prediction markets, and traditional markets. Native Coinbase Agentic Wallet compatible. Pay with USDC on Ethereum or Base - prices from $0.05 to $10.00 per request.",
-    url: baseUrl,
+    url: `${baseUrl}/a2a/v1`,
     version: "3.1.0",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
     
     capabilities: {
-      streaming: true,
+      streaming: false,
       pushNotifications: false,
       stateTransitionHistory: true
     },
-    
+
+    defaultInputModes: ["application/json", "text/plain"],
+    defaultOutputModes: ["application/json"],
+
+    provider: {
+      organization: "Coin Railz",
+      url: "https://coinrailz.com"
+    },
+    documentationUrl: `${baseUrl}/.well-known/agent-instructions.json`,
+    iconUrl: "https://coinrailz.com/favicon.ico",
+    preferredTransport: "HTTP+JSON",
+
     agenticWallet: {
       compatible: true,
       sdkVersion: "0.10.3",
@@ -2030,7 +2041,13 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         description: "Real-time gas price predictions across multiple chains. $0.10 per request.",
         tags: ["utilities", "gas", "ethereum", "multi-chain", "x402"],
         inputModes: ["application/json"],
-        outputModes: ["application/json"]
+        outputModes: ["application/json"],
+        examples: [{
+          name: "Ethereum gas prices",
+          description: "Get current gas prices on Ethereum with USD cost estimates",
+          input: { chains: ["ethereum"] },
+          output: { gasPrices: [{ chain: "ethereum", slow: 12, standard: 15, fast: 22, usdCostEstimate: "$0.45" }] }
+        }]
       },
       {
         id: "token-metadata",
@@ -2038,7 +2055,13 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         description: "Comprehensive token information including name, symbol, decimals, and contract details. $0.10 per request.",
         tags: ["tokens", "metadata", "crypto", "x402"],
         inputModes: ["application/json"],
-        outputModes: ["application/json"]
+        outputModes: ["application/json"],
+        examples: [{
+          name: "USDC token info",
+          description: "Get metadata for USDC stablecoin on Base",
+          input: { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", chain: "base" },
+          output: { name: "USD Coin", symbol: "USDC", decimals: 6, totalSupply: "1000000000" }
+        }]
       },
       {
         id: "dex-liquidity",
@@ -2046,7 +2069,13 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         description: "Analyze liquidity pools, depths, and trading conditions across DEXs. $0.20 per request.",
         tags: ["defi", "liquidity", "dex", "trading", "x402"],
         inputModes: ["application/json"],
-        outputModes: ["application/json"]
+        outputModes: ["application/json"],
+        examples: [{
+          name: "ETH/USDC liquidity on Base",
+          description: "Analyze liquidity for ETH/USDC trading pair across DEXs on Base",
+          input: { tokenPair: "ETH/USDC", chain: "base", dex: "all" },
+          output: { pools: [{ dex: "uniswap-v3", liquidity: 45000000, apy: 8.2, volume24h: 12000000 }] }
+        }]
       },
       {
         id: "approval-manager",
@@ -2318,7 +2347,13 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         description: "x402 discovery and testing endpoint - returns 402 Payment Required challenge. $0.25 per request.",
         tags: ["discovery", "testing", "health-check", "x402"],
         inputModes: ["application/json"],
-        outputModes: ["application/json"]
+        outputModes: ["application/json"],
+        examples: [{
+          name: "Discovery ping",
+          description: "Test x402 payment flow — returns 402 challenge to validate integration",
+          input: {},
+          output: { message: "Payment required", price: "$0.25 USDC", facilitator: "https://x402.dexter.cash" }
+        }]
       },
       // Agent Infrastructure
       {
@@ -2336,7 +2371,13 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         description: "Get current odds from Polymarket prediction markets. $0.50 per request.",
         tags: ["prediction-markets", "polymarket", "odds", "x402"],
         inputModes: ["application/json"],
-        outputModes: ["application/json"]
+        outputModes: ["application/json"],
+        examples: [{
+          name: "Election prediction market odds",
+          description: "Get current odds for active prediction market events on Polymarket",
+          input: { query: "US election" },
+          output: { markets: [{ title: "Example Market", yesPrice: 0.65, noPrice: 0.35, volume: 250000 }] }
+        }]
       },
       {
         id: "polymarket-events",
@@ -2405,16 +2446,16 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       }
     ],
     
-    defaultInputModes: ["application/json"],
+    defaultInputModes: ["application/json", "text/plain"],
     defaultOutputModes: ["application/json"],
     
     provider: {
-      organization: "Kellogg Holdings LLC",
-      url: baseUrl
+      organization: "Coin Railz",
+      url: "https://coinrailz.com"
     },
     
-    documentationUrl: `${baseUrl}/developers`,
-    author: "Kellogg Holdings LLC",
+    documentationUrl: `${baseUrl}/.well-known/agent-instructions.json`,
+    author: "Coin Railz",
     wellKnownURI: `${baseUrl}/.well-known/agent-card.json`,
     homepage: baseUrl,
     

@@ -416,11 +416,16 @@ When asked to "use all analytical tools" or perform daily checks:
 3. Query `x402_payment_intents` for payment data
 4. **Query `endpoint_hits` for outreach campaign responses**
 5. **Query `endpoint_hits` WHERE endpoint_type='discovery' for manifest fetches** (NEW - Jan 31 2026)
-6. Check unique user agents for new discovery bots or AI agents
-7. Verify discovery endpoints are responding correctly
-8. Check for any error patterns in logs
-9. Use `/api/x402-analytics/hot-leads` to find potential customers
-10. Compare period-over-period metrics for trends
+6. **Query `endpoint_hits` WHERE endpoint_type='a2a' for A2A interaction data** (NEW - Mar 1 2026)
+7. Check unique user agents for new discovery bots or AI agents
+8. Verify discovery endpoints are responding correctly
+9. Check for any error patterns in logs
+10. Use `/api/x402-analytics/hot-leads` to find potential customers
+11. Compare period-over-period metrics for trends
+
+### Important Metric Clarifications
+- **`retry_count` in `x402_interactions`** = number of times the **same IP fingerprint** returned to the **same endpoint**. It is NOT a payment retry counter. High retry_count = a bot probing us repeatedly on a cron schedule, not a payment integration failing. Evidence: 775 retry events in 24h had paid=FALSE, error_message=NULL, payment_amount=NULL across all of them — zero payment was ever attempted on any retry event (confirmed Mar 1 2026).
+- **GCP IP ranges 34.x.x.x / 35.x.x.x** running python-httpx on ~15-30 min cron schedules are catalog monitoring bots, not paying agents in an evaluation loop.
 
 ### Quick Hit Tracking Check (Run Daily)
 ```sql
@@ -462,6 +467,60 @@ WHERE endpoint_type = 'discovery'
   AND created_at >= NOW() - INTERVAL '7 days'
 GROUP BY resource_id;
 -- Expected resource_ids: agent.json, x402.json, agent-card.json, agent-instructions.json
+```
+
+### A2A Interaction Tracking (NEW - Mar 1 2026)
+
+The `/a2a/v1` endpoints now write to `endpoint_hits` with `endpoint_type = 'a2a'`. This covers:
+
+| `resource_id` value | Meaning |
+|---------------------|---------|
+| `a2a-catalog` | GET /a2a/v1 — agent discovery summary fetched |
+| `gas-price-oracle` (or any service id) | POST /a2a/v1/message/send — query matched a specific service |
+| `a2a-no-match` | POST /a2a/v1/message/send — no keyword match found |
+| `a2a-no-text` | POST /a2a/v1/message/send — request body had no text |
+
+```sql
+-- A2A interaction overview (last 24h)
+SELECT resource_id, method, COUNT(*) as hits,
+       COUNT(DISTINCT ip_hash) as unique_callers,
+       ROUND(AVG(response_time_ms), 1) as avg_ms,
+       MAX(created_at) as last_seen
+FROM endpoint_hits
+WHERE endpoint_type = 'a2a'
+  AND created_at >= NOW() - INTERVAL '24 hours'
+GROUP BY resource_id, method
+ORDER BY hits DESC;
+
+-- A2A match rate (how often agents find a matching service)
+SELECT 
+  COUNT(*) FILTER (WHERE resource_id NOT IN ('a2a-catalog','a2a-no-match','a2a-no-text')) as matched,
+  COUNT(*) FILTER (WHERE resource_id = 'a2a-no-match') as no_match,
+  COUNT(*) FILTER (WHERE resource_id = 'a2a-catalog') as catalog_views,
+  ROUND(100.0 * COUNT(*) FILTER (WHERE resource_id NOT IN ('a2a-catalog','a2a-no-match','a2a-no-text')) /
+    NULLIF(COUNT(*) FILTER (WHERE method = 'POST'), 0), 1) as match_pct
+FROM endpoint_hits
+WHERE endpoint_type = 'a2a'
+  AND created_at >= NOW() - INTERVAL '7 days';
+
+-- Which services agents are asking about via A2A
+SELECT resource_id as service_requested, COUNT(*) as times_asked,
+       COUNT(DISTINCT ip_hash) as unique_agents
+FROM endpoint_hits
+WHERE endpoint_type = 'a2a'
+  AND method = 'POST'
+  AND resource_id NOT IN ('a2a-no-match','a2a-no-text')
+  AND created_at >= NOW() - INTERVAL '7 days'
+GROUP BY resource_id
+ORDER BY times_asked DESC;
+
+-- A2A user agent breakdown
+SELECT SUBSTRING(user_agent, 1, 80) as agent, COUNT(*) as hits
+FROM endpoint_hits
+WHERE endpoint_type = 'a2a'
+  AND created_at >= NOW() - INTERVAL '7 days'
+GROUP BY SUBSTRING(user_agent, 1, 80)
+ORDER BY hits DESC;
 ```
 
 ## Solana Payment Tracking (NEW - Feb 26, 2026)
@@ -510,12 +569,16 @@ Production uses `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}` for 
 `getAssociatedTokenAddressSync(mint, owner, ...)` — mint is first, owner is second. Previous code had these swapped causing 100% Solana verification failures. Fixed in `getAllPlatformTokenAccounts()` in `server/middleware/paymentOrchestrator.ts`.
 
 ---
-## Discovery Bot Glossary (Updated Feb 27, 2026)
+## Discovery Bot Glossary (Updated Mar 1, 2026)
 
 New bots observed — add to monitoring:
 
 | User Agent | Description | First Seen |
 |------------|-------------|------------|
+| `agentcash-discovery-registry-audit/0.1` | AgentCash discovery registry auditor — indexes our agent card + x402 manifest | Mar 1, 2026 |
+| `agentcash-probe-audit/0.1` | AgentCash probe/audit crawler — appeared after A2A card republish | Mar 1, 2026 |
+| `node` (bare) | Bespoke Node.js crawler using core http/https (no library UA). More sophisticated than node-fetch. 654 hits in first observed window. | Mar 1, 2026 |
+| `Anthill` | Unknown — 1 hit observed. May return. Not in any known crawler registry. | Mar 1, 2026 |
 | `ScoutScore-HealthCheck/1.0` | Unknown indexer/scout service probing endpoints | Feb 27, 2026 |
 | `ScoutScore-FidelityCheck/1.0` | ScoutScore fidelity verification crawler | Feb 27, 2026 |
 | `EntRoute-Probe/1.0` | Unknown routing/probe agent | Feb 27, 2026 |
@@ -527,4 +590,4 @@ New bots observed — add to monitoring:
 At scale, check `/.well-known/x402`, `/.well-known/agent.json`, `/.well-known/agent-card.json`. In 24h post-republish (Feb 26-27): 532 fetches from 428 unique visitors to the x402 manifest, 165 fetches of agent.json from 162 unique visitors. This is top-of-funnel traction signal.
 
 ---
-Last Updated: February 27, 2026
+Last Updated: March 1, 2026

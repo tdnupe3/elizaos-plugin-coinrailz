@@ -11,8 +11,37 @@
 
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
+import { db } from '../db';
+import { endpointHits } from '../../shared/schema';
 
 const router = Router();
+
+function hashIP(ip: string | undefined): string | undefined {
+  if (!ip) return undefined;
+  return crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16);
+}
+
+function trackA2AHit(req: Request, opts: {
+  resourceId: string;
+  statusCode: number;
+  responseTimeMs: number;
+  matched?: boolean;
+}) {
+  const clientIP = req.headers['x-forwarded-for'] as string || req.socket?.remoteAddress;
+  db.insert(endpointHits).values({
+    endpoint: req.originalUrl.split('?')[0],
+    endpointType: 'a2a' as any,
+    resourceId: opts.resourceId,
+    ipHash: hashIP(clientIP),
+    userAgent: req.headers['user-agent']?.slice(0, 500),
+    walletAddress: (req.headers['x-wallet-address'] || req.headers['x-payer-address']) as string | undefined,
+    method: req.method,
+    statusCode: opts.statusCode,
+    responseTimeMs: opts.responseTimeMs,
+    trackingId: (req.headers['x-tracking-id'] || req.query.tracking) as string | undefined,
+  }).catch(() => {});
+}
 
 interface ServiceEntry {
   id: string;
@@ -277,12 +306,19 @@ function buildTaskResponse(taskId: string, artifacts: Array<{ parts: Array<{ tex
   };
 }
 
+function kwMatches(text: string, kw: string): boolean {
+  if (kw.length <= 3) {
+    return new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text);
+  }
+  return text.includes(kw);
+}
+
 function matchServices(text: string): ServiceEntry[] {
   const lower = text.toLowerCase();
   const scored = SERVICE_CATALOG.map(service => {
     let hits = 0;
     for (const kw of service.keywords) {
-      if (lower.includes(kw)) hits++;
+      if (kwMatches(lower, kw)) hits++;
     }
     if (lower.includes(service.id)) hits += 3;
     if (lower.includes(service.name.toLowerCase())) hits += 3;
@@ -306,8 +342,9 @@ const TOP_SKILLS_PREVIEW = SERVICE_CATALOG.slice(0, 6).map(s => `- ${s.name} ($$
 /**
  * GET /a2a/v1 — Agent card summary for discovery
  */
-router.get('/a2a/v1', (_req: Request, res: Response) => {
-  res.json({
+router.get('/a2a/v1', (req: Request, res: Response) => {
+  const startTime = Date.now();
+  const body = {
     id: 'coinrailz-x402-agent',
     name: 'Coin Railz',
     description: 'Multi-chain x402 micropayment infrastructure for AI agents. 44+ pay-per-call API services across crypto analytics, trading signals, security audits, satellite data, prediction markets, and more.',
@@ -321,7 +358,9 @@ router.get('/a2a/v1', (_req: Request, res: Response) => {
     priceRange: '$0.10 – $10.00 USDC per request',
     interactionEndpoint: `${BASE_URL}/a2a/v1/message/send`,
     usage: 'POST /a2a/v1/message/send with { "message": { "parts": [{ "text": "your request" }] } }'
-  });
+  };
+  res.json(body);
+  trackA2AHit(req, { resourceId: 'a2a-catalog', statusCode: 200, responseTimeMs: Date.now() - startTime });
 });
 
 /**
@@ -336,6 +375,7 @@ router.post('/a2a/v1', handleMessageSend);
 router.post('/a2a/v1/message/send', handleMessageSend);
 
 function handleMessageSend(req: Request, res: Response) {
+  const startTime = Date.now();
   const taskId = uuidv4();
 
   const body = req.body || {};
@@ -344,7 +384,7 @@ function handleMessageSend(req: Request, res: Response) {
   const text = parts.map((p: any) => p.text || '').join(' ').trim() || (body.text || '');
 
   if (!text) {
-    return res.status(400).json({
+    res.status(400).json({
       id: taskId,
       status: { state: 'failed', message: 'Request must include message.parts[0].text' },
       artifacts: [],
@@ -353,12 +393,14 @@ function handleMessageSend(req: Request, res: Response) {
         documentationUrl: `${BASE_URL}/.well-known/agent-instructions.json`
       }
     });
+    trackA2AHit(req, { resourceId: 'a2a-no-text', statusCode: 400, responseTimeMs: Date.now() - startTime, matched: false });
+    return;
   }
 
   const matches = matchServices(text);
 
   if (matches.length === 0) {
-    return res.status(200).json(buildTaskResponse(taskId, [{
+    res.status(200).json(buildTaskResponse(taskId, [{
       parts: [{
         text: `No exact service match found for: "${text}"\n\nAvailable services include:\n${TOP_SKILLS_PREVIEW}\n\nFull catalog: ${BASE_URL}/.well-known/agent-instructions.json`
       }]
@@ -367,6 +409,8 @@ function handleMessageSend(req: Request, res: Response) {
       suggestedSkills: SERVICE_CATALOG.slice(0, 5).map(s => s.id),
       catalogUrl: `${BASE_URL}/.well-known/agent-instructions.json`
     }));
+    trackA2AHit(req, { resourceId: 'a2a-no-match', statusCode: 200, responseTimeMs: Date.now() - startTime, matched: false });
+    return;
   }
 
   const top = matches[0];
@@ -375,7 +419,7 @@ function handleMessageSend(req: Request, res: Response) {
     ? formatServiceText(top)
     : `${formatServiceText(top)}\n\nAlternate matches:\n${matches.slice(1, 4).map(s => `- ${s.name} ($${s.priceUsd.toFixed(2)}): ${s.x402Endpoint}`).join('\n')}`;
 
-  return res.status(200).json(buildTaskResponse(taskId, [{
+  res.status(200).json(buildTaskResponse(taskId, [{
     parts: [{ text: responseText }]
   }], {
     matched: true,
@@ -385,6 +429,7 @@ function handleMessageSend(req: Request, res: Response) {
     paymentProtocol: 'x402',
     alternateMatches: matches.slice(1, 4).map(s => ({ id: s.id, name: s.name, priceUsd: s.priceUsd, x402Endpoint: s.x402Endpoint }))
   }));
+  trackA2AHit(req, { resourceId: top.id, statusCode: 200, responseTimeMs: Date.now() - startTime, matched: true });
 }
 
 export default router;

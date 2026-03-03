@@ -54,7 +54,7 @@ interface ServiceEntry {
 
 const BASE_URL = process.env.PUBLIC_BASE_URL || 'https://coinrailz.com';
 
-const SERVICE_CATALOG: ServiceEntry[] = [
+export const SERVICE_CATALOG: ServiceEntry[] = [
   {
     id: 'gas-price-oracle',
     name: 'Gas Price Oracle',

@@ -94,6 +94,7 @@ const { peezyService } = await import('./services/peezyIntegrationService');
 const a2aWrapperRoutes = (await import('./routes/a2aWrapperRoutes')).default;
 const a2aBridgeRoutes = (await import('./routes/a2aBridgeRoutes.js')).default;
 const a2aCoinRailzRoutes = (await import('./routes/a2aCoinRailzRoutes')).default;
+const ap2MerchantRoutes = (await import('./routes/ap2MerchantRoutes')).default;
 const agentCardRoutes = (await import('./routes/agentCardRoutes')).default;
 const wellKnownRoutes = (await import('./routes/wellKnownRoutes')).default;
 const discoveryRoutes = (await import('./routes/discoveryRoutes')).default;
@@ -766,6 +767,10 @@ app.use(a2aBridgeRoutes);
 // A2A v1 interaction endpoint — POST /a2a/v1/message/send (HTTP+JSON, A2A 0.3.0 compliant)
 app.use(a2aCoinRailzRoutes);
 console.log('✅ A2A v1 interaction endpoint registered - POST /a2a/v1/message/send now live');
+
+// AP2 v0.1 merchant endpoint — GET+POST /ap2/v1/merchant (A2A JSON-RPC 2.0, Google AP2 compliant)
+app.use(ap2MerchantRoutes);
+console.log('✅ AP2 v0.1 merchant endpoint registered - GET /ap2/v1/merchant + POST /ap2/v1/merchant now live');
 
 // Register Agent Card routes for marketplace agent discovery
 console.log('🎯 Registering Agent Card routes for A2A discovery of marketplace agents...');

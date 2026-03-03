@@ -2024,6 +2024,15 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       onboardingFlow: "instant",
       cli: "npx awal"
     },
+
+    ap2: {
+      version: "0.1",
+      endpoint: `${baseUrl}/ap2/v1/merchant`,
+      supportedPaymentMethods: ["X402"],
+      supportedCurrencies: ["USDC"],
+      supportedChains: ["base", "solana"],
+      description: "AP2 v0.1 merchant endpoint — accepts PaymentMandate VDCs, routes to x402 micropayment infrastructure"
+    },
     
     skills: [
       // Trading Intelligence Services ($0.10-$0.75)

@@ -2028,10 +2028,17 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
     ap2: {
       version: "0.1",
       endpoint: `${baseUrl}/ap2/v1/merchant`,
-      supportedPaymentMethods: ["X402"],
-      supportedCurrencies: ["USDC"],
+      supportedPaymentMethods: ["X402", "CARD", "VISA", "MASTERCARD", "AMEX", "STRIPE"],
+      supportedCurrencies: ["USDC", "USD"],
       supportedChains: ["base", "solana"],
-      description: "AP2 v0.1 merchant endpoint — accepts PaymentMandate VDCs, routes to x402 micropayment infrastructure"
+      cardPayment: {
+        processor: "Stripe",
+        minAmount: 1.00,
+        maxAmount: 2500.00,
+        note: "Card payments (CARD/VISA/MASTERCARD/AMEX/STRIPE) purchase API credits. Include Stripe pm_ token for automated payment, or use checkoutUrl for browser-based payment.",
+        checkoutUrl: `${baseUrl}/pilots/buy`
+      },
+      description: "AP2 v0.1 merchant endpoint — accepts PaymentMandate VDCs for x402 crypto (per-call) or card payments via Stripe (credits-based)"
     },
     
     skills: [

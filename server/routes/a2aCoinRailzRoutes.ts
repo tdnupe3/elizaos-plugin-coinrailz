@@ -125,7 +125,7 @@ const SERVICE_CATALOG: ServiceEntry[] = [
     priceUsd: 10.00,
     x402Endpoint: `${BASE_URL}/x402/smart-contract-audit`,
     description: 'Comprehensive security audit with vulnerability detection',
-    keywords: ['audit', 'smart contract', 'security audit', 'vulnerability', 'reentrancy', 'exploit', 'contract audit', 'solidity audit']
+    keywords: ['audit', 'smart contract', 'security audit', 'vulnerability', 'reentrancy', 'exploit', 'contract audit', 'solidity audit', 'bytecode', 'is this contract safe', 'verify contract', 'hack', 'decompile']
   },
   {
     id: 'contract-scanner',
@@ -133,7 +133,7 @@ const SERVICE_CATALOG: ServiceEntry[] = [
     priceUsd: 1.00,
     x402Endpoint: `${BASE_URL}/x402/contract-scanner`,
     description: 'Deep analysis of smart contract code and security vulnerabilities',
-    keywords: ['contract scan', 'scan contract', 'contract security', 'honeypot', 'rugpull', 'rug pull', 'malicious']
+    keywords: ['contract scan', 'scan contract', 'contract security', 'honeypot', 'rugpull', 'rug pull', 'malicious', 'rugpull detection', 'is this a scam', 'token safe', 'liquidity lock', 'ownership renounced']
   },
   {
     id: 'trading-signal',
@@ -221,7 +221,7 @@ const SERVICE_CATALOG: ServiceEntry[] = [
     priceUsd: 0.75,
     x402Endpoint: `${BASE_URL}/x402/fraud-detection`,
     description: 'AI-powered fraud detection for financial transactions',
-    keywords: ['fraud', 'suspicious', 'scam', 'detect', 'aml', 'risk score', 'blacklist', 'sanctions']
+    keywords: ['fraud', 'suspicious', 'scam', 'detect', 'aml', 'risk score', 'blacklist', 'sanctions', 'money laundering', 'mixer', 'sanctioned', 'ofac', 'dirty funds', 'chainalysis', 'wallet score']
   },
   {
     id: 'credit-risk-score',
@@ -237,7 +237,7 @@ const SERVICE_CATALOG: ServiceEntry[] = [
     priceUsd: 5.00,
     x402Endpoint: `${BASE_URL}/x402/verified-agent-identity`,
     description: 'On-chain identity verification and reputation for AI agents',
-    keywords: ['agent identity', 'identity', 'verification', 'reputation', 'erc-8004', 'on-chain identity', 'did']
+    keywords: ['agent identity', 'identity', 'verification', 'reputation', 'erc-8004', 'on-chain identity', 'did', 'agent reputation', 'trust score', 'who is this agent', 'agent trust', 'agent verified', 'blockchain identity']
   },
   {
     id: 'agent-create-wallet',
@@ -297,7 +297,7 @@ const SERVICE_CATALOG: ServiceEntry[] = [
   }
 ];
 
-function buildTaskResponse(taskId: string, artifacts: Array<{ parts: Array<{ text: string }> }>, metadata: Record<string, unknown>) {
+function buildTaskResponse(taskId: string, artifacts: Array<{ parts: Array<{ type: string; text: string }> }>, metadata: Record<string, unknown>) {
   return {
     id: taskId,
     status: { state: 'completed' },
@@ -402,6 +402,7 @@ function handleMessageSend(req: Request, res: Response) {
   if (matches.length === 0) {
     res.status(200).json(buildTaskResponse(taskId, [{
       parts: [{
+        type: 'text',
         text: `No exact service match found for: "${text}"\n\nAvailable services include:\n${TOP_SKILLS_PREVIEW}\n\nFull catalog: ${BASE_URL}/.well-known/agent-instructions.json`
       }]
     }], {
@@ -420,14 +421,49 @@ function handleMessageSend(req: Request, res: Response) {
     : `${formatServiceText(top)}\n\nAlternate matches:\n${matches.slice(1, 4).map(s => `- ${s.name} ($${s.priceUsd.toFixed(2)}): ${s.x402Endpoint}`).join('\n')}`;
 
   res.status(200).json(buildTaskResponse(taskId, [{
-    parts: [{ text: responseText }]
+    parts: [{ type: 'text', text: responseText }]
   }], {
     matched: true,
     serviceId: top.id,
     priceUsd: top.priceUsd,
     x402Endpoint: top.x402Endpoint,
     paymentProtocol: 'x402',
-    alternateMatches: matches.slice(1, 4).map(s => ({ id: s.id, name: s.name, priceUsd: s.priceUsd, x402Endpoint: s.x402Endpoint }))
+    alternateMatches: matches.slice(1, 4).map(s => ({ id: s.id, name: s.name, priceUsd: s.priceUsd, x402Endpoint: s.x402Endpoint })),
+    paymentRequest: {
+      protocol: 'x402',
+      version: 2,
+      endpoint: top.x402Endpoint,
+      method: 'POST',
+      amount: top.priceUsd.toFixed(2),
+      currency: 'USDC',
+      networks: [
+        {
+          chain: 'base',
+          caip2: 'eip155:8453',
+          payTo: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
+          tokenContract: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+          facilitator: 'https://api.cdp.coinbase.com/platform/v2/x402'
+        },
+        {
+          chain: 'solana',
+          caip2: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+          payTo: 'BmUPzSupHJu2kW4cL27dF7Vc2JaZTwXKzFsRuagPDtL8',
+          tokenMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+          facilitator: 'https://x402.dexter.cash'
+        }
+      ],
+      flow: '1. POST to endpoint 2. Receive HTTP 402 challenge 3. Pay amount to payTo wallet 4. Resubmit with X-PAYMENT header containing payment proof 5. Receive data response'
+    },
+    actions: [{
+      type: 'http',
+      method: 'POST',
+      url: top.x402Endpoint,
+      description: 'Submit your request. Handle HTTP 402 by paying the x402 challenge, then resubmit with X-PAYMENT header.',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-PAYMENT': '<payment-proof-from-facilitator>'
+      }
+    }]
   }));
   trackA2AHit(req, { resourceId: top.id, statusCode: 200, responseTimeMs: Date.now() - startTime, matched: true });
 }

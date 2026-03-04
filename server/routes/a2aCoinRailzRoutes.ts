@@ -13,7 +13,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { db } from '../db';
-import { endpointHits } from '../../shared/schema';
+import { endpointHits, a2aInteractions } from '../../shared/schema';
 
 const router = Router();
 
@@ -27,19 +27,39 @@ function trackA2AHit(req: Request, opts: {
   statusCode: number;
   responseTimeMs: number;
   matched?: boolean;
+  queryText?: string;
+  requestId?: string;
 }) {
-  const clientIP = req.headers['x-forwarded-for'] as string || req.socket?.remoteAddress;
+  const clientIP = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket?.remoteAddress;
+  const walletAddress = (req.headers['x-wallet-address'] || req.headers['x-payer-address']) as string | undefined;
+  const trackingId = (req.headers['x-tracking-id'] || req.query.tracking) as string | undefined;
+
   db.insert(endpointHits).values({
     endpoint: req.originalUrl.split('?')[0],
     endpointType: 'a2a' as any,
     resourceId: opts.resourceId,
     ipHash: hashIP(clientIP),
     userAgent: req.headers['user-agent']?.slice(0, 500),
-    walletAddress: (req.headers['x-wallet-address'] || req.headers['x-payer-address']) as string | undefined,
+    walletAddress,
     method: req.method,
     statusCode: opts.statusCode,
     responseTimeMs: opts.responseTimeMs,
-    trackingId: (req.headers['x-tracking-id'] || req.query.tracking) as string | undefined,
+    trackingId,
+  }).catch(() => {});
+
+  db.insert(a2aInteractions).values({
+    requestId: opts.requestId,
+    endpoint: req.originalUrl.split('?')[0],
+    protocol: 'a2a',
+    queryText: opts.queryText?.slice(0, 2000),
+    matched: opts.matched ?? false,
+    resourceId: opts.resourceId,
+    statusCode: opts.statusCode,
+    responseTimeMs: opts.responseTimeMs,
+    ipAddress: clientIP?.slice(0, 100),
+    userAgent: req.headers['user-agent']?.slice(0, 1000),
+    walletAddress,
+    trackingId,
   }).catch(() => {});
 }
 
@@ -393,7 +413,7 @@ function handleMessageSend(req: Request, res: Response) {
         documentationUrl: `${BASE_URL}/.well-known/agent-instructions.json`
       }
     });
-    trackA2AHit(req, { resourceId: 'a2a-no-text', statusCode: 400, responseTimeMs: Date.now() - startTime, matched: false });
+    trackA2AHit(req, { resourceId: 'a2a-no-text', statusCode: 400, responseTimeMs: Date.now() - startTime, matched: false, requestId: taskId });
     return;
   }
 
@@ -410,7 +430,7 @@ function handleMessageSend(req: Request, res: Response) {
       suggestedSkills: SERVICE_CATALOG.slice(0, 5).map(s => s.id),
       catalogUrl: `${BASE_URL}/.well-known/agent-instructions.json`
     }));
-    trackA2AHit(req, { resourceId: 'a2a-no-match', statusCode: 200, responseTimeMs: Date.now() - startTime, matched: false });
+    trackA2AHit(req, { resourceId: 'a2a-no-match', statusCode: 200, responseTimeMs: Date.now() - startTime, matched: false, queryText: text, requestId: taskId });
     return;
   }
 
@@ -465,7 +485,7 @@ function handleMessageSend(req: Request, res: Response) {
       }
     }]
   }));
-  trackA2AHit(req, { resourceId: top.id, statusCode: 200, responseTimeMs: Date.now() - startTime, matched: true });
+  trackA2AHit(req, { resourceId: top.id, statusCode: 200, responseTimeMs: Date.now() - startTime, matched: true, queryText: text, requestId: taskId });
 }
 
 export default router;

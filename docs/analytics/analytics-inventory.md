@@ -115,6 +115,44 @@ SELECT service_id, COUNT(*) FROM x402_interactions GROUP BY 1 ORDER BY 2 DESC;
 
 ---
 
+---
+
+### 8. `a2a_interactions` - **A2A + AP2 FUNNEL TRACKER** ✅ NEW
+**Purpose**: Logs every inbound request to `/a2a/v1/message/send` and `/ap2/v1/merchant`
+**Data Captured**:
+- `protocol`: 'a2a' or 'ap2'
+- `matched`: boolean — whether a service was found
+- `resource_id`: matched service ID (e.g., 'gas-price-oracle')
+- `query_text`: raw query the agent sent (sliced to 2000 chars) — KEY FIELD
+- `ip_address`: real IP (not hashed) — for external agent identification
+- `user_agent`: full UA string
+- `status_code`: HTTP response code
+- `response_time_ms`: latency
+- `request_id`: task UUID for correlation
+- `created_at`: timestamp
+
+**Use Cases**:
+- Which queries are agents sending? (query_text)
+- What % of A2A hits result in a service match? (matched rate)
+- Which services are most requested via AP2?
+- External agent identification (ip_address + user_agent)
+- Funnel: probe → match → 402 challenge → payment
+
+**Query Examples**:
+```sql
+-- Unmatched queries — what agents want that we don't have
+SELECT query_text, COUNT(*) FROM a2a_interactions WHERE matched = false AND query_text IS NOT NULL GROUP BY 1 ORDER BY 2 DESC;
+
+-- Match rate
+SELECT protocol, COUNT(*) FILTER (WHERE matched) as matched, COUNT(*) as total FROM a2a_interactions GROUP BY protocol;
+
+-- Recent A2A activity
+SELECT protocol, matched, resource_id, query_text, ip_address, user_agent, created_at FROM a2a_interactions ORDER BY created_at DESC LIMIT 20;
+```
+**Added**: March 4, 2026
+
+---
+
 ## Dormant/Underutilized Tables
 
 ### `api_usage_tracking` - **NOW ACTIVE** ✅

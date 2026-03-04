@@ -31,6 +31,33 @@ import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { SERVICE_CATALOG } from './a2aCoinRailzRoutes';
 import { creditsService } from '../services/creditsService';
+import { db } from '../db';
+import { a2aInteractions } from '../../shared/schema';
+
+function trackAP2Hit(req: Request, opts: {
+  requestId?: string;
+  matched: boolean;
+  resourceId?: string;
+  queryText?: string;
+  statusCode: number;
+  responseTimeMs: number;
+}) {
+  const clientIP = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket?.remoteAddress;
+  db.insert(a2aInteractions).values({
+    requestId: opts.requestId,
+    endpoint: req.originalUrl.split('?')[0],
+    protocol: 'ap2',
+    queryText: opts.queryText?.slice(0, 2000),
+    matched: opts.matched,
+    resourceId: opts.resourceId,
+    statusCode: opts.statusCode,
+    responseTimeMs: opts.responseTimeMs,
+    ipAddress: clientIP?.slice(0, 100),
+    userAgent: req.headers['user-agent']?.slice(0, 1000),
+    walletAddress: (req.headers['x-wallet-address'] || req.headers['x-payer-address']) as string | undefined,
+    trackingId: (req.headers['x-tracking-id']) as string | undefined,
+  }).catch(() => {});
+}
 
 const router = Router();
 
@@ -169,6 +196,7 @@ router.get('/ap2/v1/merchant', (_req: Request, res: Response) => {
  * POST /ap2/v1/merchant — AP2 PaymentMandate handler
  */
 router.post('/ap2/v1/merchant', async (req: Request, res: Response) => {
+  const startTime = Date.now();
   const body = req.body || {};
   const reqId = body.id ?? null;
 
@@ -454,6 +482,7 @@ router.post('/ap2/v1/merchant', async (req: Request, res: Response) => {
         hint: 'Use GET /ap2/v1/merchant to browse available services, or use method_name CARD to purchase credits for general access.'
       }
     ));
+    trackAP2Hit(req, { requestId: taskId, matched: false, queryText: serviceId || undefined, statusCode: 200, responseTimeMs: Date.now() - startTime });
     return;
   }
 
@@ -520,6 +549,7 @@ router.post('/ap2/v1/merchant', async (req: Request, res: Response) => {
       }
     }
   }));
+  trackAP2Hit(req, { requestId: taskId, matched: true, resourceId: service.id, queryText: service.id, statusCode: 200, responseTimeMs: Date.now() - startTime });
 });
 
 export default router;

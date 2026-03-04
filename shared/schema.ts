@@ -6475,3 +6475,36 @@ export const onrampWebhookEvents = pgTable("onramp_webhook_events", {
   processedAt: timestamp("processed_at").defaultNow(),
 });
 
+export const a2aInteractions = pgTable(
+  "a2a_interactions",
+  {
+    id: serial("id").primaryKey(),
+    requestId: varchar("request_id"),
+    endpoint: varchar("endpoint").notNull(),
+    protocol: varchar("protocol").notNull().default("a2a"),
+    queryText: text("query_text"),
+    matched: boolean("matched").default(false),
+    resourceId: varchar("resource_id"),
+    statusCode: integer("status_code"),
+    responseTimeMs: integer("response_time_ms"),
+    ipAddress: varchar("ip_address"),
+    userAgent: text("user_agent"),
+    walletAddress: varchar("wallet_address"),
+    trackingId: varchar("tracking_id"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_a2a_inter_protocol").on(table.protocol),
+    index("IDX_a2a_inter_matched").on(table.matched),
+    index("IDX_a2a_inter_resource").on(table.resourceId),
+    index("IDX_a2a_inter_created").on(table.createdAt),
+  ]
+);
+
+export const insertA2AInteractionSchema = createInsertSchema(a2aInteractions).omit({
+  id: true,
+  createdAt: true,
+});
+export type A2AInteraction = typeof a2aInteractions.$inferSelect;
+export type InsertA2AInteraction = z.infer<typeof insertA2AInteractionSchema>;
+

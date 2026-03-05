@@ -1709,7 +1709,7 @@ export function createPaymentOrchestrator(
       }
       
       const decoded = decodeResult.data;
-      console.log(`🔐 Orchestrator: Decoded ${decodeResult.format.toUpperCase()} payment payload for ${serviceName}:`, JSON.stringify(decoded, null, 2).substring(0, 500));
+      console.log(`🔐 Orchestrator: Decoded ${decodeResult.format.toUpperCase()} payment payload for ${serviceName}:`, JSON.stringify(decoded, null, 2).substring(0, 2000));
         
         // x402-fetch sends: { x402Version, scheme, network, payload: { signature, ... } }
         // The actual txHash may be in nested structures
@@ -1728,6 +1728,32 @@ export function createPaymentOrchestrator(
         // Also check for x402 facilitator format
         if (!txHash && decoded.x402 && decoded.x402.txHash) {
           txHash = decoded.x402.txHash;
+        }
+
+        // Dexter facilitator format: { x402Version, accepted: SettleResponse }
+        // x402 SettleResponse uses 'transaction' (not 'txHash') for the confirmed on-chain hash.
+        // Dexter settles payments before sending X-PAYMENT, wrapping the receipt in 'accepted'.
+        if (!txHash && decoded.accepted) {
+          const acc = decoded.accepted as any;
+          txHash = acc.transaction                    // x402 SettleResponse primary field
+            || acc.txHash                             // alternate naming fallback
+            || acc.payload?.transaction
+            || acc.payload?.txHash
+            || acc.payload?.authorization?.txHash
+            || acc.payload?.receipt?.transactionHash
+            || acc.payload?.transactionHash
+            || acc.receipt?.transactionHash;
+          if (txHash) {
+            console.log(`🔐 Orchestrator: Extracted txHash from Dexter accepted field for ${serviceName}: ${txHash.substring(0, 10)}...`);
+          }
+          // Infer chain from accepted.network (Dexter SettleResponse includes network)
+          const accNetwork = acc.network || acc.payload?.network;
+          if (accNetwork && !paymentChain) {
+            const n = String(accNetwork).toLowerCase();
+            if (n === 'eip155:8453' || n === 'base' || n === 'base-mainnet') paymentChain = 'base';
+            else if (n === 'eip155:1' || n === 'ethereum' || n === 'ethereum-mainnet') paymentChain = 'ethereum';
+            if (paymentChain) console.log(`🔐 Orchestrator: Chain inferred from Dexter accepted.network: ${accNetwork} -> ${paymentChain}`);
+          }
         }
 
         // Detect chain from decoded payload network field
@@ -2041,7 +2067,8 @@ export function createPaymentOrchestrator(
         if (txHash) {
           console.log(`🔐 Orchestrator: Extracted/executed txHash for ${serviceName}: ${txHash.substring(0, 10)}...`);
         } else {
-          console.log(`🔐 Orchestrator: No txHash found in payload for ${serviceName}, payload keys: ${Object.keys(payloadObj).join(', ')}`);
+          const acceptedKeys = decoded.accepted ? Object.keys(decoded.accepted as any).join(', ') : 'none';
+          console.log(`🔐 Orchestrator: No txHash found in payload for ${serviceName}. Top-level keys: ${Object.keys(decoded).join(', ')}; accepted keys: ${acceptedKeys}; payload keys: ${Object.keys(payloadObj).join(', ') || '(empty)'}`);
           
           // FUNNEL TRACKING: Payment header parse failure - no txHash found
           await x402InteractionTracker.trackInteraction({

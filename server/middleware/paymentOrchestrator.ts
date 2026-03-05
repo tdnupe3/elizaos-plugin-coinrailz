@@ -1752,6 +1752,7 @@ export function createPaymentOrchestrator(
             const n = String(accNetwork).toLowerCase();
             if (n === 'eip155:8453' || n === 'base' || n === 'base-mainnet') paymentChain = 'base';
             else if (n === 'eip155:1' || n === 'ethereum' || n === 'ethereum-mainnet') paymentChain = 'ethereum';
+            else if (n.startsWith('solana:') || n === 'solana' || n === 'solana-mainnet') paymentChain = 'solana';
             if (paymentChain) console.log(`🔐 Orchestrator: Chain inferred from Dexter accepted.network: ${accNetwork} -> ${paymentChain}`);
           }
         }
@@ -2117,7 +2118,86 @@ export function createPaymentOrchestrator(
         }
     }
 
-    // If we have a transaction hash, verify it on-chain
+    // Solana routing: if chain is solana or txHash looks like a Solana signature, use Solana verification.
+    // This handles Dexter Solana payments where accepted.transaction is a base58 Solana signature.
+    if (txHash && (paymentChain === 'solana' || isSolanaSignature(txHash))) {
+      console.log(`🔐 Orchestrator: Routing to Solana verification for ${serviceName} (chain: ${paymentChain}, sig: ${txHash.substring(0, 10)}...)`);
+      const solanaResult = await verifySolanaPayment(txHash, requiredAmount);
+
+      if (solanaResult.verified) {
+        console.log(`✅ Orchestrator: Solana payment (Dexter) verified! Amount: $${solanaResult.amount} ${solanaResult.token}`);
+        res.locals.payment = {
+          method: 'solana-transaction',
+          chain: 'solana',
+          network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+          token: solanaResult.token,
+          tokenMint: solanaResult.tokenMint,
+          amount: solanaResult.amount,
+          txHash,
+          walletAddress: solanaResult.fromWallet,
+          verified: true
+        };
+        const solanaIntentId = nanoid();
+        await db.insert(x402PaymentIntents).values({
+          id: solanaIntentId,
+          txHash,
+          network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+          serviceName,
+          payer: solanaResult.fromWallet || '',
+          amount: solanaResult.amount.toString(),
+          status: 'PENDING',
+          retries: 0,
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+          metadata: { chain: 'solana', token: solanaResult.token, paymentScheme: 'dexter-facilitator' },
+        }).onConflictDoNothing();
+        await x402InteractionTracker.trackInteraction({
+          serviceId: serviceName,
+          ipAddress,
+          userAgent,
+          requestPath: req.originalUrl,
+          requestMethod: req.method,
+          responseStatus: 200,
+          paid: true,
+          amount: solanaResult.amount,
+          interactionType: 'payment',
+          requestId,
+          eventType: 'solana-payment',
+          serviceName,
+          latencyMs: Date.now() - startTime,
+          paymentReceived: true,
+          paymentAmount: solanaResult.amount,
+          offerTrackingId,
+          metadata: { chain: 'solana', token: solanaResult.token, txHash: txHash.substring(0, 20), fromWallet: solanaResult.fromWallet, knownAgent: knownAgent.name, facilitator: 'dexter' }
+        });
+        try {
+          await handler(req, res);
+          await db.update(x402PaymentIntents)
+            .set({ status: 'SUCCEEDED', succeededAt: new Date(), updatedAt: new Date() })
+            .where(and(eq(x402PaymentIntents.txHash, txHash), eq(x402PaymentIntents.serviceName, serviceName)));
+          console.log(`✅ Solana (Dexter) intent marked SUCCEEDED for ${serviceName}`);
+        } catch (handlerErr: any) {
+          await db.update(x402PaymentIntents)
+            .set({ status: 'FAILED', lastError: handlerErr.message, updatedAt: new Date() })
+            .where(and(eq(x402PaymentIntents.txHash, txHash), eq(x402PaymentIntents.serviceName, serviceName)));
+          console.error(`❌ Solana (Dexter) intent marked FAILED for ${serviceName}: ${handlerErr.message}`);
+          throw handlerErr;
+        }
+        return;
+      }
+
+      // Solana verification failed
+      console.warn(`❌ Orchestrator: Solana (Dexter) payment NOT verified for ${serviceName}: ${solanaResult.error}`);
+      return generatePaymentErrorResponse(
+        res,
+        'SOLANA_VERIFICATION_FAILED',
+        `Solana payment verification failed: ${solanaResult.error || 'Transaction not found or insufficient amount'}`,
+        'Ensure the transaction is confirmed on Solana mainnet and paid the correct USDC amount.',
+        requestId,
+        { recoverable: true, httpStatus: 402 }
+      );
+    }
+
+    // If we have a transaction hash, verify it on-chain (EVM)
     if (txHash) {
       try {
         const evmChain = (paymentChain === 'ethereum' || paymentChain === 'base') ? paymentChain : 'base';

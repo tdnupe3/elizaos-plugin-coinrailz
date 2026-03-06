@@ -149,10 +149,44 @@ export class IndexerNotificationService {
       this.hasNotifiedThisSession = true;
       console.log(`📢 Indexer notification complete: ${summary}`);
     } else {
-      console.log(`⚠️ Indexer notification partial: ${summary} - will allow retry`);
+      console.log(`⚠️ Indexer notification partial: ${summary} - scheduling background retries`);
+      const failedTargets = INDEXER_TARGETS.filter((t, i) => !results[i]?.success);
+      this.scheduleRetries(failedTargets).catch(() => {});
     }
 
     return { results, summary, allSucceeded };
+  }
+
+  private async scheduleRetries(
+    failedTargets: typeof INDEXER_TARGETS,
+    maxAttempts = 3
+  ): Promise<void> {
+    let remaining = [...failedTargets];
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const delayMs = Math.pow(2, attempt) * 2000; // 4s, 8s, 16s
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+      
+      console.log(`📢 Indexer retry #${attempt}: attempting ${remaining.map(t => t.name).join(', ')}`);
+      const stillFailing: typeof INDEXER_TARGETS = [];
+      
+      for (const target of remaining) {
+        const result = await this.pingIndexer(target);
+        const status = result.success
+          ? `✅ ${result.statusCode}`
+          : `❌ ${result.error || result.statusCode}`;
+        console.log(`   Retry #${attempt} ${target.name}: ${status} (${result.latencyMs}ms)`);
+        if (!result.success) stillFailing.push(target);
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      if (stillFailing.length === 0) {
+        this.hasNotifiedThisSession = true;
+        console.log(`📢 Indexer retry #${attempt} complete: all targets notified`);
+        return;
+      }
+      remaining = stillFailing;
+    }
+    console.log(`⚠️ Indexer retries exhausted after ${maxAttempts} attempts: ${remaining.map(t => t.name).join(', ')} still unreachable`);
   }
 
   async pingSpecificEndpoints(): Promise<IndexerPingResult[]> {

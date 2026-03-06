@@ -192,6 +192,7 @@ export function createBazaarDiscoveryRouter(): Router {
       const resources = catalog.services
         .filter(s => s.x402Compatible)
         .map(service => ({
+          id: service.id,
           url: `${PUBLIC_BASE_URL}${service.endpoint}`,
           name: service.name,
           description: service.description,
@@ -296,12 +297,14 @@ export async function validateDiscoveryCatalogIntegrity(): Promise<{ valid: bool
       return { valid: false, missing: expectedServices, extra: [], endpointServiceCount: 0 };
     }
     
-    const data = await response.json() as { resources: Array<{ url: string; name: string }> };
+    const data = await response.json() as { resources: Array<{ id?: string; url: string; name: string }> };
     
-    // Extract service IDs from actual endpoint response (from URL path)
+    // Extract service IDs from actual endpoint response
+    // Prefer the explicit 'id' field (added to resources); fall back to URL last segment for backwards compatibility
     const endpointServiceIds = data.resources.map(r => {
+      if (r.id) return r.id;
       const urlParts = r.url.split('/');
-      return urlParts[urlParts.length - 1]; // Get last segment (service ID)
+      return urlParts[urlParts.length - 1];
     });
     
     // Compare: find services in catalog that aren't in endpoint

@@ -420,7 +420,7 @@ export class A2AOutreachService {
     try {
       console.log('🔄 Syncing agents from a2aregistry.org...');
       
-      const response = await axios.get('https://a2aregistry.org/registry.json', {
+      const response = await axios.get('https://a2aregistry.org/api/agents', {
         timeout: 30000,
         headers: { 'User-Agent': this.USER_AGENT }
       });

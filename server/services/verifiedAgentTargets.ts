@@ -177,7 +177,7 @@ export const AGENT_SOCIAL_CONTACTS = {
  * Tested: Nov 23, 2025 - 102 real agents confirmed (Business Source, Chess Agent, Code Agent, etc.)
  */
 export const A2A_REGISTRY_URLS: string[] = [
-  'https://a2aregistry.org/registry.json', // PRIMARY: Community-driven production registry (102+ real agents)
+  'https://a2aregistry.org/api/agents', // PRIMARY: Community-driven production registry (276+ real agents, /registry.json deprecated)
 ];
 
 /**

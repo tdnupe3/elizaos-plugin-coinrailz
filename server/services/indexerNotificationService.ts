@@ -30,7 +30,7 @@ const INDEXER_TARGETS = [
     method: 'POST',
     body: {
       host: new URL(BASE_URL).hostname,
-      key: 'coinrailz-x402-platform',
+      key: 'cr402coinrailzplatform20260308',
       urlList: [
         `${BASE_URL}/`,
         `${BASE_URL}/x402/catalog`,

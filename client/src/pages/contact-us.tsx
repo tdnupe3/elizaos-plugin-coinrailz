@@ -263,7 +263,7 @@ export default function ContactUs() {
                 <CardContent className="space-y-3">
                   <div>
                     <p className="font-medium text-gray-900">Kellogg Holdings LLC</p>
-                    <p className="text-gray-600">Licensed Money Transmitter - Alabama</p>
+                    <p className="text-gray-600">Coin Railz Platform Operator</p>
                   </div>
                   
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">

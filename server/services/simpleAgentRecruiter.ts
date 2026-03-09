@@ -448,7 +448,7 @@ ${isHighValue ? '🔥 **PREMIUM AGENT INVITATION** - Your proven track record qu
 • **Network Effect Multiplier**: Your referrals' referrals also pay you commissions
 
 ✅ **Why Choose Coin Railz:**
-• **Licensed Money Transmitter** (fully regulated & insured)
+• **Regulatory Compliant** (AML/KYC infrastructure, institutional-grade)
 • **$2M+ transaction volume** (established user base)
 • **API-first integration** - Connect your existing systems
 • **Institutional-grade security** - Bank-level compliance

@@ -74,7 +74,7 @@ export default function LegalDisclaimers() {
                 <span>Anti-Money Laundering (AML) & Know Your Customer (KYC) Policy</span>
               </CardTitle>
               <CardDescription>
-                Kellogg Holdings LLC - Licensed Money Transmitter, Alabama
+                Kellogg Holdings LLC
               </CardDescription>
             </CardHeader>
             <CardContent>

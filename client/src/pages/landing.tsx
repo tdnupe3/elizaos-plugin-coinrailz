@@ -1132,10 +1132,6 @@ export default function Landing() {
             <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500">
               <span className="flex items-center gap-1">
                 <Shield className="w-3 h-3" />
-                Money Transmitter Licensed
-              </span>
-              <span className="flex items-center gap-1">
-                <Shield className="w-3 h-3" />
                 AML/KYC Compliant
               </span>
             </div>

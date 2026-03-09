@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import { createHmac } from 'crypto';
 import { db } from '../db';
 import { discoveredAgents, a2aOutreachLogs } from '@shared/schema';
 import { eq, and, isNull, or, lt, sql, count, not, desc } from 'drizzle-orm';
@@ -88,27 +89,236 @@ export class A2AOutreachService {
   }
 
   /**
-   * Generate A2A outreach task payload
-   * Optimized for revenue generation based on architect guidance
+   * Generate a scoped per-message callback token
+   * HMAC-signed with message + agent binding — never exposes the raw global secret
    */
-  private generateTaskPayload(agentName: string, agentSkills: string[] = []): object {
-    const messageId = nanoid();
-    const trialCode = `A2A-${nanoid(8).toUpperCase()}`;
-    
-    const hasPaymentSkills = agentSkills.some(s => 
-      /payment|commerce|billing|marketplace|transaction|checkout|wallet/i.test(s)
-    );
+  private generateScopedCallbackToken(messageId: string, agentUrl: string): string {
+    const secret = process.env.A2A_WEBHOOK_SECRET;
+    if (!secret) {
+      throw new Error('A2A_WEBHOOK_SECRET environment variable is required for outreach campaigns');
+    }
+    const payload = `${messageId}:${agentUrl}`;
+    return createHmac('sha256', secret).update(payload).digest('hex').substring(0, 40);
+  }
 
-    const primaryMessage = hasPaymentSkills
-      ? 'Integration Opportunity: Enhance your payment capabilities with single-call checkout'
-      : 'Integration Opportunity: Add payment processing to your AI agent in minutes';
+  /**
+   * Preflight check before running any campaign
+   * Validates required environment configuration
+   */
+  private preflightCheck(): void {
+    if (!process.env.A2A_WEBHOOK_SECRET) {
+      throw new Error('Campaign aborted: A2A_WEBHOOK_SECRET is not set. Set this environment variable before running outreach campaigns.');
+    }
+  }
+
+  /**
+   * Detect whether an agent is already x402-native (uses x402 in their own stack)
+   * These agents need buyer-side pitch, not x402 education
+   */
+  private isX402Native(capabilities: any, metadata: any): boolean {
+    const combined = JSON.stringify({ ...(capabilities || {}), ...(metadata || {}) }).toLowerCase();
+    return /x402|http 402|pay-per-request|pay per request|eip155:8453.*usdc|usdc.*base.*pay|micropayment|payto.*0x/i.test(combined);
+  }
+
+  /**
+   * Match the single most relevant Coin Railz service to an agent based on their description
+   * Per-archetype targeting for non-x402 agents
+   */
+  private getRelevantServiceForAgent(agentName: string, capabilities: any, metadata: any): {
+    serviceId: string;
+    serviceName: string;
+    endpoint: string;
+    price: string;
+    relevanceReason: string;
+  } {
+    const combined = (
+      JSON.stringify(capabilities || {}) +
+      JSON.stringify(metadata || {}) +
+      (agentName || '')
+    ).toLowerCase();
+
+    if (/policy|legal|compliance|seller|return.*policy|terms.*service/.test(combined)) {
+      return {
+        serviceId: 'smart-contract-audit',
+        serviceName: 'Smart Contract Audit',
+        endpoint: 'https://coinrailz.com/x402/contract-scan',
+        price: '$0.15/request',
+        relevanceReason: 'contract compliance and policy verification'
+      };
+    }
+    if (/survey|geo|elevation|soil|flood|climate|satellite|earth.*observ/.test(combined)) {
+      return {
+        serviceId: 'satellite-fire-alerts',
+        serviceName: 'Satellite & Weather Data',
+        endpoint: 'https://coinrailz.com/x402/satellite-fire-alerts',
+        price: 'from $0.05/request',
+        relevanceReason: 'geodata, satellite imagery, and real-time weather feeds'
+      };
+    }
+    if (/media|video|screenshot|pdf|document|image.*gen|render/.test(combined)) {
+      return {
+        serviceId: 'ai-inference',
+        serviceName: 'AI Inference (GPT-4o)',
+        endpoint: 'https://coinrailz.com/x402/ai-inference',
+        price: '$0.25/request',
+        relevanceReason: 'AI inference for media and document processing'
+      };
+    }
+    if (/predict|market.*odds|kalshi|polymarket|forecast|sports.*bet/.test(combined)) {
+      return {
+        serviceId: 'polymarket-odds',
+        serviceName: 'Prediction Market Odds',
+        endpoint: 'https://coinrailz.com/x402/polymarket-odds',
+        price: '$0.05/request',
+        relevanceReason: 'real-time prediction market data'
+      };
+    }
+    if (/revenue|sales|b2b|crm|pipeline|deal|go-to-market/.test(combined)) {
+      return {
+        serviceId: 'trade-signals',
+        serviceName: 'Trade Signals & Market Intelligence',
+        endpoint: 'https://coinrailz.com/x402/trade-signals',
+        price: '$0.10/request',
+        relevanceReason: 'market intelligence and trading signal feeds'
+      };
+    }
+    if (/depin|iot|sensor|device|telemetry|actuator|grow|environment/.test(combined)) {
+      return {
+        serviceId: 'weather-station-data',
+        serviceName: 'IoT & Weather Station Data',
+        endpoint: 'https://coinrailz.com/x402/weather-station-data',
+        price: '$0.03/request',
+        relevanceReason: 'real-world IoT and sensor data feeds'
+      };
+    }
+    if (/audit|verify|proof|execution|cryptograph|attestation/.test(combined)) {
+      return {
+        serviceId: 'contract-scan',
+        serviceName: 'Smart Contract Audit',
+        endpoint: 'https://coinrailz.com/x402/contract-scan',
+        price: '$0.15/request',
+        relevanceReason: 'on-chain verification and audit data'
+      };
+    }
+    if (/deploy|kubernetes|container|infra|cloud|devops|k8s/.test(combined)) {
+      return {
+        serviceId: 'gas-price-oracle',
+        serviceName: 'Gas Price Oracle',
+        endpoint: 'https://coinrailz.com/x402/gas-price-oracle',
+        price: '$0.03/request',
+        relevanceReason: 'real-time gas pricing for deployment cost estimation'
+      };
+    }
+    // Universal default — useful for any on-chain or autonomous agent
+    return {
+      serviceId: 'gas-price-oracle',
+      serviceName: 'Gas Price Oracle',
+      endpoint: 'https://coinrailz.com/x402/gas-price-oracle',
+      price: '$0.03/request',
+      relevanceReason: 'real-time gas pricing across 8 chains'
+    };
+  }
+
+  /**
+   * Generate A2A outreach task payload
+   * Segmented by agent type: x402-native (buyer pitch) vs non-x402 (one relevant service)
+   * No trial credits. References free /x402/ping + published agent instructions.
+   */
+  private generateTaskPayload(agentName: string, agentSkills: string[] = [], agent?: any): object {
+    const messageId = nanoid();
+    const capabilities = agent?.capabilities || {};
+    const metadata = agent?.metadata || {};
+    const agentUrl = agent?.url || '';
+
+    // Scoped per-message callback token — never leaks global secret
+    const scopedToken = this.generateScopedCallbackToken(messageId, agentUrl);
+
+    // Segment: x402-native agents get buyer-side pitch, others get one relevant service
+    const x402Native = this.isX402Native(capabilities, metadata);
+
+    let primaryMessage: string;
+    let proposalData: object;
+
+    if (x402Native) {
+      // These agents already speak x402 — pitch them as buyers of Coin Railz's data catalog
+      primaryMessage = 'Peer partnership opportunity: 59 live x402 data services available for your agents to consume';
+      proposalData = {
+        type: 'x402_catalog_partnership',
+        provider: 'Coin Railz',
+        proposalId: messageId,
+        whyContacted: `${agentName} is already x402-native — your agents can immediately consume Coin Railz data services via the same protocol you already use, with no integration work.`,
+        catalog: {
+          description: '59 production x402 services across DeFi, prediction markets, satellite data, IoT feeds, and AI inference — all payable in USDC on Base',
+          catalogUrl: 'https://coinrailz.com/x402/catalog',
+          sampleServices: [
+            { id: 'gas-price-oracle', price: '$0.03/call', description: 'Real-time gas prices, 8 chains' },
+            { id: 'polymarket-odds', price: '$0.05/call', description: 'Prediction market live odds' },
+            { id: 'satellite-fire-alerts', price: '$0.05/call', description: 'NASA FIRMS real-time fire alerts' },
+            { id: 'ai-inference', price: '$0.25/call', description: 'GPT-4o pay-per-call, no API key needed' },
+            { id: 'dex-liquidity', price: '$0.05/call', description: 'DEX liquidity across 6 chains' }
+          ],
+          trialEndpoint: {
+            url: 'https://coinrailz.com/x402/ping',
+            description: 'First call free — no wallet setup needed to try'
+          }
+        },
+        crossRouting: {
+          description: 'Mutual listing opportunity: Coin Railz can list your services in our catalog for discovery by our agent network',
+          agentCard: this.getOurAgentCardUrl(),
+          agentInstructions: `${this.getBaseUrl()}/.well-known/agent-instructions.json`
+        },
+        callToAction: {
+          action: 'reply_or_call_catalog',
+          supportedResponses: ['interested', 'call_catalog_endpoint', 'mutual_listing', 'decline'],
+          contactEmail: 'integrations@coinrailz.com',
+          optOut: 'Reply with {"action":"opt_out"} to stop receiving messages from Coin Railz'
+        }
+      };
+    } else {
+      // Non-x402 agents: match one specific relevant service
+      const relevantService = this.getRelevantServiceForAgent(agentName, capabilities, metadata);
+      primaryMessage = `Service availability: ${relevantService.serviceName} — a paid data endpoint that may complement ${agentName}'s capabilities`;
+      proposalData = {
+        type: 'x402_service_proposal',
+        provider: 'Coin Railz',
+        proposalId: messageId,
+        whyContacted: `${agentName} was found in a2aregistry.org — this service was selected as the most relevant match for your described capabilities.`,
+        featuredService: {
+          id: relevantService.serviceId,
+          name: relevantService.serviceName,
+          endpoint: relevantService.endpoint,
+          price: relevantService.price,
+          relevance: relevantService.relevanceReason,
+          paymentProtocol: 'x402 (HTTP 402 — USDC on Base)',
+          protocol: 'x402 v2'
+        },
+        evaluation: {
+          description: 'Evaluate before committing — first call free on /x402/ping',
+          freeEndpoint: 'https://coinrailz.com/x402/ping',
+          agentInstructions: `${this.getBaseUrl()}/.well-known/agent-instructions.json`,
+          fullCatalog: 'https://coinrailz.com/x402/catalog',
+          agentCard: this.getOurAgentCardUrl()
+        },
+        paymentInfrastructure: {
+          description: 'Coin Railz also provides payment infrastructure for agents that want to monetize their own services',
+          mcpKit: 'https://coinrailz.com/docs/mcp-payments-kit',
+          supportedMethods: ['x402_usdc', 'stripe_fiat', 'credits_balance'],
+          chains: 8
+        },
+        callToAction: {
+          action: 'reply_or_call_endpoint',
+          supportedResponses: ['interested', 'call_free_endpoint', 'request_info', 'decline'],
+          contactEmail: 'integrations@coinrailz.com',
+          optOut: 'Reply with {"action":"opt_out"} to stop receiving messages from Coin Railz'
+        }
+      };
+    }
 
     return {
       jsonrpc: '2.0',
       id: `coinrailz-outreach-${messageId}`,
-      method: 'tasks/send', // A2A protocol standard method
+      method: 'message/send',
       params: {
-        id: `task-${messageId}`,
         message: {
           role: 'user',
           parts: [
@@ -118,46 +328,7 @@ export class A2AOutreachService {
             },
             {
               type: 'data',
-              data: {
-                type: 'payment_infrastructure_proposal',
-                provider: 'Coin Railz',
-                proposalId: messageId,
-                offering: {
-                  name: 'MCP Payments Kit',
-                  description: 'Production-ready single-call checkout endpoint for AI agents. Supports Stripe (fiat), x402 (on-chain USDC), and credits (pre-purchased balance).',
-                  keyFeatures: [
-                    'Single API call checkout',
-                    'ACID-compliant transactions',
-                    'Multi-chain USDC settlement (8 chains)',
-                    '284ms average setup time',
-                    'Zero integration fees during trial'
-                  ],
-                  paymentMethods: ['stripe_fiat', 'x402_crypto', 'credits'],
-                  supportedChains: ['ethereum', 'base', 'polygon', 'arbitrum', 'optimism', 'bnb', 'avalanche', 'solana'],
-                  settlementCurrency: 'USDC',
-                  setupTime: '284ms',
-                  acidTransactions: true,
-                  production: true
-                },
-                trialOffer: {
-                  credits: 50,
-                  currency: 'USD',
-                  code: trialCode,
-                  validDays: 30,
-                  noCardRequired: true
-                },
-                integration: {
-                  docsUrl: 'https://coinrailz.com/docs/mcp-payments-kit',
-                  quickstartUrl: 'https://coinrailz.com/docs/quickstart',
-                  sdkUrl: 'https://www.npmjs.com/package/@coinrailz/mcp-payments',
-                  agentCard: this.getOurAgentCardUrl()
-                },
-                callToAction: {
-                  action: 'reply_to_integrate',
-                  supportedResponses: ['interested', 'schedule_demo', 'request_info', 'decline'],
-                  contactEmail: 'integrations@coinrailz.com'
-                }
-              }
+              data: proposalData
             }
           ],
           messageId: messageId
@@ -165,12 +336,13 @@ export class A2AOutreachService {
         configuration: {
           pushNotificationConfig: {
             url: this.getResponseWebhookUrl(),
-            token: process.env.A2A_WEBHOOK_SECRET
+            token: scopedToken
           }
         },
         metadata: {
           source: 'coinrailz-a2a-outreach',
-          version: '1.0.0',
+          version: '2.0.0',
+          segment: x402Native ? 'x402-native' : 'non-x402',
           timestamp: new Date().toISOString()
         }
       }
@@ -224,9 +396,65 @@ export class A2AOutreachService {
   }
 
   /**
+   * Resolve the working A2A endpoint for an agent
+   * Tries the configured endpoint first, then falls back to common A2A path patterns
+   * Returns {endpoint, method} for the first working combination, or null if none work
+   */
+  private async resolveAgentEndpoint(baseEndpoint: string, agentName: string): Promise<{
+    endpoint: string;
+    probedOk: boolean;
+  } | null> {
+    // Path candidates to probe when base endpoint returns 405
+    const base = baseEndpoint.replace(/\/+$/, '');
+    const candidates = [
+      base,
+      `${base}/a2a`,
+      `${base}/api/a2a`,
+      `${base}/rpc`,
+      `${base}/v1/message/send`,
+      `${base}/message/send`
+    ];
+
+    const minimalProbe = {
+      jsonrpc: '2.0',
+      id: 'cr-probe',
+      method: 'message/send',
+      params: {
+        message: {
+          role: 'user',
+          parts: [{ type: 'text', text: 'ping' }],
+          messageId: 'probe'
+        }
+      }
+    };
+
+    for (const candidate of candidates) {
+      try {
+        const response = await axios.post(candidate, minimalProbe, {
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'User-Agent': this.USER_AGENT },
+          timeout: 5000,
+          validateStatus: () => true
+        });
+
+        const status = response.status;
+        // 200-299, 400 (bad request but endpoint exists), or any 2xx = endpoint found
+        if (status < 405 || status === 400 || status === 422) {
+          console.log(`✅ Endpoint resolved for ${agentName}: ${candidate} (HTTP ${status})`);
+          return { endpoint: candidate, probedOk: status < 400 };
+        }
+        // 405 = Method Not Allowed at this path — try next
+      } catch {
+        // Network error — try next candidate
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Send A2A task to a single agent
    */
-  async sendTask(agentUrl: string, agentEndpoint: string, agentName: string, agentSkills: string[] = []): Promise<A2ATaskResult> {
+  async sendTask(agentUrl: string, agentEndpoint: string, agentName: string, agentSkills: string[] = [], agent?: any): Promise<A2ATaskResult> {
     // Check circuit breaker
     if (this.isCircuitOpen(agentUrl)) {
       return { success: false, error: 'Circuit breaker open' };
@@ -248,9 +476,9 @@ export class A2AOutreachService {
     this.lastRequestTime.set(agentUrl, Date.now());
 
     try {
-      const payload = this.generateTaskPayload(agentName, agentSkills);
-      
-      console.log(`📤 A2A Outreach: Sending task to ${agentName} at ${agentEndpoint}`);
+      const payload = this.generateTaskPayload(agentName, agentSkills, agent);
+      const segment = this.isX402Native(agent?.capabilities, agent?.metadata) ? 'x402-native' : 'non-x402';
+      console.log(`📤 A2A Outreach [${segment}]: Sending to ${agentName} at ${agentEndpoint}`);
 
       const response = await axios.post(agentEndpoint, payload, {
         headers: {
@@ -265,6 +493,16 @@ export class A2AOutreachService {
       const result = response.data;
       
       if (result.error) {
+        const errorCode = result.error.code;
+        // -32601 = Method not found, -32600 = Invalid Request — legacy agent, retry with tasks/send
+        const isMethodError = errorCode === -32601 || errorCode === -32600 || 
+          (result.error.message || '').toLowerCase().includes('method not found');
+        
+        if (isMethodError) {
+          console.log(`⚠️  ${agentName} rejected message/send (code ${errorCode}), retrying with legacy tasks/send...`);
+          return await this.sendTaskLegacy(agentUrl, agentEndpoint, agentName, agentSkills, agent);
+        }
+
         this.recordFailure(agentUrl);
         return {
           success: false,
@@ -286,9 +524,40 @@ export class A2AOutreachService {
       };
 
     } catch (error) {
-      this.recordFailure(agentUrl);
-      
       const axiosError = error as AxiosError;
+      const status = axiosError.response?.status;
+
+      // 405 Method Not Allowed — configured endpoint wrong, try path resolution
+      if (status === 405) {
+        console.log(`⚠️  ${agentName} returned 405 at ${agentEndpoint}, resolving endpoint...`);
+        try {
+          const resolved = await this.resolveAgentEndpoint(agentEndpoint, agentName);
+          if (resolved && resolved.endpoint !== agentEndpoint) {
+            // Found a working endpoint — retry the full send
+            const payload = this.generateTaskPayload(agentName, agentSkills, agent);
+            const retryResponse = await axios.post(resolved.endpoint, payload, {
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'User-Agent': this.USER_AGENT },
+              timeout: this.TIMEOUT_MS
+            });
+            const retryResult = retryResponse.data;
+            if (!retryResult.error) {
+              this.recordSuccess(agentUrl);
+              const taskResult = retryResult.result || {};
+              return {
+                success: true,
+                taskId: taskResult.id,
+                contextId: taskResult.contextId,
+                status: taskResult.status?.state || 'submitted',
+                responseData: { ...taskResult, _resolvedEndpoint: resolved.endpoint }
+              };
+            }
+          }
+        } catch {
+          // Resolution failed — fall through to failure
+        }
+      }
+
+      this.recordFailure(agentUrl);
       const errorMessage = axiosError.response 
         ? `HTTP ${axiosError.response.status}: ${axiosError.response.statusText}`
         : axiosError.message;
@@ -305,6 +574,87 @@ export class A2AOutreachService {
   }
 
   /**
+   * Legacy tasks/send fallback for agents not yet on A2A 0.3.0 message/send
+   * Invoked automatically when message/send returns -32601 Method Not Found
+   */
+  private async sendTaskLegacy(
+    agentUrl: string,
+    agentEndpoint: string,
+    agentName: string,
+    agentSkills: string[],
+    agent?: any
+  ): Promise<A2ATaskResult> {
+    try {
+      const messageId = nanoid();
+      const x402Native = this.isX402Native(agent?.capabilities, agent?.metadata);
+
+      const legacyPayload = {
+        jsonrpc: '2.0',
+        id: `coinrailz-outreach-${messageId}`,
+        method: 'tasks/send',
+        params: {
+          id: `task-${messageId}`,
+          message: {
+            role: 'user',
+            parts: [
+              {
+                type: 'text',
+                text: x402Native
+                  ? 'Peer partnership: 59 live x402 data services available for your agents to consume — same protocol you already use'
+                  : `Service availability: Coin Railz offers 59 paid data endpoints (USDC on Base). Free trial at ${this.getBaseUrl()}/x402/ping`
+              }
+            ],
+            messageId: messageId
+          },
+          metadata: {
+            source: 'coinrailz-a2a-outreach',
+            version: '2.0.0-legacy',
+            segment: x402Native ? 'x402-native' : 'non-x402',
+            catalogUrl: `${this.getBaseUrl()}/x402/catalog`,
+            agentCard: this.getOurAgentCardUrl(),
+            contactEmail: 'integrations@coinrailz.com',
+            optOut: 'Reply with {"action":"opt_out"} to unsubscribe',
+            timestamp: new Date().toISOString()
+          }
+        }
+      };
+
+      const response = await axios.post(agentEndpoint, legacyPayload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': this.USER_AGENT,
+        },
+        timeout: this.TIMEOUT_MS,
+      });
+
+      const result = response.data;
+      if (result.error) {
+        this.recordFailure(agentUrl);
+        return { success: false, error: `legacy tasks/send: ${result.error.message}`, responseData: result.error };
+      }
+
+      this.recordSuccess(agentUrl);
+      const taskResult = result.result || {};
+      return {
+        success: true,
+        taskId: taskResult.id,
+        contextId: taskResult.contextId,
+        status: taskResult.status?.state || 'submitted',
+        responseData: { ...taskResult, _usedLegacyMethod: true }
+      };
+
+    } catch (err) {
+      const axiosError = err as AxiosError;
+      const errorMessage = axiosError.response
+        ? `HTTP ${axiosError.response.status} (legacy)`
+        : (axiosError.message || 'legacy send failed');
+      this.recordFailure(agentUrl);
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
    * Get A2A-verified agents ready for outreach
    * Prioritizes agents with payment/commerce skills
    * Includes agents from a2a-public-registry (confirmed A2A compatible)
@@ -315,14 +665,19 @@ export class A2AOutreachService {
       .where(
         and(
           or(
+            // Only verified agents from any source
             eq(discoveredAgents.status, 'verified'),
-            eq(discoveredAgents.source, 'a2a-public-registry')
+            // All synced agents from the official a2aregistry.org (quality-curated)
+            and(
+              eq(discoveredAgents.status, 'registry_synced'),
+              eq(discoveredAgents.source, 'a2aregistry-official')
+            )
           ),
           or(
             isNull(discoveredAgents.lastContactAt),
             lt(discoveredAgents.lastContactAt, sql`NOW() - INTERVAL '7 days'`)
           ),
-          sql`${discoveredAgents.status} != 'opt_out'`
+          sql`${discoveredAgents.status} NOT IN ('opt_out', 'duplicate', 'unreachable')`
         )
       )
       .limit(limit);
@@ -754,6 +1109,11 @@ export class A2AOutreachService {
       verifiedReachableOnly = false
     } = options;
 
+    // Preflight: fail fast if required env is missing (dry-run exempt)
+    if (!dryRun) {
+      this.preflightCheck();
+    }
+
     console.log(`🚀 Starting A2A outreach campaign: ${campaignId} (limit: ${limit}, dryRun: ${dryRun}, highValueOnly: ${highValueOnly}, verifiedReachableOnly: ${verifiedReachableOnly})`);
 
     // Select agents based on targeting options
@@ -829,8 +1189,8 @@ export class A2AOutreachService {
         continue;
       }
 
-      // Send the task
-      const taskResult = await this.sendTask(agent.url, agentEndpoint, agentName, skills);
+      // Send the task — pass full agent for segmented payload generation
+      const taskResult = await this.sendTask(agent.url, agentEndpoint, agentName, skills, agent);
 
       results.push({
         agentId: agent.id,

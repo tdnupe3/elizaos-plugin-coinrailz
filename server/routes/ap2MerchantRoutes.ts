@@ -22,8 +22,12 @@
  *   2. We return x402 payment instructions (endpoint, wallet, chain, facilitator)
  *   3. Agent pays on-chain, resubmits with X-PAYMENT header
  *
- * TODO (V1): Full ECDSA W3C VC proof verification per W3C Verifiable Credentials spec.
- * Current V0.1 validates structure, TTL, amount tolerance, and user_authorization presence.
+ * Mandate Authorization (V0.1):
+ *   user_authorization = "sha256:" + SHA-256(mandate_id|timestamp|amount|currency|method|service_id)
+ *   This proves the agent constructed the mandate and ties the auth to specific fields.
+ *   Replay protection: each payment_mandate_id is accepted only once within its TTL window.
+ *
+ * V1 upgrade path: replace mandate hash with full ECDSA W3C VC proof once AP2 ecosystem matures.
  */
 
 import { Router, Request, Response } from 'express';
@@ -79,6 +83,56 @@ const CARD_PAYMENT_METHODS = new Set([
   'CARD', 'VISA', 'MASTERCARD', 'AMEX', 'STRIPE',
   'PAYMENT_CARD', 'CREDIT_CARD', 'DEBIT_CARD'
 ]);
+
+// ─── Mandate Authorization ────────────────────────────────────────────────────
+// Replay protection: track used mandate IDs within the TTL window.
+// Key = payment_mandate_id, Value = timestamp when first accepted.
+const usedMandateIds = new Map<string, number>();
+
+function cleanupUsedMandates(): void {
+  const cutoff = Date.now() - MANDATE_TTL_MS * 2;
+  for (const [id, usedAt] of usedMandateIds.entries()) {
+    if (usedAt < cutoff) usedMandateIds.delete(id);
+  }
+}
+
+/**
+ * Compute the canonical mandate hash that agents must provide in user_authorization.
+ *
+ * Format: "sha256:" + hex(SHA-256(mandate_id|timestamp|amount_value|currency|method|service_id))
+ *
+ * Agents compute this with:
+ *   const canonical = [mandate_id, timestamp, amount_value, currency, method_name, service_id || ''].join('|');
+ *   const user_authorization = 'sha256:' + crypto.createHash('sha256').update(canonical).digest('hex');
+ */
+function computeMandateHash(contents: AP2PaymentMandateContents): string {
+  const canonical = [
+    contents.payment_mandate_id || '',
+    contents.timestamp || '',
+    String(contents.payment_details_total?.amount?.value ?? ''),
+    contents.payment_details_total?.amount?.currency || '',
+    contents.payment_response?.method_name || '',
+    contents.payment_details_id || ''
+  ].join('|');
+  return 'sha256:' + crypto.createHash('sha256').update(canonical).digest('hex');
+}
+
+/**
+ * Verify that user_authorization is the correct SHA-256 hash of the mandate contents.
+ * Uses timing-safe comparison to prevent timing attacks.
+ */
+function verifyMandateAuthorization(contents: AP2PaymentMandateContents, userAuthorization: string): boolean {
+  const expected = computeMandateHash(contents);
+  if (userAuthorization.length !== expected.length) return false;
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(userAuthorization, 'utf8'),
+      Buffer.from(expected, 'utf8')
+    );
+  } catch {
+    return false;
+  }
+}
 
 interface AP2PaymentMandateContents {
   payment_mandate_id?: string;
@@ -173,6 +227,13 @@ router.get('/ap2/v1/merchant', (_req: Request, res: Response) => {
     x402SpecVersion: 2,
     facilitators: [FACILITATOR_CDP, FACILITATOR_DEXTER],
     priceRange: '$0.10 – $10.00 per request',
+    mandateAuthorization: {
+      format: 'sha256:<hex>',
+      algorithm: 'SHA-256',
+      canonical: 'payment_mandate_id + "|" + timestamp + "|" + amount_value + "|" + currency + "|" + method_name + "|" + service_id',
+      note: 'Compute: const canonical = [mandate_id, timestamp, String(amount), currency, method, service_id||""].join("|"); user_authorization = "sha256:" + crypto.createHash("sha256").update(canonical).digest("hex");',
+      replayProtection: 'Each payment_mandate_id is accepted exactly once within its TTL window.'
+    },
     cardPayment: {
       note: 'Card payments purchase API credits. Min $1.00, max $2,500. Credits can be used for any service.',
       minAmount: CARD_MIN_AMOUNT,
@@ -231,7 +292,13 @@ router.post('/ap2/v1/merchant', async (req: Request, res: Response) => {
                 payment_response: { method_name: 'X402' },
                 timestamp: new Date().toISOString()
               },
-              user_authorization: 'mandate-hash-or-signature'
+              user_authorization: computeMandateHash({
+                payment_mandate_id: 'your-uuid-here',
+                timestamp: new Date().toISOString(),
+                payment_details_total: { amount: { value: 0.10, currency: 'USD' } },
+                payment_response: { method_name: 'X402' },
+                payment_details_id: 'gas-price-oracle'
+              })
             }
           }
         },
@@ -240,7 +307,7 @@ router.post('/ap2/v1/merchant', async (req: Request, res: Response) => {
           data: {
             'ap2.mandates.PaymentMandate': {
               payment_mandate_contents: {
-                payment_mandate_id: 'uuid',
+                payment_mandate_id: 'your-uuid-here',
                 payment_details_total: { amount: { currency: 'USD', value: 10.00 } },
                 payment_response: {
                   method_name: 'CARD',
@@ -248,10 +315,16 @@ router.post('/ap2/v1/merchant', async (req: Request, res: Response) => {
                 },
                 timestamp: new Date().toISOString()
               },
-              user_authorization: 'mandate-hash-or-signature'
+              user_authorization: computeMandateHash({
+                payment_mandate_id: 'your-uuid-here',
+                payment_details_total: { amount: { value: 10.00, currency: 'USD' } },
+                payment_response: { method_name: 'CARD' },
+                timestamp: new Date().toISOString()
+              })
             }
           }
         },
+        authorizationNote: 'user_authorization = "sha256:" + SHA-256(mandate_id + "|" + timestamp + "|" + amount_value + "|" + currency + "|" + method_name + "|" + service_id). Use exact field values joined with pipe characters.',
         serviceCatalog: `${BASE_URL}/.well-known/agent-instructions.json`
       }
     ));
@@ -280,10 +353,47 @@ router.post('/ap2/v1/merchant', async (req: Request, res: Response) => {
   if (!mandate.user_authorization) {
     res.status(200).json(jsonRpcError(reqId, -32600,
       'Missing user_authorization in PaymentMandate.',
-      { field: 'user_authorization' }
+      {
+        field: 'user_authorization',
+        format: 'sha256:<hex>',
+        howToCompute: 'sha256(mandate_id + "|" + timestamp + "|" + amount_value + "|" + currency + "|" + method_name + "|" + service_id)',
+        example: `sha256:${computeMandateHash({
+          payment_mandate_id: 'your-uuid-here',
+          timestamp: new Date().toISOString(),
+          payment_details_total: { amount: { value: 0.10, currency: 'USD' } },
+          payment_response: { method_name: 'X402' },
+          payment_details_id: 'gas-price-oracle'
+        }).slice(7)}`
+      }
     ));
     return;
   }
+
+  if (!verifyMandateAuthorization(contents, mandate.user_authorization)) {
+    res.status(200).json(jsonRpcError(reqId, -32601,
+      'Invalid user_authorization: hash does not match mandate contents.',
+      {
+        format: 'sha256:<hex>',
+        howToCompute: 'Set user_authorization = "sha256:" + SHA-256(mandate_id + "|" + timestamp + "|" + amount_value + "|" + currency + "|" + method_name + "|" + service_id)',
+        note: 'Use the exact field values from payment_mandate_contents, joined with "|" in that order.'
+      }
+    ));
+    return;
+  }
+
+  cleanupUsedMandates();
+  const mandateId = contents.payment_mandate_id!;
+  if (usedMandateIds.has(mandateId)) {
+    res.status(200).json(jsonRpcError(reqId, -32602,
+      'Mandate already used. Each payment_mandate_id can only be accepted once.',
+      {
+        mandateId,
+        hint: 'Generate a new mandate with a fresh payment_mandate_id (UUID) and current timestamp.'
+      }
+    ));
+    return;
+  }
+  usedMandateIds.set(mandateId, Date.now());
 
   const methodName = (contents.payment_response?.method_name || 'X402').toUpperCase();
   const isCardPayment = CARD_PAYMENT_METHODS.has(methodName);

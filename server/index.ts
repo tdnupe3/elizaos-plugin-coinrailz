@@ -10,7 +10,7 @@
 function isKnownWsTransientError(err: Error): boolean {
   const isTypeError = err instanceof TypeError;
   const hasWsMessage = /setHeader|Cannot read propert/i.test(err.message);
-  const hasWsStack = !!(err.stack && err.stack.includes('ws/lib/websocket'));
+  const hasWsStack = !!(err.stack && /ws[\\/](lib[\\/])?websocket/i.test(err.stack));
   return isTypeError && hasWsMessage && hasWsStack;
 }
 

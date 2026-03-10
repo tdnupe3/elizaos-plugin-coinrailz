@@ -171,6 +171,12 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
       interactionType = 'error';
       eventType = 'error';
     }
+
+    // Reclassify GET requests — these are landing page / discovery views, never payment completions.
+    // x402 payment flow is exclusively POST. A GET 'request-complete' is a browser/crawler page view.
+    if (req.method === 'GET' && interactionType === 'view' && eventType === 'request-complete') {
+      eventType = 'landing-view';
+    }
     
     const x402ClientHeader = req.get('x-402-client') || req.get('x-agent-id') || req.get('x-coinrailz-client');
     const referer = req.get('referer') || req.get('origin');

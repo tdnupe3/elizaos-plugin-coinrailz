@@ -5,15 +5,36 @@
 // We MUST start listening BEFORE loading heavy modules.
 // ============================================================================
 
+// Known safe transient errors from the ws library during client disconnections.
+// These are not app faults — they occur when a WebSocket client disconnects mid-handshake.
+function isKnownWsTransientError(err: Error): boolean {
+  const isTypeError = err instanceof TypeError;
+  const hasWsMessage = /setHeader|Cannot read propert/i.test(err.message);
+  const hasWsStack = !!(err.stack && err.stack.includes('ws/lib/websocket'));
+  return isTypeError && hasWsMessage && hasWsStack;
+}
+
 // Global exception handlers MUST be first — before any imports that could throw
 process.on('uncaughtException', (err: Error) => {
-  console.error('⚠️ Uncaught Exception (process kept alive):', err.message);
-  // Do NOT exit — health checks must keep passing in production
+  if (isKnownWsTransientError(err)) {
+    // Safe to swallow — WebSocket client disconnected during handshake, not an app fault
+    console.warn('⚠️ ws transient error (swallowed, known safe):', err.message);
+    return;
+  }
+  // Unknown/fatal error — log fully and let the supervisor restart the process cleanly
+  console.error('💥 Uncaught Exception (fatal — exiting for clean restart):', err);
+  process.exit(1);
 });
 
 process.on('unhandledRejection', (reason: unknown) => {
-  console.error('⚠️ Unhandled Rejection (process kept alive):', reason);
-  // Do NOT exit — health checks must keep passing in production
+  const err = reason instanceof Error ? reason : new Error(String(reason));
+  if (isKnownWsTransientError(err)) {
+    console.warn('⚠️ ws transient rejection (swallowed, known safe):', err.message);
+    return;
+  }
+  // Unknown/fatal rejection — log fully and exit for clean restart
+  console.error('💥 Unhandled Rejection (fatal — exiting for clean restart):', reason);
+  process.exit(1);
 });
 
 import express, { Router } from "express";

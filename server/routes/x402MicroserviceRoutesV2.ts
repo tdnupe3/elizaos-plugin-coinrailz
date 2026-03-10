@@ -2637,6 +2637,95 @@ router.post("/ping",
   pingHandler
 );
 
+// ============================================================
+// GOLDEN PATH — First Paid Call
+// Canonical $0.05 onboarding endpoint for new agents.
+// Accepts EVM (Base) or Solana USDC via multi-chain accepts[].
+// Returns: sessionId, payment receipt, next-service templates.
+// ============================================================
+const firstCallHandler = async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  try {
+    const ipKey = `first-call-ip:${req.ip}`;
+    if (!checkRateLimit(ipKey, 10, 3600000)) {
+      res.status(429).json({
+        error: "Rate limit exceeded",
+        message: "Maximum 10 requests per hour per IP for first-call endpoint",
+        retryAfter: 3600
+      });
+      return;
+    }
+
+    const agentId = req.body?.agentId || null;
+    const solanaAgent = !!(req.headers['x-solana-wallet']);
+    const responseTime = Date.now() - startTime;
+
+    const result = {
+      success: true,
+      goldenPath: true,
+      service: "x402 Golden Path — First Paid Call",
+      sessionId: `gp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      payment: {
+        verified: true,
+        amount: "0.05 USDC",
+        amountMicro: 50000,
+        chain: solanaAgent ? "Solana mainnet (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp)" : "Base mainnet (eip155:8453)",
+        timestamp: new Date().toISOString()
+      },
+      welcome: "Payment confirmed. You have successfully integrated with Coin Railz x402 infrastructure.",
+      ...(agentId && { agentId }),
+      chainsAccepted: {
+        evm: "Base (eip155:8453), Ethereum (eip155:1), Polygon, Arbitrum",
+        solana: "Solana mainnet (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp) via Dexter facilitator"
+      },
+      nextServices: [
+        {
+          id: "gas-price-oracle",
+          name: "Gas Price Oracle",
+          price: "$0.10",
+          endpoint: "/x402/gas-price-oracle",
+          curl: "curl -X POST https://coinrailz.com/x402/gas-price-oracle -H 'X-PAYMENT: <tx_hash>' -H 'Content-Type: application/json' -d '{\"chains\":[\"base\",\"ethereum\"]}'"
+        },
+        {
+          id: "ai-inference",
+          name: "AI Inference (GPT-4o-mini)",
+          price: "$0.05",
+          endpoint: "/x402/ai-inference",
+          curl: "curl -X POST https://coinrailz.com/x402/ai-inference -H 'X-PAYMENT: <tx_hash>' -H 'Content-Type: application/json' -d '{\"prompt\":\"Hello\",\"model\":\"gpt-4o-mini\"}'"
+        },
+        {
+          id: "token-metadata",
+          name: "Token Metadata",
+          price: "$0.10",
+          endpoint: "/x402/token-metadata",
+          curl: "curl -X POST https://coinrailz.com/x402/token-metadata -H 'X-PAYMENT: <tx_hash>' -H 'Content-Type: application/json' -d '{\"contractAddress\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"chainId\":8453}'"
+        }
+      ],
+      catalog: "https://coinrailz.com/x402/catalog",
+      sdkInstall: {
+        npm: "npm install @coinrailz/agent-payments",
+        python: "pip install coinrailz"
+      },
+      documentation: "https://coinrailz.com/developers",
+      responseTimeMs: responseTime
+    };
+
+    await trackRequest("first-call", req.body, result, responseTime, SERVICE_PRICING_USD["first-call"], req.ip || "agent");
+    await trackBundleUsage(req, res, "first-call", { agentId });
+
+    res.json(result);
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    await trackRequest("first-call", req.body, null, responseTime, SERVICE_PRICING_USD["first-call"], req.ip || "agent", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+router.post("/first-call",
+  createPaymentOrchestrator("first-call", SERVICE_PRICING_MICRO["first-call"], firstCallHandler),
+  firstCallHandler
+);
+
 // Service handler implementations with payment orchestrator
 const multiChainBalanceHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();

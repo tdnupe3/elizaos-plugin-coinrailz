@@ -82,6 +82,48 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
     // Skills array with semantic descriptions for AI matching
     skills: [
       {
+        id: "first_call",
+        name: "Golden Path — First Paid Call",
+        description: "START HERE. The canonical first payment for any agent integrating with Coin Railz. Pay $0.05 USDC on Base or Solana and receive a verified onboarding receipt plus executable templates for the next 3 services. Both EVM and Solana supported. Lowest price on the platform.",
+        price: "$0.05 USDC",
+        amountMicroUSDC: 50000,
+        chainsAccepted: ["eip155:8453", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"],
+        facilitators: {
+          evm: "https://api.cdp.coinbase.com/platform/v2/x402",
+          solana: "https://x402.dexter.cash"
+        },
+        inputSchema: {
+          type: "object",
+          properties: {
+            agentId: { type: "string", description: "Optional agent identifier for tracking" }
+          }
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            success: { type: "boolean" },
+            goldenPath: { type: "boolean" },
+            sessionId: { type: "string" },
+            payment: { type: "object", description: "Payment receipt with chain, amount, timestamp" },
+            nextServices: { type: "array", description: "3 executable next-step service templates" }
+          }
+        },
+        examples: [
+          {
+            name: "curl (EVM — Base)",
+            code: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-PAYMENT: <evm_tx_hash>' -d '{}'`
+          },
+          {
+            name: "curl (Solana)",
+            code: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-Solana-Wallet: <pubkey>' -H 'X-PAYMENT: <solana_payload>' -d '{}'`
+          },
+          {
+            name: "python (httpx)",
+            code: `import httpx\nresp = httpx.post('${baseUrl}/x402/first-call', headers={'X-PAYMENT': tx_hash}, json={})\nprint(resp.json())`
+          }
+        ]
+      },
+      {
         id: "multi_chain_balance",
         name: "Multi-Chain Balance Checker",
         description: "Check wallet balances across 7 EVM chains in one API call. Use when user asks 'what's my balance', 'check wallet on multiple chains', 'show my assets', 'balance on Ethereum', 'balance on Base', or 'balance on Polygon'.",
@@ -1837,13 +1879,30 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
         },
         {
           step: 3,
-          action: "Call Any Service",
-          description: "Make a request to any x402 service. You'll receive a 402 response with payment instructions. Pay via x402 facilitator and receive your data.",
-          facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
-          exampleService: `${baseUrl}/x402/ping`,
-          examplePrice: "$0.25 USDC"
+          action: "Make Your First Paid Call",
+          description: "Start with the Golden Path endpoint — the lowest-price entry point designed for first-time integration. You'll receive a 402 with dual-track payment instructions (EVM + Solana). Pay via facilitator, retry with X-PAYMENT header, receive your onboarding receipt.",
+          facilitator: {
+            evm: "https://api.cdp.coinbase.com/platform/v2/x402",
+            solana: "https://x402.dexter.cash"
+          },
+          goldenPathEndpoint: `${baseUrl}/x402/first-call`,
+          price: "$0.05 USDC — lowest price on platform",
+          chainsAccepted: ["Base (eip155:8453)", "Solana mainnet"],
+          note: "first-call is the Golden Path — specifically designed for first-time payment integration on any chain",
+          curlExample: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-PAYMENT: <tx_hash>' -d '{}'`,
+          pythonExample: `import httpx\nresp = httpx.post('${baseUrl}/x402/first-call', headers={'X-PAYMENT': tx_hash}, json={})\nprint(resp.json())`
         }
       ]
+    },
+
+    goldenPath: {
+      description: "START HERE. The canonical first payment endpoint for any new agent integrating with Coin Railz.",
+      endpoint: `${baseUrl}/x402/first-call`,
+      method: "POST",
+      price: "$0.05 USDC",
+      amountMicroUSDC: 50000,
+      chainsAccepted: ["Base (eip155:8453)", "Solana mainnet (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp)"],
+      onSuccess: "Returns sessionId, payment receipt, and 3 next-service templates with executable curl examples"
     },
     
     walletOptions: {

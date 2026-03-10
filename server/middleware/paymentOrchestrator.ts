@@ -2396,6 +2396,7 @@ function generate402Response(
   
   // Service descriptions
   const descriptions: Record<string, string> = {
+    "first-call": "Golden Path — canonical first payment endpoint. $0.05 USDC on Base or Solana. Start here for x402 integration. Receive onboarding receipt + next-service templates.",
     "ping": "x402 Discovery Ping - verify payment infrastructure",
     "gas-price-oracle": "Real-time gas prices for multiple chains with USD cost estimates",
     "token-metadata": "Token contract metadata including name, symbol, decimals",
@@ -2716,6 +2717,51 @@ function generate402Response(
       }
     }
   };
+
+  // Golden Path: inject dual-track payment recipe for first-call endpoint
+  if (serviceName === 'first-call') {
+    response.goldenPath = {
+      onboarding: true,
+      recommendedForFirstPayment: true,
+      priceUSD: "0.05",
+      amountMicroUSDC: 50000,
+      paymentRecipe: {
+        description: "Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response.",
+        evmPath: {
+          chain: "Base mainnet",
+          chainId: 8453,
+          network: "eip155:8453",
+          asset: "USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)",
+          amount: "50000 micro-USDC (0.05 USDC, 6 decimals)",
+          payTo: PLATFORM_WALLET,
+          facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+          steps: [
+            "1. Authorize 50000 micro-USDC transfer via EIP-3009 OR send direct USDC tx on Base (chainId: 8453)",
+            "2. Retry POST /x402/first-call with header: X-PAYMENT: <tx_hash_or_eip3009_payload>",
+            "3. Receive 200 OK with onboarding receipt, sessionId, and next-service templates"
+          ],
+          curlExample: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-PAYMENT: <evm_tx_hash>' -d '{}'`,
+          pythonExample: `import httpx\nresp = httpx.post('${baseUrl}/x402/first-call',\n  headers={'X-PAYMENT': tx_hash, 'Content-Type': 'application/json'},\n  json={})\nprint(resp.json())`
+        },
+        solanaPath: {
+          network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+          asset: "USDC (EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v)",
+          amount: "50000 micro-USDC (0.05 USDC, 6 decimals)",
+          payTo: SOLANA_PLATFORM_WALLET,
+          facilitator: "https://x402.dexter.cash",
+          scheme: "ExactSvmScheme",
+          steps: [
+            "1. Include X-Solana-Wallet: <your_pubkey> header with initial request",
+            "2. Use Dexter facilitator (x402.dexter.cash) to sign ExactSvmScheme payment of 50000 micro-USDC",
+            "3. Retry POST /x402/first-call with header: X-PAYMENT: <solana_payment_payload>",
+            "4. Receive 200 OK with onboarding receipt"
+          ],
+          curlExample: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-Solana-Wallet: <pubkey>' -H 'X-PAYMENT: <solana_payload>' -d '{}'`,
+          pythonExample: `import httpx\nresp = httpx.post('${baseUrl}/x402/first-call',\n  headers={'X-PAYMENT': solana_payload, 'X-Solana-Wallet': pubkey},\n  json={})\nprint(resp.json())`
+        }
+      }
+    };
+  }
 
   // Add partner CTA for known agents
   if (knownAgent.isKnown && knownAgent.partnerOffer) {

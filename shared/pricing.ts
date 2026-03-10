@@ -14,6 +14,7 @@
 export type ServiceName = 
   // Discovery/Testing Services
   | "ping"
+  | "first-call"
   // Trading Intelligence Services
   | "gas-price-oracle"
   | "token-metadata"
@@ -112,6 +113,7 @@ export function getServicePricing(name: string): number | undefined {
 export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   // Discovery/Testing Services (very low cost for discovery bots)
   "ping": 250000,                      // $0.25 - industry standard discovery endpoint
+  "first-call": 50000,                 // $0.05 - golden path first paid call for new agents
   
   // Trading Intelligence Services ($0.10-$0.75)
   "gas-price-oracle": 100000,          // $0.10
@@ -203,6 +205,7 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
 export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   // Discovery/Testing Services
   "ping": 0.25,
+  "first-call": 0.05,
   
   // Trading Intelligence Services
   "gas-price-oracle": 0.10,

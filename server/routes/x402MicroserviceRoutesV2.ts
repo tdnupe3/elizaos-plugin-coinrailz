@@ -2727,6 +2727,123 @@ const firstCallHandler = async (req: Request, res: Response) => {
   }
 };
 
+router.get("/first-call", (req, res) => {
+  const baseUrl = process.env.PUBLIC_BASE_URL || "https://coinrailz.com";
+  const pageUrl = `${baseUrl}/x402/first-call`;
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>First Call — x402 Golden Path | Coin Railz</title>
+  <meta name="description" content="Start here. Pay $0.05 USDC on Base or Solana and receive a verified onboarding receipt plus 3 ready-to-run service templates. The canonical first payment endpoint for AI agents integrating with Coin Railz x402 infrastructure." />
+  <meta name="keywords" content="x402 first call, x402 payment, AI agent payment, USDC micropayment, Base blockchain, Solana payment, x402 protocol, agentic commerce, Coin Railz" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="${pageUrl}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="${pageUrl}" />
+  <meta property="og:title" content="First Call — x402 Golden Path | Coin Railz" />
+  <meta property="og:description" content="The canonical $0.05 USDC first payment endpoint for AI agents. EVM (Base, Ethereum) and Solana supported. Returns a verified receipt and 3 executable next-service templates." />
+  <meta property="og:site_name" content="Coin Railz" />
+  <meta property="twitter:card" content="summary" />
+  <meta property="twitter:title" content="First Call — x402 Golden Path | Coin Railz" />
+  <meta property="twitter:description" content="The canonical $0.05 USDC first payment endpoint for AI agents integrating with Coin Railz x402 infrastructure." />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "x402 Golden Path — First Call",
+    "description": "The canonical first payment endpoint for AI agents integrating with Coin Railz. Pay $0.05 USDC on Base or Solana and receive a verified onboarding receipt plus 3 ready-to-run service templates.",
+    "url": "${pageUrl}",
+    "category": "AI Agent Payments",
+    "offers": {
+      "@type": "Offer",
+      "price": "0.05",
+      "priceCurrency": "USDC",
+      "availability": "https://schema.org/InStock",
+      "description": "$0.05 USDC per call. Accepted on Base (eip155:8453), Ethereum (eip155:1), and Solana mainnet."
+    },
+    "provider": {
+      "@type": "Organization",
+      "name": "Coin Railz",
+      "url": "https://coinrailz.com"
+    }
+  }
+  </script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .container { max-width: 800px; margin: 0 auto; padding: 3rem 1.5rem; }
+    .badge { display: inline-block; background: #1e40af; color: #93c5fd; font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.75rem; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1.5rem; }
+    h1 { font-size: 2.25rem; font-weight: 700; margin: 0 0 1rem; color: #f1f5f9; }
+    .subtitle { font-size: 1.125rem; color: #94a3b8; margin-bottom: 2.5rem; line-height: 1.6; }
+    .price-block { background: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 2rem; display: flex; gap: 2rem; flex-wrap: wrap; }
+    .stat { display: flex; flex-direction: column; gap: 0.25rem; }
+    .stat-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: #38bdf8; }
+    h2 { font-size: 1.125rem; font-weight: 600; color: #cbd5e1; margin: 2rem 0 0.75rem; }
+    pre { background: #1e293b; border: 1px solid #334155; border-radius: 0.5rem; padding: 1rem 1.25rem; overflow-x: auto; font-size: 0.8rem; color: #86efac; line-height: 1.6; }
+    .chains { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 2rem; }
+    .chain { background: #1e293b; border: 1px solid #334155; border-radius: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem; color: #cbd5e1; }
+    .cta { display: inline-block; background: #1d4ed8; color: white; padding: 0.75rem 1.5rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; margin-top: 2rem; }
+    .cta:hover { background: #1e40af; }
+    footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #1e293b; font-size: 0.875rem; color: #475569; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="badge">Golden Path</div>
+    <h1>First Call — x402 Payment Endpoint</h1>
+    <p class="subtitle">The canonical starting point for AI agents integrating with Coin Railz. Make one $0.05 USDC payment on Base or Solana and receive a verified onboarding receipt, a session ID, and three executable next-service templates.</p>
+
+    <div class="price-block">
+      <div class="stat"><span class="stat-label">Price</span><span class="stat-value">$0.05 USDC</span></div>
+      <div class="stat"><span class="stat-label">Method</span><span class="stat-value">POST</span></div>
+      <div class="stat"><span class="stat-label">Protocol</span><span class="stat-value">x402 v2</span></div>
+    </div>
+
+    <h2>Chains Accepted</h2>
+    <div class="chains">
+      <span class="chain">Base (eip155:8453)</span>
+      <span class="chain">Ethereum (eip155:1)</span>
+      <span class="chain">Solana mainnet</span>
+    </div>
+
+    <h2>How It Works</h2>
+    <p style="color:#94a3b8;line-height:1.6;">Send a POST request without a payment header to receive a 402 challenge containing full dual-track payment instructions — EVM via Coinbase CDP facilitator, Solana via Dexter (x402.dexter.cash). Submit payment and include the receipt in the <code style="background:#1e293b;padding:0.1rem 0.4rem;border-radius:0.25rem;font-size:0.875rem;">X-PAYMENT</code> header on your next request to receive your onboarding receipt.</p>
+
+    <h2>Quick Start</h2>
+    <pre>curl -X POST ${baseUrl}/x402/first-call \\
+  -H "Content-Type: application/json" \\
+  -d '{}'
+
+# Returns HTTP 402 with full payment instructions.
+# Submit payment, then:
+
+curl -X POST ${baseUrl}/x402/first-call \\
+  -H "Content-Type: application/json" \\
+  -H "X-PAYMENT: &lt;your_payment_receipt&gt;" \\
+  -d '{}'</pre>
+
+    <h2>What You Get Back</h2>
+    <pre>{
+  "service": "x402 Golden Path — First Paid Call",
+  "sessionId": "gp-...",
+  "payment": { "verified": true, "amount": "0.05 USDC" },
+  "nextServices": [ ... 3 ready-to-run templates ... ],
+  "partnerContact": { "email": "support@coinrailz.com" }
+}</pre>
+
+    <a class="cta" href="${baseUrl}/x402/catalog">Browse All 60 Services →</a>
+
+    <footer>
+      Coin Railz · <a href="${baseUrl}" style="color:#475569;">coinrailz.com</a> · support@coinrailz.com
+    </footer>
+  </div>
+</body>
+</html>`;
+  res.status(200).set("Content-Type", "text/html").send(html);
+});
+
 router.post("/first-call",
   createPaymentOrchestrator("first-call", SERVICE_PRICING_MICRO["first-call"], firstCallHandler),
   firstCallHandler

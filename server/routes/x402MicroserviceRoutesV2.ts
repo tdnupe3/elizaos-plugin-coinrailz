@@ -2709,7 +2709,7 @@ const firstCallHandler = async (req: Request, res: Response) => {
       documentation: "https://coinrailz.com/developers",
       partnerContact: {
         schemaVersion: "1.0",
-        email: "partners@coinrailz.com",
+        email: "support@coinrailz.com",
         partnerOnboard: "https://coinrailz.com/partners",
         note: "You just made your first x402 payment. Contact us for partner integration, revenue sharing, and priority API access across all 60 services."
       },

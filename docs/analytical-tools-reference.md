@@ -121,7 +121,7 @@ This is the most important table for tracking x402 activity. Full schema:
 | `paid` | boolean | Whether payment was made |
 | `amount` | numeric(20,6) | Payment amount |
 | `interaction_type` | varchar(20) | Type: view, attempt, payment, error |
-| `event_type` | varchar | Event: challenge-issued, payment-verified, request-complete, api-key-payment |
+| `event_type` | varchar | Event: `challenge-issued`, `payment-verified`, `authorized`, `solana-payment`, `request-complete`, `landing-view`, `api-key-payment`, `error` |
 | `service_name` | varchar | Human-readable service name |
 | `x402_client_header` | varchar | Client identification header |
 | `referer` | varchar | Traffic source |
@@ -260,6 +260,7 @@ GROUP BY 1;
 
 ### 6. Conversion Funnel Analysis
 ```sql
+-- PAYMENT FUNNEL ONLY — exclude landing-view (GET page views) and internal traffic
 SELECT 
   event_type,
   COUNT(*) as count,
@@ -267,8 +268,23 @@ SELECT
   COUNT(DISTINCT wallet_address) as unique_wallets
 FROM x402_interactions
 WHERE created_at > NOW() - INTERVAL '24 hours'
+  AND event_type != 'landing-view'          -- exclude SEO/browser page views
+  AND ip_address NOT LIKE '10.%'            -- exclude internal
+  AND ip_address != '127.0.0.1'
+  AND request_method != 'OPTIONS'
 GROUP BY event_type
 ORDER BY count DESC;
+
+-- LANDING PAGE VIEWS ONLY (separate signal — browser/SEO traffic to GET endpoints)
+SELECT
+  service_id,
+  COUNT(*) as page_views,
+  COUNT(DISTINCT ip_address) as unique_visitors
+FROM x402_interactions
+WHERE created_at > NOW() - INTERVAL '24 hours'
+  AND event_type = 'landing-view'
+GROUP BY service_id
+ORDER BY page_views DESC;
 ```
 
 ### 7. Offer Tracking Attribution
@@ -308,6 +324,7 @@ ORDER BY requests DESC;
 
 ### 9. Period-over-Period Comparison
 ```sql
+-- Exclude landing-view, OPTIONS, and internal IPs for clean payment-funnel comparison
 SELECT 
   CASE 
     WHEN created_at >= NOW() - INTERVAL '6 hours' THEN 'last_6_hours'
@@ -317,9 +334,14 @@ SELECT
   COUNT(DISTINCT ip_address) as unique_ips,
   COUNT(DISTINCT service_id) as services,
   SUM(CASE WHEN event_type = 'challenge-issued' THEN 1 ELSE 0 END) as challenges,
-  SUM(CASE WHEN event_type = 'payment-verified' THEN 1 ELSE 0 END) as payments
+  SUM(CASE WHEN event_type IN ('payment-verified','authorized','solana-payment') THEN 1 ELSE 0 END) as payments,
+  SUM(CASE WHEN event_type = 'landing-view' THEN 1 ELSE 0 END) as page_views
 FROM x402_interactions
 WHERE created_at >= NOW() - INTERVAL '12 hours'
+  AND event_type != 'landing-view'          -- keep landing-view out of the main funnel row count
+  AND ip_address NOT LIKE '10.%'
+  AND ip_address != '127.0.0.1'
+  AND request_method != 'OPTIONS'
 GROUP BY 1
 ORDER BY period DESC;
 ```
@@ -424,7 +446,15 @@ When asked to "use all analytical tools" or perform daily checks:
 11. Compare period-over-period metrics for trends
 
 ### Important Metric Clarifications
+
+- **`event_type = 'landing-view'`** (added Mar 10 2026): Logged when a GET request to an x402 service endpoint returns a non-402, non-error response (typically 200 HTML). This covers browser visits, Googlebot crawls, and SEO page views. These are **never payment events** — the x402 payment flow is POST-only. Always exclude `event_type = 'landing-view'` from conversion funnel analysis. Query page views separately if needed.
+
+- **`event_type = 'request-complete'`**: A POST that completed successfully without payment verification (e.g., a service returning 200 without an `x-payment` header being processed). Distinct from `landing-view` (which is GET). Both are non-revenue events.
+
+- **first-call endpoint GET vs POST**: `/x402/first-call` has both a GET handler (returns HTML landing page → `landing-view`) and a POST handler (payment flow → `challenge-issued` → `payment-verified`). Always filter by `request_method = 'POST'` when analyzing first-call payment funnel. A `landing-view` on first-call is Googlebot or a browser visiting the SEO page.
+
 - **`retry_count` in `x402_interactions`** = number of times the **same IP fingerprint** returned to the **same endpoint**. It is NOT a payment retry counter. High retry_count = a bot probing us repeatedly on a cron schedule, not a payment integration failing. Evidence: 775 retry events in 24h had paid=FALSE, error_message=NULL, payment_amount=NULL across all of them — zero payment was ever attempted on any retry event (confirmed Mar 1 2026).
+
 - **GCP IP ranges 34.x.x.x / 35.x.x.x** running python-httpx on ~15-30 min cron schedules are catalog monitoring bots, not paying agents in an evaluation loop.
 
 ### Quick Hit Tracking Check (Run Daily)
@@ -582,12 +612,14 @@ New bots observed — add to monitoring:
 | `ScoutScore-HealthCheck/1.0` | Unknown indexer/scout service probing endpoints | Feb 27, 2026 |
 | `ScoutScore-FidelityCheck/1.0` | ScoutScore fidelity verification crawler | Feb 27, 2026 |
 | `EntRoute-Probe/1.0` | Unknown routing/probe agent | Feb 27, 2026 |
-| `XGate-HealthCheck/1.0` | Unknown gateway health checker | Feb 26, 2026 |
+| `XGate-HealthCheck/1.0` | Unknown gateway health checker — hits catalog, 3+ IPs. Monitor for cadence/depth changes. | Feb 26, 2026 |
 | `meta-externalagent/1.1` | Facebook/Meta web crawler | Feb 27, 2026 |
 | `X402-Discovery-HealthCheck/2.0` | Coinbase Bazaar discovery crawler | Jan 2026 |
+| `Googlebot (mobile UA)` | Google crawler confirming `/x402/first-call` GET landing page — generates `landing-view` events, not payment events. Confirmed crawling Mar 10 2026 after Google Search Console indexing request. IP: 66.249.x.x | Mar 10, 2026 |
+| Chinese mobile UAs (43.x, 101.x, 150.x) | Browser-style exploration of `/x402/`, `/x402/catalog`, `/x402/wallet/free` — different ASN from GCP cron bots, non-cron behavior. Weak discovery signal. Generates `landing-view` events. | Mar 10, 2026 |
 
 ### Discovery Manifest Volume (endpoint_hits)
 At scale, check `/.well-known/x402`, `/.well-known/agent.json`, `/.well-known/agent-card.json`. In 24h post-republish (Feb 26-27): 532 fetches from 428 unique visitors to the x402 manifest, 165 fetches of agent.json from 162 unique visitors. This is top-of-funnel traction signal.
 
 ---
-Last Updated: March 1, 2026
+Last Updated: March 10, 2026

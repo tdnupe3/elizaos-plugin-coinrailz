@@ -5,6 +5,17 @@
 // We MUST start listening BEFORE loading heavy modules.
 // ============================================================================
 
+// Global exception handlers MUST be first — before any imports that could throw
+process.on('uncaughtException', (err: Error) => {
+  console.error('⚠️ Uncaught Exception (process kept alive):', err.message);
+  // Do NOT exit — health checks must keep passing in production
+});
+
+process.on('unhandledRejection', (reason: unknown) => {
+  console.error('⚠️ Unhandled Rejection (process kept alive):', reason);
+  // Do NOT exit — health checks must keep passing in production
+});
+
 import express, { Router } from "express";
 import http from "http";
 import path from "path";

@@ -9,8 +9,12 @@
 // These are not app faults — they occur when a WebSocket client disconnects mid-handshake.
 function isKnownWsTransientError(err: Error): boolean {
   const isTypeError = err instanceof TypeError;
-  const hasWsMessage = /setHeader|Cannot read propert/i.test(err.message);
-  const hasWsStack = !!(err.stack && /ws[\\/](lib[\\/])?websocket/i.test(err.stack));
+  // Two confirmed Neon/ws message variants:
+  // 1. "Cannot read properties of null (reading 'setHeader')" — ws client disconnect
+  // 2. "Cannot set property message of #<ErrorEvent> which has only a getter" — Neon WS timeout
+  const hasWsMessage = /setHeader|Cannot read propert|Cannot set propert/i.test(err.message);
+  // Stack must trace through ws internals or Neon serverless (both are safe to swallow)
+  const hasWsStack = !!(err.stack && (/ws[\\/](lib[\\/])?websocket/i.test(err.stack) || err.stack.includes('@neondatabase/serverless')));
   return isTypeError && hasWsMessage && hasWsStack;
 }
 

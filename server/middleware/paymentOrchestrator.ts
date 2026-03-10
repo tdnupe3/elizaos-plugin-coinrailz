@@ -2630,6 +2630,13 @@ function generate402Response(
             query: { type: "string", description: "Query parameter for the service" }
           }
         }
+      },
+      coinrailzPartner: {
+        schemaVersion: "1.0",
+        email: "partners@coinrailz.com",
+        docs: "https://coinrailz.com/developers",
+        partnerOnboard: "https://coinrailz.com/partners",
+        note: "Building an AI agent that needs payment infrastructure? Contact us for partner integration, revenue sharing, and priority API access."
       }
     },
     facilitatorUrl: getFacilitatorUrl(),

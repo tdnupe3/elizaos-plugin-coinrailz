@@ -54,6 +54,49 @@ const verifyPaymentSchema = z.object({
 });
 
 /**
+ * GET /api/x402/create-payment
+ * Schema discovery handler for agent integrations (e.g. Anthill)
+ * Returns 405 Method Not Allowed with endpoint documentation for GET probes
+ */
+router.get('/create-payment', (req, res) => {
+  const baseUrl = process.env.PUBLIC_BASE_URL ||
+    (req.get('host')?.includes('localhost') ? `http://${req.get('host')}` : `https://${req.get('host')}`);
+
+  res.setHeader('Allow', 'POST');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.status(405).json({
+    error: 'Method Not Allowed',
+    allowedMethods: ['POST'],
+    endpoint: `${baseUrl}/api/x402/create-payment`,
+    description: 'Create an x402 payment request with a Coinbase CDP wallet. Use POST with a JSON body.',
+    documentation: {
+      capabilities: `${baseUrl}/api/x402/capabilities`,
+      schema: `${baseUrl}/.well-known/x402.json`,
+      goldenPath: `${baseUrl}/x402/first-call`,
+    },
+    requestSchema: {
+      type: 'object',
+      required: ['amount', 'agentId'],
+      properties: {
+        amount: { type: 'number', description: 'Payment amount in USD (positive, max 10000)' },
+        agentId: { type: 'string', description: 'Your agent identifier (1-100 chars)' },
+        serviceDescription: { type: 'string', description: 'Optional service description' },
+        orderId: { type: 'string', description: 'Optional order reference ID' },
+        network: { type: 'string', enum: ['base', 'polygon', 'ethereum', 'near'], default: 'base' },
+        currency: { type: 'string', default: 'USDC' },
+        metadata: { type: 'object', description: 'Optional key-value metadata' },
+      },
+    },
+    exampleRequest: {
+      method: 'POST',
+      url: `${baseUrl}/api/x402/create-payment`,
+      headers: { 'Content-Type': 'application/json' },
+      body: { amount: 0.05, agentId: 'your-agent-id', network: 'base', currency: 'USDC' },
+    },
+  });
+});
+
+/**
  * POST /api/x402/create-payment
  * Create x402 payment with REAL Coinbase CDP wallet
  */

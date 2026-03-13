@@ -4239,4 +4239,32 @@ router.get('/solana-openrpc.json', async (req: Request, res: Response) => {
   res.status(200).json(openrpcSpec);
 });
 
+/**
+ * Catch-all: unknown /.well-known/* paths return 404
+ * Prevents PHP exploit probes and unknown paths from falling through
+ * to the Vite frontend, which would return 200 with index.html.
+ * All legitimate well-known paths are explicitly defined above.
+ */
+router.all('/.well-known/*', (req: Request, res: Response) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+  res.status(404).json({
+    error: 'Not Found',
+    message: `${req.path} is not a recognised discovery document on this platform.`,
+    knownPaths: [
+      '/.well-known/agent.json',
+      '/.well-known/agent-card.json',
+      '/.well-known/agent-instructions.json',
+      '/.well-known/x402.json',
+      '/.well-known/service-manifest.json',
+      '/.well-known/payment-methods.json',
+      '/.well-known/pricing.json',
+      '/.well-known/solana.json',
+      '/.well-known/solana-actions.json',
+      '/.well-known/solana-pay.json',
+      '/.well-known/helius.json',
+    ],
+  });
+});
+
 export default router;

@@ -4509,34 +4509,50 @@ router.post('/.well-known/agent-registration.json', async (req: Request, res: Re
   const metadata = typeof body.metadata === 'object' && body.metadata !== null
     ? body.metadata : {};
 
-  // Build a canonical registration URL for the discovered_agents.url unique key
-  const registrationUrl = `self-registration:${walletAddress.toLowerCase()}`;
+  // Build a chain-aware canonical key for the discovered_agents.url unique index.
+  // EVM addresses are case-insensitive (lowercase). Solana base58 is case-sensitive (preserve exact).
+  const registrationUrl = isEvmWallet
+    ? `self-registration:evm:${walletAddress.toLowerCase()}`
+    : `self-registration:solana:${walletAddress}`;
+
+  const baseUrl = getBaseUrl(req);
+
+  // Shared 201 next-steps payload — included in both first registration and 409 idempotent replay
+  const buildNext = (regId: string, regStatus: string) => ({
+    registrationId: regId,
+    status: regStatus,
+    firstCallEndpoint: `${baseUrl}/x402/first-call`,
+    catalogUrl: `${baseUrl}/x402/catalog`,
+    docsUrl: `${baseUrl}/.well-known/agent-instructions.json`,
+    agentCardUrl: `${baseUrl}/.well-known/agent-card.json`,
+    recommendedFundingToken: 'USDC',
+    recommendedChain: isEvmWallet ? 'Base (eip155:8453)' : 'Solana (mainnet-beta)',
+    minimumFirstPayment: '$0.05 USDC',
+    // Explicit 2-step challenge flow — do NOT skip step 1
+    challengeFlow: {
+      step1: {
+        description: 'Send POST without X-PAYMENT to receive the 402 challenge (required — this gives you the exact payTo address and amount)',
+        curl: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -d '{}'`,
+        expectedResponse: 'HTTP 402 with JSON body containing payTo, amount, chain, and facilitatorUrl',
+      },
+      step2: {
+        description: 'Broadcast USDC transfer on-chain, then resend with X-PAYMENT header',
+        curl: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-PAYMENT: <your_tx_hash>' -d '{}'`,
+        expectedResponse: 'HTTP 200 with onboarding receipt and next-service templates',
+      },
+    },
+  });
+
+  const buildLinks = () => ({
+    agentCard: `${baseUrl}/.well-known/agent-card.json`,
+    instructions: `${baseUrl}/.well-known/agent-instructions.json`,
+    catalog: `${baseUrl}/x402/catalog`,
+    support: 'https://coinrailz.com/contact',
+  });
 
   try {
-    // Idempotency check — if this wallet already registered, return existing record
-    const existing = await db
-      .select({ id: discoveredAgents.id, status: discoveredAgents.status })
-      .from(discoveredAgents)
-      .where(eq(discoveredAgents.url, registrationUrl))
-      .limit(1);
-
-    const baseUrl = getBaseUrl(req);
-
-    if (existing.length > 0) {
-      return res.status(409).json({
-        error: 'ALREADY_REGISTERED',
-        message: 'This wallet address is already registered.',
-        registrationId: String(existing[0].id),
-        status: existing[0].status,
-        next: {
-          firstCallEndpoint: `${baseUrl}/x402/first-call`,
-          catalogUrl: `${baseUrl}/x402/catalog`,
-          docsUrl: `${baseUrl}/.well-known/agent-instructions.json`,
-        },
-      });
-    }
-
-    // Insert new registration
+    // Atomic insert-first idempotency: attempt insert and catch unique constraint violation
+    // instead of SELECT-then-INSERT (which has a race condition under concurrency).
     const [inserted] = await db
       .insert(discoveredAgents)
       .values({
@@ -4560,29 +4576,34 @@ router.post('/.well-known/agent-registration.json', async (req: Request, res: Re
           userAgent: (req.headers['user-agent'] || '').substring(0, 200),
         },
       })
+      .onConflictDoNothing()
       .returning({ id: discoveredAgents.id });
 
-    console.log(`✅ Agent self-registration: ${agentName} | wallet: ${walletAddress.substring(0, 10)}... | ip: ${ip} | id: ${inserted.id}`);
+    if (!inserted) {
+      // Unique constraint fired — fetch the existing record and return 409
+      const [existing] = await db
+        .select({ id: discoveredAgents.id, status: discoveredAgents.status })
+        .from(discoveredAgents)
+        .where(eq(discoveredAgents.url, registrationUrl))
+        .limit(1);
+
+      const existingId = existing ? String(existing.id) : 'unknown';
+      const existingStatus = existing?.status || 'new';
+
+      return res.status(409).json({
+        error: 'ALREADY_REGISTERED',
+        message: 'This wallet address is already registered. Your existing registration is still active.',
+        next: buildNext(existingId, existingStatus),
+        links: buildLinks(),
+      });
+    }
+
+    console.log(`✅ Agent self-registration: ${agentName} | wallet: ${walletAddress.substring(0, 10)}... | chain: ${isEvmWallet ? 'evm' : 'solana'} | ip: ${ip} | id: ${inserted.id}`);
 
     return res.status(201).json({
-      registrationId: String(inserted.id),
-      status: 'accepted',
-      message: `Welcome, ${agentName}. Your agent is registered and ready to make payments.`,
-      next: {
-        firstCallEndpoint: `${baseUrl}/x402/first-call`,
-        catalogUrl: `${baseUrl}/x402/catalog`,
-        docsUrl: `${baseUrl}/.well-known/agent-instructions.json`,
-        agentCardUrl: `${baseUrl}/.well-known/agent-card.json`,
-        recommendedFundingToken: 'USDC',
-        supportedChains: ['Base', 'Ethereum', 'Polygon', 'Arbitrum', 'Solana'],
-        quickstartCurl: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-PAYMENT: <your_tx_hash>' -d '{}'`,
-      },
-      links: {
-        agentCard: `${baseUrl}/.well-known/agent-card.json`,
-        instructions: `${baseUrl}/.well-known/agent-instructions.json`,
-        catalog: `${baseUrl}/x402/catalog`,
-        support: 'https://coinrailz.com/contact',
-      },
+      message: `Welcome, ${agentName}. Your agent is registered. Follow the challengeFlow below to make your first payment.`,
+      next: buildNext(String(inserted.id), 'new'),
+      links: buildLinks(),
     });
   } catch (err: any) {
     console.error('❌ Agent registration error:', err?.message || err);

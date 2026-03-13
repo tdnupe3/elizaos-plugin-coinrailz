@@ -261,6 +261,7 @@ router.get('/catalog', async (req: Request, res: Response) => {
       x402Version: 2,
       catalogUrl: summary.catalogUrl,
       facilitatorUrl: getFacilitatorUrl(),
+      registrationEndpoint: `${PUBLIC_BASE_URL}/.well-known/agent-registration.json`,
       totalServices: summary.totalServices,
       network: 'base', // Legacy format for x402-fetch v0.7.3 compatibility
       x402Network: 'eip155:8453', // V2 CAIP-2 format for spec compliance

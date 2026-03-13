@@ -92,6 +92,9 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
     
     // Machine-readable onboarding instructions for AI agents
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
+
+    // Agent self-registration — record your wallet & capabilities before making first call
+    registrationEndpoint: `${baseUrl}/.well-known/agent-registration.json`,
     
     // A2A v0.3 capabilities object (required for Google A2A compliance)
     capabilities: {
@@ -2048,6 +2051,7 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
     },
     
     links: {
+      agentRegistration: `${baseUrl}/.well-known/agent-registration.json`,
       serviceCatalog: `${baseUrl}/x402/catalog`,
       paymentDocs: `${baseUrl}/x402/payment-docs`,
       agentCard: `${baseUrl}/.well-known/agent.json`,
@@ -2094,6 +2098,8 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
 
     iconUrl: "https://coinrailz.com/favicon.ico",
     preferredTransport: "HTTP+JSON",
+
+    registrationEndpoint: `${baseUrl}/.well-known/agent-registration.json`,
 
     agenticWallet: {
       compatible: true,
@@ -2892,6 +2898,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     description: "AI agent marketplace with x402 autonomous payment endpoints, native Coinbase Agentic Wallet support, A2A 2.0 discovery, SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker), satellite data APIs (NASA/ESA), and multi-chain support across 8 networks (7 EVM + Solana). Processing fee: 1.5% + $0.01 per transaction.",
     version: "x402-2.2",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
+    registrationEndpoint: `${baseUrl}/.well-known/agent-registration.json`,
     sdk: {
       npm: "@coinrailz/agent-payments",
       npmSolana: "@coinrailz/agent-payments-solana",

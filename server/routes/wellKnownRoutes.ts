@@ -4240,6 +4240,19 @@ router.get('/solana-openrpc.json', async (req: Request, res: Response) => {
 });
 
 /**
+ * Canonical redirect: /.well-known/x402 (without .json) -> /.well-known/x402.json
+ * Some distributed actors monitor this path without the extension.
+ * Permanent 301 so crawlers and cached clients update their bookmarks.
+ */
+router.get('/.well-known/x402', (req: Request, res: Response) => {
+  res.redirect(301, '/.well-known/x402.json');
+});
+
+router.head('/.well-known/x402', (req: Request, res: Response) => {
+  res.redirect(301, '/.well-known/x402.json');
+});
+
+/**
  * Catch-all: unknown /.well-known/* paths return 404
  * Prevents PHP exploit probes and unknown paths from falling through
  * to the Vite frontend, which would return 200 with index.html.

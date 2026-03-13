@@ -9,6 +9,27 @@ import { Router, Request, Response } from 'express';
 import { SERVICE_PRICING_USD } from '@shared/pricing';
 import { getFacilitatorUrl, getAllFacilitatorUrls } from '../utils/facilitatorHelper';
 import { trackDiscovery } from '../middleware/hitTracker';
+import { db } from '../db';
+import { discoveredAgents } from '@shared/schema';
+import { eq, or } from 'drizzle-orm';
+
+// --- In-memory rate limiter for POST /.well-known/agent-registration.json ---
+// 10 POST attempts per IP per 60 seconds. Map<ip, { count, windowStart }>
+const registrationRateLimit = new Map<string, { count: number; windowStart: number }>();
+const REGISTRATION_RATE_WINDOW_MS = 60_000;
+const REGISTRATION_RATE_MAX = 10;
+
+function checkRegistrationRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = registrationRateLimit.get(ip);
+  if (!entry || now - entry.windowStart > REGISTRATION_RATE_WINDOW_MS) {
+    registrationRateLimit.set(ip, { count: 1, windowStart: now });
+    return true;
+  }
+  if (entry.count >= REGISTRATION_RATE_MAX) return false;
+  entry.count++;
+  return true;
+}
 
 const router = Router();
 
@@ -4240,6 +4261,332 @@ router.get('/solana-openrpc.json', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /.well-known/agent-registration.json
+ *
+ * Machine-readable registration discovery document for AI agent frameworks.
+ * 39+ unique IPs probed this path in 12h (returning 404). This endpoint
+ * converts those framework-level probes into registration intent.
+ *
+ * Returns the registration schema, payment capabilities, and examples.
+ * Side-effect free — no DB writes on GET.
+ */
+router.get('/.well-known/agent-registration.json', (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'public, max-age=300');
+
+  res.status(200).json({
+    specVersion: 'coinrailz-agent-registration/1.0',
+    description: 'Register your AI agent with Coin Railz to access 60 x402 micropayment services across 8 chains.',
+
+    service: {
+      name: 'Coin Railz',
+      tagline: 'Multi-chain payment infrastructure for the AI agent economy',
+      baseUrl,
+      catalogUrl: `${baseUrl}/x402/catalog`,
+      agentCardUrl: `${baseUrl}/.well-known/agent-card.json`,
+      documentationUrl: `${baseUrl}/.well-known/agent-instructions.json`,
+      firstCallUrl: `${baseUrl}/x402/first-call`,
+      environment: 'production',
+    },
+
+    registration: {
+      method: 'POST',
+      endpoint: `${baseUrl}/.well-known/agent-registration.json`,
+      contentType: 'application/json',
+      requiredFields: ['agentName', 'walletAddress'],
+      optionalFields: ['agentId', 'capabilities', 'callbackUrl', 'contactEmail', 'metadata'],
+      maxPayloadBytes: 16384,
+      idempotencyKey: 'walletAddress',
+      rateLimit: '10 registrations per IP per minute',
+    },
+
+    identitySchema: {
+      agentName: {
+        type: 'string',
+        minLength: 2,
+        maxLength: 80,
+        description: 'Human-readable display name for your agent',
+      },
+      agentId: {
+        type: 'string',
+        pattern: '^[a-zA-Z0-9._:-]{1,120}$',
+        description: 'Optional stable machine identifier (e.g. my-agent:v1.2)',
+      },
+      walletAddress: {
+        type: 'string',
+        description: 'EVM (0x...) or Solana (base58) wallet that will make payments',
+      },
+      capabilities: {
+        type: 'array',
+        items: { type: 'string', maxLength: 64 },
+        maxItems: 50,
+        description: 'List of capabilities your agent provides (e.g. ["trading", "data-retrieval"])',
+      },
+      callbackUrl: {
+        type: 'string',
+        format: 'uri',
+        pattern: '^https://',
+        description: 'HTTPS URL where we can send service updates (stored only, not fetched)',
+      },
+      contactEmail: {
+        type: 'string',
+        format: 'email',
+        description: 'Optional contact email for onboarding support',
+      },
+      metadata: {
+        type: 'object',
+        properties: {
+          framework: { type: 'string', description: 'e.g. bun, elizaos, agentkit, custom' },
+          frameworkVersion: { type: 'string' },
+          description: { type: 'string', maxLength: 500 },
+        },
+      },
+    },
+
+    payments: {
+      protocol: 'x402',
+      x402Version: 2,
+      supportedChains: [
+        { id: 'eip155:8453', name: 'Base', token: 'USDC', contractAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
+        { id: 'eip155:1', name: 'Ethereum', token: 'USDC', contractAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' },
+        { id: 'eip155:137', name: 'Polygon', token: 'USDC', contractAddress: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' },
+        { id: 'eip155:42161', name: 'Arbitrum', token: 'USDC', contractAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' },
+        { id: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', name: 'Solana', token: 'USDC', contractAddress: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' },
+      ],
+      facilitators: {
+        evm: 'https://api.cdp.coinbase.com/platform/v2/x402',
+        solana: 'https://x402.dexter.cash',
+      },
+      pricingModel: {
+        type: 'per-call',
+        range: '$0.05 — $10.00 per request',
+        processingFee: '1.5% + $0.01',
+        lowestPrice: '$0.05 (first-call golden path)',
+      },
+      alternativePaymentMethods: ['credits', 'api-key', 'stripe-card'],
+    },
+
+    challengeFlow: {
+      description: 'Standard x402 HTTP 402 challenge-response. Send a POST with no payment header to receive the challenge, then attach X-PAYMENT with your signed tx hash and resend.',
+      steps: [
+        { step: 1, action: 'POST to any /x402/* endpoint without X-PAYMENT header' },
+        { step: 2, action: 'Receive HTTP 402 with payment requirements in JSON body' },
+        { step: 3, action: 'Broadcast USDC transfer to the specified payTo address on-chain' },
+        { step: 4, action: 'Resend original POST with X-PAYMENT: <tx_hash> header' },
+        { step: 5, action: 'Receive HTTP 200 with service response' },
+      ],
+      sdks: {
+        npm: '@coinrailz/agent-payments',
+        python: 'coinrailz',
+        docs: `${baseUrl}/.well-known/agent-instructions.json`,
+      },
+    },
+
+    support: {
+      contactUrl: 'https://coinrailz.com/contact',
+      docsUrl: `${baseUrl}/.well-known/agent-instructions.json`,
+      firstCallEndpoint: `${baseUrl}/x402/first-call`,
+      catalogEndpoint: `${baseUrl}/x402/catalog`,
+    },
+
+    examples: {
+      registerRequest: {
+        method: 'POST',
+        url: `${baseUrl}/.well-known/agent-registration.json`,
+        headers: { 'Content-Type': 'application/json' },
+        body: {
+          agentName: 'My AI Trading Agent',
+          walletAddress: '0xYOUR_WALLET_ADDRESS',
+          capabilities: ['trading', 'market-analysis'],
+          metadata: { framework: 'bun', frameworkVersion: '1.3.9' },
+        },
+      },
+      registerResponse: {
+        status: 201,
+        body: {
+          registrationId: 'uuid',
+          status: 'accepted',
+          next: {
+            firstCallEndpoint: `${baseUrl}/x402/first-call`,
+            catalogUrl: `${baseUrl}/x402/catalog`,
+            docsUrl: `${baseUrl}/.well-known/agent-instructions.json`,
+            recommendedFundingToken: 'USDC',
+            supportedChains: ['Base', 'Ethereum', 'Polygon', 'Arbitrum', 'Solana'],
+          },
+        },
+      },
+      challengeExample: {
+        step1: `curl -X POST ${baseUrl}/x402/gas-price-oracle -H 'Content-Type: application/json' -d '{"chains":["base"]}'`,
+        step2: 'Receive 402 with payment requirements',
+        step3: `curl -X POST ${baseUrl}/x402/gas-price-oracle -H 'Content-Type: application/json' -H 'X-PAYMENT: 0xYOUR_TX_HASH' -d '{"chains":["base"]}'`,
+      },
+    },
+  });
+});
+
+/**
+ * POST /.well-known/agent-registration.json
+ *
+ * Accepts agent self-registration. Writes to discovered_agents table with
+ * source='self-registration'. Idempotent on walletAddress.
+ *
+ * Security:
+ * - Per-IP rate limit: 10 requests/60s
+ * - Body capped at 16KB (enforced by express json middleware upstream)
+ * - callbackUrl stored only — never server-side fetched (SSRF prevention)
+ * - walletAddress format validated (EVM 0x or Solana base58)
+ * - Duplicate suppression on walletAddress (409 with existing registrationId)
+ */
+router.post('/.well-known/agent-registration.json', async (req: Request, res: Response) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+
+  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+    || req.socket?.remoteAddress
+    || 'unknown';
+
+  if (!checkRegistrationRateLimit(ip)) {
+    return res.status(429).json({
+      error: 'RATE_LIMITED',
+      message: 'Too many registration attempts. Maximum 10 per minute per IP.',
+      retryAfterSeconds: 60,
+    });
+  }
+
+  const body = req.body || {};
+
+  // Required field validation
+  const agentName = typeof body.agentName === 'string' ? body.agentName.trim() : '';
+  const walletAddress = typeof body.walletAddress === 'string' ? body.walletAddress.trim() : '';
+
+  if (!agentName || agentName.length < 2 || agentName.length > 80) {
+    return res.status(400).json({
+      error: 'VALIDATION_ERROR',
+      field: 'agentName',
+      message: 'agentName is required and must be 2–80 characters.',
+    });
+  }
+
+  if (!walletAddress) {
+    return res.status(400).json({
+      error: 'VALIDATION_ERROR',
+      field: 'walletAddress',
+      message: 'walletAddress is required (EVM 0x... or Solana base58).',
+    });
+  }
+
+  // Wallet format validation: EVM (0x + 40 hex chars) or Solana (base58, 32-44 chars)
+  const isEvmWallet = /^0x[0-9a-fA-F]{40}$/.test(walletAddress);
+  const isSolanaWallet = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(walletAddress);
+  if (!isEvmWallet && !isSolanaWallet) {
+    return res.status(400).json({
+      error: 'VALIDATION_ERROR',
+      field: 'walletAddress',
+      message: 'walletAddress must be a valid EVM address (0x...) or Solana base58 address.',
+    });
+  }
+
+  // Optional fields — sanitised
+  const agentId = typeof body.agentId === 'string'
+    ? body.agentId.trim().substring(0, 120) : null;
+  const capabilities = Array.isArray(body.capabilities)
+    ? body.capabilities.slice(0, 50).map((c: any) => String(c).substring(0, 64))
+    : [];
+  const callbackUrl = typeof body.callbackUrl === 'string'
+    && body.callbackUrl.startsWith('https://')
+    ? body.callbackUrl.trim().substring(0, 500) : null;
+  const contactEmail = typeof body.contactEmail === 'string'
+    ? body.contactEmail.trim().substring(0, 254) : null;
+  const metadata = typeof body.metadata === 'object' && body.metadata !== null
+    ? body.metadata : {};
+
+  // Build a canonical registration URL for the discovered_agents.url unique key
+  const registrationUrl = `self-registration:${walletAddress.toLowerCase()}`;
+
+  try {
+    // Idempotency check — if this wallet already registered, return existing record
+    const existing = await db
+      .select({ id: discoveredAgents.id, status: discoveredAgents.status })
+      .from(discoveredAgents)
+      .where(eq(discoveredAgents.url, registrationUrl))
+      .limit(1);
+
+    const baseUrl = getBaseUrl(req);
+
+    if (existing.length > 0) {
+      return res.status(409).json({
+        error: 'ALREADY_REGISTERED',
+        message: 'This wallet address is already registered.',
+        registrationId: String(existing[0].id),
+        status: existing[0].status,
+        next: {
+          firstCallEndpoint: `${baseUrl}/x402/first-call`,
+          catalogUrl: `${baseUrl}/x402/catalog`,
+          docsUrl: `${baseUrl}/.well-known/agent-instructions.json`,
+        },
+      });
+    }
+
+    // Insert new registration
+    const [inserted] = await db
+      .insert(discoveredAgents)
+      .values({
+        url: registrationUrl,
+        source: 'self-registration',
+        wallet: walletAddress,
+        status: 'new',
+        capabilities: capabilities.length > 0 ? capabilities : null,
+        metadata: {
+          agentName,
+          agentId: agentId || undefined,
+          callbackUrl: callbackUrl || undefined,
+          contactEmail: contactEmail || undefined,
+          framework: metadata.framework || undefined,
+          frameworkVersion: metadata.frameworkVersion || undefined,
+          description: typeof metadata.description === 'string'
+            ? metadata.description.substring(0, 500) : undefined,
+          registeredVia: '/.well-known/agent-registration.json',
+          registeredAt: new Date().toISOString(),
+          registrantIp: ip,
+          userAgent: (req.headers['user-agent'] || '').substring(0, 200),
+        },
+      })
+      .returning({ id: discoveredAgents.id });
+
+    console.log(`✅ Agent self-registration: ${agentName} | wallet: ${walletAddress.substring(0, 10)}... | ip: ${ip} | id: ${inserted.id}`);
+
+    return res.status(201).json({
+      registrationId: String(inserted.id),
+      status: 'accepted',
+      message: `Welcome, ${agentName}. Your agent is registered and ready to make payments.`,
+      next: {
+        firstCallEndpoint: `${baseUrl}/x402/first-call`,
+        catalogUrl: `${baseUrl}/x402/catalog`,
+        docsUrl: `${baseUrl}/.well-known/agent-instructions.json`,
+        agentCardUrl: `${baseUrl}/.well-known/agent-card.json`,
+        recommendedFundingToken: 'USDC',
+        supportedChains: ['Base', 'Ethereum', 'Polygon', 'Arbitrum', 'Solana'],
+        quickstartCurl: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-PAYMENT: <your_tx_hash>' -d '{}'`,
+      },
+      links: {
+        agentCard: `${baseUrl}/.well-known/agent-card.json`,
+        instructions: `${baseUrl}/.well-known/agent-instructions.json`,
+        catalog: `${baseUrl}/x402/catalog`,
+        support: 'https://coinrailz.com/contact',
+      },
+    });
+  } catch (err: any) {
+    console.error('❌ Agent registration error:', err?.message || err);
+    return res.status(500).json({
+      error: 'REGISTRATION_FAILED',
+      message: 'Registration could not be saved. Please try again.',
+    });
+  }
+});
+
+/**
  * Canonical redirect: /.well-known/x402 (without .json) -> /.well-known/x402.json
  * Some distributed actors monitor this path without the extension.
  * Permanent 301 so crawlers and cached clients update their bookmarks.
@@ -4268,6 +4615,7 @@ router.all('/.well-known/*', (req: Request, res: Response) => {
       '/.well-known/agent.json',
       '/.well-known/agent-card.json',
       '/.well-known/agent-instructions.json',
+      '/.well-known/agent-registration.json',
       '/.well-known/x402.json',
       '/.well-known/service-manifest.json',
       '/.well-known/payment-methods.json',

@@ -154,37 +154,37 @@ export default function Landing() {
             
             {/* Main Value Proposition */}
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-3 sm:mb-6 leading-tight px-2">
-              Micropayment Rail for<br />AI Agents & TradFi Developers
+              60 Pay-Per-Call APIs<br />for AI Agents
             </h1>
             
             <p className="text-base sm:text-2xl text-gray-600 mb-4 sm:mb-8 px-4 max-w-3xl mx-auto">
-              Two payment rails, one platform. x402/USDC for autonomous agents. Stripe prepaid credits for TradFi teams. 58 x402 services from crypto to satellite data & IoT.
+              Get an API key in ~60 seconds via card. Access DeFi, IoT, satellite data, and prediction market feeds instantly. x402 on-chain USDC also supported for advanced flows.
             </p>
             
-            {/* Trust Badges - Dual Rail Focus with Crypto Proof */}
+            {/* Trust Badges - Card first, x402 secondary */}
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-6 sm:mb-8 text-sm text-gray-700">
               <div className="flex items-center space-x-2">
-                <Badge className="bg-blue-100 text-blue-800">✓ x402/USDC on Ethereum & Base</Badge>
+                <Badge className="bg-green-100 text-green-800">✓ API Key in ~60 Seconds</Badge>
               </div>
               <div className="flex items-center space-x-2">
-                <Badge className="bg-green-100 text-green-800">✓ Stripe Prepaid Credits</Badge>
+                <Badge className="bg-blue-100 text-blue-800">✓ 60 Pay-Per-Call APIs</Badge>
               </div>
               <div className="flex items-center space-x-2">
                 <Badge className="bg-orange-100 text-orange-800">✓ Coinbase Agentic Wallets</Badge>
               </div>
               <div className="flex items-center space-x-2">
-                <Badge className="bg-purple-100 text-purple-800">✓ Stock & Forex APIs</Badge>
+                <Badge className="bg-purple-100 text-purple-800">✓ x402 On-Chain (Advanced)</Badge>
               </div>
             </div>
 
-            {/* PRIMARY CTA - $10 Starter + Pilot Credits */}
+            {/* PRIMARY CTA - Card-first instant API key */}
             <div className="max-w-lg mx-auto mb-6 sm:mb-8 space-y-3">
               <Link href="/pilots/buy">
                 <div 
                   className="flex items-center justify-between border-2 border-green-400 bg-gradient-to-r from-green-50 to-emerald-50 hover:shadow-lg transition-shadow cursor-pointer rounded-lg px-4 py-3"
                   data-testid="card-starter-credits"
                   onClick={() => {
-                    trackEvent('click', 'landing_starter_cta', 'starter_credits_10');
+                    trackEvent('click', 'landing_starter_cta', 'starter_credits_card');
                     trackBusinessEvent('starter_credit_purchase_intent', { payment_method: 'stripe', user_type: 'new_customer', value: 10 });
                   }}
                 >
@@ -193,8 +193,8 @@ export default function Landing() {
                       <Zap className="w-5 h-5 text-green-600" />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold text-green-900">$10 Starter Credits</div>
-                      <div className="text-xs text-green-700">Try any API instantly • Card or Crypto</div>
+                      <div className="text-sm font-semibold text-green-900">Get API Key via Card — ~60 Seconds</div>
+                      <div className="text-xs text-green-700">Pay by card • Instant API key • All 60 APIs unlocked</div>
                     </div>
                   </div>
                   <Button 
@@ -233,8 +233,8 @@ export default function Landing() {
             {/* Key Stats - Verified counts only */}
             <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-6 sm:mb-8">
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600">58</div>
-                <div className="text-xs sm:text-sm text-gray-600">x402 Services</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600">60</div>
+                <div className="text-xs sm:text-sm text-gray-600">APIs Available</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl sm:text-3xl font-bold text-green-600">2</div>
@@ -243,6 +243,27 @@ export default function Landing() {
               <div className="text-center">
                 <div className="text-2xl sm:text-3xl font-bold text-purple-600">$0.10</div>
                 <div className="text-xs sm:text-sm text-gray-600">Starting Price</div>
+              </div>
+            </div>
+
+            {/* Pricing Ladder - reconciles per-call vs credit pack */}
+            <div className="max-w-2xl mx-auto mb-8 px-4">
+              <div className="bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">How Pricing Works</p>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <div className="text-sm font-bold text-gray-900">From $0.03</div>
+                    <div className="text-xs text-gray-500 mt-0.5">per API call<br />(from credits)</div>
+                  </div>
+                  <div className="border-x border-gray-200">
+                    <div className="text-sm font-bold text-gray-900">$5 intro</div>
+                    <div className="text-xs text-gray-500 mt-0.5">~80–100 calls<br />to get started</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900">$10 recommended</div>
+                    <div className="text-xs text-gray-500 mt-0.5">~200 calls<br />production-ready</div>
+                  </div>
+                </div>
               </div>
             </div>
 

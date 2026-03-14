@@ -106,14 +106,14 @@ export const useSEO = (config: SEOConfig) => {
 // SEO configurations for different pages
 export const seoConfigs = {
   home: {
-    title: 'Coin Railz: Micropayment Rail for AI Agents & TradFi Developers | 38+ Services',
-    description: 'Dual-rail micropayment platform: x402/USDC for autonomous AI agents, Stripe prepaid credits for TradFi developers. 38+ microservices including stock sentiment, forex sentiment, crypto APIs. From $0.10/use.',
-    keywords: 'AI agent payments, x402 micropayments, TradFi AI tools, stock sentiment API, forex sentiment API, Stripe prepaid credits, autonomous agent infrastructure, multi-chain payment infrastructure, dex aggregator, crypto cash out, fiat off-ramp, swap crypto, zelle crypto, paypal crypto, venmo crypto, cash app crypto, ethereum swap, base chain, polygon swap, bsc swap, arbitrum, optimism, pulsechain, usdc payments, cross-platform payments, crypto to fiat, best crypto rates, p2p crypto, crypto trading infrastructure, AI agent marketplace, micropayment API, agent-to-agent payments, Coinbase CDP wallets',
+    title: 'Coin Railz | 60 Pay-Per-Call APIs for AI Agents — API Key in 60 Seconds',
+    description: 'Access 60 pay-per-call APIs for AI agents across DeFi, IoT, satellite data & prediction markets. Get an API key in ~60 seconds via card, or use on-chain USDC via x402. From $0.03/call.',
+    keywords: 'AI agent payments, pay per call API, API key instant, x402 protocol, micropayments, USDC payments, Base blockchain, Stripe x402, agentic commerce, agent-to-agent payments, MCP payments, IoT payments, satellite data API, prediction markets API, DeFi API, pay per use API, machine payments, Coinbase CDP wallets',
     canonical: 'https://coinrailz.com',
-    ogTitle: 'Coin Railz: Micropayment Rail for AI Agents & TradFi Developers',
-    ogDescription: 'Two payment rails, one platform. x402/USDC for agents, Stripe for TradFi. 38+ microservices: crypto APIs, stock sentiment, forex sentiment. From $0.10/use.',
-    twitterTitle: 'Micropayment Rail for AI Agents & TradFi Developers | Coin Railz',
-    twitterDescription: 'Dual-rail micropayments: x402/USDC for autonomous agents, Stripe for TradFi teams. 38+ services including stock & forex sentiment. Pay from $0.10.',
+    ogTitle: 'Coin Railz | 60 APIs for AI Agents — API Key in 60 Seconds',
+    ogDescription: 'Get an API key in ~60 seconds via card. 60 pay-per-call APIs across DeFi, IoT, satellite data & prediction markets. x402 on-chain USDC for advanced flows. From $0.03/call.',
+    twitterTitle: 'Coin Railz | 60 APIs for AI Agents — API Key in 60 Seconds',
+    twitterDescription: 'Get an API key in ~60 seconds via card. 60 pay-per-call APIs across DeFi, IoT, satellite data & prediction markets. x402 on-chain USDC for advanced flows.',
     structuredData: {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
@@ -123,11 +123,11 @@ export const seoConfigs = {
       "offers": {
         "@type": "AggregateOffer",
         "priceCurrency": "USD",
-        "lowPrice": "0.10",
-        "highPrice": "5.00",
-        "description": "Pay-per-use micropayments from $0.10. x402/USDC for AI agents, Stripe prepaid credits for TradFi developers."
+        "lowPrice": "0.03",
+        "highPrice": "100.00",
+        "description": "60 pay-per-call APIs from $0.03/call. Get an API key in ~60 seconds via card, or pay on-chain with USDC via x402."
       },
-      "description": "Dual-rail micropayment platform for AI agents and TradFi developers. 38+ microservices including crypto APIs, stock sentiment, forex sentiment. Pay via x402/USDC or Stripe prepaid credits.",
+      "description": "60 pay-per-call APIs for AI agents across DeFi, IoT, satellite data, and prediction markets. Get an API key in ~60 seconds via card, or pay on-chain with USDC via x402.",
       "provider": {
         "@type": "Organization",
         "name": "Kellogg Holdings LLC",

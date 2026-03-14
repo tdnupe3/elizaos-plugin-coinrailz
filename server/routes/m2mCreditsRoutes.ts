@@ -6,24 +6,26 @@
  *   Server confirms the PaymentIntent, adds credits, generates cr_live_ API key.
  *   Returns apiKey once — caller must save it.
  *
- * GET /api/m2m/credits/purchase/:paymentIntentId
- *   Status check for payments that required 3DS action.
- *   Returns { status, provisioned } — re-provisions if payment succeeded after action.
+ * GET /api/m2m/credits/purchase/:paymentIntentId?cs=<clientSecret>
+ *   Status check / key retrieval after 3DS.
+ *   Requires the Stripe clientSecret (returned in the 202 response) as proof of ownership.
+ *   Only the original POST caller has the clientSecret — prevents PI-ID probing.
  *
  * Security controls:
  *   - Strict allowlist for amountUsd (10 / 25 / 100 only)
- *   - idempotencyKey passed through to Stripe — duplicate calls are safe
- *   - paymentIntentId unique constraint in DB prevents double-crediting
- *   - 5 purchases per IP per hour rate limit
- *   - Keys generated once and never stored in plaintext
+ *   - idempotencyKey passed through to Stripe — duplicate calls are safe at Stripe level
+ *   - Two-phase provisioning: status='pending' → 'used', crash-safe with 2-min recovery
+ *   - GET requires clientSecret proof + PI metadata validation (source=m2m-credits)
+ *   - 5 purchases per IP per hour rate limit (in-memory, acceptable for single-instance v1)
+ *   - Keys generated once and never stored in plaintext (bcrypt hashed)
  */
 
 import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { creditsService } from '../services/creditsService.js';
 import { db } from '../db.js';
-import { paymentIntentTracking } from '../../shared/schema.js';
-import { eq } from 'drizzle-orm';
+import { paymentIntentTracking, creditTransactions } from '../../shared/schema.js';
+import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -44,6 +46,7 @@ const ALLOWED_TIERS: Record<number, { label: string; description: string }> = {
 };
 
 // Simple in-memory rate limiter: 5 purchases per IP per hour
+// Acceptable for v1 single-instance. Move to Redis for multi-instance/production scale.
 const ipPurchaseCounts = new Map<string, { count: number; resetAt: number }>();
 
 function checkRateLimit(ip: string): boolean {
@@ -115,7 +118,7 @@ router.post('/purchase', async (req: Request, res: Response) => {
   if (!idempotencyKey || typeof idempotencyKey !== 'string' || idempotencyKey.length < 8) {
     return res.status(400).json({
       error: 'MISSING_IDEMPOTENCY_KEY',
-      message: 'idempotencyKey is required. Generate a UUID v4 and reuse it on retries.',
+      message: 'idempotencyKey is required (min 8 chars). Generate a UUID v4 and reuse it on retries.',
       example: crypto.randomUUID(),
     });
   }
@@ -123,7 +126,7 @@ router.post('/purchase', async (req: Request, res: Response) => {
   try {
     // Create and immediately confirm the PaymentIntent server-side.
     // off_session: true tells Stripe this is an unattended charge (no browser present).
-    // Stripe will return requires_action if 3DS is needed.
+    // Stripe returns requires_action if 3DS is needed for this card.
     const paymentIntent = await stripe.paymentIntents.create(
       {
         amount: amount * 100, // cents
@@ -155,10 +158,11 @@ router.post('/purchase', async (req: Request, res: Response) => {
         requiresAction: true,
         paymentIntentId: piId,
         clientSecret: paymentIntent.client_secret,
-        message: 'This card requires 3D Secure authentication. Complete the action using the clientSecret, then call GET /api/m2m/credits/purchase/:paymentIntentId to retrieve your API key.',
+        message: 'This card requires 3D Secure authentication. Complete the action using the clientSecret via Stripe.js, then call the statusEndpoint with your clientSecret to retrieve your API key.',
         nextStep: {
-          description: 'Confirm the PaymentIntent using Stripe.js or the Stripe API with the clientSecret, then poll the status endpoint.',
+          description: 'After completing 3DS via Stripe.js, pass your clientSecret as the ?cs= query param to retrieve your key.',
           statusEndpoint: `/api/m2m/credits/purchase/${piId}`,
+          statusNote: 'Add ?cs=<your_clientSecret_from_above> to the status endpoint URL to prove ownership.',
           stripeConfirmUrl: 'https://stripe.com/docs/payments/3d-secure',
         },
       });
@@ -181,8 +185,15 @@ router.post('/purchase', async (req: Request, res: Response) => {
       amount,
       email: email || `${userId}@m2m.coinrailz.com`,
       keyName: keyName || 'M2M API Key',
-      ip,
     });
+
+    if (result.inProgress) {
+      return res.status(409).json({
+        error: 'PROVISIONING_IN_PROGRESS',
+        message: 'A previous provisioning attempt is in progress. Retry in 30 seconds.',
+        retryAfter: 30,
+      });
+    }
 
     if (result.alreadyProvisioned) {
       return res.status(200).json({
@@ -191,7 +202,7 @@ router.post('/purchase', async (req: Request, res: Response) => {
         message: 'This payment has already been provisioned. Your API key was returned in the original response.',
         paymentIntentId: piId,
         creditsAdded: amount,
-        note: 'Save your API key from the first successful response — it is never stored in plaintext and cannot be retrieved.',
+        note: 'API keys are shown once only and never stored in plaintext. Use the status endpoint with your clientSecret if you need to verify provision status.',
       });
     }
 
@@ -237,36 +248,78 @@ router.post('/purchase', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/m2m/credits/purchase/:paymentIntentId
+ * GET /api/m2m/credits/purchase/:paymentIntentId?cs=<clientSecret>
  *
- * Status check / key retrieval after 3DS.
- * If the PI has already been provisioned, returns confirmation only (key not re-sent).
- * If the PI succeeded but wasn't provisioned yet, provisions now and returns the key.
+ * Status check / key retrieval after 3DS authentication.
+ *
+ * SECURITY: Requires the Stripe clientSecret (?cs= query param) as proof of ownership.
+ * The clientSecret is only returned to the original POST caller in the 202 response.
+ * This prevents PI-ID probing attacks where a third party tries to retrieve keys
+ * by guessing or observing PaymentIntent IDs.
+ *
+ * Also validates that the PI is a genuine m2m-credits purchase (source metadata check).
  */
 router.get('/purchase/:paymentIntentId', async (req: Request, res: Response) => {
   const { paymentIntentId } = req.params;
+  const clientSecret = req.query.cs as string;
 
   if (!paymentIntentId || !paymentIntentId.startsWith('pi_')) {
-    return res.status(400).json({ error: 'INVALID_PAYMENT_INTENT_ID' });
+    return res.status(400).json({
+      error: 'INVALID_PAYMENT_INTENT_ID',
+      message: 'paymentIntentId must start with pi_',
+    });
+  }
+
+  // Require clientSecret proof of ownership
+  if (!clientSecret || typeof clientSecret !== 'string') {
+    return res.status(401).json({
+      error: 'CLIENT_SECRET_REQUIRED',
+      message: 'Include ?cs=<clientSecret> to verify ownership of this payment. The clientSecret was returned in the original 202 response.',
+    });
   }
 
   try {
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    // Verify clientSecret matches — proves caller was the original requester
+    if (paymentIntent.client_secret !== clientSecret) {
+      return res.status(403).json({
+        error: 'INVALID_CLIENT_SECRET',
+        message: 'clientSecret does not match this PaymentIntent. Only the original requester can check status.',
+      });
+    }
+
+    // Validate this is an m2m-credits payment — prevents credits minting from unrelated Stripe PIs
+    if (paymentIntent.metadata?.source !== 'm2m-credits') {
+      return res.status(403).json({
+        error: 'NOT_M2M_CREDITS_PAYMENT',
+        message: 'This PaymentIntent was not created via the M2M credits purchase endpoint.',
+      });
+    }
+
+    // Validate amount is in allowed tiers
+    const amountUsd = paymentIntent.amount / 100;
+    if (!ALLOWED_TIERS[amountUsd]) {
+      return res.status(403).json({
+        error: 'INVALID_AMOUNT_ON_RECORD',
+        message: `PaymentIntent amount ($${amountUsd}) is not a valid M2M credit tier.`,
+      });
+    }
 
     // Check if already provisioned
     const existing = await db.query.paymentIntentTracking.findFirst({
       where: eq(paymentIntentTracking.paymentIntentId, paymentIntentId),
     });
 
-    if (existing && existing.purpose === 'm2m-credits') {
+    if (existing && existing.purpose === 'm2m-credits' && existing.status === 'used') {
       return res.status(200).json({
         success: true,
         alreadyProvisioned: true,
         paymentIntentId,
         status: paymentIntent.status,
-        creditsAdded: (paymentIntent.amount / 100),
-        message: 'Credits already provisioned for this payment. Your API key was returned in the original response.',
-        note: 'API keys cannot be retrieved after initial issuance. Generate a new purchase if the key was lost.',
+        creditsAdded: amountUsd,
+        message: 'Credits already provisioned. Your API key was returned in the original response.',
+        note: 'API keys cannot be retrieved after initial issuance. Contact support if the key was lost.',
       });
     }
 
@@ -276,25 +329,32 @@ router.get('/purchase/:paymentIntentId', async (req: Request, res: Response) => 
         paymentIntentId,
         status: paymentIntent.status,
         message: paymentIntent.status === 'requires_action'
-          ? 'Payment still requires 3DS action. Complete authentication via Stripe.js.'
-          : `Payment status: ${paymentIntent.status}. Credits not provisioned.`,
+          ? 'Payment still requires 3DS action. Complete authentication via Stripe.js first.'
+          : `Payment status: ${paymentIntent.status}. Credits not yet provisioned.`,
       });
     }
 
-    // PI succeeded but not yet provisioned — provision now
+    // PI succeeded and not yet provisioned (or pending from a previous crashed attempt) — provision now
     const meta = paymentIntent.metadata || {};
-    const amountUsd = Number(meta.amountUsd) || (paymentIntent.amount / 100);
     const userId = m2mUserIdFromPaymentIntent(paymentIntentId);
     const keyName = meta.keyName || 'M2M API Key';
+    const email = paymentIntent.receipt_email || `${userId}@m2m.coinrailz.com`;
 
     const result = await provisionCreditsAndKey({
       paymentIntentId,
       userId,
       amount: amountUsd,
-      email: paymentIntent.receipt_email || `${userId}@m2m.coinrailz.com`,
+      email,
       keyName,
-      ip: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 'unknown',
     });
+
+    if (result.inProgress) {
+      return res.status(409).json({
+        error: 'PROVISIONING_IN_PROGRESS',
+        message: 'A previous provisioning attempt is in progress. Retry in 30 seconds.',
+        retryAfter: 30,
+      });
+    }
 
     if (result.alreadyProvisioned) {
       return res.status(200).json({
@@ -302,6 +362,7 @@ router.get('/purchase/:paymentIntentId', async (req: Request, res: Response) => 
         alreadyProvisioned: true,
         paymentIntentId,
         message: 'Credits already provisioned.',
+        note: 'API keys cannot be retrieved after initial issuance.',
       });
     }
 
@@ -329,8 +390,16 @@ router.get('/purchase/:paymentIntentId', async (req: Request, res: Response) => 
 });
 
 /**
- * Shared provisioning logic: add credits + generate API key, with idempotency guard.
- * Uses paymentIntentTracking table's unique(paymentIntentId) constraint as the dedup lock.
+ * Crash-safe provisioning: add credits + generate API key with two-phase status tracking.
+ *
+ * Phase 1: Insert tracking row with status='pending' (locks the provisioning slot)
+ * Phase 2: Do the work (addCredits + generateApiKey)
+ * Phase 3: Update tracking row to status='used'
+ *
+ * On retry:
+ *   - status='used': fully provisioned → return alreadyProvisioned
+ *   - status='pending' AND < 2 minutes old: in-flight → return inProgress (caller retries)
+ *   - status='pending' AND > 2 minutes old: assumed crash → delete and reattempt
  */
 async function provisionCreditsAndKey(params: {
   paymentIntentId: string;
@@ -338,9 +407,9 @@ async function provisionCreditsAndKey(params: {
   amount: number;
   email: string;
   keyName: string;
-  ip: string;
 }): Promise<{
-  alreadyProvisioned: boolean;
+  alreadyProvisioned?: boolean;
+  inProgress?: boolean;
   apiKey?: string;
   keyPrefix?: string;
   keyId?: string;
@@ -348,8 +417,34 @@ async function provisionCreditsAndKey(params: {
   transactionId?: number;
 }> {
   const { paymentIntentId, userId, amount, email, keyName } = params;
+  const CRASH_RECOVERY_MS = 2 * 60 * 1000; // 2 minutes
 
-  // Step 1: Record the payment intent — unique constraint prevents double-execution
+  // Check for an existing tracking row before attempting insert
+  const existing = await db.query.paymentIntentTracking.findFirst({
+    where: eq(paymentIntentTracking.paymentIntentId, paymentIntentId),
+  });
+
+  if (existing && existing.purpose === 'm2m-credits') {
+    if (existing.status === 'used') {
+      return { alreadyProvisioned: true };
+    }
+    if (existing.status === 'pending') {
+      const age = Date.now() - (existing.usedAt?.getTime() || existing.createdAt?.getTime() || 0);
+      if (age < CRASH_RECOVERY_MS) {
+        // Another request is actively provisioning — tell caller to retry
+        return { inProgress: true };
+      }
+      // Previous attempt is stale (crashed) — delete and reattempt
+      console.warn(`⚠️ M2M provisioning recovery: stale pending row for ${paymentIntentId} (${Math.round(age / 1000)}s old), retrying`);
+      await db.delete(paymentIntentTracking)
+        .where(and(
+          eq(paymentIntentTracking.paymentIntentId, paymentIntentId),
+          eq(paymentIntentTracking.purpose, 'm2m-credits')
+        ));
+    }
+  }
+
+  // Phase 1: Acquire provisioning lock with status='pending'
   try {
     await db.insert(paymentIntentTracking).values({
       paymentIntentId,
@@ -359,37 +454,62 @@ async function provisionCreditsAndKey(params: {
       purpose: 'm2m-credits',
       taskDescription: `M2M Credits — $${amount}`,
       metadata: { userId, amount, keyName, source: 'm2m-credits' },
-      status: 'used',
+      status: 'pending',
     });
   } catch (insertErr: any) {
-    // Unique constraint violation = already provisioned
+    // Concurrent request beat us to the insert — they're handling it
     if (insertErr?.code === '23505' || insertErr?.message?.includes('unique')) {
-      return { alreadyProvisioned: true };
+      return { inProgress: true };
     }
     throw insertErr;
   }
 
-  // Step 2: Add credits to account
-  const creditResult = await creditsService.addCredits({
-    userId,
-    amount,
-    paymentMethod: 'stripe-m2m',
-    referenceId: paymentIntentId,
-    description: `M2M card purchase — $${amount} via Stripe`,
-    metadata: { source: 'm2m-credits', paymentIntentId, email },
-  });
+  // Phase 2: Provision credits and API key — idempotent on crash recovery
+  try {
+    // Check if credits were already added (covers partial-failure: addCredits succeeded but crash before generateApiKey)
+    const existingCredit = await db.query.creditTransactions.findFirst({
+      where: eq(creditTransactions.referenceId, paymentIntentId),
+    });
 
-  // Step 3: Generate API key
-  const keyResult = await creditsService.generateApiKey(userId, keyName);
+    let creditResult: { newBalance: number; transactionId: number };
 
-  return {
-    alreadyProvisioned: false,
-    apiKey: keyResult.apiKey,
-    keyPrefix: keyResult.keyPrefix,
-    keyId: keyResult.keyId,
-    newBalance: creditResult.newBalance,
-    transactionId: creditResult.transactionId,
-  };
+    if (existingCredit) {
+      // Credits already added — skip to key generation (crash recovery after addCredits succeeded)
+      console.warn(`⚠️ M2M crash recovery: credits already exist for ${paymentIntentId}, skipping addCredits`);
+      const balance = await creditsService.getBalance(userId);
+      creditResult = { newBalance: balance, transactionId: existingCredit.id };
+    } else {
+      creditResult = await creditsService.addCredits({
+        userId,
+        amount,
+        paymentMethod: 'stripe-m2m',
+        referenceId: paymentIntentId,
+        description: `M2M card purchase — $${amount} via Stripe`,
+        metadata: { source: 'm2m-credits', paymentIntentId, email },
+      });
+    }
+
+    const keyResult = await creditsService.generateApiKey(userId, keyName);
+
+    // Phase 3: Mark provisioning complete
+    await db.update(paymentIntentTracking)
+      .set({ status: 'used' })
+      .where(eq(paymentIntentTracking.paymentIntentId, paymentIntentId));
+
+    return {
+      apiKey: keyResult.apiKey,
+      keyPrefix: keyResult.keyPrefix,
+      keyId: keyResult.keyId,
+      newBalance: creditResult.newBalance,
+      transactionId: creditResult.transactionId,
+    };
+
+  } catch (workErr: any) {
+    // Work failed after locking — log prominently for manual recovery if needed
+    console.error(`❌ M2M provisioning work failed for ${paymentIntentId}:`, workErr?.message);
+    // Leave status='pending' — the 2-minute recovery window will allow retry
+    throw workErr;
+  }
 }
 
 export default router;

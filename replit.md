@@ -54,6 +54,7 @@ Coin Railz operates with a USDC-first strategy, leveraging Coinbase CDP for wall
 - **Wallet Safety Layer**: Centralized wallet registry with address validation, blacklist enforcement, and dry-run defaults for all fund transfer scripts.
 - **Wallet Whitelisting System**: DB-persisted whitelist for outbound fund transfers, preventing unauthorized fund drainage.
 - **Transak Fiat On-Ramp**: White-label fiat-to-crypto purchase flow at `/buy` and `/buy-crypto` for USDC/USDT on 6 networks, featuring inline auth, real-time quotes, and HMAC-SHA256 webhook verification.
+- **M2M Credits Purchase**: Unauthenticated machine-to-machine endpoint `POST /api/m2m/credits/purchase` — autonomous agents submit a Stripe PaymentMethod ID, server confirms the PaymentIntent, atomically adds credits and generates a `cr_live_` API key, returns the key in one response. No browser, no login, no crypto required. Tiers: $10/~200 calls, $25/~500 calls, $100/~2,000 calls. Status check at `GET /api/m2m/credits/purchase/:paymentIntentId`. Idempotency enforced via Stripe idempotency key + `paymentIntentTracking` unique constraint. Rate limited to 5 purchases/IP/hour. The M2M endpoint is surfaced in all discovery documents: `/.well-known/agent-instructions.json` (as recommended quickstart path), `/.well-known/agent-registration.json` (in `next.cardPaymentPath`), x402.json `challengeFlow`, and all 402 challenge bodies via `alternativePaymentMethods.apiKey.m2mPurchaseEndpoint`.
 
 ## External Dependencies
 - **Coinbase CDP:** Wallet creation, management, and transaction execution.

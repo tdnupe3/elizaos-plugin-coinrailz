@@ -1874,49 +1874,86 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
     summary: "Step-by-step guide for AI agents to purchase blockchain analytics and trading services via x402 micropayments or prepaid credits.",
     
     quickStart: {
-      description: "Get started in 3 steps",
-      steps: [
-        {
-          step: 1,
-          action: "Get a Wallet",
-          description: "Create a free agent wallet or use your own EVM wallet with USDC on Base",
-          endpoint: `${baseUrl}/x402/wallet/free`,
-          method: "POST",
-          example: { agentId: "your-agent-id", purpose: "payments" }
-        },
-        {
-          step: 2,
-          action: "Fund with USDC",
-          description: "Send USDC to your wallet on Base mainnet (Chain ID 8453)",
-          network: "Base Mainnet",
-          chainId: 8453,
-          token: {
-            symbol: "USDC",
-            address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-            decimals: 6
-          },
-          bridges: [
-            { name: "Base Bridge", url: "https://bridge.base.org" },
-            { name: "Across Protocol", url: "https://app.across.to" },
-            { name: "Stargate", url: "https://stargate.finance" }
+      description: "Two paths to get started — card (easier) or on-chain USDC",
+      recommendedPath: "cardPayment",
+      paths: {
+        cardPayment: {
+          label: "Card Payment (Recommended — no crypto required)",
+          steps: [
+            {
+              step: 1,
+              action: "Create a Stripe PaymentMethod",
+              description: "Use Stripe.js or the Stripe API to tokenize a card. Returns a pm_... PaymentMethod ID.",
+              stripeDocsUrl: "https://stripe.com/docs/api/payment_methods/create"
+            },
+            {
+              step: 2,
+              action: "Purchase credits and get your API key",
+              endpoint: `${baseUrl}/api/m2m/credits/purchase`,
+              method: "POST",
+              body: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "your-unique-uuid-v4" },
+              tiers: [
+                { amountUsd: 10, calls: "~200 service calls" },
+                { amountUsd: 25, calls: "~500 service calls" },
+                { amountUsd: 100, calls: "~2,000 service calls" }
+              ],
+              response: "{ apiKey: 'cr_live_...', keyPrefix, creditsAdded, newBalance }",
+              warning: "SAVE the apiKey from the response — shown once only"
+            },
+            {
+              step: 3,
+              action: "Call any service with your API key",
+              description: "Pass the key as X-API-KEY header on any /x402/* endpoint. Credits deducted per call.",
+              curlExample: `curl -X POST ${baseUrl}/x402/gas-price-oracle -H 'X-API-KEY: cr_live_...' -H 'Content-Type: application/json' -d '{"chains":["base"]}'`,
+              catalogUrl: `${baseUrl}/x402/catalog`
+            }
           ]
         },
-        {
-          step: 3,
-          action: "Make Your First Paid Call",
-          description: "Start with the Golden Path endpoint — the lowest-price entry point designed for first-time integration. You'll receive a 402 with dual-track payment instructions (EVM + Solana). Pay via facilitator, retry with X-PAYMENT header, receive your onboarding receipt.",
-          facilitator: {
-            evm: "https://api.cdp.coinbase.com/platform/v2/x402",
-            solana: "https://x402.dexter.cash"
-          },
-          goldenPathEndpoint: `${baseUrl}/x402/first-call`,
-          price: "$0.05 USDC — lowest price on platform",
-          chainsAccepted: ["Base (eip155:8453)", "Solana mainnet"],
-          note: "first-call is the Golden Path — specifically designed for first-time payment integration on any chain",
-          curlExample: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-PAYMENT: <tx_hash>' -d '{}'`,
-          pythonExample: `import httpx\nresp = httpx.post('${baseUrl}/x402/first-call', headers={'X-PAYMENT': tx_hash}, json={})\nprint(resp.json())`
+        onChainUsdc: {
+          label: "On-Chain USDC via x402 (crypto-native)",
+          steps: [
+            {
+              step: 1,
+              action: "Get a Wallet",
+              description: "Create a free agent wallet or use your own EVM wallet with USDC on Base",
+              endpoint: `${baseUrl}/x402/wallet/free`,
+              method: "POST",
+              example: { agentId: "your-agent-id", purpose: "payments" }
+            },
+            {
+              step: 2,
+              action: "Fund with USDC",
+              description: "Send USDC to your wallet on Base mainnet (Chain ID 8453)",
+              network: "Base Mainnet",
+              chainId: 8453,
+              token: {
+                symbol: "USDC",
+                address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                decimals: 6
+              },
+              bridges: [
+                { name: "Base Bridge", url: "https://bridge.base.org" },
+                { name: "Across Protocol", url: "https://app.across.to" },
+                { name: "Stargate", url: "https://stargate.finance" }
+              ]
+            },
+            {
+              step: 3,
+              action: "Make Your First Paid Call",
+              description: "Start with the Golden Path endpoint — $0.05 USDC, lowest price on platform. Receive 402, pay via facilitator, retry with X-PAYMENT header.",
+              facilitator: {
+                evm: "https://api.cdp.coinbase.com/platform/v2/x402",
+                solana: "https://x402.dexter.cash"
+              },
+              goldenPathEndpoint: `${baseUrl}/x402/first-call`,
+              price: "$0.05 USDC",
+              chainsAccepted: ["Base (eip155:8453)", "Solana mainnet"],
+              curlExample: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-PAYMENT: <tx_hash>' -d '{}'`,
+              pythonExample: `import httpx\nresp = httpx.post('${baseUrl}/x402/first-call', headers={'X-PAYMENT': tx_hash}, json={})\nprint(resp.json())`
+            }
+          ]
         }
-      ]
+      }
     },
 
     goldenPath: {
@@ -4390,6 +4427,23 @@ router.get('/.well-known/agent-registration.json', (req: Request, res: Response)
         docs: `${baseUrl}/.well-known/agent-instructions.json`,
       },
     },
+    cardPaymentPath: {
+      description: 'EASIER ALTERNATIVE — No crypto required. One POST call with a Stripe card → receive API key → use on all 60 services instantly.',
+      endpoint: `${baseUrl}/api/m2m/credits/purchase`,
+      method: 'POST',
+      steps: [
+        { step: 1, action: 'Create a Stripe PaymentMethod via Stripe.js or the Stripe API (pm_...)' },
+        { step: 2, action: `POST to ${baseUrl}/api/m2m/credits/purchase with { paymentMethodId, amountUsd, idempotencyKey }` },
+        { step: 3, action: 'Receive { apiKey: "cr_live_..." } — SAVE THIS KEY, shown once only' },
+        { step: 4, action: 'Use key on any /x402/* endpoint: -H "X-API-KEY: cr_live_..."' },
+      ],
+      tiers: [
+        { amountUsd: 10, label: 'Starter', calls: '~200 service calls' },
+        { amountUsd: 25, label: 'Growth',  calls: '~500 service calls' },
+        { amountUsd: 100, label: 'Pro',    calls: '~2,000 service calls' },
+      ],
+      statusCheckEndpoint: `${baseUrl}/api/m2m/credits/purchase/:paymentIntentId`,
+    },
 
     support: {
       contactUrl: 'https://coinrailz.com/contact',
@@ -4540,6 +4594,27 @@ router.post('/.well-known/agent-registration.json', async (req: Request, res: Re
         curl: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-PAYMENT: <your_tx_hash>' -d '{}'`,
         expectedResponse: 'HTTP 200 with onboarding receipt and next-service templates',
       },
+    },
+    // EASIER ALTERNATIVE: card payment → instant API key (no crypto required)
+    cardPaymentPath: {
+      description: 'No crypto needed. Purchase credits with a card and get an API key in one call. Works on all 60 services immediately.',
+      endpoint: `${baseUrl}/api/m2m/credits/purchase`,
+      method: 'POST',
+      tiers: [
+        { amountUsd: 10, label: 'Starter', calls: '~200 service calls' },
+        { amountUsd: 25, label: 'Growth',  calls: '~500 service calls' },
+        { amountUsd: 100, label: 'Pro',    calls: '~2,000 service calls' },
+      ],
+      requiredFields: ['paymentMethodId', 'amountUsd', 'idempotencyKey'],
+      exampleRequest: {
+        paymentMethodId: 'pm_...',
+        amountUsd: 10,
+        idempotencyKey: 'your-unique-uuid-v4',
+        email: 'agent@yourdomain.com',
+      },
+      onSuccess: 'Returns { apiKey, keyPrefix, creditsAdded, newBalance } — save the apiKey immediately',
+      apiKeyUsage: 'Pass as X-API-KEY header on any /x402/* request. Credits deducted per call.',
+      statusCheckEndpoint: `${baseUrl}/api/m2m/credits/purchase/:paymentIntentId`,
     },
   });
 

@@ -246,14 +246,14 @@ export class CreditsService {
     const hashedKey = await bcrypt.hash(rawKey, 10);
     const keyPrefix = rawKey.substring(0, 12);
 
-    // For programmatic users (gpt_..., x402_...), ensure user exists before creating API key
-    if (userId.startsWith('gpt_') || userId.startsWith('x402_')) {
+    // For programmatic users (gpt_..., x402_..., m2m_...), ensure user exists before creating API key
+    if (userId.startsWith('gpt_') || userId.startsWith('x402_') || userId.startsWith('m2m_')) {
       const existingUser = await db.query.users.findFirst({
         where: eq(users.id, userId)
       });
       
       if (!existingUser) {
-        const prefix = userId.startsWith('gpt_') ? 'gpt' : 'x402';
+        const prefix = userId.startsWith('gpt_') ? 'gpt' : userId.startsWith('m2m_') ? 'm2m' : 'x402';
         console.log(`🤖 Creating ${prefix} user: ${userId}`);
         await db.insert(users).values({
           id: userId,

@@ -1917,9 +1917,17 @@ export function createPaymentOrchestrator(
                 },
                 alternativePaymentMethods: {
                   apiKey: {
-                    description: "Use prepaid credits with an API key (no blockchain required)",
-                    howToGet: "Purchase credits at https://coinrailz.com/credits",
-                    usage: "Include X-API-KEY header instead of X-PAYMENT"
+                    description: "Use prepaid credits with an API key (EASIEST — no blockchain required)",
+                    howToGet: "Purchase credits with a card in one API call — no login needed",
+                    m2mPurchaseEndpoint: `${baseUrl}/api/m2m/credits/purchase`,
+                    m2mPurchaseMethod: "POST",
+                    m2mPurchaseBody: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "your-uuid" },
+                    usage: "Include X-API-KEY: cr_live_... header instead of X-PAYMENT",
+                    tiers: [
+                      { amountUsd: 10, calls: "~200 service calls" },
+                      { amountUsd: 25, calls: "~500 service calls" },
+                      { amountUsd: 100, calls: "~2,000 service calls" }
+                    ]
                   }
                 },
                 requestId
@@ -2651,12 +2659,20 @@ function generate402Response(
     },
     alternativePaymentMethods: {
       apiKey: {
-        description: "Use prepaid credits with an API key (EASIEST - no blockchain required)",
-        howToGet: "Purchase credits at https://coinrailz.com/credits with Stripe (credit card) or USDC",
-        usage: "Include X-API-KEY header or Authorization: Bearer <api-key> header",
-        benefits: ["No blockchain knowledge required", "Instant setup with credit card", "Single API key for all 43 services", "50-70% higher conversion than manual USDC"],
-        getStarted: `${baseUrl}/credits`,
-        example: `curl -X GET "${resource}" -H "X-API-KEY: your-api-key-here"`
+        description: "Use prepaid credits with an API key (EASIEST — no blockchain required)",
+        howToGet: "Purchase credits with a card in one API call. No login. No crypto. API key returned immediately.",
+        m2mPurchaseEndpoint: `${baseUrl}/api/m2m/credits/purchase`,
+        m2mPurchaseMethod: "POST",
+        m2mPurchaseBody: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "your-uuid-v4" },
+        m2mPurchaseExample: `curl -X POST ${baseUrl}/api/m2m/credits/purchase -H "Content-Type: application/json" -d '{"paymentMethodId":"pm_...","amountUsd":10,"idempotencyKey":"uuid-v4"}'`,
+        tiers: [
+          { amountUsd: 10, label: "Starter", calls: "~200 service calls" },
+          { amountUsd: 25, label: "Growth",  calls: "~500 service calls" },
+          { amountUsd: 100, label: "Pro",    calls: "~2,000 service calls" }
+        ],
+        usage: "Include X-API-KEY: cr_live_... header or Authorization: Bearer cr_live_... on any /x402/* request",
+        benefits: ["No blockchain knowledge required", "Instant setup with any credit card", "Single API key works on all 60 services", "Credits deducted per call at published pricing"],
+        example: `curl -X POST "${resource}" -H "X-API-KEY: cr_live_your-key-here" -H "Content-Type: application/json" -d '{}'`
       },
       rawTransaction: {
         description: "Send USDC/USDT to platform wallet, include tx hash in X-PAYMENT header",

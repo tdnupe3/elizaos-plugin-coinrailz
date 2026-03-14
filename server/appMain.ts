@@ -920,10 +920,13 @@ console.log('💳 Registering Prepaid Credits system for conversion optimization
 const { registerCreditsRoutes } = await import('./routes/creditsRoutes');
 const { registerApiKeysRoutes } = await import('./routes/apiKeysRoutes');
 const { registerProductsRoutes } = await import('./routes/productsRoutes.js');
+const m2mCreditsRoutes = (await import('./routes/m2mCreditsRoutes.js')).default;
 registerCreditsRoutes(app);
 registerApiKeysRoutes(app);
 registerProductsRoutes(app);
+app.use('/api/m2m/credits', m2mCreditsRoutes);
 console.log('✅ Credits, Products & API Keys routes registered successfully');
+console.log('✅ M2M Credits purchase endpoint registered at POST /api/m2m/credits/purchase');
 
 // === ACP (AGENTIC COMMERCE PROTOCOL) ROUTES ===
 console.log('🛒 Registering ACP routes for ChatGPT Instant Checkout integration...');

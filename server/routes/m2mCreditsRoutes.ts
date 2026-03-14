@@ -40,6 +40,7 @@ const router = Router();
 
 // Allowed credit pack tiers (USD)
 const ALLOWED_TIERS: Record<number, { label: string; description: string }> = {
+  5:   { label: 'Intro',   description: '~80-100 service calls — ideal for first test run' },
   10:  { label: 'Starter', description: '~200 service calls at avg pricing' },
   25:  { label: 'Growth',  description: '~500 service calls, best for recurring agents' },
   100: { label: 'Pro',     description: '~2,000 service calls, high-volume operations' },

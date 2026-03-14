@@ -1893,8 +1893,9 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
               method: "POST",
               body: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "your-unique-uuid-v4" },
               tiers: [
-                { amountUsd: 10, calls: "~200 service calls" },
-                { amountUsd: 25, calls: "~500 service calls" },
+                { amountUsd: 5,   calls: "~80-100 service calls", note: "Try it — no commitment" },
+                { amountUsd: 10,  calls: "~200 service calls" },
+                { amountUsd: 25,  calls: "~500 service calls", recommended: true },
                 { amountUsd: 100, calls: "~2,000 service calls" }
               ],
               response: "{ apiKey: 'cr_live_...', keyPrefix, creditsAdded, newBalance }",
@@ -4438,9 +4439,10 @@ router.get('/.well-known/agent-registration.json', (req: Request, res: Response)
         { step: 4, action: 'Use key on any /x402/* endpoint: -H "X-API-KEY: cr_live_..."' },
       ],
       tiers: [
-        { amountUsd: 10, label: 'Starter', calls: '~200 service calls' },
-        { amountUsd: 25, label: 'Growth',  calls: '~500 service calls' },
-        { amountUsd: 100, label: 'Pro',    calls: '~2,000 service calls' },
+        { amountUsd: 5,   label: 'Intro',   calls: '~80-100 service calls', note: 'Try it — no commitment' },
+        { amountUsd: 10,  label: 'Starter', calls: '~200 service calls' },
+        { amountUsd: 25,  label: 'Growth',  calls: '~500 service calls', recommended: true },
+        { amountUsd: 100, label: 'Pro',     calls: '~2,000 service calls' },
       ],
       statusCheckEndpoint: `${baseUrl}/api/m2m/credits/purchase/:paymentIntentId`,
     },
@@ -4581,29 +4583,17 @@ router.post('/.well-known/agent-registration.json', async (req: Request, res: Re
     agentCardUrl: `${baseUrl}/.well-known/agent-card.json`,
     recommendedFundingToken: 'USDC',
     recommendedChain: isEvmWallet ? 'Base (eip155:8453)' : 'Solana (mainnet-beta)',
-    minimumFirstPayment: '$0.05 USDC',
-    // Explicit 2-step challenge flow — do NOT skip step 1
-    challengeFlow: {
-      step1: {
-        description: 'Send POST without X-PAYMENT to receive the 402 challenge (required — this gives you the exact payTo address and amount)',
-        curl: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -d '{}'`,
-        expectedResponse: 'HTTP 402 with JSON body containing payTo, amount, chain, and facilitatorUrl',
-      },
-      step2: {
-        description: 'Broadcast USDC transfer on-chain, then resend with X-PAYMENT header',
-        curl: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-PAYMENT: <your_tx_hash>' -d '{}'`,
-        expectedResponse: 'HTTP 200 with onboarding receipt and next-service templates',
-      },
-    },
-    // EASIER ALTERNATIVE: card payment → instant API key (no crypto required)
+    // RECOMMENDED: card purchase → instant API key — no crypto required, works in ~60 seconds
     cardPaymentPath: {
-      description: 'No crypto needed. Purchase credits with a card and get an API key in one call. Works on all 60 services immediately.',
+      label: 'RECOMMENDED — Get started in ~60 seconds, no crypto required',
+      description: 'Purchase credits with a card and get an API key in one call. Key works on all 60 /x402/* services immediately.',
       endpoint: `${baseUrl}/api/m2m/credits/purchase`,
       method: 'POST',
       tiers: [
-        { amountUsd: 10, label: 'Starter', calls: '~200 service calls' },
-        { amountUsd: 25, label: 'Growth',  calls: '~500 service calls' },
-        { amountUsd: 100, label: 'Pro',    calls: '~2,000 service calls' },
+        { amountUsd: 5,   label: 'Intro',   calls: '~80-100 service calls', note: 'Try it — no commitment' },
+        { amountUsd: 10,  label: 'Starter', calls: '~200 service calls' },
+        { amountUsd: 25,  label: 'Growth',  calls: '~500 service calls', recommended: true },
+        { amountUsd: 100, label: 'Pro',     calls: '~2,000 service calls' },
       ],
       requiredFields: ['paymentMethodId', 'amountUsd', 'idempotencyKey'],
       exampleRequest: {
@@ -4615,6 +4605,21 @@ router.post('/.well-known/agent-registration.json', async (req: Request, res: Re
       onSuccess: 'Returns { apiKey, keyPrefix, creditsAdded, newBalance } — save the apiKey immediately',
       apiKeyUsage: 'Pass as X-API-KEY header on any /x402/* request. Credits deducted per call.',
       statusCheckEndpoint: `${baseUrl}/api/m2m/credits/purchase/:paymentIntentId`,
+    },
+    // ADVANCED ALTERNATIVE: on-chain USDC via x402 protocol (requires funded crypto wallet)
+    challengeFlow: {
+      label: 'Advanced — On-chain USDC payment via x402 (crypto wallet required)',
+      minimumPayment: '$0.05 USDC on Base or Ethereum',
+      step1: {
+        description: 'Send POST without X-PAYMENT to receive the 402 challenge (gives you payTo address and exact amount)',
+        curl: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -d '{}'`,
+        expectedResponse: 'HTTP 402 with JSON body containing payTo, amount, chain, and facilitatorUrl',
+      },
+      step2: {
+        description: 'Broadcast USDC transfer on-chain, then resend with X-PAYMENT header',
+        curl: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-PAYMENT: <your_tx_hash>' -d '{}'`,
+        expectedResponse: 'HTTP 200 with onboarding receipt and next-service templates',
+      },
     },
   });
 

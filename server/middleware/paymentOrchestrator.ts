@@ -1924,9 +1924,10 @@ export function createPaymentOrchestrator(
                     m2mPurchaseBody: { paymentMethodId: "pm_...", amountUsd: 25, idempotencyKey: "your-uuid" },
                     usage: "Include X-API-KEY: cr_live_... header instead of X-PAYMENT",
                     tiers: [
-                      { amountUsd: 10, label: "Starter", calls: "~200 service calls", example: "~133 market queries or ~66 gas checks" },
-                      { amountUsd: 25, label: "Growth",  calls: "~500 service calls", recommended: true, note: "Best value — recommended starting tier" },
-                      { amountUsd: 100, label: "Pro",    calls: "~2,000 service calls", note: "Lowest effective per-call rate" }
+                      { amountUsd: 5,   label: "Intro",   calls: "~80-100 service calls", note: "Try it — no commitment" },
+                      { amountUsd: 10,  label: "Starter", calls: "~200 service calls", example: "~133 market queries or ~66 gas checks" },
+                      { amountUsd: 25,  label: "Growth",  calls: "~500 service calls", recommended: true, note: "Best value — recommended for production" },
+                      { amountUsd: 100, label: "Pro",     calls: "~2,000 service calls", note: "Lowest effective per-call rate" }
                     ]
                   }
                 },
@@ -2623,6 +2624,16 @@ function generate402Response(
   const response: any = {
     x402Version: 2,
     error: "X-PAYMENT header is required",
+    recommended_next_step: {
+      action: "purchase_api_key",
+      description: "Get an API key with a card — no crypto wallet required. Works on all 60 services.",
+      endpoint: `${baseUrl}/api/m2m/credits/purchase`,
+      method: "POST",
+      body: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "replace-with-uuid-v4" },
+      expected_time: "~60 seconds from card to working API key",
+      usage: "Attach to every request as: X-API-KEY: cr_live_...",
+      advanced_alternative: "On-chain USDC payment via accepts[] below (crypto wallet required)"
+    },
     accepts: acceptsArray,
     resource: {
       url: resource,
@@ -2666,9 +2677,10 @@ function generate402Response(
         m2mPurchaseBody: { paymentMethodId: "pm_...", amountUsd: 25, idempotencyKey: "your-uuid-v4" },
         m2mPurchaseExample: `curl -X POST ${baseUrl}/api/m2m/credits/purchase -H "Content-Type: application/json" -d '{"paymentMethodId":"pm_...","amountUsd":25,"idempotencyKey":"uuid-v4"}'`,
         tiers: [
-          { amountUsd: 10, label: "Starter", calls: "~200 service calls", example: "~133 market queries or ~66 gas checks" },
-          { amountUsd: 25, label: "Growth",  calls: "~500 service calls", recommended: true, note: "Best value — recommended starting tier" },
-          { amountUsd: 100, label: "Pro",    calls: "~2,000 service calls", note: "Lowest effective per-call rate" }
+          { amountUsd: 5,   label: "Intro",   calls: "~80-100 service calls", note: "Try it — no commitment" },
+          { amountUsd: 10,  label: "Starter", calls: "~200 service calls", example: "~133 market queries or ~66 gas checks" },
+          { amountUsd: 25,  label: "Growth",  calls: "~500 service calls", recommended: true, note: "Best value — recommended for production" },
+          { amountUsd: 100, label: "Pro",     calls: "~2,000 service calls", note: "Lowest effective per-call rate" }
         ],
         usage: "Include X-API-KEY: cr_live_... header or Authorization: Bearer cr_live_... on any /x402/* request",
         benefits: ["No blockchain knowledge required", "Instant setup with any credit card", "Single API key works on all 60 services", "Credits deducted per call at published pricing"],

@@ -22,6 +22,53 @@ function hashIP(ip: string | undefined): string | undefined {
   return crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16);
 }
 
+type A2AIntentType = 'peer_discovery_greeting' | 'peer_offer_clawpay_v1' | 'service_query' | 'no_text' | 'unknown';
+
+function classifyA2AIntent(text: string): A2AIntentType {
+  if (!text) return 'no_text';
+  const t = text.trim();
+  if (/^CLAWPAY_V1\s/i.test(t)) return 'peer_offer_clawpay_v1';
+  if (/\bhello[,.]?\s+i am\b/i.test(t) && /\bwhat services\b/i.test(t)) return 'peer_discovery_greeting';
+  if (/\bwhat (services|can you|do you)\b/i.test(t) || /\bhello[,.]?\s+i am\b/i.test(t)) return 'peer_discovery_greeting';
+  if (t.length > 0) return 'service_query';
+  return 'unknown';
+}
+
+function logA2AInteraction(opts: {
+  requestId: string;
+  latencyMs: number;
+  statusCode: number;
+  matched: boolean;
+  resourceId: string;
+  matchCount: number;
+  intentType: A2AIntentType;
+  queryText: string;
+  clientIpHash: string | undefined;
+  userAgent: string | undefined;
+  trackingId?: string;
+}) {
+  const queryPreview = opts.queryText.slice(0, 200).replace(/\s+/g, ' ');
+  const queryHash = crypto.createHash('sha256').update(opts.queryText).digest('hex').slice(0, 8);
+  const uaShort = (opts.userAgent || 'unknown').slice(0, 60);
+  console.log(JSON.stringify({
+    event: 'a2a.message.processed',
+    requestId: opts.requestId,
+    ts: new Date().toISOString(),
+    latencyMs: opts.latencyMs,
+    statusCode: opts.statusCode,
+    matched: opts.matched,
+    resourceId: opts.resourceId,
+    matchCount: opts.matchCount,
+    intentType: opts.intentType,
+    queryPreview,
+    queryLen: opts.queryText.length,
+    queryHash,
+    clientIpHash: opts.clientIpHash,
+    uaShort,
+    ...(opts.trackingId ? { trackingId: opts.trackingId } : {}),
+  }));
+}
+
 function trackA2AHit(req: Request, opts: {
   resourceId: string;
   statusCode: number;
@@ -397,6 +444,10 @@ router.post('/a2a/v1/message/send', handleMessageSend);
 function handleMessageSend(req: Request, res: Response) {
   const startTime = Date.now();
   const taskId = uuidv4();
+  const clientIP = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket?.remoteAddress;
+  const clientIpHash = hashIP(clientIP);
+  const trackingId = (req.headers['x-tracking-id'] || req.query.tracking) as string | undefined;
+  const userAgent = req.headers['user-agent'];
 
   const body = req.body || {};
   const message = body.message || body.params?.message || {};
@@ -413,11 +464,14 @@ function handleMessageSend(req: Request, res: Response) {
         documentationUrl: `${BASE_URL}/.well-known/agent-instructions.json`
       }
     });
-    trackA2AHit(req, { resourceId: 'a2a-no-text', statusCode: 400, responseTimeMs: Date.now() - startTime, matched: false, requestId: taskId });
+    const latencyMs = Date.now() - startTime;
+    trackA2AHit(req, { resourceId: 'a2a-no-text', statusCode: 400, responseTimeMs: latencyMs, matched: false, requestId: taskId });
+    logA2AInteraction({ requestId: taskId, latencyMs, statusCode: 400, matched: false, resourceId: 'a2a-no-text', matchCount: 0, intentType: 'no_text', queryText: '', clientIpHash, userAgent, trackingId });
     return;
   }
 
   const matches = matchServices(text);
+  const intentType = classifyA2AIntent(text);
 
   if (matches.length === 0) {
     res.status(200).json(buildTaskResponse(taskId, [{
@@ -430,7 +484,9 @@ function handleMessageSend(req: Request, res: Response) {
       suggestedSkills: SERVICE_CATALOG.slice(0, 5).map(s => s.id),
       catalogUrl: `${BASE_URL}/.well-known/agent-instructions.json`
     }));
-    trackA2AHit(req, { resourceId: 'a2a-no-match', statusCode: 200, responseTimeMs: Date.now() - startTime, matched: false, queryText: text, requestId: taskId });
+    const latencyMs = Date.now() - startTime;
+    trackA2AHit(req, { resourceId: 'a2a-no-match', statusCode: 200, responseTimeMs: latencyMs, matched: false, queryText: text, requestId: taskId });
+    logA2AInteraction({ requestId: taskId, latencyMs, statusCode: 200, matched: false, resourceId: 'a2a-no-match', matchCount: 0, intentType, queryText: text, clientIpHash, userAgent, trackingId });
     return;
   }
 
@@ -485,7 +541,9 @@ function handleMessageSend(req: Request, res: Response) {
       }
     }]
   }));
-  trackA2AHit(req, { resourceId: top.id, statusCode: 200, responseTimeMs: Date.now() - startTime, matched: true, queryText: text, requestId: taskId });
+  const latencyMs = Date.now() - startTime;
+  trackA2AHit(req, { resourceId: top.id, statusCode: 200, responseTimeMs: latencyMs, matched: true, queryText: text, requestId: taskId });
+  logA2AInteraction({ requestId: taskId, latencyMs, statusCode: 200, matched: true, resourceId: top.id, matchCount: matches.length, intentType, queryText: text, clientIpHash, userAgent, trackingId });
 }
 
 export default router;

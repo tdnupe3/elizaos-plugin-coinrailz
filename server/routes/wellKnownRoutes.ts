@@ -1872,7 +1872,18 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
     version: "1.0.0",
     lastUpdated: "2026-01-31",
     summary: "Step-by-step guide for AI agents to purchase blockchain analytics and trading services via x402 micropayments or prepaid credits.",
-    
+
+    recommended_next_step: {
+      action: "purchase_api_key",
+      description: "Get an API key with a card — no crypto wallet required. Works on all 60 services.",
+      endpoint: `${baseUrl}/api/m2m/credits/purchase`,
+      method: "POST",
+      body: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "replace-with-uuid-v4" },
+      expected_time: "~60 seconds from card to working API key",
+      usage: "Attach to every request as: X-API-KEY: cr_live_...",
+      advanced_alternative: "On-chain USDC payment via goldenPath below (crypto wallet required)"
+    },
+
     quickStart: {
       description: "Two paths to get started — card (easier) or on-chain USDC",
       recommendedPath: "cardPayment",
@@ -3566,9 +3577,54 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         category: "prediction-markets",
         input_schema: { type: "object", properties: { query: { type: "string" }, limit: { type: "number" } }, required: ["query"] }
       },
+      // Golden Path + SDK Services
+      {
+        path: "/x402/first-call",
+        methods: ["POST"],
+        price_usd: 0.05,
+        auth: "x402",
+        name: "x402 Golden Path — First Paid Call",
+        description: "START HERE. The canonical first payment endpoint for any AI agent integrating with Coin Railz. $0.05 USDC on Base or Solana. Returns sessionId, payment receipt, and 3 executable next-service templates.",
+        status: "healthy",
+        category: "discovery",
+        input_schema: { type: "object", properties: { agentId: { type: "string", description: "Optional agent identifier" } } }
+      },
+      {
+        path: "/x402/solana-yield-finder",
+        methods: ["POST"],
+        price_usd: 0.25,
+        auth: "x402",
+        name: "Solana Yield Finder",
+        description: "Real-time Solana lending and yield rates from top DeFi protocols (Kamino, Jupiter, Marinade). Find best APY for SOL and USDC.",
+        status: "healthy",
+        category: "trader-focused",
+        input_schema: { type: "object", properties: { token: { type: "string", description: "Token symbol (SOL, USDC)" }, minApy: { type: "number", description: "Minimum APY filter (optional)" } } }
+      },
+      {
+        path: "/x402/sdk-payments-evm",
+        methods: ["POST"],
+        price_usd: 0.10,
+        auth: "x402",
+        name: "SDK Payment Processing (EVM)",
+        description: "Non-custodial USDC payment processing for AI agents via @coinrailz/agent-payments NPM. EVM-compatible, Base mainnet.",
+        status: "healthy",
+        category: "payments",
+        input_schema: { type: "object", properties: { toAddress: { type: "string", description: "Recipient EVM address" }, amountUsdc: { type: "number", description: "Amount in USDC" }, chain: { type: "string", description: "EVM chain (base, ethereum, polygon)" } }, required: ["toAddress", "amountUsdc"] }
+      },
+      {
+        path: "/x402/sdk-payments-solana",
+        methods: ["POST"],
+        price_usd: 0.10,
+        auth: "x402",
+        name: "SDK Payment Processing (Solana)",
+        description: "Non-custodial SOL/USDC payment processing for AI agents via @coinrailz/agent-payments-solana NPM.",
+        status: "healthy",
+        category: "payments",
+        input_schema: { type: "object", properties: { toAddress: { type: "string", description: "Recipient Solana address" }, amountUsdc: { type: "number", description: "Amount in USDC" } }, required: ["toAddress", "amountUsdc"] }
+      },
       // Satellite Data Services (6 services) - NASA Earthdata + ESA Copernicus
       {
-        path: "/api/satellite/fire-alerts",
+        path: "/x402/fire-alerts",
         methods: ["GET", "POST"],
         price_usd: 0.05,
         auth: "x402",
@@ -3579,7 +3635,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         input_schema: { type: "object", properties: { lat: { type: "number", description: "Latitude" }, lon: { type: "number", description: "Longitude" }, radius: { type: "number", description: "Search radius in km (optional)" } }, required: ["lat", "lon"] }
       },
       {
-        path: "/api/satellite/weather-imagery",
+        path: "/x402/weather-imagery",
         methods: ["GET", "POST"],
         price_usd: 0.05,
         auth: "x402",
@@ -3590,7 +3646,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         input_schema: { type: "object", properties: { lat: { type: "number", description: "Latitude" }, lon: { type: "number", description: "Longitude" }, layer: { type: "string", description: "Imagery layer (optional)" } }, required: ["lat", "lon"] }
       },
       {
-        path: "/api/satellite/vegetation",
+        path: "/x402/vegetation",
         methods: ["GET", "POST"],
         price_usd: 0.10,
         auth: "x402",
@@ -3601,7 +3657,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         input_schema: { type: "object", properties: { lat: { type: "number", description: "Latitude" }, lon: { type: "number", description: "Longitude" }, area_km2: { type: "number", description: "Area in square kilometers (optional)" } }, required: ["lat", "lon"] }
       },
       {
-        path: "/api/satellite/flood-detection",
+        path: "/x402/flood-detection",
         methods: ["GET", "POST"],
         price_usd: 0.10,
         auth: "x402",
@@ -3612,7 +3668,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         input_schema: { type: "object", properties: { lat: { type: "number", description: "Latitude" }, lon: { type: "number", description: "Longitude" }, radius: { type: "number", description: "Detection radius in km (optional)" } }, required: ["lat", "lon"] }
       },
       {
-        path: "/api/satellite/air-quality",
+        path: "/x402/air-quality",
         methods: ["GET", "POST"],
         price_usd: 0.05,
         auth: "x402",
@@ -3623,7 +3679,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         input_schema: { type: "object", properties: { lat: { type: "number", description: "Latitude" }, lon: { type: "number", description: "Longitude" }, pollutant: { type: "string", description: "Pollutant type (optional)" } }, required: ["lat", "lon"] }
       },
       {
-        path: "/api/satellite/land-use",
+        path: "/x402/land-use",
         methods: ["GET", "POST"],
         price_usd: 0.15,
         auth: "x402",
@@ -3632,6 +3688,62 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         status: "healthy",
         category: "satellite-data",
         input_schema: { type: "object", properties: { lat: { type: "number", description: "Latitude" }, lon: { type: "number", description: "Longitude" }, area_km2: { type: "number", description: "Area in square kilometers (optional)" } }, required: ["lat", "lon"] }
+      },
+      // IoT / DePIN Services
+      {
+        path: "/x402/fleet-telematics",
+        methods: ["POST"],
+        price_usd: 0.25,
+        auth: "x402",
+        name: "Fleet Telematics Data",
+        description: "Real-time fleet data: GPS location, fuel consumption, driver behavior, engine diagnostics from IoT-connected vehicles.",
+        status: "healthy",
+        category: "iot",
+        input_schema: { type: "object", properties: { deviceId: { type: "string", description: "Fleet device ID" }, metrics: { type: "array", items: { type: "string" }, description: "Metrics to retrieve (optional)" } }, required: ["deviceId"] }
+      },
+      {
+        path: "/x402/weather-station-data",
+        methods: ["POST"],
+        price_usd: 0.10,
+        auth: "x402",
+        name: "Weather Station Data",
+        description: "Hyperlocal weather data from IoT weather stations. Temperature, humidity, pressure, wind speed.",
+        status: "healthy",
+        category: "iot",
+        input_schema: { type: "object", properties: { deviceId: { type: "string", description: "Weather station device ID" }, lat: { type: "number", description: "Latitude for nearest station (optional)" }, lon: { type: "number", description: "Longitude (optional)" } } }
+      },
+      {
+        path: "/x402/iot-sensor-reading",
+        methods: ["POST"],
+        price_usd: 0.05,
+        auth: "x402",
+        name: "IoT Sensor Reading",
+        description: "Single sensor reading from registered IoT devices. Temperature, humidity, motion, gas, and custom sensor types.",
+        status: "healthy",
+        category: "iot",
+        input_schema: { type: "object", properties: { deviceId: { type: "string", description: "IoT device ID" }, sensorType: { type: "string", description: "Sensor type (optional)" } }, required: ["deviceId"] }
+      },
+      {
+        path: "/x402/iot-device-stream",
+        methods: ["POST"],
+        price_usd: 0.15,
+        auth: "x402",
+        name: "IoT Device Stream",
+        description: "Real-time data stream from IoT devices. Continuous sensor readings for monitoring and automation.",
+        status: "healthy",
+        category: "iot",
+        input_schema: { type: "object", properties: { deviceId: { type: "string", description: "IoT device ID" }, duration: { type: "number", description: "Stream duration in seconds (default: 60)" } }, required: ["deviceId"] }
+      },
+      {
+        path: "/x402/iot-bulk-data",
+        methods: ["POST"],
+        price_usd: 0.50,
+        auth: "x402",
+        name: "IoT Bulk Data Export",
+        description: "Historical data export from IoT devices. Bulk download of sensor readings for analytics and ML training.",
+        status: "healthy",
+        category: "iot",
+        input_schema: { type: "object", properties: { deviceId: { type: "string", description: "IoT device ID" }, startTime: { type: "string", description: "ISO 8601 start time" }, endTime: { type: "string", description: "ISO 8601 end time" } }, required: ["deviceId", "startTime", "endTime"] }
       },
       // AI Inference Gateway
       {
@@ -3681,8 +3793,8 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       discovery_enabled: true
     },
     commerce: {
-      total_services: 59,
-      categories: ["discovery", "trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence", "prediction-markets", "traditional-markets", "satellite-data", "ai-inference"],
+      total_services: 60,
+      categories: ["discovery", "trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence", "prediction-markets", "traditional-markets", "satellite-data", "ai-inference", "iot"],
       platform_commission: 15,
       minimum_payment: 0.10,
       maximum_payment: 10000

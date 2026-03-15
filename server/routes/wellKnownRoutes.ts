@@ -83,7 +83,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
   
   const a2aAgentCard = {
     name: "Coin Railz Multi-Chain Payment Infrastructure",
-    description: "Production-grade blockchain infrastructure for AI agents. 59 x402 micropayment services across 8 chains (7 EVM + Solana) + Native Coinbase Agentic Wallet support + MoonPay Agents compatible + Satellite Data APIs (NASA/ESA) + AI Inference Gateway (GPT-4o-mini, $0.05/call) + SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker) + Real Estate + Banking + Trading + Market Intelligence + Traditional Markets. Processing fee: 1.5% + $0.01 per transaction.",
+    description: "Production-grade blockchain infrastructure for AI agents. 60 x402 micropayment services across 8 chains (7 EVM + Solana) + Native Coinbase Agentic Wallet support + MoonPay Agents compatible + Satellite Data APIs (NASA/ESA) + AI Inference Gateway (GPT-4o-mini, $0.05/call) + SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker) + Real Estate + Banking + Trading + Market Intelligence + Traditional Markets. Processing fee: 1.5% + $0.01 per transaction.",
     version: "0.6.0",
     agentId: "coinrailz-x402-infrastructure",
     
@@ -2134,7 +2134,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
   const agentCard = {
     protocolVersion: "0.3.0",
     name: "Coin Railz",
-    description: "Multi-chain x402 micropayment infrastructure for AI agents. 44+ pay-per-call API services for crypto analytics, trading signals, security audits, satellite data (NASA/ESA), real estate, banking, market intelligence, prediction markets, and traditional markets. Native Coinbase Agentic Wallet compatible. Pay with USDC on Ethereum or Base - prices from $0.05 to $10.00 per request.",
+    description: "Multi-chain x402 micropayment infrastructure for AI agents. 60 pay-per-call API services for crypto analytics, trading signals, security audits, satellite data (NASA/ESA), real estate, banking, market intelligence, prediction markets, IoT/DePIN data, and AI inference. Native Coinbase Agentic Wallet compatible. Pay with USDC on Ethereum or Base - prices from $0.05 to $10.00 per request.",
     url: `${baseUrl}/a2a/v1`,
     version: "3.1.0",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,

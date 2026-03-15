@@ -241,7 +241,7 @@ export default function Landing() {
                 <div className="text-xs sm:text-sm text-gray-600">Payment Rails</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-purple-600">$0.10</div>
+                <div className="text-2xl sm:text-3xl font-bold text-purple-600">$0.03</div>
                 <div className="text-xs sm:text-sm text-gray-600">Starting Price</div>
               </div>
             </div>
@@ -385,7 +385,7 @@ export default function Landing() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                   <a href="/mcp/services" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center space-x-2 bg-white border border-gray-300 rounded px-3 py-2 hover:bg-gray-100 transition-colors">
                     <span className="font-mono text-gray-700">MCP Protocol</span>
-                    <Badge className="bg-blue-100 text-blue-700 text-xs">56 services</Badge>
+                    <Badge className="bg-blue-100 text-blue-700 text-xs">60 services</Badge>
                   </a>
                   <a href="https://coinrailz-x402-gateway.coinrailz.workers.dev/catalog" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center space-x-2 bg-white border border-gray-300 rounded px-3 py-2 hover:bg-gray-100 transition-colors">
                     <span className="font-mono text-gray-700">Cloudflare Gateway</span>
@@ -1188,7 +1188,7 @@ export default function Landing() {
                 <span className="font-medium">Coin Railz™</span> is a trademark of Kellogg Holdings LLC.
               </p>
               <p className="text-xs text-gray-400">
-                © 2025 Kellogg Holdings LLC. All rights reserved.
+                © 2025–2026 Kellogg Holdings LLC. All rights reserved.
               </p>
             </div>
           </div>

@@ -132,18 +132,37 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
             nextServices: { type: "array", description: "3 executable next-step service templates" }
           }
         },
+        cardFirstPath: {
+          label: "Card (Recommended — no crypto wallet required)",
+          description: "Get a cr_live_ API key via Stripe in ~60 seconds, then call any service.",
+          step1: {
+            action: "Purchase API key",
+            endpoint: `${baseUrl}/api/m2m/credits/purchase`,
+            method: "POST",
+            body: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "<uuid-v4>" },
+            successResponse: { apiKey: "cr_live_...", creditsAdded: 200 }
+          },
+          step2: {
+            action: "Call first-call with API key",
+            curl: `curl -X POST ${baseUrl}/x402/first-call -H 'X-API-KEY: cr_live_...' -H 'Content-Type: application/json' -d '{}'`
+          }
+        },
         examples: [
           {
-            name: "curl (EVM — Base)",
-            code: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-PAYMENT: <evm_tx_hash>' -d '{}'`
+            name: "API key (card — recommended)",
+            code: `curl -X POST ${baseUrl}/x402/first-call -H 'X-API-KEY: cr_live_...' -H 'Content-Type: application/json' -d '{}'`
           },
           {
-            name: "curl (Solana)",
+            name: "curl (EVM — Base, crypto)",
+            code: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-PAYMENT: <base64url-signed-x402-payload>' -d '{}'`
+          },
+          {
+            name: "curl (Solana, crypto)",
             code: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-Solana-Wallet: <pubkey>' -H 'X-PAYMENT: <solana_payload>' -d '{}'`
           },
           {
             name: "python (httpx)",
-            code: `import httpx\nresp = httpx.post('${baseUrl}/x402/first-call', headers={'X-PAYMENT': tx_hash}, json={})\nprint(resp.json())`
+            code: `import httpx\nresp = httpx.post('${baseUrl}/x402/first-call', headers={'X-API-KEY': 'cr_live_...'}, json={})\nprint(resp.json())`
           }
         ]
       },
@@ -1870,7 +1889,7 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
   const instructions = {
     title: "How to Do Business with Coin Railz",
     version: "1.0.0",
-    lastUpdated: "2026-01-31",
+    lastUpdated: "2026-03-16",
     summary: "Step-by-step guide for AI agents to purchase blockchain analytics and trading services via x402 micropayments or prepaid credits.",
 
     recommended_next_step: {
@@ -1878,9 +1897,22 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
       description: "Get an API key with a card — no crypto wallet required. Works on all 60 services.",
       endpoint: `${baseUrl}/api/m2m/credits/purchase`,
       method: "POST",
-      body: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "replace-with-uuid-v4" },
+      headers: { "Content-Type": "application/json", "Idempotency-Key": "<uuid-v4>" },
+      body: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "<uuid-v4-string>" },
+      idempotencyKeyFormat: "Any unique string, min 8 chars. UUID v4 recommended. Reuse on retry — safe for duplicate prevention.",
+      successResponse: { apiKey: "cr_live_...", keyPrefix: "cr_live", creditsAdded: 200, newBalance: 200, note: "SAVE apiKey — returned once only" },
+      usageHeaders: {
+        primary: "X-API-KEY: cr_live_...",
+        alternative: "Authorization: Bearer cr_live_..."
+      },
+      rateLimit: "5 purchases per IP per hour",
+      errorCodes: {
+        "200": "Success — apiKey in response body",
+        "400": "Invalid paymentMethodId (must start with pm_) or missing/too-short idempotencyKey",
+        "409": "Duplicate idempotencyKey — this purchase was already processed. Use a new idempotencyKey for a new purchase.",
+        "429": "Rate limit exceeded — max 5 purchases per IP per hour. Retry after 1 hour."
+      },
       expected_time: "~60 seconds from card to working API key",
-      usage: "Attach to every request as: X-API-KEY: cr_live_...",
       advanced_alternative: "On-chain USDC payment via goldenPath below (crypto wallet required)"
     },
 
@@ -1902,14 +1934,20 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
               action: "Purchase credits and get your API key",
               endpoint: `${baseUrl}/api/m2m/credits/purchase`,
               method: "POST",
-              body: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "your-unique-uuid-v4" },
+              body: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "<uuid-v4-string>" },
+              idempotencyNote: "Unique string per purchase (min 8 chars, UUID v4 recommended). Reuse safely on network retry.",
               tiers: [
                 { amountUsd: 5,   calls: "~80-100 service calls", note: "Try it — no commitment" },
                 { amountUsd: 10,  calls: "~200 service calls" },
                 { amountUsd: 25,  calls: "~500 service calls", recommended: true },
                 { amountUsd: 100, calls: "~2,000 service calls" }
               ],
-              response: "{ apiKey: 'cr_live_...', keyPrefix, creditsAdded, newBalance }",
+              successResponse: { apiKey: "cr_live_...", keyPrefix: "cr_live", creditsAdded: 200, newBalance: 200 },
+              errorCodes: {
+                "400": "Invalid paymentMethodId (must start with pm_) or idempotencyKey too short",
+                "409": "Purchase already processed for this idempotencyKey — use a new key for a new purchase",
+                "429": "Rate limit: 5 purchases per IP per hour — retry after 1 hour"
+              },
               warning: "SAVE the apiKey from the response — shown once only"
             },
             {
@@ -4595,7 +4633,14 @@ router.get('/.well-known/agent-registration.json', (req: Request, res: Response)
       challengeExample: {
         step1: `curl -X POST ${baseUrl}/x402/gas-price-oracle -H 'Content-Type: application/json' -d '{"chains":["base"]}'`,
         step2: 'Receive 402 with payment requirements',
-        step3: `curl -X POST ${baseUrl}/x402/gas-price-oracle -H 'Content-Type: application/json' -H 'X-PAYMENT: 0xYOUR_TX_HASH' -d '{"chains":["base"]}'`,
+        step3: `curl -X POST ${baseUrl}/x402/gas-price-oracle -H 'Content-Type: application/json' -H 'X-PAYMENT: <base64url-signed-x402-payload>' -d '{"chains":["base"]}'`,
+        step3_crypto_note: "X-PAYMENT value is a base64url-encoded signed x402 authorization — generated by a Coinbase CDP facilitator or x402-compatible client library. Raw transaction hashes are not valid x402 payment headers.",
+        step3_card_alternative: {
+          label: "Easier alternative — no crypto signing required",
+          step1: `curl -X POST ${baseUrl}/api/m2m/credits/purchase -H 'Content-Type: application/json' -d '{"paymentMethodId":"pm_...","amountUsd":10,"idempotencyKey":"<uuid-v4>"}'`,
+          step2: "Save the cr_live_... apiKey from the response",
+          step3: `curl -X POST ${baseUrl}/x402/gas-price-oracle -H 'X-API-KEY: cr_live_...' -H 'Content-Type: application/json' -d '{"chains":["base"]}'`
+        }
       },
     },
   });

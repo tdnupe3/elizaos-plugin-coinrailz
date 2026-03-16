@@ -2161,12 +2161,23 @@ curl -X POST https://coinrailz.com/x402/gas-price-oracle \\
     },
     alternativePaymentMethods: {
       apiKey: {
-        description: "Use prepaid credits with an API key (EASIEST - no blockchain required)",
-        howToGet: "Purchase credits at https://coinrailz.com/credits with Stripe (credit card) or USDC",
-        usage: "Include X-API-KEY header or Authorization: Bearer <api-key> header",
-        benefits: ["No blockchain knowledge required", "Instant setup with credit card", "Single API key for all 38 services", "50-70% higher conversion than manual USDC"],
-        getStarted: `${publicBaseUrl}/credits`,
-        example: `curl -X GET "${resourceUrl}" -H "X-API-KEY: your-api-key-here"`
+        recommended: true,
+        description: "Card-based M2M API key — no blockchain or crypto wallet required. Get a cr_live_ key in ~60 seconds.",
+        purchaseEndpoint: `${publicBaseUrl}/api/m2m/credits/purchase`,
+        purchaseMethod: "POST",
+        purchaseBody: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "<uuid-v4>" },
+        purchaseResponse: { apiKey: "cr_live_...", creditsAdded: 200, note: "SAVE apiKey — returned once only" },
+        usage: "X-API-KEY: cr_live_... header or Authorization: Bearer cr_live_... on any /x402/* endpoint instead of X-PAYMENT",
+        tiers: [
+          { amountUsd: 5,   calls: "~80-100 service calls", note: "Try it" },
+          { amountUsd: 10,  calls: "~200 service calls" },
+          { amountUsd: 25,  calls: "~500 service calls", recommended: true },
+          { amountUsd: 100, calls: "~2,000 service calls" }
+        ],
+        example: `curl -X POST "${resourceUrl}" -H "X-API-KEY: cr_live_..." -H "Content-Type: application/json" -d '{}'`,
+        servicesAvailable: 60,
+        rateLimit: "5 purchases per IP per hour",
+        errorCodes: { "400": "Invalid paymentMethodId or idempotencyKey", "409": "Already processed — use new idempotencyKey", "429": "Rate limit exceeded" }
       },
       rawTransaction: {
         description: "Send USDC directly to platform wallet, include tx hash in X-PAYMENT header",

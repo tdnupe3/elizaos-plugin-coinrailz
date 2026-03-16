@@ -1917,18 +1917,22 @@ export function createPaymentOrchestrator(
                 },
                 alternativePaymentMethods: {
                   apiKey: {
-                    description: "Use prepaid credits with an API key (EASIEST — no blockchain required)",
-                    howToGet: "Purchase credits with a card in one API call — no login needed",
-                    m2mPurchaseEndpoint: `${baseUrl}/api/m2m/credits/purchase`,
-                    m2mPurchaseMethod: "POST",
-                    m2mPurchaseBody: { paymentMethodId: "pm_...", amountUsd: 25, idempotencyKey: "your-uuid" },
-                    usage: "Include X-API-KEY: cr_live_... header instead of X-PAYMENT",
+                    recommended: true,
+                    description: "Card-based M2M API key — no blockchain or crypto wallet required. Get a cr_live_ key in ~60 seconds.",
+                    purchaseEndpoint: `${baseUrl}/api/m2m/credits/purchase`,
+                    purchaseMethod: "POST",
+                    purchaseBody: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "<uuid-v4>" },
+                    idempotencyKeyFormat: "Any unique string, min 8 chars. UUID v4 recommended. Reuse on retry — safe for duplicate prevention.",
+                    successResponse: { apiKey: "cr_live_...", creditsAdded: 200, note: "SAVE apiKey — returned once only" },
+                    usage: "X-API-KEY: cr_live_... header or Authorization: Bearer cr_live_... on any /x402/* request instead of X-PAYMENT",
                     tiers: [
                       { amountUsd: 5,   label: "Intro",   calls: "~80-100 service calls", note: "Try it — no commitment" },
-                      { amountUsd: 10,  label: "Starter", calls: "~200 service calls", example: "~133 market queries or ~66 gas checks" },
-                      { amountUsd: 25,  label: "Growth",  calls: "~500 service calls", recommended: true, note: "Best value — recommended for production" },
-                      { amountUsd: 100, label: "Pro",     calls: "~2,000 service calls", note: "Lowest effective per-call rate" }
-                    ]
+                      { amountUsd: 10,  label: "Starter", calls: "~200 service calls" },
+                      { amountUsd: 25,  label: "Growth",  calls: "~500 service calls", recommended: true },
+                      { amountUsd: 100, label: "Pro",     calls: "~2,000 service calls" }
+                    ],
+                    rateLimit: "5 purchases per IP per hour",
+                    errorCodes: { "400": "Invalid paymentMethodId or idempotencyKey too short", "409": "Already processed — use new idempotencyKey", "429": "Rate limit exceeded" }
                   }
                 },
                 requestId
@@ -2670,21 +2674,23 @@ function generate402Response(
     },
     alternativePaymentMethods: {
       apiKey: {
-        description: "Use prepaid credits with an API key (EASIEST — no blockchain required)",
-        howToGet: "Purchase credits with a card in one API call. No login. No crypto. API key returned immediately.",
-        m2mPurchaseEndpoint: `${baseUrl}/api/m2m/credits/purchase`,
-        m2mPurchaseMethod: "POST",
-        m2mPurchaseBody: { paymentMethodId: "pm_...", amountUsd: 25, idempotencyKey: "your-uuid-v4" },
-        m2mPurchaseExample: `curl -X POST ${baseUrl}/api/m2m/credits/purchase -H "Content-Type: application/json" -d '{"paymentMethodId":"pm_...","amountUsd":25,"idempotencyKey":"uuid-v4"}'`,
+        recommended: true,
+        description: "Card-based M2M API key — no blockchain or crypto wallet required. Get a cr_live_ key in ~60 seconds.",
+        purchaseEndpoint: `${baseUrl}/api/m2m/credits/purchase`,
+        purchaseMethod: "POST",
+        purchaseBody: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "<uuid-v4>" },
+        idempotencyKeyFormat: "Any unique string, min 8 chars. UUID v4 recommended. Reuse on retry — safe for duplicate prevention.",
+        successResponse: { apiKey: "cr_live_...", creditsAdded: 200, note: "SAVE apiKey — returned once only" },
+        usage: "X-API-KEY: cr_live_... header or Authorization: Bearer cr_live_... on any /x402/* request instead of X-PAYMENT",
         tiers: [
           { amountUsd: 5,   label: "Intro",   calls: "~80-100 service calls", note: "Try it — no commitment" },
-          { amountUsd: 10,  label: "Starter", calls: "~200 service calls", example: "~133 market queries or ~66 gas checks" },
-          { amountUsd: 25,  label: "Growth",  calls: "~500 service calls", recommended: true, note: "Best value — recommended for production" },
-          { amountUsd: 100, label: "Pro",     calls: "~2,000 service calls", note: "Lowest effective per-call rate" }
+          { amountUsd: 10,  label: "Starter", calls: "~200 service calls" },
+          { amountUsd: 25,  label: "Growth",  calls: "~500 service calls", recommended: true },
+          { amountUsd: 100, label: "Pro",     calls: "~2,000 service calls" }
         ],
-        usage: "Include X-API-KEY: cr_live_... header or Authorization: Bearer cr_live_... on any /x402/* request",
-        benefits: ["No blockchain knowledge required", "Instant setup with any credit card", "Single API key works on all 60 services", "Credits deducted per call at published pricing"],
-        example: `curl -X POST "${resource}" -H "X-API-KEY: cr_live_your-key-here" -H "Content-Type: application/json" -d '{}'`
+        rateLimit: "5 purchases per IP per hour",
+        errorCodes: { "400": "Invalid paymentMethodId or idempotencyKey too short", "409": "Already processed — use new idempotencyKey", "429": "Rate limit exceeded" },
+        example: `curl -X POST "${resource}" -H "X-API-KEY: cr_live_..." -H "Content-Type: application/json" -d '{}'`
       },
       rawTransaction: {
         description: "Send USDC/USDT to platform wallet, include tx hash in X-PAYMENT header",

@@ -28,8 +28,6 @@ const DB_QUERY_TIMEOUT_MS = 30000; // 30s — prevents Neon serverless query han
 
 export class PilotCreditsConfirmationJob {
   private static running = false;
-  private static runStartedAt: number | null = null;
-  private static readonly MAX_RUN_MS = 10 * 60 * 1000; // 10min stuck-lock expiry
   private static intervalId: NodeJS.Timeout | null = null;
 
   private static readonly RPC_URLS: Record<string, string> = {
@@ -63,20 +61,12 @@ export class PilotCreditsConfirmationJob {
 
   static async runOnce() {
     if (this.running) {
-      // Stuck-lock safety: if job has been "running" for >10min, it's hung — reset
-      if (this.runStartedAt && Date.now() - this.runStartedAt > this.MAX_RUN_MS) {
-        console.warn('⚠️ Pilot credits confirmation job stuck >10min, resetting lock');
-        this.running = false;
-        this.runStartedAt = null;
-      } else {
-        console.log('⏳ Pilot credits confirmation job already in progress');
-        return;
-      }
+      console.log('⏳ Pilot credits confirmation job already in progress');
+      return;
     }
 
     this.running = true;
-    this.runStartedAt = Date.now();
-    const startTime = this.runStartedAt;
+    const startTime = Date.now();
 
     try {
       const pendingPayments = await Promise.race([
@@ -119,7 +109,6 @@ export class PilotCreditsConfirmationJob {
       console.error('❌ Pilot credits confirmation job failed:', error);
     } finally {
       this.running = false;
-      this.runStartedAt = null;
     }
   }
 

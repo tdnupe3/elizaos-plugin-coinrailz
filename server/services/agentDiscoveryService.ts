@@ -1104,19 +1104,6 @@ ${batchResults
       scheduled: false // Start manually
     });
 
-    // Schedule immediate test run (1 minute after startup) - ONLY IN DEVELOPMENT
-    setTimeout(async () => {
-      console.log('🧪 Running immediate discovery test...');
-      try {
-        await this.runDiscovery({
-          priority: 'fast',
-          maxAgents: 100,
-          skipLock: true // Skip lock for immediate test
-        });
-      } catch (error) {
-        console.error('🚨 Immediate discovery test failed:', error);
-      }
-    }, 60000); // 1 minute delay
   }
 
   /**

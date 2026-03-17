@@ -41,8 +41,9 @@ export class TopupConfirmationJob {
     console.log(`🚀 Starting topup confirmation job (interval: ${intervalMs}ms)`);
     this.intervalId = setInterval(() => this.runOnce(), intervalMs);
     
-    // Run immediately on start
-    this.runOnce();
+    // Delay initial run by 30s — Neon WebSocket pool needs time to warm up on cold start.
+    // Running immediately causes "timeout exceeded when trying to connect" at startup.
+    setTimeout(() => this.runOnce(), 30000);
   }
 
   static stop() {

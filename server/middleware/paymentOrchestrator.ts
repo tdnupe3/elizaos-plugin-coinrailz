@@ -2451,7 +2451,82 @@ function generate402Response(
   // Build base response - x402 V2 compliant with MULTI-CHAIN support
   // Per official Coinbase spec: x402Version is NUMBER (2), not string - matches Bazaar/facilitator/SDKs
   const baseDescription = descriptions[serviceName] || `${serviceName} micropayment service`;
-  
+
+  // Sample outputs per service — lets agents compute Cost vs. Utility before paying
+  const sampleOutputs: Record<string, any> = {
+    "first-call": {
+      service: "x402 Golden Path — First Paid Call", sessionId: "gp-abc123def",
+      payment: { verified: true, amount: "0.05 USDC", chain: "base" },
+      nextServices: [
+        { endpoint: "/x402/gas-price-oracle", price: "$0.01", description: "Real-time gas prices across 7 chains" },
+        { endpoint: "/x402/token-price", price: "$0.01", description: "Token price from 3 aggregated sources" },
+        { endpoint: "/x402/dex-liquidity", price: "$0.02", description: "Uniswap/Curve liquidity depth + APY" }
+      ]
+    },
+    "ping": { status: "ok", x402Version: 2, services: 60, uptime: "99.9%", latencyMs: 12, timestamp: "2026-03-17T12:00:00Z" },
+    "gas-price-oracle": {
+      base: { fast: 0.0021, standard: 0.0012, slow: 0.0009, unit: "gwei", usdFast: "$0.004" },
+      ethereum: { fast: 14.2, standard: 11.8, slow: 9.5, unit: "gwei", usdFast: "$0.42" },
+      solana: { priorityFee: 25000, baseFee: 5000, unit: "lamports", usdTotal: "$0.0003" },
+      timestamp: "2026-03-17T12:00:00Z"
+    },
+    "dex-liquidity": {
+      protocol: "Uniswap V3", pair: "USDC/ETH", chain: "base",
+      tvl: 4200000, volume24h: 890000, fee: 0.3, apy: 4.2,
+      priceImpact1k: 0.02, priceImpact10k: 0.18
+    },
+    "token-price": {
+      symbol: "ETH", price: 3421.50, change24h: 2.3, volume24h: 18200000000,
+      sources: ["coingecko", "coinbase", "binance"], confidence: 0.99, timestamp: "2026-03-17T12:00:00Z"
+    },
+    "token-metadata": {
+      symbol: "USDC", name: "USD Coin", decimals: 6,
+      address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      totalSupply: 24800000000, verified: true, chain: "ethereum"
+    },
+    "transaction-builder": {
+      tx: { to: "0x...", value: "0", data: "0x...", gasLimit: 65000 },
+      gasEstimate: "0.002 ETH ($6.84)", simulation: "success", warnings: []
+    },
+    "wallet-risk": {
+      address: "0x...", riskScore: 12, riskLevel: "low",
+      flags: [], sanctioned: false, protocols: ["uniswap", "aave"], lastActivity: "2026-03-17"
+    },
+    "token-sentiment": {
+      symbol: "ETH", sentiment: "bullish", score: 72,
+      signals: ["volume_spike", "social_momentum"], recommendation: "hold", confidence: 0.78
+    },
+    "whale-alerts": {
+      alerts: [{ type: "large_transfer", amount: 1200000, token: "USDC", from: "0x...", to: "binance", timestamp: "2026-03-17T11:58:00Z" }],
+      count: 3, chain: "ethereum"
+    },
+    "construction-progress": {
+      projectId: "proj_001", progress: 67, status: "on_track",
+      milestones: [{ name: "foundation", complete: true }, { name: "framing", complete: true }, { name: "roofing", complete: false }]
+    },
+    "arbitrage-scanner": {
+      opportunities: [{ pair: "ETH/USDC", buyOn: "base", sellOn: "arbitrum", spread: 0.18, estimatedProfit: "$1.80 per $1000" }],
+      count: 2, timestamp: "2026-03-17T12:00:00Z"
+    },
+    "contract-scan": {
+      address: "0x...", risk: "low", issues: [], verified: true, auditScore: 94,
+      checks: ["reentrancy", "overflow", "access-control", "flash-loan"]
+    },
+    "portfolio-tracker": {
+      totalValue: 42180.50, change24h: 3.2, topHoldings: ["ETH", "USDC", "cbBTC"],
+      chains: ["base", "ethereum", "arbitrum"], timestamp: "2026-03-17T12:00:00Z"
+    },
+    "trade-signals": {
+      symbol: "ETH", signal: "buy", strength: "moderate", entry: 3380, target: 3650, stopLoss: 3200,
+      confidence: 0.74, timeframe: "4h", reasoning: "RSI oversold + EMA crossover"
+    },
+    "sentiment-analysis": {
+      asset: "BTC", overall: "bullish", score: 68, sources: { twitter: 71, reddit: 65, news: 68 },
+      keyThemes: ["ETF_inflows", "halving_narrative"], timestamp: "2026-03-17T12:00:00Z"
+    },
+  };
+  const sampleOutput = sampleOutputs[serviceName] || { success: true, data: {}, service: serviceName, timestamp: new Date().toISOString() };
+
   // Solana feePayer: must be the buyer's own address (they pay tx fee + sign).
   // Clients should send X-Solana-Wallet header with their public key.
   const solanaFeePayer = (req.headers['x-solana-wallet'] as string | undefined)?.trim() || null;
@@ -2628,6 +2703,28 @@ function generate402Response(
   const response: any = {
     x402Version: 2,
     error: "X-PAYMENT header is required",
+    // Machine-readable trial access — fastest path to a working key (no payment needed)
+    trial_access: {
+      available: true,
+      description: "Free $5 trial API key — no payment, no crypto wallet. 1 per IP per 7 days.",
+      endpoint: `${baseUrl}/api/m2m/credits/trial`,
+      method: "GET",
+      returns: { apiKey: "cr_live_...", credits: 5.00, expiresIn: "7 days" },
+      usage: "Retry this request with: X-API-KEY: <returned_key>",
+      note: "SAVE the key — it is not stored in plaintext and cannot be retrieved again."
+    },
+    // Structured system prompt for LLM-based agents encountering this 402
+    agent_instructions: {
+      system_prompt: `402 Payment Required for ${resource}. Three paths to proceed:\n1. FREE TRIAL (fastest): GET ${baseUrl}/api/m2m/credits/trial → receive cr_live_ key with $5 credits. Retry with X-API-KEY header.\n2. PAID API KEY: POST ${baseUrl}/api/m2m/credits/purchase with Stripe paymentMethodId + amountUsd (5/10/25/100). Returns cr_live_ key in ~60s.\n3. ON-CHAIN USDC: Send ${priceUsd} USDC to payTo address in accepts[], include tx hash in X-PAYMENT header and retry.`,
+      recommended_action: "GET /api/m2m/credits/trial",
+      docs: `${baseUrl}/.well-known/agent-instructions.json`
+    },
+    // What the agent receives when payment succeeds — allows Cost vs. Utility computation before paying
+    expected_output: {
+      description: `What you receive for $${priceUsd} USDC`,
+      format: "application/json",
+      sample: sampleOutput
+    },
     recommended_next_step: {
       action: "purchase_api_key",
       description: "Get an API key with a card — no crypto wallet required. Works on all 60 services.",

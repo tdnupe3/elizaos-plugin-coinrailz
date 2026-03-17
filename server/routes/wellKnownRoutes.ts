@@ -1889,37 +1889,50 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
   const instructions = {
     title: "How to Do Business with Coin Railz",
     version: "1.0.0",
-    lastUpdated: "2026-03-16",
+    lastUpdated: "2026-03-17",
     summary: "Step-by-step guide for AI agents to purchase blockchain analytics and trading services via x402 micropayments or prepaid credits.",
 
     recommended_next_step: {
-      action: "purchase_api_key",
-      description: "Get an API key with a card — no crypto wallet required. Works on all 60 services.",
-      endpoint: `${baseUrl}/api/m2m/credits/purchase`,
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Idempotency-Key": "<uuid-v4>" },
-      body: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "<uuid-v4-string>" },
-      idempotencyKeyFormat: "Any unique string, min 8 chars. UUID v4 recommended. Reuse on retry — safe for duplicate prevention.",
-      successResponse: { apiKey: "cr_live_...", keyPrefix: "cr_live", creditsAdded: 200, newBalance: 200, note: "SAVE apiKey — returned once only" },
+      action: "claim_free_trial",
+      description: "Get a FREE $5 trial API key instantly — no payment, no crypto wallet, no account. Works on all 60 services. 1 per IP per 7 days.",
+      endpoint: `${baseUrl}/api/m2m/credits/trial`,
+      method: "GET",
+      headers: { "Accept": "application/json" },
+      successResponse: { apiKey: "cr_live_...", credits: 5, expiresIn: "7 days", note: "SAVE apiKey — returned once only" },
       usageHeaders: {
         primary: "X-API-KEY: cr_live_...",
         alternative: "Authorization: Bearer cr_live_..."
       },
-      rateLimit: "5 purchases per IP per hour",
-      errorCodes: {
-        "200": "Success — apiKey in response body",
-        "400": "Invalid paymentMethodId (must start with pm_) or missing/too-short idempotencyKey",
-        "409": "Duplicate idempotencyKey — this purchase was already processed. Use a new idempotencyKey for a new purchase.",
-        "429": "Rate limit exceeded — max 5 purchases per IP per hour. Retry after 1 hour."
-      },
-      expected_time: "~60 seconds from card to working API key",
-      advanced_alternative: "On-chain USDC payment via goldenPath below (crypto wallet required)"
+      expected_time: "instant",
+      next_step_after_trial: `POST ${baseUrl}/api/m2m/credits/purchase to purchase a paid plan ($5/$10/$25/$100)`
     },
 
     quickStart: {
-      description: "Two paths to get started — card (easier) or on-chain USDC",
-      recommendedPath: "cardPayment",
+      description: "Three paths to get started — free trial (fastest), card payment, or on-chain USDC",
+      recommendedPath: "freeTrial",
       paths: {
+        freeTrial: {
+          label: "Free Trial (Fastest — no payment, no crypto)",
+          steps: [
+            {
+              step: 1,
+              action: "Claim your free trial API key",
+              endpoint: `${baseUrl}/api/m2m/credits/trial`,
+              method: "GET",
+              headers: { "Accept": "application/json" },
+              rateLimit: "1 per IP per 7 days",
+              successResponse: { apiKey: "cr_live_...", credits: 5, expiresIn: "7 days" },
+              warning: "SAVE the apiKey — shown once only"
+            },
+            {
+              step: 2,
+              action: "Call any service with your trial key",
+              description: "Pass the key as X-API-KEY header on any /x402/* endpoint. $5 in credits (~80-100 calls).",
+              curlExample: `curl -X POST ${baseUrl}/x402/gas-price-oracle -H 'X-API-KEY: cr_live_...' -H 'Content-Type: application/json' -d '{}'`,
+              catalogUrl: `${baseUrl}/x402/catalog`
+            }
+          ]
+        },
         cardPayment: {
           label: "Card Payment (Recommended — no crypto required)",
           steps: [

@@ -24,7 +24,7 @@ import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { creditsService } from '../services/creditsService.js';
 import { db } from '../db.js';
-import { paymentIntentTracking, creditTransactions } from '../../shared/schema.js';
+import { paymentIntentTracking, creditTransactions, apiKeys } from '../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
 
@@ -512,5 +512,108 @@ async function provisionCreditsAndKey(params: {
     throw workErr;
   }
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// GET /api/m2m/trial
+// Free $5 trial API key — no payment, no crypto wallet required.
+// Rate limited: 1 per IP per 7 days (in-memory, single-instance v1).
+// Excludes internal/RFC-1918 IPs. Creates an m2m_ user and provisions a
+// cr_live_ key with $5 credits and a 7-day expiry.
+// ──────────────────────────────────────────────────────────────────────────────
+
+const TRIAL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const trialClaimedByIp = new Map<string, number>(); // ip → claimedAt timestamp
+
+function isInternalIp(ip: string): boolean {
+  return (
+    ip === '127.0.0.1' || ip === '::1' ||
+    ip.startsWith('10.') ||
+    ip.startsWith('172.16.') || ip.startsWith('172.17.') ||
+    ip.startsWith('172.18.') || ip.startsWith('172.19.') ||
+    ip.startsWith('172.2') || ip.startsWith('172.3') ||
+    ip.startsWith('192.168.')
+  );
+}
+
+router.get('/trial', async (req: Request, res: Response) => {
+  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+    || req.socket?.remoteAddress
+    || 'unknown';
+
+  if (isInternalIp(ip)) {
+    return res.status(403).json({
+      error: 'INTERNAL_IP',
+      message: 'Trial keys are reserved for external agents. Use the paid M2M endpoint for internal testing.',
+      paidEndpoint: '/api/m2m/credits/purchase',
+    });
+  }
+
+  const now = Date.now();
+  const claimedAt = trialClaimedByIp.get(ip);
+  if (claimedAt && now - claimedAt < TRIAL_TTL_MS) {
+    const retryAfterMs = TRIAL_TTL_MS - (now - claimedAt);
+    const retryAfterDays = Math.ceil(retryAfterMs / (24 * 60 * 60 * 1000));
+    return res.status(429).json({
+      error: 'TRIAL_ALREADY_CLAIMED',
+      message: `Trial key already issued to this IP. Available again in ${retryAfterDays} day(s).`,
+      retryAfterSeconds: Math.ceil(retryAfterMs / 1000),
+      upgradeAt: '/api/m2m/credits/purchase',
+    });
+  }
+
+  // Mark as claimed immediately (before DB ops — prevents duplicate provisioning on concurrent requests)
+  trialClaimedByIp.set(ip, now);
+
+  const ipHash = crypto.createHash('sha256').update(ip).digest('hex').substring(0, 12);
+  const userId = `m2m_trial_${ipHash}`;
+  const TRIAL_CREDITS = 5.00;
+
+  try {
+    // generateApiKey auto-creates the m2m_ user — must run BEFORE addCredits (FK: creditsAccounts.userId → users.id)
+    const { apiKey, keyPrefix, keyId } = await creditsService.generateApiKey(userId, 'Free Trial Key');
+
+    // Set expiry on the key
+    await db.update(apiKeys)
+      .set({ expiresAt: new Date(now + TRIAL_TTL_MS) })
+      .where(eq(apiKeys.id, keyId));
+
+    // Now add credits (user exists, creditsAccounts FK is satisfied)
+    await creditsService.addCredits({
+      userId,
+      amount: TRIAL_CREDITS,
+      paymentMethod: 'trial',
+      referenceId: `trial_${ipHash}_${now}`,
+      description: `Free trial — $${TRIAL_CREDITS} credits (~80-100 service calls). IP hash: ${ipHash}`,
+    });
+
+    console.log(`🎁 Trial key provisioned: ${keyPrefix}... for IP hash ${ipHash} ($${TRIAL_CREDITS} credits)`);
+
+    return res.status(200).json({
+      success: true,
+      apiKey,
+      keyPrefix,
+      credits: TRIAL_CREDITS,
+      currency: "USD",
+      serviceCalls: "~80-100 calls across all 60 /x402/* services",
+      expiresIn: "7 days",
+      usage: {
+        header: "X-API-KEY",
+        example: `curl -H "X-API-KEY: ${apiKey}" https://coinrailz.com/x402/gas-price-oracle`,
+        alternativeHeader: "Authorization: Bearer <key>"
+      },
+      upgradeAt: "/api/m2m/credits/purchase",
+      note: "SAVE this key — it is returned once only and cannot be retrieved again.",
+    });
+  } catch (err: any) {
+    // Undo the rate-limit claim so the agent can retry
+    trialClaimedByIp.delete(ip);
+    console.error(`❌ Trial key provisioning failed for IP hash ${ipHash}:`, err?.message);
+    return res.status(500).json({
+      error: 'PROVISIONING_FAILED',
+      message: 'Trial key provisioning failed. Please retry in a few seconds.',
+      retryable: true,
+    });
+  }
+});
 
 export default router;

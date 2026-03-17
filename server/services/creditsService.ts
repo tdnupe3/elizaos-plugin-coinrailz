@@ -294,6 +294,14 @@ export class CreditsService {
     for (const key of allKeys) {
       const isValid = await bcrypt.compare(apiKey, key.hashedKey);
       if (isValid) {
+        // Enforce expiry (trial keys have a 7-day expiresAt; paid keys have null)
+        if (key.expiresAt && key.expiresAt < new Date()) {
+          await db.update(apiKeys)
+            .set({ status: "expired" })
+            .where(eq(apiKeys.id, key.id));
+          return { valid: false };
+        }
+
         await db.update(apiKeys)
           .set({ lastUsedAt: new Date() })
           .where(eq(apiKeys.id, key.id));

@@ -141,7 +141,7 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
     
     // ChatGPT-recommended: Track retry behavior for post-402 analysis
     const hasPaymentHeader = !!req.get('x-payment');
-    const ip = req.ip || req.socket.remoteAddress || req.get('x-forwarded-for')?.split(',')[0];
+    const ip = (req.get('x-forwarded-for')?.split(',')[0] || req.ip || req.socket.remoteAddress)?.trim();
     const userAgent = req.get('user-agent');
     const retryData = trackRetryBehavior(ip, userAgent, serviceId, hasPaymentHeader);
     

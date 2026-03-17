@@ -8,14 +8,16 @@
 // Known safe transient errors from the ws library during client disconnections.
 // These are not app faults — they occur when a WebSocket client disconnects mid-handshake.
 function isKnownWsTransientError(err: Error): boolean {
-  const isTypeError = err instanceof TypeError;
+  // Accept TypeError or plain Error — some Neon/ws error paths construct a base Error
+  // rather than TypeError depending on the Node.js / ws version, so both are safe here
+  const isExpectedType = err instanceof TypeError || err.name === 'Error';
   // Two confirmed Neon/ws message variants:
   // 1. "Cannot read properties of null (reading 'setHeader')" — ws client disconnect
   // 2. "Cannot set property message of #<ErrorEvent> which has only a getter" — Neon WS timeout
   const hasWsMessage = /setHeader|Cannot read propert|Cannot set propert/i.test(err.message);
   // Stack must trace through ws internals or Neon serverless (both are safe to swallow)
   const hasWsStack = !!(err.stack && (/ws[\\/](lib[\\/])?websocket/i.test(err.stack) || err.stack.includes('@neondatabase/serverless')));
-  return isTypeError && hasWsMessage && hasWsStack;
+  return isExpectedType && hasWsMessage && hasWsStack;
 }
 
 // Global exception handlers MUST be first — before any imports that could throw

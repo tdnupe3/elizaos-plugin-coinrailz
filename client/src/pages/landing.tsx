@@ -578,9 +578,9 @@ export default function Landing() {
           {/* PREDICTION MARKETS SECTION */}
           <div className="mb-8 sm:mb-12 bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 rounded-2xl p-4 sm:p-8 text-white">
             <div className="text-center mb-6">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Prediction Market APIs</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Prediction Market Intel</h2>
               <p className="text-sm sm:text-base text-gray-300 max-w-2xl mx-auto mb-4">
-                One API for 99% of the $44B prediction market. Access Kalshi and Polymarket via x402 micropayments.
+                One API for 99% of the $44B prediction market. Access Kalshi and Polymarket Intel.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
                 <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/50 text-xs">Kalshi (CFTC-Regulated)</Badge>
@@ -640,7 +640,7 @@ export default function Landing() {
               <Link href="/predictions">
                 <Button className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-6 py-3 text-sm font-medium shadow-lg" size="default">
                   <TrendingUp className="w-4 h-4 mr-2" />
-                  Explore Prediction Market APIs
+                  Explore Prediction Market Intel
                 </Button>
               </Link>
             </div>

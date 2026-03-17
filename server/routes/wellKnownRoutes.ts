@@ -12,6 +12,7 @@ import { trackDiscovery } from '../middleware/hitTracker';
 import { db } from '../db';
 import { discoveredAgents } from '@shared/schema';
 import { eq, or } from 'drizzle-orm';
+import { emitFirstContactAsync } from '../services/funnelHelper.js';
 
 // --- In-memory rate limiter for POST /.well-known/agent-registration.json ---
 // 10 POST attempts per IP per 60 seconds. Map<ip, { count, windowStart }>
@@ -35,6 +36,10 @@ const router = Router();
 
 router.use((req, res, next) => {
   if (req.path.startsWith('/.well-known')) {
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+      || req.socket?.remoteAddress
+      || 'unknown';
+    emitFirstContactAsync(ip, 'well_known', req.path);
     return trackDiscovery(req, res, next);
   }
   next();

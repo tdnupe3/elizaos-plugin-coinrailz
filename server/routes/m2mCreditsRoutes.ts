@@ -27,6 +27,7 @@ import { db } from '../db.js';
 import { paymentIntentTracking, creditTransactions, apiKeys } from '../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
+import { emitFirstContactAsync, emitFunnelEventAsync } from '../services/funnelHelper.js';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is required for M2M credits endpoint');
@@ -208,6 +209,10 @@ router.post('/purchase', async (req: Request, res: Response) => {
     }
 
     console.log(`✅ M2M credits purchased: $${amount} | userId: ${userId} | key: ${result.keyPrefix}... | IP: ${ip}`);
+
+    emitFirstContactAsync(ip, 'direct_purchase', '/api/m2m/credits/purchase');
+    emitFunnelEventAsync({ stage: 'credit_purchased', source: 'direct_purchase', ip, creditsAmount: amount });
+    emitFunnelEventAsync({ stage: 'api_key_issued', source: 'direct_purchase', ip, apiKeyPrefix: result.keyPrefix, creditsAmount: amount });
 
     return res.status(200).json({
       success: true,
@@ -587,6 +592,9 @@ router.get('/trial', async (req: Request, res: Response) => {
     });
 
     console.log(`🎁 Trial key provisioned: ${keyPrefix}... for IP hash ${ipHash} ($${TRIAL_CREDITS} credits)`);
+
+    emitFirstContactAsync(ip, 'direct_trial', '/api/m2m/credits/trial');
+    emitFunnelEventAsync({ stage: 'trial_claimed', source: 'direct_trial', ip, apiKeyPrefix: keyPrefix, creditsAmount: TRIAL_CREDITS });
 
     return res.status(200).json({
       success: true,

@@ -10,6 +10,7 @@ import {
   discoveredAgents,
 } from '@shared/schema';
 import { sql, eq, gte, desc, count, and } from 'drizzle-orm';
+import { emitFirstContactAsync, type ContactSource } from '../services/funnelHelper.js';
 
 const router = Router();
 
@@ -124,9 +125,62 @@ router.get('/summary', async (req: Request, res: Response) => {
       .orderBy(desc(count()))
       .limit(10);
 
+    const firstContactBySource = await db.execute(sql`
+      SELECT metadata->>'source' AS source, COUNT(*) AS total
+      FROM conversion_funnel_events
+      WHERE stage = 'first_contact'
+        AND created_at >= ${since.toISOString()}
+      GROUP BY metadata->>'source'
+    `);
+
+    const sourceMap: Record<string, number> = {};
+    for (const row of firstContactBySource.rows as any[]) {
+      if (row.source) sourceMap[row.source] = Number(row.total);
+    }
+
     res.json({
       success: true,
       period: { days: daysBack, since: since.toISOString() },
+      inboundFunnel: {
+        label: 'Inbound Agent Funnel (scanner → paid)',
+        stage1_first_contact: {
+          label: 'First Contact (any entry point)',
+          count: stageMap['first_contact'] || 0,
+          bySource: {
+            x402_challenge: sourceMap['x402_challenge'] || 0,
+            well_known: sourceMap['well_known'] || 0,
+            direct_trial: sourceMap['direct_trial'] || 0,
+            landing_page: sourceMap['landing_page'] || 0,
+            direct_purchase: sourceMap['direct_purchase'] || 0,
+            mcp_call: sourceMap['mcp_call'] || 0,
+            buy_page: sourceMap['buy_page'] || 0,
+          },
+          note: 'Unique actors per 7-day window per source, HMAC-keyed, deduplicated',
+        },
+        stage2_trial_claimed: {
+          label: 'Trial Key Claimed',
+          count: stageMap['trial_claimed'] || 0,
+        },
+        stage3_first_x402_call: {
+          label: 'First Authenticated x402 Call',
+          count: stageMap['first_x402_call'] || 0,
+        },
+        stage4_credit_purchased: {
+          label: 'Credits Purchased (paid upgrade)',
+          count: stageMap['credit_purchased'] || 0,
+        },
+        conversionRates: {
+          contactToTrial: (stageMap['first_contact'] || 0) > 0
+            ? `${(((stageMap['trial_claimed'] || 0) / (stageMap['first_contact'] || 1)) * 100).toFixed(1)}%`
+            : '0%',
+          trialToFirstCall: (stageMap['trial_claimed'] || 0) > 0
+            ? `${(((stageMap['first_x402_call'] || 0) / (stageMap['trial_claimed'] || 1)) * 100).toFixed(1)}%`
+            : '0%',
+          firstCallToPaid: (stageMap['first_x402_call'] || 0) > 0
+            ? `${(((stageMap['credit_purchased'] || 0) / (stageMap['first_x402_call'] || 1)) * 100).toFixed(1)}%`
+            : '0%',
+        },
+      },
       funnel: {
         stage1_discovered: {
           label: 'Agents Discovered',
@@ -194,6 +248,7 @@ router.post('/event', async (req: Request, res: Response) => {
     }
 
     const validStages = [
+      'first_contact', 'trial_claimed',
       'agent_discovered', 'wallet_identified', 'outreach_sent', 'wallet_contacted',
       'offer_clicked', 'demo_requested', 'credit_purchased', 'api_key_issued',
       'first_x402_call', 'paid_usage', 'pilot_converted',
@@ -222,6 +277,36 @@ router.post('/event', async (req: Request, res: Response) => {
     res.json({ success: true, event });
   } catch (error: any) {
     console.error('Funnel event error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/first-contact', async (req: Request, res: Response) => {
+  try {
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+      || req.socket?.remoteAddress
+      || 'unknown';
+
+    const source = (req.body?.source as ContactSource) || 'landing_page';
+    const path = req.body?.path as string | undefined;
+
+    const validSources: ContactSource[] = [
+      'x402_challenge', 'well_known', 'direct_trial',
+      'landing_page', 'direct_purchase', 'mcp_call', 'buy_page',
+    ];
+
+    if (!validSources.includes(source)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid source. Valid: ${validSources.join(', ')}`,
+      });
+    }
+
+    emitFirstContactAsync(ip, source, path);
+
+    return res.json({ success: true, recorded: true });
+  } catch (error: any) {
+    console.error('Funnel first-contact error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

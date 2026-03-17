@@ -2739,7 +2739,25 @@ const firstCallHandler = async (req: Request, res: Response) => {
   }
 };
 
-router.get("/first-call", (req, res) => {
+router.head("/first-call",
+  createPaymentOrchestrator("first-call", SERVICE_PRICING_MICRO["first-call"], (_req, res) => {
+    res.status(405).send();
+  })
+);
+
+router.get("/first-call", (req, res, next) => {
+  // Machines / agents: only serve HTML if client explicitly requests text/html (browsers do; python-httpx, node-fetch, curl send Accept: */* or nothing)
+  const acceptHeader = req.headers["accept"] || "";
+  const isBrowser = acceptHeader.includes("text/html");
+  if (!isBrowser) {
+    return createPaymentOrchestrator("first-call", SERVICE_PRICING_MICRO["first-call"], (_req, res) => {
+      res.status(405).json({
+        error: "Method Not Allowed",
+        hint: "Use POST /x402/first-call with X-PAYMENT header to execute this endpoint",
+        method: "POST"
+      });
+    })(req, res, next);
+  }
   const baseUrl = process.env.PUBLIC_BASE_URL || "https://coinrailz.com";
   const pageUrl = `${baseUrl}/x402/first-call`;
   const html = `<!DOCTYPE html>

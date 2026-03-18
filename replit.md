@@ -58,6 +58,31 @@ Coin Railz operates with a USDC-first strategy, leveraging Coinbase CDP for wall
 - **Free Trial Key (Credit Airdrop)**: `GET /api/m2m/credits/trial` — provisions a free `cr_live_` API key with $5 credits for any external IP. Rate limited to 1 per IP per 7 days (in-memory). Trial keys have a 7-day `expiresAt` enforced in `creditsService.validateApiKey`. Creates `m2m_trial_<ip_hash>` users automatically (follows existing m2m_ user creation pattern). The trial endpoint URL is embedded in ALL 402 challenge bodies under `trial_access.endpoint` and `agent_instructions.system_prompt`, and in `/.well-known/agent-instructions.json` as `recommended_next_step`. Internal RFC-1918 IPs (10.x.x.x, 192.168.x.x, etc.) are excluded.
 - **402 Challenge Body Value Signal**: All 402 challenge responses now include: (1) `trial_access` — free key endpoint reference, (2) `expected_output.sample` — per-service sample JSON output showing exactly what the agent receives when they pay (16 services with realistic data), (3) `agent_instructions.system_prompt` — LLM-ready text with three numbered paths to proceed. These fields address the architect/biz-dev-identified issue: agents couldn't compute Cost vs. Utility because the 402 only showed cost but not output schema or any zero-friction trial path.
 
+## Monitoring & Analytics
+
+**When the user asks for updates, system activity, or funnel status — always query these sources:**
+
+### Conversion Funnel (`conversionFunnelEvents` table)
+- **Summary endpoint**: `GET /api/funnel/summary` — returns full inbound funnel with stage counts and conversion rates
+- **Raw query**: `SELECT stage, metadata->>'source' AS source, created_at FROM conversion_funnel_events ORDER BY created_at DESC LIMIT 50`
+- **Stages in order**: `first_contact` → `trial_claimed` → `first_x402_call` → `credit_purchased` → `api_key_issued`
+- **Sources tracked**: `x402_challenge`, `well_known`, `direct_trial`, `landing_page`, `direct_purchase`, `mcp_call`, `buy_page`
+- **Dedupe**: per actor+source+7-day rolling window, HMAC-SHA256 actor keys (IP never stored), advisory lock prevents race conditions
+- **Salt**: `FUNNEL_ACTOR_SALT` env var (shared, 256-bit random, set 2026-03-18)
+- **Key files**: `server/services/funnelHelper.ts`, `server/routes/funnelAnalyticsRoutes.ts`
+- **Emitters wired at**: `.well-known/*` routes, `GET /api/m2m/credits/trial`, `POST /api/m2m/credits/purchase`
+
+### Release Baseline Notes
+- **Release A shipped**: 2026-03-18. Funnel infrastructure live. Pre-A events in DB are from dev/test.
+- **Release B (not yet built)**: Landing hero CTA flip to trial-first + trial response enrichment with nextSteps. Gate: 300-500 `first_contact` events AND 48h minimum after Release A. Check funnel data before starting.
+
+### What to Check for Activity Updates
+1. Run `GET /api/funnel/summary` on production for stage counts and conversion rates
+2. Query `conversionFunnelEvents` directly with `created_at > NOW() - INTERVAL '24 hours'` for recent activity
+3. Check `creditsAccounts` table for trial key claims and credit balances
+4. Check `paymentIntentTracking` table for any card purchases
+5. Check deployment logs for errors or unusual 4xx/5xx spikes
+
 ## External Dependencies
 - **Coinbase CDP:** Wallet creation, management, and transaction execution.
 - **Alchemy:** Ethereum/Base RPC endpoints and blockchain infrastructure.

@@ -24,10 +24,11 @@ import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { creditsService } from '../services/creditsService.js';
 import { db } from '../db.js';
-import { paymentIntentTracking, creditTransactions, apiKeys } from '../../shared/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { paymentIntentTracking, apiKeys } from '../../shared/schema.js';
+import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 import { emitFirstContactAsync, emitFunnelEventAsync } from '../services/funnelHelper.js';
+import { provisionCreditsAndKey } from '../services/m2mProvisioningService.js';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is required for M2M credits endpoint');
@@ -395,128 +396,252 @@ router.get('/purchase/:paymentIntentId', async (req: Request, res: Response) => 
   }
 });
 
-/**
- * Crash-safe provisioning: add credits + generate API key with two-phase status tracking.
- *
- * Phase 1: Insert tracking row with status='pending' (locks the provisioning slot)
- * Phase 2: Do the work (addCredits + generateApiKey)
- * Phase 3: Update tracking row to status='used'
- *
- * On retry:
- *   - status='used': fully provisioned → return alreadyProvisioned
- *   - status='pending' AND < 2 minutes old: in-flight → return inProgress (caller retries)
- *   - status='pending' AND > 2 minutes old: assumed crash → delete and reattempt
- */
-async function provisionCreditsAndKey(params: {
-  paymentIntentId: string;
-  userId: string;
-  amount: number;
-  email: string;
-  keyName: string;
-}): Promise<{
-  alreadyProvisioned?: boolean;
-  inProgress?: boolean;
-  apiKey?: string;
-  keyPrefix?: string;
-  keyId?: string;
-  newBalance?: number;
-  transactionId?: number;
-}> {
-  const { paymentIntentId, userId, amount, email, keyName } = params;
-  const CRASH_RECOVERY_MS = 2 * 60 * 1000; // 2 minutes
+// ──────────────────────────────────────────────────────────────────────────────
+// POST /api/m2m/checkout/session
+// Create a Stripe Hosted Checkout Session — no Stripe.js or browser API required.
+// Returns a checkoutUrl the operator visits once to enter their card.
+// On payment success, Stripe webhook auto-provisions credits + API key.
+// Poll GET /api/m2m/checkout/status/:sessionId to retrieve the key.
+// ──────────────────────────────────────────────────────────────────────────────
 
-  // Check for an existing tracking row before attempting insert
-  const existing = await db.query.paymentIntentTracking.findFirst({
-    where: eq(paymentIntentTracking.paymentIntentId, paymentIntentId),
-  });
+router.post('/checkout/session', async (req: Request, res: Response) => {
+  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+    || req.socket?.remoteAddress || 'unknown';
 
-  if (existing && existing.purpose === 'm2m-credits') {
-    if (existing.status === 'used') {
-      return { alreadyProvisioned: true };
-    }
-    if (existing.status === 'pending') {
-      const age = Date.now() - (existing.usedAt?.getTime() || existing.createdAt?.getTime() || 0);
-      if (age < CRASH_RECOVERY_MS) {
-        // Another request is actively provisioning — tell caller to retry
-        return { inProgress: true };
-      }
-      // Previous attempt is stale (crashed) — delete and reattempt
-      console.warn(`⚠️ M2M provisioning recovery: stale pending row for ${paymentIntentId} (${Math.round(age / 1000)}s old), retrying`);
-      await db.delete(paymentIntentTracking)
-        .where(and(
-          eq(paymentIntentTracking.paymentIntentId, paymentIntentId),
-          eq(paymentIntentTracking.purpose, 'm2m-credits')
-        ));
-    }
+  const { amountUsd, email, keyName } = req.body;
+  const amount = Number(amountUsd);
+
+  if (!ALLOWED_TIERS[amount]) {
+    return res.status(400).json({
+      error: 'INVALID_AMOUNT',
+      message: `amountUsd must be one of: ${Object.keys(ALLOWED_TIERS).join(', ')}`,
+      tiers: Object.entries(ALLOWED_TIERS).map(([usd, info]) => ({
+        amountUsd: Number(usd), tier: info.label, description: info.description,
+      })),
+    });
   }
 
-  // Phase 1: Acquire provisioning lock with status='pending'
+  const baseUrl = process.env.PUBLIC_BASE_URL
+    || `https://${req.headers.host}`;
+
   try {
-    await db.insert(paymentIntentTracking).values({
-      paymentIntentId,
-      customerEmail: email,
-      amount: Math.round(amount * 100),
-      currency: 'usd',
-      purpose: 'm2m-credits',
-      taskDescription: `M2M Credits — $${amount}`,
-      metadata: { userId, amount, keyName, source: 'm2m-credits' },
-      status: 'pending',
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: `Coin Railz M2M Credits — ${ALLOWED_TIERS[amount].label}`,
+            description: ALLOWED_TIERS[amount].description,
+          },
+          unit_amount: amount * 100,
+        },
+        quantity: 1,
+      }],
+      customer_email: email || undefined,
+      success_url: `${baseUrl}/api/m2m/checkout/status/${'{CHECKOUT_SESSION_ID}'}?paid=1`,
+      cancel_url: `${baseUrl}/api/m2m/checkout/cancel`,
+      metadata: {
+        source: 'm2m-hosted-checkout',
+        amountUsd: String(amount),
+        tier: ALLOWED_TIERS[amount].label,
+        keyName: keyName || 'M2M API Key',
+        ip,
+        email: email || '',
+      },
+      expires_at: Math.floor(Date.now() / 1000) + 30 * 60, // 30 minutes
     });
-  } catch (insertErr: any) {
-    // Concurrent request beat us to the insert — they're handling it
-    if (insertErr?.code === '23505' || insertErr?.message?.includes('unique')) {
-      return { inProgress: true };
-    }
-    throw insertErr;
+
+    console.log(`💳 Hosted checkout session created: ${session.id} | $${amount} | IP: ${ip}`);
+    emitFirstContactAsync(ip, 'buy_page', '/api/m2m/checkout/session');
+
+    return res.status(200).json({
+      success: true,
+      sessionId: session.id,
+      checkoutUrl: session.url,
+      amountUsd: amount,
+      tier: ALLOWED_TIERS[amount].label,
+      expiresAt: new Date((session.expires_at) * 1000).toISOString(),
+      nextStep: {
+        description: 'Open checkoutUrl in any browser to complete payment. Then poll statusEndpoint to retrieve your API key.',
+        statusEndpoint: `${baseUrl}/api/m2m/checkout/status/${session.id}`,
+        note: 'Your API key will be ready within ~10 seconds of payment completion.',
+      },
+    });
+  } catch (err: any) {
+    console.error('❌ Checkout session creation error:', err?.message);
+    return res.status(500).json({ error: 'SESSION_CREATION_FAILED', message: 'Unable to create checkout session.' });
+  }
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// GET /api/m2m/checkout/status/:sessionId
+// Poll after completing Hosted Checkout to retrieve your API key.
+// Returns the key once. Requires the sessionId from POST /checkout/session.
+// ──────────────────────────────────────────────────────────────────────────────
+
+router.get('/checkout/status/:sessionId', async (req: Request, res: Response) => {
+  const { sessionId } = req.params;
+
+  if (!sessionId || !sessionId.startsWith('cs_')) {
+    return res.status(400).json({ error: 'INVALID_SESSION_ID', message: 'sessionId must start with cs_' });
   }
 
-  // Phase 2: Provision credits and API key — idempotent on crash recovery
   try {
-    // Check if credits were already added (covers partial-failure: addCredits succeeded but crash before generateApiKey)
-    const existingCredit = await db.query.creditTransactions.findFirst({
-      where: eq(creditTransactions.referenceId, paymentIntentId),
-    });
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    let creditResult: { newBalance: number; transactionId: number };
-
-    if (existingCredit) {
-      // Credits already added — skip to key generation (crash recovery after addCredits succeeded)
-      console.warn(`⚠️ M2M crash recovery: credits already exist for ${paymentIntentId}, skipping addCredits`);
-      const balance = await creditsService.getBalance(userId);
-      creditResult = { newBalance: balance, transactionId: existingCredit.id };
-    } else {
-      creditResult = await creditsService.addCredits({
-        userId,
-        amount,
-        paymentMethod: 'stripe-m2m',
-        referenceId: paymentIntentId,
-        description: `M2M card purchase — $${amount} via Stripe`,
-        metadata: { source: 'm2m-credits', paymentIntentId, email },
+    if (session.payment_status !== 'paid') {
+      return res.status(200).json({
+        success: false,
+        sessionId,
+        paymentStatus: session.payment_status,
+        message: 'Payment not yet completed. Complete the checkout then poll again.',
+        checkoutUrl: session.url,
       });
     }
 
-    const keyResult = await creditsService.generateApiKey(userId, keyName);
+    // Check provisioning status in our DB
+    const tracking = await db.query.paymentIntentTracking.findFirst({
+      where: eq(paymentIntentTracking.paymentIntentId, sessionId),
+    });
 
-    // Phase 3: Mark provisioning complete
+    if (!tracking || tracking.status !== 'used') {
+      return res.status(200).json({
+        success: false,
+        sessionId,
+        paymentStatus: 'paid',
+        message: 'Payment confirmed. API key provisioning in progress — retry in 5 seconds.',
+        retryAfterSeconds: 5,
+      });
+    }
+
+    // Key already retrieved
+    const meta = tracking.metadata as any;
+    if (meta?.keyDelivered) {
+      return res.status(200).json({
+        success: true,
+        sessionId,
+        alreadyDelivered: true,
+        message: 'API key was already retrieved. Keys are shown once only.',
+      });
+    }
+
+    // First retrieval — return key and mark as delivered
+    if (!meta?.pendingApiKey) {
+      return res.status(200).json({
+        success: true,
+        sessionId,
+        message: 'Provisioned but key not stored in this session (may have been direct webhook). Contact support if you did not receive your key.',
+      });
+    }
+
+    // Deliver the key and mark as delivered
     await db.update(paymentIntentTracking)
-      .set({ status: 'used' })
-      .where(eq(paymentIntentTracking.paymentIntentId, paymentIntentId));
+      .set({ metadata: { ...meta, pendingApiKey: null, keyDelivered: true, keyDeliveredAt: new Date().toISOString() } })
+      .where(eq(paymentIntentTracking.paymentIntentId, sessionId));
 
-    return {
-      apiKey: keyResult.apiKey,
-      keyPrefix: keyResult.keyPrefix,
-      keyId: keyResult.keyId,
-      newBalance: creditResult.newBalance,
-      transactionId: creditResult.transactionId,
-    };
+    return res.status(200).json({
+      success: true,
+      apiKey: meta.pendingApiKey,
+      keyPrefix: (meta.pendingApiKey as string).substring(0, 12) + '...',
+      creditsAdded: Number(session.metadata?.amountUsd || 0),
+      tier: session.metadata?.tier,
+      warning: 'SAVE THIS API KEY — it will not be shown again.',
+      usage: {
+        header: 'X-API-KEY',
+        example: `curl -H "X-API-KEY: ${meta.pendingApiKey}" https://coinrailz.com/x402/first-call`,
+        catalogUrl: 'https://coinrailz.com/x402/catalog',
+      },
+    });
 
-  } catch (workErr: any) {
-    // Work failed after locking — log prominently for manual recovery if needed
-    console.error(`❌ M2M provisioning work failed for ${paymentIntentId}:`, workErr?.message);
-    // Leave status='pending' — the 2-minute recovery window will allow retry
-    throw workErr;
+  } catch (err: any) {
+    console.error('❌ Checkout status error:', err?.message);
+    return res.status(500).json({ error: 'STATUS_CHECK_FAILED', message: 'Unable to retrieve session status.' });
   }
-}
+});
+
+router.get('/checkout/cancel', (_req: Request, res: Response) => {
+  res.status(200).json({
+    message: 'Checkout cancelled. Use GET /api/m2m/credits/trial for a free trial, or retry POST /api/m2m/checkout/session.',
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// GET /api/auth/capabilities
+// Machine-readable list of all supported auth and payment modes.
+// No authentication required. Safe for unauthenticated discovery.
+// ──────────────────────────────────────────────────────────────────────────────
+
+router.get('/capabilities', (req: Request, res: Response) => {
+  const baseUrl = process.env.PUBLIC_BASE_URL || `https://${req.headers.host}`;
+
+  res.status(200).json({
+    service: 'Coin Railz',
+    description: 'Multi-chain AI agent payment infrastructure — 60 services, 8 blockchains, API-key and x402 support.',
+    authModes: [
+      {
+        mode: 'api_key',
+        header: 'X-API-KEY',
+        alternativeHeader: 'Authorization: Bearer <key>',
+        description: 'Prepaid credits — fastest path. Works with any HTTP client. No wallet required.',
+        obtain: {
+          free_trial: {
+            description: '$5 free credits (~80-100 calls), no payment required',
+            method: 'GET',
+            url: `${baseUrl}/api/m2m/credits/trial`,
+            curl: `curl ${baseUrl}/api/m2m/credits/trial`,
+          },
+          hosted_checkout: {
+            description: 'One-click checkout via Stripe — operator opens URL in browser, webhook auto-provisions key',
+            method: 'POST',
+            url: `${baseUrl}/api/m2m/checkout/session`,
+            body: { amountUsd: 10, email: 'optional@example.com', keyName: 'optional label' },
+            curl: `curl -X POST ${baseUrl}/api/m2m/checkout/session -H "Content-Type: application/json" -d '{"amountUsd":10}'`,
+            note: 'Returns checkoutUrl. Pay in browser, then poll /api/m2m/checkout/status/:sessionId for your key.',
+          },
+          direct_card: {
+            description: 'Programmatic card charge via Stripe PaymentMethod (requires pre-built pm_...)',
+            method: 'POST',
+            url: `${baseUrl}/api/m2m/credits/purchase`,
+            body: { paymentMethodId: 'pm_...', amountUsd: 10, idempotencyKey: 'uuid-v4' },
+            note: 'Requires a Stripe PaymentMethod ID — use Stripe.js or Stripe CLI to create one.',
+          },
+        },
+        tiers: Object.entries(ALLOWED_TIERS).map(([usd, info]) => ({
+          amountUsd: Number(usd), label: info.label, description: info.description,
+        })),
+        firstCall: {
+          description: 'After obtaining a key, call any /x402/* service',
+          curl: `curl -X POST ${baseUrl}/x402/first-call -H "X-API-KEY: cr_live_..." -H "Content-Type: application/json" -d '{}'`,
+          price_usd: 0.05,
+        },
+      },
+      {
+        mode: 'x402_onchain',
+        header: 'X-PAYMENT',
+        description: 'On-chain USDC per-call payments using HTTP 402 protocol. No API key required.',
+        supportedChains: ['base', 'ethereum', 'polygon', 'arbitrum', 'solana'],
+        facilitators: [
+          'https://api.cdp.coinbase.com/platform/v2/x402',
+          'https://x402.dexter.cash',
+        ],
+        discoveryDocs: {
+          manifest: `${baseUrl}/.well-known/x402.json`,
+          instructions: `${baseUrl}/.well-known/agent-instructions.json`,
+          agentCard: `${baseUrl}/.well-known/agent-card.json`,
+        },
+        firstCall: {
+          url: `${baseUrl}/x402/first-call`,
+          price_usd: 0.05,
+          note: 'Send HTTP request. Receive 402 challenge. Use a CDP or Dexter wallet to sign and retry.',
+        },
+      },
+    ],
+    catalogUrl: `${baseUrl}/x402/catalog`,
+    supportedServices: 60,
+    docsUrl: `${baseUrl}/.well-known/agent-instructions.json`,
+  });
+});
 
 // ──────────────────────────────────────────────────────────────────────────────
 // GET /api/m2m/trial
@@ -558,11 +683,22 @@ router.get('/trial', async (req: Request, res: Response) => {
   if (claimedAt && now - claimedAt < TRIAL_TTL_MS) {
     const retryAfterMs = TRIAL_TTL_MS - (now - claimedAt);
     const retryAfterDays = Math.ceil(retryAfterMs / (24 * 60 * 60 * 1000));
+    const baseUrl = process.env.PUBLIC_BASE_URL || 'https://coinrailz.com';
     return res.status(429).json({
       error: 'TRIAL_ALREADY_CLAIMED',
       message: `Trial key already issued to this IP. Available again in ${retryAfterDays} day(s).`,
       retryAfterSeconds: Math.ceil(retryAfterMs / 1000),
-      upgradeAt: '/api/m2m/credits/purchase',
+      upgrade: {
+        description: 'Purchase credits — no wait, same API key pattern',
+        hostedCheckout: {
+          description: 'No Stripe.js needed — open URL in any browser, key delivered via webhook',
+          method: 'POST',
+          url: `${baseUrl}/api/m2m/credits/checkout/session`,
+          body: { amountUsd: 10 },
+          curl: `curl -X POST ${baseUrl}/api/m2m/credits/checkout/session -H "Content-Type: application/json" -d '{"amountUsd":10}'`,
+        },
+        directCard: `${baseUrl}/api/m2m/credits/purchase`,
+      },
     });
   }
 

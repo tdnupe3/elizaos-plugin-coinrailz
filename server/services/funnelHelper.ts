@@ -17,6 +17,7 @@ import { db } from '../db.js';
 import { conversionFunnelEvents } from '../../shared/schema.js';
 import { sql } from 'drizzle-orm';
 import crypto from 'crypto';
+import { classifyUserAgent } from './userAgentClassifier.js';
 
 const SALT = process.env.FUNNEL_ACTOR_SALT || 'coinrailz-funnel-v1';
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -51,6 +52,7 @@ async function emitFirstX402Call(params: {
   ip: string;
   paymentRail: string;
   serviceName: string;
+  userAgent?: string;
   metadata?: Record<string, any>;
 }): Promise<void> {
   if (isLoopback(params.ip)) return;
@@ -58,6 +60,7 @@ async function emitFirstX402Call(params: {
   const actorKey = hashActorKey(params.ip);
   const lockStr = `first_x402_call:${actorKey}`;
   const thirtyDaysAgo = new Date(Date.now() - THIRTY_DAYS_MS);
+  const agentFramework = classifyUserAgent(params.userAgent);
 
   await db.transaction(async (tx) => {
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockStr}))`);
@@ -79,6 +82,7 @@ async function emitFirstX402Call(params: {
         actorKey,
         paymentRail: params.paymentRail,
         service: params.serviceName,
+        agentFramework,
         ...(params.metadata || {}),
       },
     });
@@ -89,6 +93,7 @@ export function emitFirstX402CallAsync(params: {
   ip: string;
   paymentRail: string;
   serviceName: string;
+  userAgent?: string;
   metadata?: Record<string, any>;
 }): void {
   void emitFirstX402Call(params).catch((err: Error) => {
@@ -100,10 +105,11 @@ function hashActorKey(ip: string): string {
   return crypto.createHmac('sha256', SALT).update(ip).digest('hex').substring(0, 24);
 }
 
-async function emitFirstContact(ip: string, source: ContactSource, path?: string): Promise<void> {
+async function emitFirstContact(ip: string, source: ContactSource, path?: string, userAgent?: string): Promise<void> {
   const actorKey = hashActorKey(ip);
   const lockStr = `first_contact:${actorKey}:${source}`;
   const sevenDaysAgo = new Date(Date.now() - SEVEN_DAYS_MS);
+  const agentFramework = classifyUserAgent(userAgent);
 
   await db.transaction(async (tx) => {
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockStr}))`);
@@ -122,7 +128,7 @@ async function emitFirstContact(ip: string, source: ContactSource, path?: string
     await tx.insert(conversionFunnelEvents).values({
       stage: 'first_contact',
       channel: source,
-      metadata: { actorKey, source, path: path || 'unknown' },
+      metadata: { actorKey, source, path: path || 'unknown', agentFramework },
     });
   });
 }
@@ -131,11 +137,13 @@ async function emitFunnelEvent(params: {
   stage: string;
   source?: string;
   ip?: string;
+  userAgent?: string;
   apiKeyPrefix?: string;
   creditsAmount?: number;
   metadata?: Record<string, any>;
 }): Promise<void> {
   const actorKey = params.ip ? hashActorKey(params.ip) : undefined;
+  const agentFramework = classifyUserAgent(params.userAgent);
 
   await db.insert(conversionFunnelEvents).values({
     stage: params.stage,
@@ -145,12 +153,13 @@ async function emitFunnelEvent(params: {
     metadata: {
       ...(params.metadata || {}),
       ...(actorKey ? { actorKey } : {}),
+      agentFramework,
     },
   });
 }
 
-export function emitFirstContactAsync(ip: string, source: ContactSource, path?: string): void {
-  void emitFirstContact(ip, source, path).catch((err: Error) => {
+export function emitFirstContactAsync(ip: string, source: ContactSource, path?: string, userAgent?: string): void {
+  void emitFirstContact(ip, source, path, userAgent).catch((err: Error) => {
     console.error('⚠️ funnel first_contact failed (non-blocking):', err.message);
   });
 }

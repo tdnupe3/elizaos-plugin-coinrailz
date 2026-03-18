@@ -782,6 +782,11 @@ console.log('🔍 Registering .well-known endpoints for x402scan and Coinbase in
 app.use(wellKnownRoutes);
 console.log('✅ .well-known endpoints registered - Platform discoverable by x402 indexers');
 
+// OpenAPI 3.1 spec for LangChain/CrewAI/httpx agent auto-configuration
+const openApiRoute = (await import('./routes/openApiRoute')).default;
+app.use(openApiRoute);
+console.log('✅ OpenAPI 3.1 spec registered at GET /openapi.json');
+
 // Conversion Funnel Analytics
 const funnelAnalyticsRoutes = (await import('./routes/funnelAnalyticsRoutes')).default;
 app.use('/api/funnel', funnelAnalyticsRoutes);
@@ -925,8 +930,11 @@ registerCreditsRoutes(app);
 registerApiKeysRoutes(app);
 registerProductsRoutes(app);
 app.use('/api/m2m/credits', m2mCreditsRoutes);
+// Expose capabilities at the clean discovery path agents expect
+app.use('/api/auth', m2mCreditsRoutes);
 console.log('✅ Credits, Products & API Keys routes registered successfully');
 console.log('✅ M2M Credits purchase endpoint registered at POST /api/m2m/credits/purchase');
+console.log('✅ Auth capabilities endpoint registered at GET /api/auth/capabilities');
 
 // === ACP (AGENTIC COMMERCE PROTOCOL) ROUTES ===
 console.log('🛒 Registering ACP routes for ChatGPT Instant Checkout integration...');

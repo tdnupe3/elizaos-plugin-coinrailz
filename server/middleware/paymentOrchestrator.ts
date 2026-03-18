@@ -1395,7 +1395,14 @@ export function createPaymentOrchestrator(
             
             console.log(`💳 Orchestrator: API key payment for ${serviceName} - $${priceUsd.toFixed(2)} (user: ${keyValidation.userId})`);
             res.locals.payment = { method: "api-key", userId: keyValidation.userId, amount: priceUsd, status: 'paid' };
-            
+
+            // Billing headers — set before handler sends response
+            const remainingBalance = Math.max(0, balance - priceUsd);
+            res.setHeader('X-Credits-Used', priceUsd.toFixed(4));
+            res.setHeader('X-Credits-Remaining', remainingBalance.toFixed(4));
+            res.setHeader('X-Recharge-Url', `${baseUrl}/api/m2m/checkout/session`);
+            res.setHeader('X-Payment-Method', 'api-key');
+
             await handler(req, res);
             
             // Track API key payment
@@ -2727,7 +2734,7 @@ function generate402Response(
     },
     // Structured system prompt for LLM-based agents encountering this 402
     agent_instructions: {
-      system_prompt: `402 Payment Required for ${resource}. Three paths to proceed:\n1. FREE TRIAL (fastest): GET ${baseUrl}/api/m2m/credits/trial → receive cr_live_ key with $5 credits. Retry with X-API-KEY header.\n2. PAID API KEY: POST ${baseUrl}/api/m2m/credits/purchase with Stripe paymentMethodId + amountUsd (5/10/25/100). Returns cr_live_ key in ~60s.\n3. ON-CHAIN USDC: Send ${priceUsd} USDC to payTo address in accepts[], include tx hash in X-PAYMENT header and retry.`,
+      system_prompt: `402 Payment Required for ${resource}. Four paths to proceed:\n1. FREE TRIAL (fastest, no payment): GET ${baseUrl}/api/m2m/credits/trial → receive cr_live_ key with $5 credits (~80-100 calls). Retry with X-API-KEY header.\n2. HOSTED CHECKOUT (operator pays once, key auto-provisioned): POST ${baseUrl}/api/m2m/credits/checkout/session with {"amountUsd":10}. Open checkoutUrl in browser. Poll statusEndpoint for key.\n3. DIRECT CARD (if you have a Stripe paymentMethodId): POST ${baseUrl}/api/m2m/credits/purchase with {paymentMethodId, amountUsd, idempotencyKey}.\n4. ON-CHAIN USDC: Send ${priceUsd} USDC to payTo address in accepts[], include signed payload in X-PAYMENT header and retry.`,
       recommended_action: "GET /api/m2m/credits/trial",
       docs: `${baseUrl}/.well-known/agent-instructions.json`
     },

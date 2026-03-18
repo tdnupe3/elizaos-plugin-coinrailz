@@ -2,11 +2,13 @@ import { Router } from 'express';
 import express from 'express';
 import Stripe from 'stripe';
 import { db } from '../db';
-import { sdkLicenseSubscriptions, iotAccounts, iotTopups } from '../../shared/schema';
+import { sdkLicenseSubscriptions, iotAccounts, iotTopups, paymentIntentTracking } from '../../shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import crypto from 'crypto';
 import { fulfillAcpOrder } from './acpRoutes';
+import { provisionCreditsAndKey } from '../services/m2mProvisioningService.js';
+import { emitFunnelEventAsync } from '../services/funnelHelper.js';
 
 const router = Router();
 
@@ -309,6 +311,57 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       console.log(`✅ IoT Topup fulfilled: ${accountId} received ${creditsAmount} credits ($${amountPaid})`);
     } catch (error: any) {
       console.error(`❌ IoT Topup fulfillment failed: ${error.message}`);
+    }
+  } else if (source === 'm2m-hosted-checkout') {
+    const { amountUsd, keyName, email } = session.metadata || {};
+    const amount = Number(amountUsd || '0');
+
+    if (!amount) {
+      console.error('❌ M2M hosted checkout missing amountUsd metadata:', session.id);
+      return;
+    }
+
+    const userId = `m2m_${crypto.createHash('sha256').update(session.id).digest('hex').substring(0, 16)}`;
+    const effectiveEmail = email || `${userId}@m2m.coinrailz.com`;
+
+    try {
+      const result = await provisionCreditsAndKey({
+        paymentIntentId: session.id, // use sessionId as idempotency key
+        userId,
+        amount,
+        email: effectiveEmail,
+        keyName: keyName || 'M2M Checkout Key',
+        purpose: 'm2m-hosted-checkout',
+      });
+
+      if (result.alreadyProvisioned) {
+        console.log(`ℹ️ M2M hosted checkout already provisioned: ${session.id}`);
+        return;
+      }
+
+      if (result.inProgress) {
+        console.warn(`⚠️ M2M hosted checkout provisioning in progress: ${session.id}`);
+        return;
+      }
+
+      // Store pending API key in tracking metadata for status endpoint to retrieve once
+      await db.update(paymentIntentTracking)
+        .set({ metadata: {
+          userId,
+          amount,
+          keyName: keyName || 'M2M Checkout Key',
+          source: 'm2m-hosted-checkout',
+          pendingApiKey: result.apiKey,
+          keyDelivered: false,
+        }})
+        .where(eq(paymentIntentTracking.paymentIntentId, session.id));
+
+      emitFunnelEventAsync({ stage: 'credit_purchased', source: 'buy_page', creditsAmount: amount });
+      emitFunnelEventAsync({ stage: 'api_key_issued', source: 'buy_page', apiKeyPrefix: result.keyPrefix, creditsAmount: amount });
+
+      console.log(`✅ M2M hosted checkout provisioned: $${amount} | userId: ${userId} | key: ${result.keyPrefix}... | session: ${session.id}`);
+    } catch (err: any) {
+      console.error(`❌ M2M hosted checkout provisioning failed for ${session.id}:`, err.message);
     }
   } else {
     console.log(`🔔 Checkout session completed (unknown source): ${session.id}`);

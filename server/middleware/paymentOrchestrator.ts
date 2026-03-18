@@ -14,6 +14,7 @@ import { createWalletClient, http, parseAbi, Hex, createPublicClient } from "vie
 import { base } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { x402InteractionTracker } from "../services/x402InteractionTracker";
+import { emitFirstX402CallAsync } from "../services/funnelHelper";
 import { nanoid } from "nanoid";
 import { db } from "../db";
 import { sql, and, eq, gt, or, isNull } from "drizzle-orm";
@@ -1205,6 +1206,8 @@ export function createPaymentOrchestrator(
         offerTrackingId,
         metadata: { method: 'bundle-subscription', knownAgent: knownAgent.name }
       });
+
+      emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'bundle_subscription', serviceName });
       
       if (offerTrackingId) {
         try {
@@ -1336,6 +1339,8 @@ export function createPaymentOrchestrator(
             offerTrackingId,
             metadata: { method: 'gpt-session', userId, knownAgent: knownAgent.name }
           });
+
+          emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'gpt_session', serviceName, metadata: { userId } });
           
           if (offerTrackingId) {
             try {
@@ -1413,6 +1418,8 @@ export function createPaymentOrchestrator(
               offerTrackingId,
               metadata: { method: 'api-key', userId: keyValidation.userId, knownAgent: knownAgent.name }
             });
+
+            emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'api_key', serviceName, metadata: { userId: keyValidation.userId } });
             
             if (offerTrackingId) {
               try {
@@ -1619,6 +1626,7 @@ export function createPaymentOrchestrator(
             .set({ status: 'SUCCEEDED', succeededAt: new Date(), updatedAt: new Date() })
             .where(and(eq(x402PaymentIntents.txHash, xPayment), eq(x402PaymentIntents.serviceName, serviceName)));
           console.log(`✅ Solana intent marked SUCCEEDED for ${serviceName}`);
+          emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'solana', serviceName, metadata: { token: solanaResult.token } });
         } catch (handlerErr: any) {
           await db.update(x402PaymentIntents)
             .set({ status: 'FAILED', lastError: handlerErr.message, updatedAt: new Date() })
@@ -2046,6 +2054,7 @@ export function createPaymentOrchestrator(
                   .set({ status: 'SUCCEEDED', succeededAt: new Date(), updatedAt: new Date() })
                   .where(and(eq(x402PaymentIntents.txHash, solanaSig), eq(x402PaymentIntents.serviceName, serviceName)));
                 console.log(`✅ ExactSvmScheme intent marked SUCCEEDED for ${serviceName}`);
+                emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'solana', serviceName, metadata: { scheme: 'ExactSvmScheme', token: solanaResult.token } });
               } catch (handlerErr: any) {
                 await db.update(x402PaymentIntents)
                   .set({ status: 'FAILED', lastError: handlerErr.message, updatedAt: new Date() })
@@ -2188,6 +2197,7 @@ export function createPaymentOrchestrator(
             .set({ status: 'SUCCEEDED', succeededAt: new Date(), updatedAt: new Date() })
             .where(and(eq(x402PaymentIntents.txHash, txHash), eq(x402PaymentIntents.serviceName, serviceName)));
           console.log(`✅ Solana (Dexter) intent marked SUCCEEDED for ${serviceName}`);
+          emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'solana', serviceName, metadata: { facilitator: 'dexter', token: solanaResult.token } });
         } catch (handlerErr: any) {
           await db.update(x402PaymentIntents)
             .set({ status: 'FAILED', lastError: handlerErr.message, updatedAt: new Date() })
@@ -2272,6 +2282,8 @@ export function createPaymentOrchestrator(
                 paymentToken: verificationResult.paymentToken
               }
             });
+
+            emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'evm', serviceName, metadata: { chain: evmChain, token: verificationResult.paymentToken } });
             
             if (offerTrackingId) {
               try {

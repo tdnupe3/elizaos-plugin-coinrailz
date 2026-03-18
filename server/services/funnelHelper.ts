@@ -30,6 +30,62 @@ export type ContactSource =
   | 'mcp_call'
   | 'buy_page';
 
+const LOOPBACK_IPS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1', 'localhost']);
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+function isLoopback(ip: string): boolean {
+  return LOOPBACK_IPS.has(ip) || ip.startsWith('10.') || ip.startsWith('172.16.') || ip.startsWith('192.168.');
+}
+
+async function emitFirstX402Call(params: {
+  ip: string;
+  paymentRail: string;
+  serviceName: string;
+  metadata?: Record<string, any>;
+}): Promise<void> {
+  if (isLoopback(params.ip)) return;
+
+  const actorKey = hashActorKey(params.ip);
+  const lockStr = `first_x402_call:${actorKey}`;
+  const thirtyDaysAgo = new Date(Date.now() - THIRTY_DAYS_MS);
+
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockStr}))`);
+
+    const existing = await tx.execute(sql`
+      SELECT id FROM conversion_funnel_events
+      WHERE stage = 'first_x402_call'
+        AND metadata->>'actorKey' = ${actorKey}
+        AND created_at > ${thirtyDaysAgo.toISOString()}
+      LIMIT 1
+    `);
+
+    if (existing.rows.length > 0) return;
+
+    await tx.insert(conversionFunnelEvents).values({
+      stage: 'first_x402_call',
+      channel: params.paymentRail,
+      metadata: {
+        actorKey,
+        paymentRail: params.paymentRail,
+        service: params.serviceName,
+        ...(params.metadata || {}),
+      },
+    });
+  });
+}
+
+export function emitFirstX402CallAsync(params: {
+  ip: string;
+  paymentRail: string;
+  serviceName: string;
+  metadata?: Record<string, any>;
+}): void {
+  void emitFirstX402Call(params).catch((err: Error) => {
+    console.error('⚠️ funnel first_x402_call failed (non-blocking):', err.message);
+  });
+}
+
 function hashActorKey(ip: string): string {
   return crypto.createHmac('sha256', SALT).update(ip).digest('hex').substring(0, 24);
 }

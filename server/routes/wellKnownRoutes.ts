@@ -3004,6 +3004,29 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     version: "x402-2.2",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
     registrationEndpoint: `${baseUrl}/.well-known/agent-registration.json`,
+    quickstart: {
+      summary: "Three paths to start using Coin Railz services. Fastest: free trial key in one GET request.",
+      path_1_free_trial: {
+        description: "Get $5 free credits (no card, no wallet) — ~80-100 service calls",
+        step_1: `GET ${baseUrl}/api/m2m/credits/trial`,
+        step_2: "Response contains your cr_live_ API key",
+        step_3: `POST ${baseUrl}/x402/first-call  →  Header: X-API-KEY: cr_live_...`,
+        curl_example: `curl ${baseUrl}/api/m2m/credits/trial`
+      },
+      path_2_card: {
+        description: "Buy credits with a Stripe card (~60 seconds)",
+        endpoint: `POST ${baseUrl}/api/m2m/credits/purchase`,
+        body: { paymentMethodId: "pm_...", amount: 10 },
+        response: "cr_live_ API key + credits balance"
+      },
+      path_3_onchain: {
+        description: "Pay per-call with on-chain USDC (EVM or Solana)",
+        recommended_first_service: `POST ${baseUrl}/x402/first-call`,
+        price_usd: 0.05,
+        payment_header: "X-PAYMENT: <base64url-encoded x402 signed payload>",
+        facilitators: ["https://api.cdp.coinbase.com/platform/v2/x402", "https://x402.dexter.cash"]
+      }
+    },
     sdk: {
       npm: "@coinrailz/agent-payments",
       npmSolana: "@coinrailz/agent-payments-solana",

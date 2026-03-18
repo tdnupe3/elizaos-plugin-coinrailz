@@ -34,7 +34,17 @@ const LOOPBACK_IPS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1', 'localhost
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 function isLoopback(ip: string): boolean {
-  return LOOPBACK_IPS.has(ip) || ip.startsWith('10.') || ip.startsWith('172.16.') || ip.startsWith('192.168.');
+  if (LOOPBACK_IPS.has(ip)) return true;
+  if (ip.startsWith('10.')) return true;
+  if (ip.startsWith('192.168.')) return true;
+  if (ip.startsWith('169.254.')) return true;
+  if (ip.startsWith('::ffff:10.') || ip.startsWith('::ffff:192.168.') || ip.startsWith('::ffff:169.254.')) return true;
+  if (ip.startsWith('fc') || ip.startsWith('fd') || ip.startsWith('fe80:')) return true;
+  if (ip.startsWith('172.')) {
+    const secondOctet = parseInt(ip.split('.')[1] ?? '0', 10);
+    if (secondOctet >= 16 && secondOctet <= 31) return true;
+  }
+  return false;
 }
 
 async function emitFirstX402Call(params: {

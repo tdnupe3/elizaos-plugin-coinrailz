@@ -2,7 +2,8 @@ import { Router } from 'express';
 import express from 'express';
 import Stripe from 'stripe';
 import { db } from '../db';
-import { sdkLicenseSubscriptions, iotAccounts, iotTopups, paymentIntentTracking } from '../../shared/schema';
+import { sdkLicenseSubscriptions, iotAccounts, iotTopups, paymentIntentTracking, creditsAccounts } from '../../shared/schema';
+import { creditsService } from '../services/creditsService.js';
 import { eq, and, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import crypto from 'crypto';
@@ -360,6 +361,52 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       emitFunnelEventAsync({ stage: 'api_key_issued', source: 'buy_page', apiKeyPrefix: result.keyPrefix, creditsAmount: amount });
 
       console.log(`✅ M2M hosted checkout provisioned: $${amount} | userId: ${userId} | key: ${result.keyPrefix}... | session: ${session.id}`);
+
+      // Auto-recharge setup — vault the payment method if developer opted in
+      if (session.metadata?.autoRechargeEnabled === 'true') {
+        try {
+          const threshold = Number(session.metadata.autoRechargeThresholdUsd || 5);
+          const topUp = Number(session.metadata.autoRechargeTopUpUsd || amount);
+
+          // Retrieve the payment intent to get the vaulted payment method
+          const piId = typeof session.payment_intent === 'string'
+            ? session.payment_intent
+            : session.payment_intent?.id;
+
+          if (piId) {
+            const pi = await stripe.paymentIntents.retrieve(piId);
+            const pmId = typeof pi.payment_method === 'string'
+              ? pi.payment_method
+              : pi.payment_method?.id;
+
+            if (pmId) {
+              // Create a Stripe customer for off-session recharges
+              const customer = await stripe.customers.create({
+                email: effectiveEmail,
+                payment_method: pmId,
+                metadata: { userId, source: 'm2m-auto-recharge' },
+              });
+
+              // Save auto-recharge settings on the credits account
+              await db.update(creditsAccounts)
+                .set({
+                  autoTopUpEnabled: true,
+                  autoTopUpThreshold: String(threshold),
+                  autoTopUpAmount: String(topUp),
+                  stripeCustomerId: customer.id,
+                  autoRechargePaymentMethodId: pmId,
+                })
+                .where(eq(creditsAccounts.userId, userId));
+
+              console.log(`🔄 Auto-recharge configured for ${userId}: threshold $${threshold}, topUp $${topUp}, pm: ${pmId.substring(0, 12)}...`);
+              emitFunnelEventAsync({ stage: 'credit_purchased', source: 'auto_recharge_setup', creditsAmount: topUp });
+            }
+          }
+        } catch (arErr: any) {
+          // Non-fatal — provisioning succeeded, auto-recharge setup failed
+          console.error(`⚠️ Auto-recharge setup failed for ${session.id} (credits still provisioned):`, arErr.message);
+        }
+      }
     } catch (err: any) {
       console.error(`❌ M2M hosted checkout provisioning failed for ${session.id}:`, err.message);
     }

@@ -18,7 +18,70 @@ import { emitFirstX402CallAsync } from "../services/funnelHelper";
 import { nanoid } from "nanoid";
 import { db } from "../db";
 import { sql, and, eq, gt, or, isNull } from "drizzle-orm";
-import { x402Interactions, x402PaymentIntents } from "@shared/schema";
+import { x402Interactions, x402PaymentIntents, creditsAccounts } from "@shared/schema";
+import Stripe from "stripe";
+
+const _stripeForRecharge = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-07-30.basil' });
+
+/**
+ * Fire-and-forget auto-recharge trigger.
+ * Called after every successful API-key credit deduction.
+ * If balance dropped below threshold and a vaulted card exists, charges it off-session.
+ */
+async function triggerAutoRechargeIfEnabled(userId: string, newBalance: number): Promise<void> {
+  try {
+    const account = await db.query.creditsAccounts.findFirst({
+      where: eq(creditsAccounts.userId, userId),
+    });
+    if (!account?.autoTopUpEnabled || !account.autoRechargePaymentMethodId) return;
+
+    const threshold = Number(account.autoTopUpThreshold ?? 5);
+    const topUpAmount = Number(account.autoTopUpAmount ?? 25);
+    if (newBalance > threshold) return;
+
+    // Cooldown: skip if a recharge attempt was made within the last 5 minutes
+    if (account.autoRechargeLastAttemptAt) {
+      const msSinceLast = Date.now() - new Date(account.autoRechargeLastAttemptAt).getTime();
+      if (msSinceLast < 5 * 60 * 1000) return;
+    }
+
+    // Mark attempt time immediately to prevent concurrent duplicate charges
+    await db.update(creditsAccounts)
+      .set({ autoRechargeLastAttemptAt: new Date() })
+      .where(eq(creditsAccounts.userId, userId));
+
+    // Deterministic idempotency key: one charge per user per 5-minute window
+    const windowKey = Math.floor(Date.now() / (5 * 60 * 1000));
+    const idempotencyKey = `ar:${userId}:${windowKey}`;
+
+    const pi = await _stripeForRecharge.paymentIntents.create({
+      amount: Math.round(topUpAmount * 100),
+      currency: 'usd',
+      payment_method: account.autoRechargePaymentMethodId,
+      customer: account.stripeCustomerId || undefined,
+      confirm: true,
+      off_session: true,
+      description: `Coin Railz M2M Auto-Recharge — $${topUpAmount} (balance was $${newBalance.toFixed(2)})`,
+      metadata: { source: 'm2m-auto-recharge', userId, topUpAmount: String(topUpAmount) },
+    }, { idempotencyKey });
+
+    if (pi.status === 'succeeded') {
+      await creditsService.addCredits({
+        userId,
+        amount: topUpAmount,
+        referenceId: pi.id,
+        paymentMethod: 'stripe',
+        description: `Auto-recharge: $${topUpAmount} (balance was $${newBalance.toFixed(2)})`,
+      });
+      console.log(`🔄 Auto-recharge succeeded: $${topUpAmount} added for ${userId} (pi: ${pi.id})`);
+    } else {
+      console.warn(`⚠️ Auto-recharge PaymentIntent status: ${pi.status} for ${userId}`);
+    }
+  } catch (err: any) {
+    // Non-fatal — log and continue. The agent's current request already succeeded.
+    console.error(`⚠️ Auto-recharge failed for ${userId}:`, err?.message);
+  }
+}
 // CBOR library - use createRequire for ESM compatibility
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
@@ -1402,6 +1465,9 @@ export function createPaymentOrchestrator(
             res.setHeader('X-Credits-Remaining', remainingBalance.toFixed(4));
             res.setHeader('X-Recharge-Url', `${baseUrl}/api/m2m/credits/checkout/session`);
             res.setHeader('X-Payment-Method', 'api-key');
+
+            // Fire auto-recharge check non-blocking — does NOT affect latency of this request
+            void triggerAutoRechargeIfEnabled(keyValidation.userId, remainingBalance);
 
             await handler(req, res);
             

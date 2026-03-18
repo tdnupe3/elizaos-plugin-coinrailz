@@ -4725,6 +4725,10 @@ export const creditsAccounts = pgTable("credits_accounts", {
   autoTopUpThreshold: decimal("auto_top_up_threshold", { precision: 12, scale: 2 }).default("10.00"),
   autoTopUpAmount: decimal("auto_top_up_amount", { precision: 12, scale: 2 }).default("50.00"),
   preferredPaymentMethod: varchar("preferred_payment_method").default("stripe"), // stripe, usdc, usdt
+  // Auto-recharge via vaulted Stripe card
+  stripeCustomerId: varchar("stripe_customer_id"),           // Stripe customer for off-session charges
+  autoRechargePaymentMethodId: varchar("auto_recharge_payment_method_id"), // pm_... to charge
+  autoRechargeLastAttemptAt: timestamp("auto_recharge_last_attempt_at"),   // cooldown guard
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [

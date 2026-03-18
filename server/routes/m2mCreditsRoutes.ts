@@ -408,7 +408,7 @@ router.post('/checkout/session', async (req: Request, res: Response) => {
   const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
     || req.socket?.remoteAddress || 'unknown';
 
-  const { amountUsd, email, keyName } = req.body;
+  const { amountUsd, email, keyName, autoRecharge } = req.body;
   const amount = Number(amountUsd);
 
   if (!ALLOWED_TIERS[amount]) {
@@ -419,6 +419,14 @@ router.post('/checkout/session', async (req: Request, res: Response) => {
         amountUsd: Number(usd), tier: info.label, description: info.description,
       })),
     });
+  }
+
+  // Validate autoRecharge settings if provided
+  const arEnabled = autoRecharge?.enabled === true;
+  const arThreshold = Number(autoRecharge?.thresholdUsd ?? 5);
+  const arTopUp = Number(autoRecharge?.topUpUsd ?? amount);
+  if (arEnabled && (arThreshold <= 0 || arTopUp <= 0)) {
+    return res.status(400).json({ error: 'INVALID_AUTO_RECHARGE', message: 'thresholdUsd and topUpUsd must be positive numbers.' });
   }
 
   const baseUrl = process.env.PUBLIC_BASE_URL
@@ -439,6 +447,8 @@ router.post('/checkout/session', async (req: Request, res: Response) => {
         quantity: 1,
       }],
       customer_email: email || undefined,
+      // When autoRecharge is enabled, vault the card for future off-session charges
+      ...(arEnabled ? { payment_intent_data: { setup_future_usage: 'off_session' } } : {}),
       success_url: `${baseUrl}/api/m2m/credits/checkout/status/${'{CHECKOUT_SESSION_ID}'}?paid=1`,
       cancel_url: `${baseUrl}/api/m2m/credits/checkout/cancel`,
       metadata: {
@@ -449,6 +459,10 @@ router.post('/checkout/session', async (req: Request, res: Response) => {
         ip,
         email: email || '',
         retrievalToken: crypto.randomBytes(16).toString('hex'),
+        // Auto-recharge settings persisted for webhook to pick up
+        autoRechargeEnabled: arEnabled ? 'true' : 'false',
+        autoRechargeThresholdUsd: String(arThreshold),
+        autoRechargeTopUpUsd: String(arTopUp),
       },
       expires_at: Math.floor(Date.now() / 1000) + 30 * 60, // 30 minutes
     });
@@ -465,6 +479,15 @@ router.post('/checkout/session', async (req: Request, res: Response) => {
       tier: ALLOWED_TIERS[amount].label,
       expiresAt: new Date((session.expires_at) * 1000).toISOString(),
       retrievalToken,
+      autoRecharge: arEnabled ? {
+        enabled: true,
+        thresholdUsd: arThreshold,
+        topUpUsd: arTopUp,
+        note: 'Card will be saved after payment. Balance auto-refills when it drops below threshold — no human needed.',
+      } : {
+        enabled: false,
+        note: 'To enable, add autoRecharge: { enabled: true, thresholdUsd: 5, topUpUsd: 25 } to this request.',
+      },
       nextStep: {
         description: 'Open checkoutUrl in any browser to complete payment. Then poll statusEndpoint with your retrievalToken to retrieve your API key.',
         statusEndpoint: `${baseUrl}/api/m2m/credits/checkout/status/${session.id}?token=${retrievalToken}`,
@@ -604,12 +627,14 @@ router.get('/capabilities', (req: Request, res: Response) => {
             curl: `curl ${baseUrl}/api/m2m/credits/trial`,
           },
           hosted_checkout: {
-            description: 'One-click checkout via Stripe — operator opens URL in browser, webhook auto-provisions key',
+            description: 'One-click checkout via Stripe — operator opens URL in browser, webhook auto-provisions key. Optional: enable auto-recharge so the card fires automatically when balance runs low.',
             method: 'POST',
             url: `${baseUrl}/api/m2m/credits/checkout/session`,
             body: { amountUsd: 10, email: 'optional@example.com', keyName: 'optional label' },
+            bodyWithAutoRecharge: { amountUsd: 25, autoRecharge: { enabled: true, thresholdUsd: 5, topUpUsd: 25 } },
             curl: `curl -X POST ${baseUrl}/api/m2m/credits/checkout/session -H "Content-Type: application/json" -d '{"amountUsd":10}'`,
-            note: 'Returns checkoutUrl + retrievalToken. Pay in browser, then poll /api/m2m/credits/checkout/status/:sessionId?token=<retrievalToken> for your key.',
+            curlWithAutoRecharge: `curl -X POST ${baseUrl}/api/m2m/credits/checkout/session -H "Content-Type: application/json" -d '{"amountUsd":25,"autoRecharge":{"enabled":true,"thresholdUsd":5,"topUpUsd":25}}'`,
+            note: 'Returns checkoutUrl + retrievalToken. Pay in browser, then poll /api/m2m/credits/checkout/status/:sessionId?token=<retrievalToken> for your key. With autoRecharge, card is vaulted and fires automatically when balance drops below thresholdUsd.',
           },
           direct_card: {
             description: 'Programmatic card charge via Stripe PaymentMethod (requires pre-built pm_...)',

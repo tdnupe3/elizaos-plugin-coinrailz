@@ -397,11 +397,11 @@ router.get('/purchase/:paymentIntentId', async (req: Request, res: Response) => 
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
-// POST /api/m2m/checkout/session
+// POST /api/m2m/credits/checkout/session
 // Create a Stripe Hosted Checkout Session — no Stripe.js or browser API required.
 // Returns a checkoutUrl the operator visits once to enter their card.
 // On payment success, Stripe webhook auto-provisions credits + API key.
-// Poll GET /api/m2m/checkout/status/:sessionId to retrieve the key.
+// Poll GET /api/m2m/credits/checkout/status/:sessionId?token=<retrievalToken> to retrieve the key.
 // ──────────────────────────────────────────────────────────────────────────────
 
 router.post('/checkout/session', async (req: Request, res: Response) => {
@@ -439,8 +439,8 @@ router.post('/checkout/session', async (req: Request, res: Response) => {
         quantity: 1,
       }],
       customer_email: email || undefined,
-      success_url: `${baseUrl}/api/m2m/checkout/status/${'{CHECKOUT_SESSION_ID}'}?paid=1`,
-      cancel_url: `${baseUrl}/api/m2m/checkout/cancel`,
+      success_url: `${baseUrl}/api/m2m/credits/checkout/status/${'{CHECKOUT_SESSION_ID}'}?paid=1`,
+      cancel_url: `${baseUrl}/api/m2m/credits/checkout/cancel`,
       metadata: {
         source: 'm2m-hosted-checkout',
         amountUsd: String(amount),
@@ -448,13 +448,15 @@ router.post('/checkout/session', async (req: Request, res: Response) => {
         keyName: keyName || 'M2M API Key',
         ip,
         email: email || '',
+        retrievalToken: crypto.randomBytes(16).toString('hex'),
       },
       expires_at: Math.floor(Date.now() / 1000) + 30 * 60, // 30 minutes
     });
 
     console.log(`💳 Hosted checkout session created: ${session.id} | $${amount} | IP: ${ip}`);
-    emitFirstContactAsync(ip, 'buy_page', '/api/m2m/checkout/session');
+    emitFirstContactAsync(ip, 'buy_page', '/api/m2m/credits/checkout/session');
 
+    const retrievalToken = (session.metadata as any)?.retrievalToken as string;
     return res.status(200).json({
       success: true,
       sessionId: session.id,
@@ -462,10 +464,11 @@ router.post('/checkout/session', async (req: Request, res: Response) => {
       amountUsd: amount,
       tier: ALLOWED_TIERS[amount].label,
       expiresAt: new Date((session.expires_at) * 1000).toISOString(),
+      retrievalToken,
       nextStep: {
-        description: 'Open checkoutUrl in any browser to complete payment. Then poll statusEndpoint to retrieve your API key.',
-        statusEndpoint: `${baseUrl}/api/m2m/checkout/status/${session.id}`,
-        note: 'Your API key will be ready within ~10 seconds of payment completion.',
+        description: 'Open checkoutUrl in any browser to complete payment. Then poll statusEndpoint with your retrievalToken to retrieve your API key.',
+        statusEndpoint: `${baseUrl}/api/m2m/credits/checkout/status/${session.id}?token=${retrievalToken}`,
+        note: 'Your API key will be ready within ~10 seconds of payment completion. Save the retrievalToken — it is required to retrieve your key.',
       },
     });
   } catch (err: any) {
@@ -475,20 +478,29 @@ router.post('/checkout/session', async (req: Request, res: Response) => {
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
-// GET /api/m2m/checkout/status/:sessionId
+// GET /api/m2m/credits/checkout/status/:sessionId?token=<retrievalToken>
 // Poll after completing Hosted Checkout to retrieve your API key.
-// Returns the key once. Requires the sessionId from POST /checkout/session.
+// Returns the key once. Requires sessionId + retrievalToken from POST /checkout/session.
 // ──────────────────────────────────────────────────────────────────────────────
 
 router.get('/checkout/status/:sessionId', async (req: Request, res: Response) => {
   const { sessionId } = req.params;
+  const { token } = req.query;
 
   if (!sessionId || !sessionId.startsWith('cs_')) {
     return res.status(400).json({ error: 'INVALID_SESSION_ID', message: 'sessionId must start with cs_' });
   }
+  if (!token) {
+    return res.status(401).json({ error: 'TOKEN_REQUIRED', message: 'retrievalToken query param required. It was returned in the POST /checkout/session response.' });
+  }
 
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    // Validate retrieval token against what was stored in Stripe metadata at creation time
+    if (session.metadata?.retrievalToken !== token) {
+      return res.status(403).json({ error: 'INVALID_TOKEN', message: 'retrievalToken does not match. Use the token returned from POST /checkout/session.' });
+    }
 
     if (session.payment_status !== 'paid') {
       return res.status(200).json({
@@ -562,7 +574,7 @@ router.get('/checkout/status/:sessionId', async (req: Request, res: Response) =>
 
 router.get('/checkout/cancel', (_req: Request, res: Response) => {
   res.status(200).json({
-    message: 'Checkout cancelled. Use GET /api/m2m/credits/trial for a free trial, or retry POST /api/m2m/checkout/session.',
+    message: 'Checkout cancelled. Use GET /api/m2m/credits/trial for a free trial, or retry POST /api/m2m/credits/checkout/session.',
   });
 });
 
@@ -594,10 +606,10 @@ router.get('/capabilities', (req: Request, res: Response) => {
           hosted_checkout: {
             description: 'One-click checkout via Stripe — operator opens URL in browser, webhook auto-provisions key',
             method: 'POST',
-            url: `${baseUrl}/api/m2m/checkout/session`,
+            url: `${baseUrl}/api/m2m/credits/checkout/session`,
             body: { amountUsd: 10, email: 'optional@example.com', keyName: 'optional label' },
-            curl: `curl -X POST ${baseUrl}/api/m2m/checkout/session -H "Content-Type: application/json" -d '{"amountUsd":10}'`,
-            note: 'Returns checkoutUrl. Pay in browser, then poll /api/m2m/checkout/status/:sessionId for your key.',
+            curl: `curl -X POST ${baseUrl}/api/m2m/credits/checkout/session -H "Content-Type: application/json" -d '{"amountUsd":10}'`,
+            note: 'Returns checkoutUrl + retrievalToken. Pay in browser, then poll /api/m2m/credits/checkout/status/:sessionId?token=<retrievalToken> for your key.',
           },
           direct_card: {
             description: 'Programmatic card charge via Stripe PaymentMethod (requires pre-built pm_...)',

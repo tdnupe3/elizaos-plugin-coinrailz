@@ -4,7 +4,7 @@
  * Used by:
  *   - POST /api/m2m/credits/purchase  (direct PaymentIntent path)
  *   - GET  /api/m2m/credits/purchase/:id (3DS recovery path)
- *   - POST /api/m2m/checkout/session webhook (Stripe Checkout Session path)
+ *   - POST /api/m2m/credits/checkout/session webhook (Stripe Checkout Session path)
  *
  * Guarantees: exactly-once provisioning per Stripe payment reference.
  * Uses two-phase tracking (pending → used) with crash recovery after 2 minutes.

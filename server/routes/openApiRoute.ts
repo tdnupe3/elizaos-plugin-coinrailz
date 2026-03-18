@@ -208,7 +208,7 @@ router.get('/openapi.json', (req: Request, res: Response) => {
         get: {
           operationId: 'getCheckoutStatus',
           summary: 'Poll for API key after Hosted Checkout payment',
-          description: 'Returns the API key once after payment confirmed. Key shown once only.',
+          description: 'Returns the API key once after payment confirmed. Key shown once only. Requires retrievalToken from POST /checkout/session — prevents unauthorized key pickup.',
           security: [],
           tags: ['Onboarding'],
           parameters: [
@@ -219,10 +219,26 @@ router.get('/openapi.json', (req: Request, res: Response) => {
               schema: { type: 'string' },
               description: 'Stripe Checkout Session ID (cs_...) from POST /checkout/session',
             },
+            {
+              name: 'token',
+              in: 'query',
+              required: true,
+              schema: { type: 'string' },
+              description: 'retrievalToken returned in POST /checkout/session response. Required — prevents session ID interception attacks.',
+            },
           ],
           responses: {
             '200': { description: 'Session status and API key if ready' },
+            '401': { description: 'token query param missing' },
+            '403': { description: 'Invalid token' },
           },
+          'x-codeSamples': [
+            {
+              lang: 'Python',
+              label: 'httpx (poll loop)',
+              source: `import httpx, time\n\n# After POST /checkout/session:\n# session_id = data["sessionId"]\n# token = data["retrievalToken"]  # Save this!\n# print("Open to pay:", data["checkoutUrl"])\n\nfor _ in range(24):  # poll for up to 2 minutes\n    r = httpx.get(\n        f"${baseUrl}/api/m2m/credits/checkout/status/{'{session_id}'}",\n        params={"token": token}\n    ).json()\n    if r.get("apiKey"):\n        print("API key:", r["apiKey"])  # Save immediately!\n        break\n    time.sleep(5)`,
+            },
+          ],
         },
       },
       '/x402/first-call': {

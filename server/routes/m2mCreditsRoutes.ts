@@ -52,6 +52,19 @@ const ALLOWED_TIERS: Record<number, { label: string; description: string }> = {
 // Acceptable for v1 single-instance. Move to Redis for multi-instance/production scale.
 const ipPurchaseCounts = new Map<string, { count: number; resetAt: number }>();
 
+// Sweep expired entries once per hour so the map does not grow indefinitely.
+// Symbol.for guard prevents duplicate intervals if the module is re-evaluated (e.g. dev HMR).
+const _SWEEP_KEY = Symbol.for('m2m_ip_ratelimit_sweep');
+if (!(global as any)[_SWEEP_KEY]) {
+  (global as any)[_SWEEP_KEY] = setInterval(() => {
+    const now = Date.now();
+    for (const [ip, record] of ipPurchaseCounts.entries()) {
+      if (now > record.resetAt) ipPurchaseCounts.delete(ip);
+    }
+  }, 60 * 60 * 1000); // runs every hour — matches the 1h window of each entry
+  (global as any)[_SWEEP_KEY].unref?.(); // don't hold the event loop open if server shuts down cleanly
+}
+
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
   const record = ipPurchaseCounts.get(ip);

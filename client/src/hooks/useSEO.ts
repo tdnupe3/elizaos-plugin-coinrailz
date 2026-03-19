@@ -106,14 +106,14 @@ export const useSEO = (config: SEOConfig) => {
 // SEO configurations for different pages
 export const seoConfigs = {
   home: {
-    title: 'Coin Railz | 60 Pay-Per-Call APIs for AI Agents — API Key in 60 Seconds',
-    description: 'Access 60 pay-per-call APIs for AI agents across DeFi, IoT, satellite data & prediction markets. Get an API key in ~60 seconds via card, or use on-chain USDC via x402. From $0.03/call.',
-    keywords: 'AI agent payments, pay per call API, API key instant, x402 protocol, micropayments, USDC payments, Base blockchain, Stripe x402, agentic commerce, agent-to-agent payments, MCP payments, IoT payments, satellite data API, prediction markets API, DeFi API, pay per use API, machine payments, Coinbase CDP wallets',
+    title: 'Coin Railz | Payment Infrastructure for AI Agents — API Key in 60 Seconds',
+    description: 'Let your agents buy DeFi, IoT, satellite data, and prediction market feeds autonomously. API key in ~60 seconds via card, or x402 on-chain USDC for advanced flows. From $0.03/call.',
+    keywords: 'AI agent payment infrastructure, autonomous agent payments, x402 protocol, micropayments, USDC payments, Base blockchain, agentic commerce, agent-to-agent payments, MCP payments, IoT payments, satellite data API, prediction markets API, DeFi API, machine payments, Coinbase CDP wallets, AI agent APIs',
     canonical: 'https://coinrailz.com',
-    ogTitle: 'Coin Railz | 60 APIs for AI Agents — API Key in 60 Seconds',
-    ogDescription: 'Get an API key in ~60 seconds via card. 60 pay-per-call APIs across DeFi, IoT, satellite data & prediction markets. x402 on-chain USDC for advanced flows. From $0.03/call.',
-    twitterTitle: 'Coin Railz | 60 APIs for AI Agents — API Key in 60 Seconds',
-    twitterDescription: 'Get an API key in ~60 seconds via card. 60 pay-per-call APIs across DeFi, IoT, satellite data & prediction markets. x402 on-chain USDC for advanced flows.',
+    ogTitle: 'Coin Railz | Payment Infrastructure for AI Agents',
+    ogDescription: 'Let your agents buy DeFi, IoT, satellite data, and prediction market feeds autonomously. API key in ~60 seconds via card — or x402 on-chain USDC for advanced flows.',
+    twitterTitle: 'Coin Railz | Payment Infrastructure for AI Agents',
+    twitterDescription: 'Let your agents buy DeFi, IoT, satellite data, and prediction market feeds autonomously. API key in ~60 seconds via card — or x402 on-chain USDC for advanced flows.',
     structuredData: {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",

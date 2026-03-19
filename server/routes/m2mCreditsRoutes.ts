@@ -61,7 +61,7 @@ if (!(global as any)[_SWEEP_KEY]) {
     for (const [ip, record] of ipPurchaseCounts.entries()) {
       if (now > record.resetAt) ipPurchaseCounts.delete(ip);
     }
-  }, 60 * 60 * 1000); // runs every hour — matches the 1h window of each entry
+  }, 24 * 60 * 60 * 1000); // runs once per day
   (global as any)[_SWEEP_KEY].unref?.(); // don't hold the event loop open if server shuts down cleanly
 }
 

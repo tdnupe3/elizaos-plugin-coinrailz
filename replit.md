@@ -41,6 +41,7 @@ Coin Railz employs a USDC-first strategy, utilizing Coinbase CDP for wallet mana
 - **Wallet Safety Layer**: Centralized wallet registry with address validation, blacklist enforcement, and dry-run defaults for all fund transfer scripts, including a DB-persisted whitelist for outbound transfers.
 - **CDP v1 to v2 Migration**: Migration from `@coinbase/coinbase-sdk` (v1) to `@coinbase/cdp-sdk` (v2) for enhanced wallet management.
 - **402 Challenge Body Value Signal**: 402 challenge responses now include `trial_access`, `expected_output.sample`, and `agent_instructions.system_prompt` to provide agents with cost-utility context and clear paths forward.
+- **Discord Removed**: Discord client code removed from `server/services/realAgentOutreach.ts` and `server/services/automatedOutreach.ts`. Discord never served a production purpose and the gateway intent mismatch was a confirmed production crash risk. On-chain messaging (realAgentOutreach) and Telegram (automatedOutreach) remain intact. `DISCORD_BOT_TOKEN` is not set and was never set in production.
 
 ## External Dependencies
 - **Coinbase CDP:** Wallet creation, management, and transaction execution.

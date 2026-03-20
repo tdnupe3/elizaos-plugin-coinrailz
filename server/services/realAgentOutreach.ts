@@ -1,12 +1,11 @@
 import { onChainMessagingService } from './onchainMessagingService';
 import { VERIFIED_AGENT_TARGETS, AGENT_SOCIAL_CONTACTS } from './verifiedAgentTargets';
-import { Client, GatewayIntentBits } from 'discord.js';
 import { DEV_LITE_MODE } from '../buildModeDetection';
 
 interface OutreachResult {
   agent: string;
   wallet?: string;
-  method: 'onchain' | 'discord' | 'twitter-dm' | 'telegram-invite' | 'not-attempted';
+  method: 'onchain' | 'twitter-dm' | 'telegram-invite' | 'not-attempted';
   success: boolean;
   message?: string;
   error?: string;
@@ -16,8 +15,6 @@ interface OutreachResult {
 }
 
 export class RealAgentOutreach {
-  private discordClient: Client | null = null;
-  private discordReady = false;
   private devLiteMode = false;
 
   constructor() {
@@ -25,36 +22,6 @@ export class RealAgentOutreach {
       console.log('🧪 RealAgentOutreach: Skipping heavy services in DEV_LITE_MODE');
       this.devLiteMode = true;
       return;
-    }
-    this.initializeDiscord();
-  }
-
-  /**
-   * Initialize Discord bot
-   */
-  private async initializeDiscord() {
-    try {
-      if (!process.env.DISCORD_BOT_TOKEN) {
-        console.log('⚠️ Discord bot token not configured');
-        return;
-      }
-
-      this.discordClient = new Client({
-        intents: [
-          GatewayIntentBits.Guilds,
-          GatewayIntentBits.DirectMessages,
-        ],
-      });
-
-      this.discordClient.once('ready', () => {
-        console.log(`✅ Discord bot ready: ${this.discordClient?.user?.tag}`);
-        this.discordReady = true;
-      });
-
-      await this.discordClient.login(process.env.DISCORD_BOT_TOKEN);
-    } catch (error) {
-      console.error('❌ Discord bot initialization failed:', error);
-      this.discordClient = null;
     }
   }
 

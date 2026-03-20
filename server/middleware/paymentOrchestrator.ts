@@ -1270,7 +1270,7 @@ export function createPaymentOrchestrator(
         metadata: { method: 'bundle-subscription', knownAgent: knownAgent.name }
       });
 
-      emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'bundle_subscription', serviceName });
+      emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'bundle_subscription', serviceName, userAgent: userAgent as string | undefined });
       
       if (offerTrackingId) {
         try {
@@ -1403,7 +1403,7 @@ export function createPaymentOrchestrator(
             metadata: { method: 'gpt-session', userId, knownAgent: knownAgent.name }
           });
 
-          emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'gpt_session', serviceName, metadata: { userId } });
+          emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'gpt_session', serviceName, userAgent: userAgent as string | undefined, metadata: { userId } });
           
           if (offerTrackingId) {
             try {
@@ -1492,7 +1492,7 @@ export function createPaymentOrchestrator(
               metadata: { method: 'api-key', userId: keyValidation.userId, knownAgent: knownAgent.name }
             });
 
-            emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'api_key', serviceName, metadata: { userId: keyValidation.userId } });
+            emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'api_key', serviceName, userAgent: userAgent as string | undefined, metadata: { userId: keyValidation.userId } });
             
             if (offerTrackingId) {
               try {
@@ -1699,7 +1699,7 @@ export function createPaymentOrchestrator(
             .set({ status: 'SUCCEEDED', succeededAt: new Date(), updatedAt: new Date() })
             .where(and(eq(x402PaymentIntents.txHash, xPayment), eq(x402PaymentIntents.serviceName, serviceName)));
           console.log(`✅ Solana intent marked SUCCEEDED for ${serviceName}`);
-          emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'solana', serviceName, metadata: { token: solanaResult.token } });
+          emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'solana', serviceName, userAgent: userAgent as string | undefined, metadata: { token: solanaResult.token } });
         } catch (handlerErr: any) {
           await db.update(x402PaymentIntents)
             .set({ status: 'FAILED', lastError: handlerErr.message, updatedAt: new Date() })
@@ -2127,7 +2127,7 @@ export function createPaymentOrchestrator(
                   .set({ status: 'SUCCEEDED', succeededAt: new Date(), updatedAt: new Date() })
                   .where(and(eq(x402PaymentIntents.txHash, solanaSig), eq(x402PaymentIntents.serviceName, serviceName)));
                 console.log(`✅ ExactSvmScheme intent marked SUCCEEDED for ${serviceName}`);
-                emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'solana', serviceName, metadata: { scheme: 'ExactSvmScheme', token: solanaResult.token } });
+                emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'solana', serviceName, userAgent: userAgent as string | undefined, metadata: { scheme: 'ExactSvmScheme', token: solanaResult.token } });
               } catch (handlerErr: any) {
                 await db.update(x402PaymentIntents)
                   .set({ status: 'FAILED', lastError: handlerErr.message, updatedAt: new Date() })
@@ -2270,7 +2270,7 @@ export function createPaymentOrchestrator(
             .set({ status: 'SUCCEEDED', succeededAt: new Date(), updatedAt: new Date() })
             .where(and(eq(x402PaymentIntents.txHash, txHash), eq(x402PaymentIntents.serviceName, serviceName)));
           console.log(`✅ Solana (Dexter) intent marked SUCCEEDED for ${serviceName}`);
-          emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'solana', serviceName, metadata: { facilitator: 'dexter', token: solanaResult.token } });
+          emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'solana', serviceName, userAgent: userAgent as string | undefined, metadata: { facilitator: 'dexter', token: solanaResult.token } });
         } catch (handlerErr: any) {
           await db.update(x402PaymentIntents)
             .set({ status: 'FAILED', lastError: handlerErr.message, updatedAt: new Date() })
@@ -2356,7 +2356,7 @@ export function createPaymentOrchestrator(
               }
             });
 
-            emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'evm', serviceName, metadata: { chain: evmChain, token: verificationResult.paymentToken } });
+            emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'evm', serviceName, userAgent: userAgent as string | undefined, metadata: { chain: evmChain, token: verificationResult.paymentToken } });
             
             if (offerTrackingId) {
               try {
@@ -2819,6 +2819,17 @@ function generate402Response(
       expected_time: "~60 seconds from card to working API key",
       usage: "Attach to every request as: X-API-KEY: cr_live_...",
       advanced_alternative: "On-chain USDC payment via accepts[] below (crypto wallet required)"
+    },
+    non_x402: {
+      description: "Card-first payment paths — no crypto wallet required. API key works on all 60 /x402/* services.",
+      checkoutUrl: `${baseUrl}/api/m2m/credits/checkout/session`,
+      trialUrl: `${baseUrl}/api/m2m/credits/trial`,
+      capabilitiesUrl: `${baseUrl}/api/auth/capabilities`,
+      paths: {
+        free_trial: { method: "GET", url: `${baseUrl}/api/m2m/credits/trial`, note: "$5 free, no payment" },
+        hosted_checkout: { method: "POST", url: `${baseUrl}/api/m2m/credits/checkout/session`, body: { amountUsd: 10 }, note: "Open returned checkoutUrl in any browser. Key auto-provisioned via webhook." },
+        direct_card: { method: "POST", url: `${baseUrl}/api/m2m/credits/purchase`, body: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "uuid-v4" } },
+      },
     },
     accepts: acceptsArray,
     resource: {

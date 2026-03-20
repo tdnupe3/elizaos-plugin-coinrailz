@@ -39,7 +39,7 @@ router.use((req, res, next) => {
     const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
       || req.socket?.remoteAddress
       || 'unknown';
-    emitFirstContactAsync(ip, 'well_known', req.path);
+    emitFirstContactAsync(ip, 'well_known', req.path, req.headers['user-agent'] as string | undefined);
     return trackDiscovery(req, res, next);
   }
   next();

@@ -158,7 +158,17 @@ class AutonomousDiscoveryService {
         // Kalshi prediction market services (3 services) - added Feb 2026
         '/x402/kalshi-markets',
         '/x402/kalshi-odds',
-        '/x402/kalshi-search'
+        '/x402/kalshi-search',
+        // NASA Earthdata Intelligence API endpoints (Mar 2026)
+        '/api/satellite/earthdata/catalog',
+        '/api/satellite/earthdata/granules',
+        '/api/satellite/earthdata/precipitation',
+        '/api/satellite/earthdata/sst',
+        '/api/satellite/earthdata/soil-moisture',
+        '/api/satellite/earthdata/ocean-color',
+        // Machine-to-machine discovery endpoints
+        '/api/auth/capabilities',
+        '/openapi.json'
       ];
       
       // GPT Action endpoints for ChatGPT integration
@@ -315,7 +325,50 @@ class AutonomousDiscoveryService {
         
         // Prediction Markets (Feb 2026)
         { path: '/predictions', priority: '0.9' },
+
+        // Satellite & Space Data (Mar 2026)
         { path: '/satellite', priority: '0.9' },
+        { path: '/satellite/earthdata', priority: '0.8' },
+        
+        // Partner & Business Pages
+        { path: '/partner', priority: '0.8' },
+        { path: '/pricing', priority: '0.9' },
+        { path: '/plans', priority: '0.8' },
+        { path: '/platform-integration', priority: '0.8' },
+        { path: '/whitepaper', priority: '0.7' },
+        { path: '/x402-partner', priority: '0.8' },
+        { path: '/freelance-developer', priority: '0.7' },
+        { path: '/emergency-consulting', priority: '0.7' },
+        
+        // Customer-facing pages
+        { path: '/customer-dashboard', priority: '0.7' },
+        { path: '/enterprise-portal', priority: '0.7' },
+        { path: '/enterprise-outreach', priority: '0.6' },
+        { path: '/marketplace-dashboard', priority: '0.7' },
+        { path: '/order-management', priority: '0.6' },
+        { path: '/my-orders', priority: '0.6' },
+        { path: '/my-subscription', priority: '0.6' },
+        { path: '/profile', priority: '0.6' },
+        { path: '/settings', priority: '0.5' },
+        { path: '/history', priority: '0.6' },
+        { path: '/onramp', priority: '0.7' },
+        { path: '/buy-crypto', priority: '0.7' },
+        { path: '/crypto-prices', priority: '0.7' },
+        { path: '/crypto-signals-agent', priority: '0.7' },
+        { path: '/solana-showcase', priority: '0.7' },
+        { path: '/auto-joiner', priority: '0.6' },
+        { path: '/bots', priority: '0.6' },
+        
+        // Additional docs & info
+        { path: '/documentation', priority: '0.7' },
+        { path: '/contact-us', priority: '0.6' },
+        { path: '/legal-disclaimers', priority: '0.5' },
+        { path: '/circle-evidence', priority: '0.5' },
+        { path: '/proof-of-execution', priority: '0.5' },
+        { path: '/pilots/success', priority: '0.5' },
+        { path: '/audit', priority: '0.6' },
+        { path: '/audit-status', priority: '0.6' },
+        { path: '/outreach', priority: '0.6' },
         
         // Legal & Company Info
         { path: '/about', priority: '0.5' },

@@ -695,6 +695,68 @@ export class ServiceCatalogService {
         x402Compatible: true,
         stripeCompatible: true
       },
+      // NASA EARTHDATA INTELLIGENCE SERVICES - 5 services at $0.25/call
+      // Authenticated NASA EOSDIS endpoints — OPeNDAP point queries + CMR granule search
+      {
+        id: 'earthdata-granules',
+        slug: 'earthdata-granules',
+        name: 'CMR Granule Search',
+        description: 'Search 1B+ NASA satellite granules by bounding box, date range, platform, and cloud cover. Returns granule metadata and direct download URLs for Landsat, Sentinel, MODIS, VIIRS, and ASTER imagery.',
+        endpoint: '/api/satellite/earthdata/granules',
+        network: 'eip155:8453',
+        category: 'satellite-data',
+        capabilities: ['granule-search', 'nasa-cmr', 'landsat', 'sentinel', 'modis', 'imagery-discovery'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'earthdata-precipitation',
+        slug: 'earthdata-precipitation',
+        name: 'GPM Precipitation Oracle',
+        description: 'Real-time observed rain rate at any global coordinate. NASA GPM IMERG via OPeNDAP point query. 0.1° resolution, near-realtime (30min lag). Returns mm/hr precipitation.',
+        endpoint: '/api/satellite/earthdata/precipitation',
+        network: 'eip155:8453',
+        category: 'satellite-data',
+        capabilities: ['precipitation', 'gpm-imerg', 'weather', 'rain-rate', 'flood-risk'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'earthdata-sst',
+        slug: 'earthdata-sst',
+        name: 'Maritime SST Oracle',
+        description: 'Sea surface temperature at any ocean coordinate. NASA MUR-JPL-L4 product via OPeNDAP point query. 1km resolution, daily updates. Returns temperature in °C.',
+        endpoint: '/api/satellite/earthdata/sst',
+        network: 'eip155:8453',
+        category: 'satellite-data',
+        capabilities: ['sea-surface-temperature', 'mur-sst', 'oceanography', 'maritime', 'climate'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'earthdata-soil-moisture',
+        slug: 'earthdata-soil-moisture',
+        name: 'SMAP Soil Moisture',
+        description: 'Soil moisture granule discovery from NASA SMAP SPL3SMP. 36km EASE-Grid, daily composites. Returns granule metadata and direct download URL for volumetric water content data.',
+        endpoint: '/api/satellite/earthdata/soil-moisture',
+        network: 'eip155:8453',
+        category: 'satellite-data',
+        capabilities: ['soil-moisture', 'smap', 'agriculture', 'drought-monitoring', 'hydrology'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'earthdata-ocean-color',
+        slug: 'earthdata-ocean-color',
+        name: 'Ocean Color (Chlorophyll)',
+        description: 'MODIS Aqua ocean chlorophyll-a concentration via NASA CMR. 4km resolution, daily composites. Returns granule metadata and download URL for mg/m³ chlorophyll measurements.',
+        endpoint: '/api/satellite/earthdata/ocean-color',
+        network: 'eip155:8453',
+        category: 'satellite-data',
+        capabilities: ['ocean-color', 'chlorophyll', 'modis-aqua', 'fisheries', 'algae-detection'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
       // IoT/DePIN SERVICES - Device Data Monetization - 5 services
       {
         id: 'fleet-telematics',

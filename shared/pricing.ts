@@ -77,6 +77,12 @@ export type ServiceName =
   | "flood-detection"
   | "air-quality"
   | "land-use"
+  // NASA Earthdata Intelligence Services ($0.25/call — authenticated OPeNDAP + CMR)
+  | "earthdata-granules"
+  | "earthdata-precipitation"
+  | "earthdata-sst"
+  | "earthdata-soil-moisture"
+  | "earthdata-ocean-color"
   // IoT/DePIN Services (Device Data Monetization)
   | "fleet-telematics"
   | "weather-station-data"
@@ -188,6 +194,13 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   "air-quality": 50000,                // $0.05 - ESA Sentinel-5P TROPOMI air quality
   "land-use": 150000,                  // $0.15 - NASA Landsat + ESA Sentinel-2 classification
   
+  // NASA EARTHDATA INTELLIGENCE ($0.25/call — authenticated NASA EOSDIS)
+  "earthdata-granules": 250000,        // $0.25 - CMR granule search (1B+ granules)
+  "earthdata-precipitation": 250000,   // $0.25 - GPM IMERG rain rate (OPeNDAP point)
+  "earthdata-sst": 250000,             // $0.25 - MUR sea surface temperature (OPeNDAP point)
+  "earthdata-soil-moisture": 250000,   // $0.25 - SMAP soil moisture granule discovery
+  "earthdata-ocean-color": 250000,     // $0.25 - MODIS ocean color / chlorophyll-a
+  
   // IoT/DePIN VERTICAL - Device Data Monetization
   "fleet-telematics": 100000,          // $0.10 - GPS, fuel, driver behavior
   "weather-station-data": 50000,       // $0.05 - Temperature, humidity, pressure
@@ -279,6 +292,13 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   "flood-detection": 0.10,
   "air-quality": 0.05,
   "land-use": 0.15,
+  
+  // NASA Earthdata Intelligence Services
+  "earthdata-granules": 0.25,
+  "earthdata-precipitation": 0.25,
+  "earthdata-sst": 0.25,
+  "earthdata-soil-moisture": 0.25,
+  "earthdata-ocean-color": 0.25,
   
   // IoT/DePIN Services - Device Data Monetization
   "fleet-telematics": 0.10,

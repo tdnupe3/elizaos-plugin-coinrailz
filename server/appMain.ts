@@ -105,6 +105,7 @@ const iotPaymentsRoutes = (await import('./routes/iotPaymentsRoutes')).default;
 const a2dPaymentsRoutes = (await import('./routes/a2dPaymentsRoutes')).default;
 const unifiedCreditsRoutes = (await import('./routes/unifiedCreditsRoutes')).default;
 const satelliteDataRoutes = (await import('./routes/satelliteDataRoutes')).default;
+const earthdataRoutes = (await import('./routes/earthdataRoutes')).default;
 const { createBazaarDiscoveryRouter, initializeBazaarDiscovery, isBazaarDiscoveryEnabled } = await import('./discovery/bazaarRegistrar');
 const fastRevenueRoutes = (await import('./routes/fastRevenueRoutes.js')).default;
 const stripePaymentRoutes = (await import('./routes/stripePaymentRoutes.js')).default;
@@ -893,6 +894,12 @@ console.log('✅ Unified Credits routes registered at /api/credits/unified/*');
 console.log('🛰️ Registering Satellite Data routes...');
 app.use('/api/satellite', satelliteDataRoutes);
 console.log('✅ Satellite Data routes registered at /api/satellite/* (Powered by NASA & ESA)');
+
+// === NASA EARTHDATA INTELLIGENCE APIs ===
+// Authenticated NASA Earthdata services — $0.25/call · x402 + API-key credits
+console.log('🌍 Registering NASA Earthdata Intelligence routes...');
+app.use('/api/satellite/earthdata', earthdataRoutes);
+console.log('✅ NASA Earthdata routes registered at /api/satellite/earthdata/* (CMR · GPM · SST · SMAP · Ocean Color)');
 
 // === x402 PROTOCOL SERVICES (UNIFIED V2 MICROSERVICES) ===
 // All x402 services including enterprise (smart-contract-audit, compliance-consultation, payment-processing)

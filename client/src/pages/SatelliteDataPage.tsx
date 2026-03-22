@@ -50,8 +50,8 @@ export default function SatelliteDataPage() {
 
   useSEO({
     title: "Satellite Data APIs | NASA & ESA Space Intelligence | Coin Railz",
-    description: "Access satellite data from NASA Earthdata and ESA Copernicus via x402 micropayments. Fire alerts, weather imagery, vegetation health, flood detection. Powered by space agencies.",
-    keywords: "satellite data API, NASA API, ESA Copernicus, earth observation, fire detection, NDVI vegetation, flood monitoring, air quality, space data, x402 payments",
+    description: "Access satellite data from NASA Earthdata and ESA Copernicus via x402 micropayments. Fire alerts, GPM precipitation, sea surface temperature, soil moisture, ocean color, NDVI. Powered by space agencies.",
+    keywords: "satellite data API, NASA API, ESA Copernicus, earth observation, fire detection, NDVI vegetation, flood monitoring, air quality, GPM precipitation, sea surface temperature, soil moisture, ocean color, chlorophyll, CMR granule search, space data, x402 payments",
     canonical: "https://coinrailz.com/satellite",
     ogTitle: "Satellite Data APIs | Powered by NASA & ESA | Coin Railz",
     ogDescription: "Access space-based intelligence via micropayments. Fire alerts, weather imagery, vegetation health. Pay only for what you use.",
@@ -74,8 +74,8 @@ export default function SatelliteDataPage() {
         "@type": "AggregateOffer",
         "priceCurrency": "USD",
         "lowPrice": "0.05",
-        "highPrice": "0.15",
-        "description": "$0.05-0.15 per API request"
+        "highPrice": "0.25",
+        "description": "$0.05-0.25 per API request"
       }
     }
   });
@@ -146,6 +146,66 @@ export default function SatelliteDataPage() {
       source: "NASA Landsat + ESA Sentinel-2",
       features: ["10m resolution", "6 land cover classes", "Change tracking"],
       useCases: "Urban planning, real estate, environmental impact"
+    },
+    {
+      id: "earthdata_cmr",
+      icon: <Database className="w-6 h-6 text-indigo-400" />,
+      name: "CMR Granule Search",
+      description: "Search 1B+ NASA satellite granules by bbox, date, platform, and cloud cover",
+      price: "$0.25",
+      unit: "query",
+      source: "NASA CMR (Common Metadata Repository)",
+      features: ["1B+ granules indexed", "Landsat, Sentinel, MODIS, VIIRS", "Direct download URLs"],
+      useCases: "Imagery discovery, change detection, time-series analysis",
+      badge: "Earthdata Intelligence"
+    },
+    {
+      id: "earthdata_gpm",
+      icon: <Droplets className="w-6 h-6 text-blue-400" />,
+      name: "GPM Precipitation Oracle",
+      description: "Observed satellite rain rate at any global coordinate via IMERG",
+      price: "$0.25",
+      unit: "point query",
+      source: "NASA GPM IMERG (OPeNDAP)",
+      features: ["0.1° resolution", "Near-realtime (30min lag)", "mm/hr rain rate"],
+      useCases: "Insurance parametric triggers, flood forecasting, agriculture irrigation",
+      badge: "Earthdata Intelligence"
+    },
+    {
+      id: "earthdata_sst",
+      icon: <Globe className="w-6 h-6 text-cyan-400" />,
+      name: "Maritime SST",
+      description: "Sea surface temperature at any ocean coordinate from NASA's MUR product",
+      price: "$0.25",
+      unit: "point query",
+      source: "NASA MUR-JPL-L4 (OPeNDAP)",
+      features: ["1km resolution", "Daily updates", "°C precision"],
+      useCases: "Shipping route optimization, fisheries, climate research",
+      badge: "Earthdata Intelligence"
+    },
+    {
+      id: "earthdata_smap",
+      icon: <Leaf className="w-6 h-6 text-lime-400" />,
+      name: "SMAP Soil Moisture",
+      description: "L3 soil moisture granule discovery with download URLs for any date",
+      price: "$0.25",
+      unit: "query",
+      source: "NASA SMAP SPL3SMP (CMR)",
+      features: ["36km EASE-Grid", "Daily composites", "Volumetric water content"],
+      useCases: "Agriculture yield prediction, drought monitoring, hydrological modeling",
+      badge: "Earthdata Intelligence"
+    },
+    {
+      id: "earthdata_ocean_color",
+      icon: <Eye className="w-6 h-6 text-teal-400" />,
+      name: "Ocean Color (Chlorophyll)",
+      description: "MODIS Aqua chlorophyll-a concentration for ocean productivity monitoring",
+      price: "$0.25",
+      unit: "query",
+      source: "NASA MODISA_L3m_CHL (CMR)",
+      features: ["4km resolution", "Daily composites", "mg/m³ chlorophyll"],
+      useCases: "Fishery management, harmful algae detection, carbon cycle research",
+      badge: "Earthdata Intelligence"
     }
   ];
 
@@ -154,7 +214,7 @@ export default function SatelliteDataPage() {
       name: "NASA Earthdata",
       logo: "🛰️",
       description: "30+ years of Earth observation data from the world's premier space agency",
-      features: ["GIBS Real-time Imagery", "FIRMS Fire Detection", "MODIS Vegetation", "Landsat Archive"],
+      features: ["GIBS Real-time Imagery", "FIRMS Fire Detection", "MODIS Vegetation", "Landsat Archive", "GPM IMERG Precipitation", "MUR Sea Surface Temp", "SMAP Soil Moisture", "Ocean Color (Chlorophyll)"],
       status: "Connected"
     },
     {
@@ -201,7 +261,13 @@ export default function SatelliteDataPage() {
     { method: "GET", path: "/api/satellite/vegetation", description: "Vegetation health NDVI (x402)" },
     { method: "GET", path: "/api/satellite/flood-detection", description: "Flood monitoring (x402)" },
     { method: "GET", path: "/api/satellite/air-quality", description: "Air quality index (x402)" },
-    { method: "GET", path: "/api/satellite/land-use", description: "Land use classification (x402)" }
+    { method: "GET", path: "/api/satellite/land-use", description: "Land use classification (x402)" },
+    { method: "GET", path: "/api/satellite/earthdata/catalog", description: "NASA Earthdata Intelligence catalog (free)" },
+    { method: "POST", path: "/api/satellite/earthdata/granules", description: "CMR granule search by bbox/date/platform — $0.25" },
+    { method: "POST", path: "/api/satellite/earthdata/precipitation", description: "GPM IMERG rain rate at lat/lon — $0.25" },
+    { method: "POST", path: "/api/satellite/earthdata/sst", description: "Sea surface temperature at lat/lon — $0.25" },
+    { method: "POST", path: "/api/satellite/earthdata/soil-moisture", description: "SMAP soil moisture granule — $0.25" },
+    { method: "POST", path: "/api/satellite/earthdata/ocean-color", description: "Ocean chlorophyll-a concentration — $0.25" }
   ];
 
   const creditPacks = [
@@ -296,7 +362,7 @@ export default function SatelliteDataPage() {
             <div className="flex items-center gap-2">
               <span className="text-green-400 font-semibold">$0.05</span>
               <span className="text-white/40">-</span>
-              <span className="text-green-400 font-semibold">$0.15</span>
+              <span className="text-green-400 font-semibold">$0.25</span>
               <span className="text-white/60 text-sm">per request</span>
             </div>
             <span className="text-white/30">|</span>
@@ -344,13 +410,20 @@ export default function SatelliteDataPage() {
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {dataProducts.map((product) => (
-              <Card key={product.id} className="bg-white/5 border-white/10 backdrop-blur hover:bg-white/10 transition-all">
+              <Card key={product.id} className={`bg-white/5 border-white/10 backdrop-blur hover:bg-white/10 transition-all ${(product as any).badge ? 'border-indigo-500/30 ring-1 ring-indigo-500/20' : ''}`}>
                 <CardHeader>
                   <div className="flex items-center justify-between mb-2">
                     {product.icon}
-                    <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30">
-                      {product.price}/{product.unit}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {(product as any).badge && (
+                        <Badge className="bg-indigo-600/30 text-indigo-300 border-indigo-500/40 text-xs">
+                          {(product as any).badge}
+                        </Badge>
+                      )}
+                      <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30">
+                        {product.price}/{product.unit}
+                      </Badge>
+                    </div>
                   </div>
                   <CardTitle className="text-white text-lg">{product.name}</CardTitle>
                   <p className="text-white/60 text-sm">{product.description}</p>

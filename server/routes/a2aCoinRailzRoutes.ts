@@ -457,10 +457,20 @@ function handleMessageSend(req: Request, res: Response) {
   if (!text) {
     res.status(400).json({
       id: taskId,
-      status: { state: 'failed', message: 'Request must include message.parts[0].text' },
+      status: { state: 'failed', message: 'Request must include a query message.' },
       artifacts: [],
       metadata: {
-        hint: 'Send: { "message": { "parts": [{ "text": "I need gas prices on Ethereum" }] } }',
+        hint: 'Send a JSON body with the following structure:',
+        expectedSchema: {
+          message: {
+            parts: [
+              { type: 'text', text: 'I need to verify an agent identity' }
+            ]
+          }
+        },
+        alternateFormat: {
+          text: 'I need to verify an agent identity'
+        },
         documentationUrl: `${BASE_URL}/.well-known/agent-instructions.json`
       }
     });
@@ -474,15 +484,16 @@ function handleMessageSend(req: Request, res: Response) {
   const intentType = classifyA2AIntent(text);
 
   if (matches.length === 0) {
+    const suggested = SERVICE_CATALOG.slice(0, 5);
     res.status(200).json(buildTaskResponse(taskId, [{
       parts: [{
         type: 'text',
-        text: `No exact service match found for: "${text}"\n\nAvailable services include:\n${TOP_SKILLS_PREVIEW}\n\nFull catalog: ${BASE_URL}/.well-known/agent-instructions.json`
+        text: `I couldn't find a service matching "${text}".\n\nDid you mean one of these?\n${suggested.map(s => `- ${s.name}: ${s.description}`).join('\n')}\n\nFull catalog available at: ${BASE_URL}/x402/catalog`
       }]
     }], {
       matched: false,
-      suggestedSkills: SERVICE_CATALOG.slice(0, 5).map(s => s.id),
-      catalogUrl: `${BASE_URL}/.well-known/agent-instructions.json`
+      suggestions: suggested.map(s => ({ id: s.id, name: s.name, endpoint: s.x402Endpoint })),
+      catalogUrl: `${BASE_URL}/x402/catalog`
     }));
     const latencyMs = Date.now() - startTime;
     trackA2AHit(req, { resourceId: 'a2a-no-match', statusCode: 200, responseTimeMs: latencyMs, matched: false, queryText: text, requestId: taskId });

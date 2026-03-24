@@ -331,6 +331,42 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
           console.error('Failed to process GPT PaymentIntent:', error);
         }
       }
+
+      // Handle M2M credits purchases via payment_intent (safety net for 3DS / inline provisioning failures)
+      // The POST /api/m2m/credits/purchase endpoint provisions inline, but if that call crashed or
+      // the payment completed asynchronously (3DS), this webhook handler catches and provisions here.
+      if (paymentIntent.metadata?.source === 'm2m-credits') {
+        try {
+          const { provisionCreditsAndKey } = await import('../services/m2mProvisioningService.js');
+          const amountUsd = paymentIntent.amount / 100;
+          const piId = paymentIntent.id;
+          const crypto = await import('crypto');
+          const userId = `m2m_${crypto.default.createHash('sha256').update(piId).digest('hex').substring(0, 16)}`;
+          const email = paymentIntent.receipt_email || paymentIntent.metadata?.email || `${userId}@m2m.coinrailz.com`;
+          const keyName = paymentIntent.metadata?.keyName || 'M2M API Key';
+
+          const result = await provisionCreditsAndKey({
+            paymentIntentId: piId,
+            userId,
+            amount: amountUsd,
+            email,
+            keyName,
+            purpose: 'm2m-credits',
+          });
+
+          if (result.alreadyProvisioned) {
+            console.log(`ℹ️ M2M payment_intent already provisioned (idempotent): ${piId}`);
+          } else if (result.inProgress) {
+            console.warn(`⚠️ M2M payment_intent provisioning in progress: ${piId}`);
+            return res.status(500).json({ error: 'Provisioning in progress - Stripe will retry' });
+          } else {
+            console.log(`✅ M2M credits provisioned via payment_intent webhook: pi=${piId} | user=${userId} | amount=$${amountUsd} | email=${email}`);
+          }
+        } catch (m2mError: any) {
+          console.error(`❌ M2M payment_intent provisioning failed: ${paymentIntent.id} | ${m2mError.message}`);
+          return res.status(500).json({ error: 'M2M provisioning failed - Stripe will retry' });
+        }
+      }
       
       // Update order status if orderId is in metadata
       if (paymentIntent.metadata.orderId) {

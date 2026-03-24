@@ -11,7 +11,7 @@
  */
 
 import { db } from '../db.js';
-import { paymentIntentTracking, creditTransactions } from '../../shared/schema.js';
+import { paymentIntentTracking, creditTransactions, users } from '../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { creditsService } from './creditsService.js';
 
@@ -96,6 +96,14 @@ export async function provisionCreditsAndKey(params: ProvisionParams): Promise<P
   }
 
   try {
+    // CRITICAL: Ensure user exists BEFORE addCredits — credits_accounts has a FK to users.id.
+    // generateApiKey() also creates the user, but it runs after addCredits which would fail first.
+    // This upsert is idempotent and safe to run on every provisioning call.
+    await db.insert(users).values({
+      id: userId,
+      email: email || `${userId}@m2m-user.coinrailz.com`,
+    }).onConflictDoNothing();
+
     const existingCredit = await db.query.creditTransactions.findFirst({
       where: eq(creditTransactions.referenceId, paymentIntentId),
     });

@@ -559,6 +559,47 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
           return res.status(500).json({ error: 'Failed to credit pilot balance - will retry' });
         }
       }
+      // Handle m2m hosted checkout — provisions API key + credits after Stripe Hosted Checkout
+      // This is the golden path: POST /api/m2m/credits/checkout/session → Stripe Hosted Checkout → this handler
+      // CRITICAL: was missing from this webhook, causing customers to pay without receiving credits.
+      else if (session.metadata?.source === 'm2m-hosted-checkout') {
+        const { amountUsd, keyName, email } = session.metadata || {};
+        const amount = Number(amountUsd || '0');
+
+        if (!amount) {
+          console.error(`❌ M2M hosted checkout missing amountUsd metadata: session=${session.id}`);
+          return res.status(400).json({ error: 'Missing amountUsd in session metadata' });
+        }
+
+        const crypto = await import('crypto');
+        const userId = `m2m_${crypto.default.createHash('sha256').update(session.id).digest('hex').substring(0, 16)}`;
+        const effectiveEmail = email || `${userId}@m2m.coinrailz.com`;
+
+        try {
+          const { provisionCreditsAndKey } = await import('../services/m2mProvisioningService.js');
+          const result = await provisionCreditsAndKey({
+            paymentIntentId: session.id, // session ID as idempotency key
+            userId,
+            amount,
+            email: effectiveEmail,
+            keyName: keyName || 'M2M Checkout Key',
+            purpose: 'm2m-hosted-checkout',
+          });
+
+          if (result.alreadyProvisioned) {
+            console.log(`ℹ️ M2M hosted checkout already provisioned (idempotent): ${session.id}`);
+          } else if (result.inProgress) {
+            console.warn(`⚠️ M2M hosted checkout provisioning in progress: ${session.id}`);
+            return res.status(500).json({ error: 'Provisioning in progress - Stripe will retry' });
+          } else {
+            console.log(`✅ M2M hosted checkout provisioned: session=${session.id} | user=${userId} | amount=$${amount} | email=${effectiveEmail}`);
+          }
+        } catch (m2mError: any) {
+          console.error(`❌ M2M hosted checkout provisioning failed: session=${session.id} | error=${m2mError.message}`);
+          // Return 500 so Stripe retries
+          return res.status(500).json({ error: 'Provisioning failed - Stripe will retry' });
+        }
+      }
       break;
       
     default:

@@ -14,6 +14,8 @@ import { discoveredAgents } from '@shared/schema';
 import { eq, or } from 'drizzle-orm';
 import { emitFirstContactAsync } from '../services/funnelHelper.js';
 
+const MPP_PROTOCOL_VERSION = "1.0";
+
 // --- In-memory rate limiter for POST /.well-known/agent-registration.json ---
 // 10 POST attempts per IP per 60 seconds. Map<ip, { count, windowStart }>
 const registrationRateLimit = new Map<string, { count: number; windowStart: number }>();
@@ -2231,7 +2233,26 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       },
       description: "AP2 v0.1 merchant endpoint — accepts PaymentMandate VDCs for x402 crypto (per-call) or card payments via Stripe (credits-based)"
     },
-    
+
+    mpp: {
+      version: MPP_PROTOCOL_VERSION,
+      manifest: `${baseUrl}/.well-known/mpp.json`,
+      catalog: `${baseUrl}/mpp/catalog`,
+      challengeScheme: "WWW-Authenticate: Payment challenge=<base64>",
+      credentialScheme: "Authorization: Payment <base64-credential>",
+      settlementCurrency: "pathUSD",
+      settlementNetwork: "Tempo",
+      endpoints: [
+        { id: "ping", url: `${baseUrl}/mpp/ping`, amount: "0.25", description: "Echo/discovery" },
+        { id: "first-call", url: `${baseUrl}/mpp/first-call`, amount: "0.05", description: "Golden path onboarding" },
+        { id: "ai-inference", url: `${baseUrl}/mpp/ai-inference`, amount: "0.05", description: "GPT-4o-mini inference" },
+        { id: "gas-price-oracle", url: `${baseUrl}/mpp/gas-price-oracle`, amount: "0.10", description: "Multi-chain gas prices" },
+        { id: "token-metadata", url: `${baseUrl}/mpp/token-metadata`, amount: "0.10", description: "Token metadata" },
+      ],
+      spec: "https://mpp.dev",
+      tempoWallet: "https://wallet.tempo.xyz",
+    },
+
     skills: [
       // Trading Intelligence Services ($0.10-$0.75)
       {
@@ -4906,6 +4927,132 @@ router.head('/.well-known/x402', (req: Request, res: Response) => {
 });
 
 /**
+ * GET /.well-known/mpp.json — MPP (Machine Payments Protocol) service manifest
+ *
+ * Consumed by:
+ *   - mpp-registry-cross-protocol-sync (already crawling as of March 20, 2026)
+ *   - mppx CLI discovery
+ *   - Tempo wallet service finder
+ *   - Any MPP-native agent calling GET /.well-known/mpp.json
+ *
+ * Spec: https://mpp.dev
+ */
+router.get('/.well-known/mpp.json', (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.json({
+    schema: "https://mpp.dev/schema/service-manifest.json",
+    schemaVersion: MPP_PROTOCOL_VERSION,
+    provider: {
+      name: "Coin Railz",
+      url: baseUrl,
+      description: "Multi-chain AI agent payment infrastructure. 65 services across 8 blockchains. Pay with pathUSD via Tempo or USDC via x402.",
+      contact: "support@coinrailz.com",
+    },
+    protocol: "mpp",
+    protocolVersion: MPP_PROTOCOL_VERSION,
+    catalogUrl: `${baseUrl}/mpp/catalog`,
+    challengeScheme: "WWW-Authenticate: Payment challenge=<base64-challenge-json>",
+    credentialScheme: "Authorization: Payment <base64-credential-json>",
+    settlementCurrency: "pathUSD",
+    settlementNetwork: "Tempo",
+    tempoRecipient: process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+    services: [
+      {
+        id: "ping",
+        name: "Ping / Echo",
+        url: `${baseUrl}/mpp/ping`,
+        method: "POST",
+        amount: "0.25",
+        currency: "pathUSD",
+        description: "Lowest-cost discovery endpoint. Verify MPP payment flow.",
+        tags: ["discovery", "echo", "test"],
+      },
+      {
+        id: "first-call",
+        name: "First Paid Call (Golden Path)",
+        url: `${baseUrl}/mpp/first-call`,
+        method: "POST",
+        amount: "0.05",
+        currency: "pathUSD",
+        description: "Canonical $0.05 onboarding endpoint for new agents.",
+        tags: ["onboarding", "golden-path"],
+      },
+      {
+        id: "ai-inference",
+        name: "AI Inference (GPT-4o-mini)",
+        url: `${baseUrl}/mpp/ai-inference`,
+        method: "POST",
+        amount: "0.05",
+        currency: "pathUSD",
+        description: "GPT-4o-mini inference. $0.05 per call.",
+        tags: ["ai", "llm", "inference", "openai"],
+        inputSchema: {
+          type: "object",
+          properties: {
+            prompt: { type: "string", description: "User prompt" },
+            systemPrompt: { type: "string", description: "System prompt (optional)" },
+            maxTokens: { type: "integer", description: "Max tokens (default 1024, max 4096)" },
+          },
+          required: ["prompt"],
+        },
+      },
+      {
+        id: "gas-price-oracle",
+        name: "Gas Price Oracle",
+        url: `${baseUrl}/mpp/gas-price-oracle`,
+        method: "POST",
+        amount: "0.10",
+        currency: "pathUSD",
+        description: "Real-time gas prices for Ethereum, Base, Polygon, BSC, Arbitrum, Optimism.",
+        tags: ["gas", "ethereum", "multi-chain", "defi"],
+        inputSchema: {
+          type: "object",
+          properties: {
+            chains: { type: "array", items: { type: "string" }, description: "Chains to check (default: ethereum, base, polygon)" },
+          },
+        },
+      },
+      {
+        id: "token-metadata",
+        name: "Token Metadata",
+        url: `${baseUrl}/mpp/token-metadata`,
+        method: "POST",
+        amount: "0.10",
+        currency: "pathUSD",
+        description: "Token name, symbol, decimals, and contract info across chains.",
+        tags: ["tokens", "metadata", "crypto"],
+        inputSchema: {
+          type: "object",
+          properties: {
+            tokenAddress: { type: "string", description: "Token contract address" },
+            chain: { type: "string", description: "Blockchain (ethereum, base, polygon, etc.)" },
+          },
+          required: ["tokenAddress", "chain"],
+        },
+      },
+    ],
+    crossProtocolAlternatives: {
+      x402: {
+        description: "Pay with USDC on Base or Ethereum via x402 (Coinbase Bazaar compatible)",
+        manifest: `${baseUrl}/.well-known/x402.json`,
+        catalog: `${baseUrl}/x402/catalog`,
+      },
+      apiKey: {
+        description: "Prepaid credits via API key. Free $5 trial, no crypto required.",
+        trial: `${baseUrl}/api/m2m/credits/trial`,
+        purchase: `${baseUrl}/api/m2m/credits/checkout/session`,
+      },
+    },
+    agentCard: `${baseUrl}/.well-known/agent-card.json`,
+    openapi: `${baseUrl}/openapi.json`,
+    updatedAt: new Date().toISOString(),
+  });
+});
+
+/**
  * Catch-all: unknown /.well-known/* paths return 404
  * Prevents PHP exploit probes and unknown paths from falling through
  * to the Vite frontend, which would return 200 with index.html.
@@ -4923,6 +5070,7 @@ router.all('/.well-known/*', (req: Request, res: Response) => {
       '/.well-known/agent-instructions.json',
       '/.well-known/agent-registration.json',
       '/.well-known/x402.json',
+      '/.well-known/mpp.json',
       '/.well-known/service-manifest.json',
       '/.well-known/payment-methods.json',
       '/.well-known/pricing.json',

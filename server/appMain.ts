@@ -910,6 +910,15 @@ const { hybridPaymentMiddleware } = await import('./middleware/hybridPaymentMidd
 console.log('🔒 Mounting /x402 routes (V2 microservices + enterprise services)...');
 app.use('/x402', x402MicroserviceRoutes);
 
+// === MPP (Machine Payments Protocol) ROUTES ===
+// Third payment lane: pathUSD via Tempo (alongside x402 and API-key credits)
+// See server/middleware/mppPaymentMiddleware.ts for implementation status
+console.log('⚡ Mounting /mpp routes (MPP protocol — Tempo pathUSD)...');
+const mppRoutes = (await import('./routes/mppRoutes')).default;
+app.use('/mpp', mppRoutes);
+console.log('✅ MPP routes registered: /mpp/ping, /mpp/first-call, /mpp/ai-inference, /mpp/gas-price-oracle, /mpp/token-metadata');
+console.log('✅ MPP catalog at GET /mpp/catalog | Discovery manifest at GET /.well-known/mpp.json');
+
 // === FREE WALLET TIER - Ecosystem Adoption ===
 console.log('🆓 Mounting Free Wallet routes for x402 ecosystem adoption...');
 const freeWalletRoutes = (await import('./routes/freeWalletRoutes')).default;
@@ -3793,6 +3802,22 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       }
     });
 
+    // MPP Monitor admin endpoint — returns crawler activity + mppx version info
+    app.get('/api/admin/mpp-monitor', async (req, res) => {
+      const adminSecret = process.env.ADMIN_SECRET || process.env.JWT_SECRET;
+      const authHeader = req.headers.authorization;
+      if (!adminSecret || !authHeader || authHeader !== `Bearer ${adminSecret}`) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      try {
+        const { getMppMonitorReport } = await import('./services/mppMonitorService');
+        const report = await getMppMonitorReport();
+        res.json({ success: true, ...report });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     app.get('/api/admin/x402-organic-traffic/services', async (req, res) => {
       const adminSecret = process.env.ADMIN_SECRET || process.env.JWT_SECRET;
       const authHeader = req.headers.authorization;
@@ -3877,6 +3902,15 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       const { PilotCreditsConfirmationJob } = await import('./jobs/pilotCreditsConfirmationJob');
       PilotCreditsConfirmationJob.start(300000); // Run every 5 minutes
       console.log('✅ Pilot credits crypto confirmation job started');
+
+      // Initialize MPP ecosystem monitor (non-blocking)
+      // Polls npm weekly for mppx version changes; tracks mpp-registry crawlers
+      try {
+        const { initMppMonitor } = await import('./services/mppMonitorService');
+        initMppMonitor();
+      } catch (mppErr: any) {
+        console.warn('⚠️ MPP monitor init failed (non-fatal):', mppErr.message);
+      }
     } catch (error) {
       console.error('❌ Route registration failed:', error);
     }

@@ -49,6 +49,11 @@ router.get('/openapi.json', (req: Request, res: Response) => {
           name: 'X-PAYMENT',
           description: 'x402 protocol on-chain USDC payment. Base64url-encoded signed payment payload. See /.well-known/x402.json for facilitator details.',
         },
+        mpp: {
+          type: 'http',
+          scheme: 'payment',
+          description: 'MPP (Machine Payments Protocol) credential. Authorization: Payment <base64-credential>. Challenge returned via WWW-Authenticate: Payment. See /.well-known/mpp.json and https://mpp.dev.',
+        },
       },
       schemas: {
         Error: {
@@ -333,6 +338,137 @@ router.get('/openapi.json', (req: Request, res: Response) => {
           responses: { '200': { description: 'Trade signal JSON' }, '402': { description: 'Payment required' } },
         },
       },
+      '/mpp/catalog': {
+        get: {
+          operationId: 'getMppCatalog',
+          summary: 'MPP service catalog — 5 flagship services with pathUSD pricing',
+          security: [],
+          tags: ['Discovery', 'MPP'],
+          responses: { '200': { description: 'MPP service list with amounts and endpoints' } },
+        },
+      },
+      '/mpp/ping': {
+        post: {
+          operationId: 'mppPing',
+          summary: 'MPP echo/discovery — $0.25 pathUSD',
+          security: [{ mpp: [] }],
+          tags: ['MPP'],
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: { type: 'object', properties: { message: { type: 'string', example: 'hello' } } },
+              },
+            },
+          },
+          responses: {
+            '200': { description: 'Echo response with platform info' },
+            '402': { description: 'MPP payment challenge (WWW-Authenticate: Payment)' },
+          },
+        },
+      },
+      '/mpp/first-call': {
+        post: {
+          operationId: 'mppFirstCall',
+          summary: 'MPP golden path onboarding — $0.05 pathUSD',
+          security: [{ mpp: [] }],
+          tags: ['MPP'],
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: { type: 'object', properties: { agentId: { type: 'string' } } },
+              },
+            },
+          },
+          responses: {
+            '200': { description: 'Onboarding success with next service templates' },
+            '402': { description: 'MPP payment challenge (WWW-Authenticate: Payment)' },
+          },
+        },
+      },
+      '/mpp/ai-inference': {
+        post: {
+          operationId: 'mppAiInference',
+          summary: 'GPT-4o-mini inference via MPP — $0.05 pathUSD',
+          security: [{ mpp: [] }],
+          tags: ['MPP'],
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['prompt'],
+                  properties: {
+                    prompt: { type: 'string' },
+                    systemPrompt: { type: 'string' },
+                    maxTokens: { type: 'integer', example: 1024 },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            '200': { description: 'AI inference result' },
+            '402': { description: 'MPP payment challenge (WWW-Authenticate: Payment)' },
+          },
+        },
+      },
+      '/mpp/gas-price-oracle': {
+        post: {
+          operationId: 'mppGasPriceOracle',
+          summary: 'Multi-chain gas prices via MPP — $0.10 pathUSD',
+          security: [{ mpp: [] }],
+          tags: ['MPP'],
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: { chains: { type: 'array', items: { type: 'string' }, example: ['ethereum', 'base'] } },
+                },
+              },
+            },
+          },
+          responses: {
+            '200': { description: 'Gas prices across chains' },
+            '402': { description: 'MPP payment challenge (WWW-Authenticate: Payment)' },
+          },
+        },
+      },
+      '/mpp/token-metadata': {
+        post: {
+          operationId: 'mppTokenMetadata',
+          summary: 'Token metadata via MPP — $0.10 pathUSD',
+          security: [{ mpp: [] }],
+          tags: ['MPP'],
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['tokenAddress', 'chain'],
+                  properties: {
+                    tokenAddress: { type: 'string', example: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
+                    chain: { type: 'string', example: 'base' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            '200': { description: 'Token name, symbol, decimals, supply' },
+            '402': { description: 'MPP payment challenge (WWW-Authenticate: Payment)' },
+          },
+        },
+      },
+      '/.well-known/mpp.json': {
+        get: {
+          operationId: 'getMppManifest',
+          summary: 'MPP service manifest — consumed by mpp-registry and Tempo wallet',
+          security: [],
+          tags: ['Discovery', 'MPP'],
+          responses: { '200': { description: 'MPP service manifest with 5 endpoints' } },
+        },
+      },
       '/.well-known/x402.json': {
         get: {
           operationId: 'getX402Manifest',
@@ -356,6 +492,7 @@ router.get('/openapi.json', (req: Request, res: Response) => {
       { name: 'Discovery', description: 'Unauthenticated discovery and capabilities endpoints' },
       { name: 'Onboarding', description: 'Get an API key or checkout session — no wallet required' },
       { name: 'Services', description: 'x402-gated data and payment services' },
+      { name: 'MPP', description: 'MPP (Machine Payments Protocol) endpoints — pathUSD via Tempo. See /.well-known/mpp.json' },
     ],
     externalDocs: {
       description: 'Full service catalog (60 services)',

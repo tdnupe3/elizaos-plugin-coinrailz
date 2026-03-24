@@ -30,6 +30,7 @@ function classifyA2AIntent(text: string): A2AIntentType {
   if (/^CLAWPAY_V1\s/i.test(t)) return 'peer_offer_clawpay_v1';
   if (/\bhello[,.]?\s+i am\b/i.test(t) && /\bwhat services\b/i.test(t)) return 'peer_discovery_greeting';
   if (/\bwhat (services|can you|do you)\b/i.test(t) || /\bhello[,.]?\s+i am\b/i.test(t)) return 'peer_discovery_greeting';
+  if (/^(hello|hi|hey|greetings|howdy|ping|test|yo)[.!?]?\s*$/i.test(t)) return 'peer_discovery_greeting';
   if (t.length > 0) return 'service_query';
   return 'unknown';
 }
@@ -464,6 +465,13 @@ function handleMessageSend(req: Request, res: Response) {
         expectedSchema: {
           message: {
             parts: [
+              { type: 'text', text: 'string (your request)' }
+            ]
+          }
+        },
+        examplePayload: {
+          message: {
+            parts: [
               { type: 'text', text: 'I need to verify an agent identity' }
             ]
           }
@@ -480,20 +488,51 @@ function handleMessageSend(req: Request, res: Response) {
     return;
   }
 
-  const matches = matchServices(text);
   const intentType = classifyA2AIntent(text);
+  const matches = matchServices(text);
 
-  if (matches.length === 0) {
-    const suggested = SERVICE_CATALOG.slice(0, 5);
+  if (intentType === 'peer_discovery_greeting' && matches.length === 0) {
+    const featured = SERVICE_CATALOG.slice(0, 6);
     res.status(200).json(buildTaskResponse(taskId, [{
       parts: [{
         type: 'text',
-        text: `I couldn't find a service matching "${text}".\n\nDid you mean one of these?\n${suggested.map(s => `- ${s.name}: ${s.description}`).join('\n')}\n\nFull catalog available at: ${BASE_URL}/x402/catalog`
+        text: `Hello! I'm Coin Railz — multi-chain x402 payment infrastructure for AI agents.\n\nI offer ${SERVICE_CATALOG.length} pay-per-call API services. Send me a natural language query describing what you need. Examples:\n- "What's the current gas price on Base?"\n- "Get token metadata for USDC"\n- "Scan this smart contract for vulnerabilities: 0x..."\n- "Show me whale alerts"\n- "Verify agent identity"\n\nEach service costs between $0.10–$10.00 USDC, paid via x402 protocol.\n\nFull catalog: ${BASE_URL}/x402/catalog\nIntegration guide: ${BASE_URL}/.well-known/agent-instructions.json\nFree trial (no crypto needed): ${BASE_URL}/api/m2m/credits/trial`
       }]
     }], {
       matched: false,
-      suggestions: suggested.map(s => ({ id: s.id, name: s.name, endpoint: s.x402Endpoint })),
-      catalogUrl: `${BASE_URL}/x402/catalog`
+      intentType: 'peer_discovery_greeting',
+      serviceCount: SERVICE_CATALOG.length,
+      catalogUrl: `${BASE_URL}/x402/catalog`,
+      trialUrl: `${BASE_URL}/api/m2m/credits/trial`,
+      instructionsUrl: `${BASE_URL}/.well-known/agent-instructions.json`,
+      featured: featured.map(s => ({ id: s.id, name: s.name, priceUsd: s.priceUsd, endpoint: s.x402Endpoint }))
+    }));
+    const latencyMs = Date.now() - startTime;
+    trackA2AHit(req, { resourceId: 'a2a-greeting', statusCode: 200, responseTimeMs: latencyMs, matched: false, queryText: text, requestId: taskId });
+    logA2AInteraction({ requestId: taskId, latencyMs, statusCode: 200, matched: false, resourceId: 'a2a-greeting', matchCount: 0, intentType, queryText: text, clientIpHash, userAgent, trackingId });
+    return;
+  }
+
+  if (matches.length === 0) {
+    const suggested = SERVICE_CATALOG.sort(() => 0.5 - Math.random()).slice(0, 5);
+    res.status(200).json(buildTaskResponse(taskId, [{
+      parts: [{
+        type: 'text',
+        text: `I couldn't find a specific service matching "${text}".\n\nCoin Railz offers 44+ automated API services. Here are some you might be looking for:\n${suggested.map(s => `- ${s.name}: ${s.description}`).join('\n')}\n\nTry these example queries:\n- "What's the current gas price on Base?"\n- "Is this smart contract safe: 0x..."\n- "Get whale alerts for USDC on Solana"\n- "Check my wallet portfolio: [address]"\n\nFull service catalog: ${BASE_URL}/x402/catalog\nIntegration Guide: ${BASE_URL}/.well-known/agent-instructions.json`
+      }]
+    }], {
+      matched: false,
+      status: "no_match_found",
+      suggestions: suggested.map(s => ({ 
+        id: s.id, 
+        name: s.name, 
+        description: s.description,
+        endpoint: s.x402Endpoint,
+        priceUsd: s.priceUsd,
+        exampleQuery: s.keywords[0] ? `I need ${s.keywords[0]}` : undefined
+      })),
+      catalogUrl: `${BASE_URL}/x402/catalog`,
+      documentationUrl: `${BASE_URL}/.well-known/agent-instructions.json`
     }));
     const latencyMs = Date.now() - startTime;
     trackA2AHit(req, { resourceId: 'a2a-no-match', statusCode: 200, responseTimeMs: latencyMs, matched: false, queryText: text, requestId: taskId });

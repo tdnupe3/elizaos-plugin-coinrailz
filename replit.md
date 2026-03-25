@@ -22,7 +22,7 @@ Coin Railz employs a USDC-first strategy, utilizing Coinbase CDP for wallet mana
 **Core Architectural Patterns & Decisions:**
 - **AI Agent Marketplace:** Leverages the x402 protocol for HTTP 402 payments on Ethereum and Base, Coinbase CDP for wallet creation, and Alchemy RPC for verification. ERC-8004 Blockchain Identity is used for agent identities on Base.
 - **Authentication:** Supports Coinbase OAuth, Replit OAuth, and email/password, with PostgreSQL.
-- **x402 Microservices**: 60 production services compatible with Coinbase Bazaar and x402scan, adhering to `x402Version: 2`.
+- **x402 Microservices**: 60 production services compatible with Coinbase Bazaar and x402scan, adhering to `x402Version: 2`. All 60 are listed in sitemap (61 paths), agent-card (60 skills), and x402.json manifest (60 endpoints) — all discovery surfaces are in sync as of Mar 25 2026.
 - **Golden Path Endpoint**: `POST /x402/first-call` serves as the canonical $0.05 USDC first-payment endpoint for AI agent onboarding, supporting EVM (Base, Ethereum) and Solana.
 - **Payment Intent Ledger**: A durable ledger ensuring state transitions and replay protection for payment intents.
 - **Hybrid Facilitator**: Dynamically uses CDP facilitator, with Dexter as a fallback, processing a significant portion of global daily x402 transactions.
@@ -43,6 +43,9 @@ Coin Railz employs a USDC-first strategy, utilizing Coinbase CDP for wallet mana
 - **CDP v1 to v2 Migration**: Migration from `@coinbase/coinbase-sdk` (v1) to `@coinbase/cdp-sdk` (v2) for enhanced wallet management.
 - **402 Challenge Body Value Signal**: 402 challenge responses now include `trial_access`, `expected_output.sample`, and `agent_instructions.system_prompt` to provide agents with cost-utility context and clear paths forward.
 - **Discord Removed**: Discord client code removed from `server/services/realAgentOutreach.ts` and `server/services/automatedOutreach.ts`. Discord never served a production purpose and the gateway intent mismatch was a confirmed production crash risk. On-chain messaging (realAgentOutreach) and Telegram (automatedOutreach) remain intact. `DISCORD_BOT_TOKEN` is not set and was never set in production.
+- **Stripe Webhook Dispute/Refund Handlers**: `charge.dispute.created` and `charge.refunded` handlers added to `server/routes/stripeRoutes.ts` (the single active webhook endpoint at `/api/stripe/webhook`). Dispute handler deducts credits and revokes API keys on insufficient balance. Refund handler deducts credits and revokes keys on full refund. Both are idempotent via `dispute_<id>` / `refund_<id>` referenceId pattern in creditTransactions.
+- **Active Stripe Webhook**: Only `/api/stripe/webhook` is registered in Stripe dashboard. Other webhook routes in the codebase (`/api/credits/stripe-webhook`, `/api/fast-revenue/stripe-webhook`, `/api/webhooks/stripe-webhooks`) are dead code — do NOT add new webhook logic there.
+- **Discovery Surfaces Audit (Mar 25 2026)**: Sitemap was missing 18 services (IoT, satellite, AI inference, first-call, Solana). Fixed in `server/services/autonomousDiscoveryService.ts` and agent-card skills in `server/routes/wellKnownRoutes.ts`. All surfaces now show 60 services. This explains why Meta External Agent was only finding 42/60 services — they read the sitemap, not the x402.json manifest endpoints array.
 
 ## External Dependencies
 - **Coinbase CDP:** Wallet creation, management, and transaction execution.

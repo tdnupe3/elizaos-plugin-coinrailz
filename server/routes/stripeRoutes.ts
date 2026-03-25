@@ -286,7 +286,21 @@ const PILOT_TIERS = {
   enterprise: { credits: 2500, price: 2500, name: 'Enterprise Pilot' }
 } as const;
 
-// Exported webhook handler for mounting BEFORE express.json() in server/index.ts
+// ============================================================
+// ACTIVE STRIPE WEBHOOK — mounted at POST /api/stripe/webhook
+// This is the ONLY endpoint registered in the Stripe dashboard.
+// Other webhook routes in this codebase (e.g. /api/credits/stripe-webhook,
+// /api/fast-revenue/stripe-webhook, /api/webhooks/stripe-webhooks) are
+// NOT registered in Stripe and receive no live events. Do not add new
+// Stripe webhook logic to those files — add it here.
+//
+// Handled events:
+//   payment_intent.succeeded         — GPT + M2M credits provisioning
+//   payment_intent.payment_failed    — order status update
+//   checkout.session.completed       — prepaid credits / pilot credits / M2M hosted checkout
+//   charge.dispute.created           — credits deducted + API key revoke fallback
+//   charge.refunded                  — credits deducted + API key revoke on full refund
+// ============================================================
 // CRITICAL: Must receive raw body (Buffer) for Stripe signature verification
 export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
   const sig = req.headers['stripe-signature'];
@@ -637,7 +651,147 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
         }
       }
       break;
-      
+
+    case 'charge.dispute.created': {
+      const dispute = event.data.object as any;
+      const disputeId: string = dispute.id;
+      const paymentIntentId: string | null = dispute.payment_intent || null;
+      const chargeId: string = dispute.charge;
+      const disputeAmount = Math.round(dispute.amount) / 100;
+
+      // Idempotency: bail out if we already recorded this dispute
+      const disputeRef = `dispute_${disputeId}`;
+      const { creditTransactions: ctTable } = await import('@shared/schema');
+      const { eq: eqOp } = await import('drizzle-orm');
+
+      const [existingDispute] = await db.select()
+        .from(ctTable)
+        .where(eqOp(ctTable.referenceId, disputeRef))
+        .limit(1);
+
+      if (existingDispute) {
+        console.log(`⚠️ Dispute already processed (idempotent): ${disputeId}`);
+        break;
+      }
+
+      // Resolve user from original credit transaction
+      let originalTx: any = null;
+      if (paymentIntentId) {
+        [originalTx] = await db.select().from(ctTable)
+          .where(eqOp(ctTable.referenceId, paymentIntentId)).limit(1);
+      }
+      if (!originalTx) {
+        [originalTx] = await db.select().from(ctTable)
+          .where(eqOp(ctTable.referenceId, chargeId)).limit(1);
+      }
+
+      if (!originalTx) {
+        console.warn(`🚨 MANUAL REVIEW: Dispute ${disputeId} — no matching credit transaction for pi=${paymentIntentId} charge=${chargeId} amount=$${disputeAmount}`);
+        break;
+      }
+
+      const userId = originalTx.userId;
+      console.log(`🚨 Dispute received: ${disputeId} | user=${userId} | amount=$${disputeAmount}`);
+
+      try {
+        await creditsService.deductCredits({
+          userId,
+          amount: disputeAmount,
+          serviceName: 'stripe_dispute',
+          description: `Stripe dispute ${disputeId} — credits held pending resolution`,
+          metadata: { disputeId, chargeId, paymentIntentId, eventId: event.id, stripeEventType: 'charge.dispute.created', referenceId: disputeRef }
+        });
+        console.log(`💸 Dispute credits deducted: user=${userId} -$${disputeAmount}`);
+      } catch (deductErr: any) {
+        // Insufficient balance — revoke all active API keys as fraud-protection fallback
+        console.warn(`⚠️ Dispute deduction failed (user=${userId}, insufficient balance) — revoking API keys. Error: ${deductErr.message}`);
+        const userKeys = await creditsService.listApiKeys(userId);
+        for (const key of userKeys.filter((k: any) => k.status === 'active')) {
+          await creditsService.revokeApiKey(key.id, userId);
+          console.log(`🔒 API key ${key.id} revoked due to dispute ${disputeId}`);
+        }
+      }
+      break;
+    }
+
+    case 'charge.refunded': {
+      const charge = event.data.object as any;
+      const chargeId: string = charge.id;
+      const paymentIntentId: string | null = charge.payment_intent || null;
+      const refundAmount = Math.round(charge.amount_refunded) / 100;
+      const isFullRefund: boolean = charge.amount_refunded >= charge.amount;
+
+      // Idempotency: key off the latest refund's ID (or chargeId as fallback)
+      const latestRefundId: string = charge.refunds?.data?.[0]?.id || chargeId;
+      const refundRef = `refund_${latestRefundId}`;
+
+      const { creditTransactions: ctTable2 } = await import('@shared/schema');
+      const { eq: eqOp2 } = await import('drizzle-orm');
+
+      const [existingRefund] = await db.select()
+        .from(ctTable2)
+        .where(eqOp2(ctTable2.referenceId, refundRef))
+        .limit(1);
+
+      if (existingRefund) {
+        console.log(`⚠️ Refund already processed (idempotent): ${refundRef}`);
+        break;
+      }
+
+      if (refundAmount <= 0) {
+        console.warn(`⚠️ Refund: zero amount for charge ${chargeId} — skipping`);
+        break;
+      }
+
+      // Resolve user from original credit transaction
+      let originalTx2: any = null;
+      if (paymentIntentId) {
+        [originalTx2] = await db.select().from(ctTable2)
+          .where(eqOp2(ctTable2.referenceId, paymentIntentId)).limit(1);
+      }
+      if (!originalTx2) {
+        [originalTx2] = await db.select().from(ctTable2)
+          .where(eqOp2(ctTable2.referenceId, chargeId)).limit(1);
+      }
+
+      if (!originalTx2) {
+        console.warn(`📋 MANUAL REVIEW: Refund for charge ${chargeId} — no matching credit transaction found amount=$${refundAmount}`);
+        break;
+      }
+
+      const userId2 = originalTx2.userId;
+      console.log(`💸 Refund received: charge=${chargeId} | user=${userId2} | amount=$${refundAmount} | full=${isFullRefund}`);
+
+      try {
+        await creditsService.deductCredits({
+          userId: userId2,
+          amount: refundAmount,
+          serviceName: 'stripe_refund',
+          description: `Stripe refund for charge ${chargeId} — $${refundAmount} credits revoked`,
+          metadata: { chargeId, paymentIntentId, refundAmount, isFullRefund, latestRefundId, eventId: event.id, stripeEventType: 'charge.refunded', referenceId: refundRef }
+        });
+        console.log(`✅ Refund credits deducted: user=${userId2} -$${refundAmount}`);
+
+        // On full refund, revoke all active API keys
+        if (isFullRefund) {
+          const userKeys2 = await creditsService.listApiKeys(userId2);
+          for (const key of userKeys2.filter((k: any) => k.status === 'active')) {
+            await creditsService.revokeApiKey(key.id, userId2);
+            console.log(`🔒 API key ${key.id} revoked after full refund for user=${userId2}`);
+          }
+        }
+      } catch (deductErr2: any) {
+        // Insufficient balance — revoke keys as protection
+        console.warn(`⚠️ Refund deduction failed (user=${userId2}, insufficient balance) — revoking API keys. Error: ${deductErr2.message}`);
+        const userKeys2 = await creditsService.listApiKeys(userId2);
+        for (const key of userKeys2.filter((k: any) => k.status === 'active')) {
+          await creditsService.revokeApiKey(key.id, userId2);
+          console.log(`🔒 API key ${key.id} revoked after failed refund deduction`);
+        }
+      }
+      break;
+    }
+
     default:
       console.log(`Unhandled event type ${event.type}`);
   }

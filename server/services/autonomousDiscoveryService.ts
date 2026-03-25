@@ -159,6 +159,27 @@ class AutonomousDiscoveryService {
         '/x402/kalshi-markets',
         '/x402/kalshi-odds',
         '/x402/kalshi-search',
+        // Golden path & AI inference (2 services)
+        '/x402/first-call',
+        '/x402/ai-inference',
+        // Solana (1 service)
+        '/x402/solana-yield-finder',
+        // SDK payment services (2 services)
+        '/x402/sdk-payments-evm',
+        '/x402/sdk-payments-solana',
+        // Satellite & weather data services (6 services) - added Mar 2026
+        '/x402/fire-alerts',
+        '/x402/weather-imagery',
+        '/x402/vegetation',
+        '/x402/flood-detection',
+        '/x402/air-quality',
+        '/x402/land-use',
+        // IoT & DePIN services (5 services) - added Mar 2026
+        '/x402/fleet-telematics',
+        '/x402/weather-station-data',
+        '/x402/iot-sensor-reading',
+        '/x402/iot-device-stream',
+        '/x402/iot-bulk-data',
         // NASA Earthdata Intelligence API endpoints (Mar 2026)
         '/api/satellite/earthdata/catalog',
         '/api/satellite/earthdata/granules',

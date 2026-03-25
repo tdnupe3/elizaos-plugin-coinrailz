@@ -2663,6 +2663,129 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         tags: ["sdk", "payments", "sol", "usdc", "solana", "agent-payments"],
         inputModes: ["application/json"],
         outputModes: ["application/json"]
+      },
+      // Golden path onboarding
+      {
+        id: "first-call",
+        name: "First Call — x402 Onboarding",
+        description: "Golden path onboarding endpoint. $0.05 USDC. First x402 payment for any agent — returns platform overview, supported chains, and next steps. Ideal first interaction for any AI agent integrating with Coin Railz.",
+        tags: ["onboarding", "discovery", "x402", "first-call"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: [{
+          name: "Agent first payment",
+          description: "Pay $0.05 USDC to receive full platform capabilities and service catalog",
+          input: {},
+          output: { message: "Welcome to Coin Railz", services: 60, chains: 8 }
+        }]
+      },
+      // AI Inference Gateway
+      {
+        id: "ai-inference",
+        name: "AI Inference Gateway",
+        description: "Pay-per-call LLM endpoint supporting GPT-4o, GPT-4o-mini, and GPT-3.5-turbo via USDC on Base. $0.05 per request. Use when agent needs AI completions without an OpenAI API key.",
+        tags: ["ai", "inference", "llm", "gpt", "openai", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      // Solana
+      {
+        id: "solana-yield-finder",
+        name: "Solana Yield Finder",
+        description: "Discover top yield opportunities across Solana DeFi protocols. $0.25 per request.",
+        tags: ["solana", "yield", "defi", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      // Satellite & weather data services
+      {
+        id: "fire-alerts",
+        name: "Fire Alerts (NASA FIRMS)",
+        description: "Real-time wildfire and active fire detection from NASA FIRMS satellite data. $0.05 per request.",
+        tags: ["satellite", "fire", "nasa", "weather", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "weather-imagery",
+        name: "Weather Imagery (NASA GIBS)",
+        description: "Satellite weather imagery and atmospheric data from NASA GIBS. $0.05 per request.",
+        tags: ["satellite", "weather", "imagery", "nasa", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "vegetation",
+        name: "Vegetation Index",
+        description: "NDVI vegetation health index and land cover analysis from satellite imagery. $0.10 per request.",
+        tags: ["satellite", "vegetation", "ndvi", "land", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "flood-detection",
+        name: "Flood Detection",
+        description: "Satellite-based flood extent mapping and inundation detection. $0.10 per request.",
+        tags: ["satellite", "flood", "disaster", "esa", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "air-quality",
+        name: "Air Quality Index",
+        description: "Ground-level air quality measurements and AQI from global sensor networks via OpenAQ. $0.05 per request.",
+        tags: ["air-quality", "aqi", "environment", "sensors", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "land-use",
+        name: "Land Use Classification",
+        description: "ESA WorldCover land use and land cover classification from satellite data. $0.15 per request.",
+        tags: ["satellite", "land-use", "esa", "worldcover", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      // IoT & DePIN services
+      {
+        id: "fleet-telematics",
+        name: "Fleet Telematics Data",
+        description: "IoT fleet vehicle telematics — GPS, speed, fuel, diagnostics via x402 agent-to-device payments. $0.25 per request.",
+        tags: ["iot", "fleet", "telematics", "depin", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "weather-station-data",
+        name: "Weather Station Data",
+        description: "Live weather readings from IoT ground stations — temperature, humidity, pressure. $0.10 per request.",
+        tags: ["iot", "weather", "sensors", "depin", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "iot-sensor-reading",
+        name: "IoT Sensor Reading",
+        description: "Single IoT sensor data read via agent-to-device x402 micropayment. $0.05 per request.",
+        tags: ["iot", "sensors", "depin", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "iot-device-stream",
+        name: "IoT Device Stream",
+        description: "Streaming IoT device data feed via x402 per-event micropayments. $0.15 per request.",
+        tags: ["iot", "streaming", "depin", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "iot-bulk-data",
+        name: "IoT Bulk Data Export",
+        description: "Bulk historical IoT sensor data export for AI training and analytics. $0.50 per request.",
+        tags: ["iot", "bulk", "data", "depin", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
       }
     ],
     

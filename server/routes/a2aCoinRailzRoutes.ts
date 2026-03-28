@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { db } from '../db';
 import { endpointHits, a2aInteractions } from '../../shared/schema';
+import { serviceCatalogService } from '../services/serviceCatalogService';
 
 const router = Router();
 
@@ -383,13 +384,40 @@ function kwMatches(text: string, kw: string): boolean {
 
 function matchServices(text: string): ServiceEntry[] {
   const lower = text.toLowerCase();
-  const scored = SERVICE_CATALOG.map(service => {
+  
+  // Use the canonical serviceCatalogService which has 60+ services
+  const fullCatalog = serviceCatalogService.getCatalog().services;
+  
+  const scored = fullCatalog.map(entry => {
     let hits = 0;
-    for (const kw of service.keywords) {
+    
+    // Convert ServiceCatalogEntry to a temporary keywords list for matching
+    const kws = [
+      ...(entry.capabilities || []),
+      entry.id,
+      entry.name.toLowerCase(),
+      entry.category.toLowerCase(),
+      ...entry.description.toLowerCase().split(/\s+/)
+    ].filter(k => k.length > 2);
+
+    for (const kw of kws) {
       if (kwMatches(lower, kw)) hits++;
     }
-    if (lower.includes(service.id)) hits += 3;
-    if (lower.includes(service.name.toLowerCase())) hits += 3;
+    
+    // Exact matches on ID or Name get massive boost
+    if (lower.includes(entry.id)) hits += 5;
+    if (lower.includes(entry.name.toLowerCase())) hits += 5;
+    
+    // Map back to ServiceEntry for the existing router logic
+    const service: ServiceEntry = {
+      id: entry.id,
+      name: entry.name,
+      priceUsd: parseFloat(entry.priceUSD.replace('$', '')) || 0.25,
+      x402Endpoint: `${BASE_URL}${entry.endpoint}`,
+      description: entry.description,
+      keywords: entry.capabilities || []
+    };
+
     return { service, hits };
   }).filter(s => s.hits > 0).sort((a, b) => b.hits - a.hits);
 

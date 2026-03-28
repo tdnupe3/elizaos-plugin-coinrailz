@@ -33,7 +33,7 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
-import { SERVICE_CATALOG } from './a2aCoinRailzRoutes';
+import { serviceCatalogService } from '../services/serviceCatalogService';
 import { creditsService } from '../services/creditsService';
 import { db } from '../db';
 import { a2aInteractions } from '../../shared/schema';
@@ -66,6 +66,18 @@ function trackAP2Hit(req: Request, opts: {
 const router = Router();
 
 const BASE_URL = process.env.PUBLIC_BASE_URL || 'https://coinrailz.com';
+
+/**
+ * Helper to convert ServiceCatalogEntry to the format needed by AP2 availableServices
+ */
+function toAp2Service(entry: any) {
+  return {
+    id: entry.id,
+    name: entry.name,
+    priceUsd: parseFloat(entry.priceUSD.replace('$', '')) || 0.25,
+    endpoint: `${BASE_URL}${entry.endpoint}`
+  };
+}
 
 const PLATFORM_WALLET_BASE = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
 const USDC_BASE_CONTRACT = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
@@ -214,10 +226,11 @@ function agentUserId(merchantAgent: string | undefined, mandateId: string): stri
  * GET /ap2/v1/merchant — AP2 merchant discovery card
  */
 router.get('/ap2/v1/merchant', (_req: Request, res: Response) => {
+  const catalog = serviceCatalogService.getCatalog();
   res.json({
     ap2Version: '0.1',
     merchant: 'Coin Railz',
-    description: 'x402 micropayment APIs for AI agents — 44 pay-per-call services on Base + Solana. Crypto analytics, trading signals, contract security, satellite data, prediction markets, and more.',
+    description: `x402 micropayment APIs for AI agents — ${catalog.totalServices} pay-per-call services on Base + Solana. Crypto analytics, trading signals, contract security, satellite data, prediction markets, and more.`,
     supportedPaymentMethods: ['X402', 'CARD', 'VISA', 'MASTERCARD', 'AMEX', 'STRIPE'],
     supportedCurrencies: ['USDC', 'USD'],
     supportedChains: ['base', 'solana'],
@@ -243,13 +256,8 @@ router.get('/ap2/v1/merchant', (_req: Request, res: Response) => {
       tokenFormat: 'Stripe payment method (pm_xxx) or checkout URL for browser-based payment',
       checkoutUrl: `${BASE_URL}/pilots/buy`
     },
-    availableServices: SERVICE_CATALOG.slice(0, 10).map(s => ({
-      id: s.id,
-      name: s.name,
-      priceUsd: s.priceUsd,
-      endpoint: s.x402Endpoint
-    })),
-    totalServices: SERVICE_CATALOG.length
+    availableServices: catalog.services.slice(0, 10).map(toAp2Service),
+    totalServices: catalog.totalServices
   });
 });
 
@@ -580,86 +588,93 @@ router.post('/ap2/v1/merchant', async (req: Request, res: Response) => {
   }
 
   // ─── X402 PAYMENT PATH ────────────────────────────────────────────────────
-  const serviceId = contents.payment_details_id;
-  const service = serviceId ? SERVICE_CATALOG.find(s => s.id === serviceId) : null;
+  if (isX402Payment) {
+    const serviceId = contents.payment_details_id;
+    const catalog = serviceCatalogService.getCatalog();
+    const service = serviceId ? catalog.services.find(s => s.id === serviceId) : null;
 
-  if (!service) {
-    res.status(200).json(jsonRpcError(reqId, -32002,
-      `Unknown service: "${serviceId || '(none)'}". Set payment_details_id to a valid service ID.`,
-      {
-        validServiceIds: SERVICE_CATALOG.map(s => s.id),
-        serviceCatalog: `${BASE_URL}/.well-known/agent-instructions.json`,
-        hint: 'Use GET /ap2/v1/merchant to browse available services, or use method_name CARD to purchase credits for general access.'
-      }
-    ));
-    trackAP2Hit(req, { requestId: taskId, matched: false, queryText: serviceId || undefined, statusCode: 200, responseTimeMs: Date.now() - startTime });
-    return;
-  }
-
-  const tolerance = service.priceUsd * AMOUNT_TOLERANCE;
-  if (requestedAmount > 0 && Math.abs(requestedAmount - service.priceUsd) > tolerance) {
-    res.status(200).json(jsonRpcError(reqId, -32004,
-      `Amount mismatch. Mandate $${requestedAmount.toFixed(2)} vs service price $${service.priceUsd.toFixed(2)} (±${Math.round(AMOUNT_TOLERANCE * 100)}% tolerance).`,
-      { expectedAmount: service.priceUsd, requestedAmount, currency: 'USD', tolerancePercent: AMOUNT_TOLERANCE * 100 }
-    ));
-    return;
-  }
-
-  res.status(200).json(jsonRpcResult(reqId, {
-    task: {
-      id: taskId,
-      contextId: message.contextId,
-      status: { state: 'input-required' },
-      artifacts: [{
-        parts: [{
-          kind: 'text',
-          text: [
-            `x402 payment required for ${service.name} ($${service.priceUsd.toFixed(2)} USDC).`,
-            ``,
-            `Endpoint: ${service.x402Endpoint}`,
-            ``,
-            `Steps:`,
-            `1. POST to the endpoint above`,
-            `2. Receive HTTP 402 challenge with payment instructions`,
-            `3. Pay $${service.priceUsd.toFixed(2)} USDC to payTo address on Base or Solana`,
-            `4. Resubmit request with X-PAYMENT header containing payment proof`,
-            `5. Receive service data`
-          ].join('\n')
-        }]
-      }],
-      metadata: {
-        ap2Version: '0.1',
-        paymentMethod: 'X402',
-        serviceId: service.id,
-        serviceName: service.name,
-        serviceDescription: service.description,
-        x402Endpoint: service.x402Endpoint,
-        amount: service.priceUsd.toFixed(2),
-        currency: 'USDC',
-        x402Version: 2,
-        networks: [
-          {
-            chain: 'base',
-            caip2: 'eip155:8453',
-            payTo: PLATFORM_WALLET_BASE,
-            tokenContract: USDC_BASE_CONTRACT,
-            facilitator: FACILITATOR_CDP
-          },
-          {
-            chain: 'solana',
-            caip2: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
-            payTo: PLATFORM_WALLET_SOLANA,
-            tokenMint: USDC_SOLANA_MINT,
-            facilitator: FACILITATOR_DEXTER
-          }
-        ],
-        mandateId: contents.payment_mandate_id,
-        mandateAccepted: true,
-        instructions: '1. POST to x402Endpoint → 2. Receive HTTP 402 challenge → 3. Pay USDC to payTo on Base or Solana → 4. Resubmit with X-PAYMENT header → 5. Receive service data'
-      }
+    if (!service) {
+      res.status(200).json(jsonRpcError(reqId, -32002,
+        `Unknown service: "${serviceId || '(none)'}". Set payment_details_id to a valid service ID.`,
+        {
+          validServiceIds: catalog.services.map(s => s.id),
+          serviceCatalog: `${BASE_URL}/.well-known/agent-instructions.json`,
+          hint: 'Use GET /ap2/v1/merchant to browse available services, or use method_name CARD to purchase credits for general access.'
+        }
+      ));
+      trackAP2Hit(req, { requestId: taskId, matched: false, queryText: serviceId || undefined, statusCode: 200, responseTimeMs: Date.now() - startTime });
+      return;
     }
-  }));
-  trackAP2Hit(req, { requestId: taskId, matched: true, resourceId: service.id, queryText: service.id, statusCode: 200, responseTimeMs: Date.now() - startTime });
+
+    const servicePrice = parseFloat(service.priceUSD.replace('$', '')) || 0.25;
+    const tolerance = servicePrice * AMOUNT_TOLERANCE;
+    if (requestedAmount > 0 && Math.abs(requestedAmount - servicePrice) > tolerance) {
+      res.status(200).json(jsonRpcError(reqId, -32004,
+        `Amount mismatch. Mandate $${requestedAmount.toFixed(2)} vs service price $${servicePrice.toFixed(2)} (±${Math.round(AMOUNT_TOLERANCE * 100)}% tolerance).`,
+        { expectedAmount: servicePrice, requestedAmount, currency: 'USD', tolerancePercent: AMOUNT_TOLERANCE * 100 }
+      ));
+      return;
+    }
+
+    const chain = contents.payment_response?.details?.chain || 'base';
+    const isSolana = chain.toLowerCase() === 'solana';
+
+    res.status(200).json(jsonRpcResult(reqId, {
+      task: {
+        id: taskId,
+        contextId: message.contextId,
+        status: { state: 'input-required' },
+        artifacts: [{
+          parts: [{
+            kind: 'text',
+            text: [
+              `x402 payment required for ${service.name} ($${servicePrice.toFixed(2)} USDC).`,
+              ``,
+              `Endpoint: ${BASE_URL}${service.endpoint}`,
+              ``,
+              `Steps:`,
+              `1. POST to the endpoint above`,
+              `2. Receive HTTP 402 challenge with payment instructions`,
+              `3. Pay $${servicePrice.toFixed(2)} USDC to payTo address on Base or Solana`,
+              `4. Resubmit request with X-PAYMENT header containing payment proof`,
+              `5. Receive service data`
+            ].join('\n')
+          }]
+        }],
+        metadata: {
+          ap2Version: '0.1',
+          paymentMethod: 'X402',
+          serviceId: service.id,
+          serviceName: service.name,
+          serviceDescription: service.description,
+          x402Endpoint: `${BASE_URL}${service.endpoint}`,
+          amount: servicePrice.toFixed(2),
+          currency: 'USDC',
+          x402Version: 2,
+          networks: [
+            {
+              chain: 'base',
+              caip2: 'eip155:8453',
+              payTo: PLATFORM_WALLET_BASE,
+              tokenContract: USDC_BASE_CONTRACT,
+              facilitator: FACILITATOR_CDP
+            },
+            {
+              chain: 'solana',
+              caip2: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+              payTo: PLATFORM_WALLET_SOLANA,
+              tokenMint: USDC_SOLANA_MINT,
+              facilitator: FACILITATOR_DEXTER
+            }
+          ],
+          mandateId: contents.payment_mandate_id,
+          mandateAccepted: true,
+          instructions: '1. POST to x402Endpoint → 2. Receive HTTP 402 challenge → 3. Pay USDC to payTo on Base or Solana → 4. Resubmit with X-PAYMENT header → 5. Receive service data'
+        }
+      }
+    }));
+    trackAP2Hit(req, { requestId: taskId, matched: true, resourceId: service.id, queryText: service.id, statusCode: 200, responseTimeMs: Date.now() - startTime });
+  }
 });
 
 export default router;

@@ -406,4 +406,39 @@ router.post('/water-quality',
   }
 );
 
+// ─── Aliases & Method Gating ──────────────────────────────────────────────────
+
+// Method-agnostic gating for paid endpoints to ensure GET requests from crawlers 
+// receive a 402 challenge instead of falling through to the React SPA catch-all.
+const paidEndpoints = [
+  { id: 'granules', name: 'CMR Granule Search', desc: 'Search 1B+ NASA satellite granules by bbox, date, platform, and cloud cover.', paths: ['/granules'] },
+  { id: 'precipitation', name: 'GPM Precipitation Oracle', desc: 'Observed satellite rain rate at any global coordinate. GPM IMERG — actual measurement.', paths: ['/precipitation'] },
+  { id: 'ocean-temp', name: 'Maritime SST Oracle', desc: 'Sea surface temperature at any ocean coordinate from NASA MUR-SST Level 4 analysis.', paths: ['/ocean-temp', '/sst'] },
+  { id: 'soil-moisture', name: 'SMAP Soil Moisture', desc: 'SMAP L3 daily soil moisture for any coordinate. 36km resolution.', paths: ['/soil-moisture'] },
+  { id: 'water-quality', name: 'Ocean Color / Water Quality', desc: 'MODIS-Aqua chlorophyll-a and turbidity indicators. Daily 4km composites.', paths: ['/water-quality', '/ocean-color'] },
+];
+
+paidEndpoints.forEach(ep => {
+  ep.paths.forEach(path => {
+    // Return 402 for GET requests to these endpoints
+    router.get(path, earthdataPaymentMiddleware(ep.id, ep.name, ep.desc), (req, res) => {
+      // If they have credentials, tell them to use POST
+      res.status(405).json({
+        success: false,
+        error: 'Method Not Allowed',
+        message: `This endpoint requires a POST request with parameters. You are authorized, but please use POST.`,
+      });
+    });
+
+    // Handle POST aliases (like /sst -> /ocean-temp)
+    if (path !== `/${ep.id}`) {
+      router.post(path, (req, res, next) => {
+        // Redirect or forward to the canonical POST handler
+        req.url = `/${ep.id}`;
+        (router as any).handle(req, res, next);
+      });
+    }
+  });
+});
+
 export default router;

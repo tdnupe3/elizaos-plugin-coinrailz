@@ -265,9 +265,9 @@ export default function SatelliteDataPage() {
     { method: "GET", path: "/api/satellite/earthdata/catalog", description: "NASA Earthdata Intelligence catalog (free)" },
     { method: "POST", path: "/api/satellite/earthdata/granules", description: "CMR granule search by bbox/date/platform — $0.25" },
     { method: "POST", path: "/api/satellite/earthdata/precipitation", description: "GPM IMERG rain rate at lat/lon — $0.25" },
-    { method: "POST", path: "/api/satellite/earthdata/sst", description: "Sea surface temperature at lat/lon — $0.25" },
+    { method: "POST", path: "/api/satellite/earthdata/ocean-temp", description: "Sea surface temperature at lat/lon — $0.25" },
     { method: "POST", path: "/api/satellite/earthdata/soil-moisture", description: "SMAP soil moisture granule — $0.25" },
-    { method: "POST", path: "/api/satellite/earthdata/ocean-color", description: "Ocean chlorophyll-a concentration — $0.25" }
+    { method: "POST", path: "/api/satellite/earthdata/water-quality", description: "Ocean chlorophyll-a concentration — $0.25" }
   ];
 
   const creditPacks = [

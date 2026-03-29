@@ -184,9 +184,9 @@ class AutonomousDiscoveryService {
         '/api/satellite/earthdata/catalog',
         '/api/satellite/earthdata/granules',
         '/api/satellite/earthdata/precipitation',
-        '/api/satellite/earthdata/sst',
+        '/api/satellite/earthdata/ocean-temp',
         '/api/satellite/earthdata/soil-moisture',
-        '/api/satellite/earthdata/ocean-color',
+        '/api/satellite/earthdata/water-quality',
         // Machine-to-machine discovery endpoints
         '/api/auth/capabilities',
         '/openapi.json'

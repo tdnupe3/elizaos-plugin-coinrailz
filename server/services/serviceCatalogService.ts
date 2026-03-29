@@ -15,6 +15,7 @@ import { SERVICE_PRICING_USD, formatUSD, ServiceName, isServiceName } from "../.
 
 interface ServiceCatalogEntry {
   id: string;
+  slug?: string;
   name: string;
   description: string;
   endpoint: string;
@@ -85,7 +86,7 @@ export class ServiceCatalogService {
   private buildCatalog(): void {
     // Build catalog with canonical pricing from shared/pricing.ts
     // This prevents price drift between SEO pages and x402 payment verification
-    const rawCatalog: Omit<ServiceCatalogEntry, 'priceUSD' | 'priceUSDC'>[] = [
+    const rawCatalog: (Omit<ServiceCatalogEntry, 'priceUSD' | 'priceUSDC'> & { slug?: string })[] = [
       // Discovery & Testing (1)
       // NOTE: Endpoints use /x402/{service} format (not /x402/service/{service})
       {
@@ -726,7 +727,7 @@ export class ServiceCatalogService {
         slug: 'earthdata-sst',
         name: 'Maritime SST Oracle',
         description: 'Sea surface temperature at any ocean coordinate. NASA MUR-JPL-L4 product via OPeNDAP point query. 1km resolution, daily updates. Returns temperature in °C.',
-        endpoint: '/api/satellite/earthdata/sst',
+        endpoint: '/api/satellite/earthdata/ocean-temp',
         network: 'eip155:8453',
         category: 'satellite-data',
         capabilities: ['sea-surface-temperature', 'mur-sst', 'oceanography', 'maritime', 'climate'],
@@ -750,7 +751,7 @@ export class ServiceCatalogService {
         slug: 'earthdata-ocean-color',
         name: 'Ocean Color (Chlorophyll)',
         description: 'MODIS Aqua ocean chlorophyll-a concentration via NASA CMR. 4km resolution, daily composites. Returns granule metadata and download URL for mg/m³ chlorophyll measurements.',
-        endpoint: '/api/satellite/earthdata/ocean-color',
+        endpoint: '/api/satellite/earthdata/water-quality',
         network: 'eip155:8453',
         category: 'satellite-data',
         capabilities: ['ocean-color', 'chlorophyll', 'modis-aqua', 'fisheries', 'algae-detection'],

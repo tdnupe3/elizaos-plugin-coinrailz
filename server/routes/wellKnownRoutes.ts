@@ -113,6 +113,96 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
     // Skills array with semantic descriptions for AI matching
     skills: [
       {
+        id: "earthdata-granules",
+        name: "NASA Earthdata Granule Search",
+        description: "CMR Granule Search for 1B+ granules including Landsat, Sentinel, MODIS, and VIIRS. Part of the NASA Earthdata Intelligence suite.",
+        price: "$0.25 USDC",
+        amountMicroUSDC: 250000,
+        chainsAccepted: ["eip155:8453"],
+        category: "satellite-intelligence",
+        tags: ["NASA", "Earthdata", "Satellite", "Remote Sensing"],
+        inputSchema: {
+          type: "object",
+          properties: {
+            concept_id: { type: "string", description: "NASA concept ID" },
+            temporal: { type: "string", description: "Time range" },
+            bounding_box: { type: "string", description: "Spatial bounding box" }
+          }
+        }
+      },
+      {
+        id: "earthdata-precipitation",
+        name: "GPM IMERG Precipitation Data",
+        description: "Global Precipitation Measurement (GPM) IMERG point queries at 0.1° resolution. Part of the NASA Earthdata Intelligence suite.",
+        price: "$0.25 USDC",
+        amountMicroUSDC: 250000,
+        chainsAccepted: ["eip155:8453"],
+        category: "satellite-intelligence",
+        tags: ["NASA", "Earthdata", "Precipitation", "Weather", "GPM"],
+        inputSchema: {
+          type: "object",
+          properties: {
+            lat: { type: "number" },
+            lon: { type: "number" },
+            date: { type: "string" }
+          }
+        }
+      },
+      {
+        id: "earthdata-ocean-temp",
+        name: "MUR Sea Surface Temperature",
+        description: "Multi-scale Ultra-high Resolution (MUR) Sea Surface Temperature (SST) at 1km daily resolution. Part of the NASA Earthdata Intelligence suite. Also available at /api/satellite/earthdata/sst.",
+        price: "$0.25 USDC",
+        amountMicroUSDC: 250000,
+        chainsAccepted: ["eip155:8453"],
+        category: "satellite-intelligence",
+        tags: ["NASA", "Earthdata", "Ocean", "Temperature", "SST"],
+        inputSchema: {
+          type: "object",
+          properties: {
+            lat: { type: "number" },
+            lon: { type: "number" },
+            date: { type: "string" }
+          }
+        }
+      },
+      {
+        id: "earthdata-soil-moisture",
+        name: "SMAP Soil Moisture",
+        description: "Soil Moisture Active Passive (SMAP) L3 soil moisture granule discovery. Part of the NASA Earthdata Intelligence suite.",
+        price: "$0.25 USDC",
+        amountMicroUSDC: 250000,
+        chainsAccepted: ["eip155:8453"],
+        category: "satellite-intelligence",
+        tags: ["NASA", "Earthdata", "Soil", "Moisture", "SMAP"],
+        inputSchema: {
+          type: "object",
+          properties: {
+            lat: { type: "number" },
+            lon: { type: "number" },
+            date: { type: "string" }
+          }
+        }
+      },
+      {
+        id: "earthdata-water-quality",
+        name: "Ocean Color & Water Quality",
+        description: "MODIS Ocean Color / Chlorophyll-a (MODISA_L3m_CHL) data. Part of the NASA Earthdata Intelligence suite. Also available at /api/satellite/earthdata/ocean-color.",
+        price: "$0.25 USDC",
+        amountMicroUSDC: 250000,
+        chainsAccepted: ["eip155:8453"],
+        category: "satellite-intelligence",
+        tags: ["NASA", "Earthdata", "Ocean", "Chlorophyll", "Water Quality"],
+        inputSchema: {
+          type: "object",
+          properties: {
+            lat: { type: "number" },
+            lon: { type: "number" },
+            date: { type: "string" }
+          }
+        }
+      },
+      {
         id: "first_call",
         name: "Golden Path — First Paid Call",
         description: "START HERE. The canonical first payment for any agent integrating with Coin Railz. Pay $0.05 USDC on Base or Solana and receive a verified onboarding receipt plus executable templates for the next 3 services. Both EVM and Solana supported. Lowest price on the platform.",
@@ -2188,11 +2278,11 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
 router.get('/.well-known/agent-card.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
   
-  // A2A Protocol v0.3.0 compliant agent card - ALL 41 SERVICES
+  // A2A Protocol v0.3.0 compliant agent card - ALL 65 SERVICES
   const agentCard = {
     protocolVersion: "0.3.0",
     name: "Coin Railz",
-    description: "Multi-chain x402 micropayment infrastructure for AI agents. 60 pay-per-call API services for crypto analytics, trading signals, security audits, satellite data (NASA/ESA), real estate, banking, market intelligence, prediction markets, IoT/DePIN data, and AI inference. Native Coinbase Agentic Wallet compatible. Pay with USDC on Ethereum or Base - prices from $0.05 to $10.00 per request.",
+    description: "Multi-chain x402 micropayment infrastructure for AI agents. 65 pay-per-call API services for crypto analytics, trading signals, security audits, satellite data (NASA Earthdata Intelligence + ESA), real estate, banking, market intelligence, prediction markets, IoT/DePIN data, and AI inference. Native Coinbase Agentic Wallet compatible. OWS (Open Wallet Standard) compatible. Pay with USDC on Ethereum or Base - prices from $0.05 to $10.00 per request.",
     url: `${baseUrl}/a2a/v1`,
     version: "3.1.0",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
@@ -2254,6 +2344,77 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
     },
 
     skills: [
+      // NASA Earthdata Intelligence Services ($0.25) — Physical Asset Verification at Global Scale
+      {
+        id: "earthdata-granules",
+        name: "NASA Earthdata Granule Search",
+        description: "CMR Granule Search across 1B+ satellite scenes: Landsat, Sentinel, MODIS, VIIRS. Essential for RWA monitoring, supply chain asset audit, and environmental compliance. $0.25 per request. Endpoint: /api/satellite/earthdata/granules",
+        tags: ["NASA", "Earthdata", "satellite", "remote-sensing", "RWA", "ESG", "compliance", "supply-chain", "x402", "satellite-intelligence"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: [{
+          name: "Landsat scene search",
+          description: "Find recent Landsat-8 scenes over a bounding box for agricultural yield verification",
+          input: { shortName: "LANDSAT_OT_C2_L2", temporal: "2026-01-01,2026-03-01", bounding_box: "-120,35,-115,40" },
+          output: { granules: [{ id: "LC08_L2SP_042034_20260115", cloud_cover: 12, download_url: "https://..." }] }
+        }]
+      },
+      {
+        id: "earthdata-precipitation",
+        name: "GPM IMERG Precipitation",
+        description: "Global Precipitation Measurement (GPM) IMERG point queries at 0.1° resolution. Agricultural yield verification, flood risk modeling, and supply chain weather disruption analysis. $0.25 per request. Endpoint: /api/satellite/earthdata/precipitation",
+        tags: ["NASA", "Earthdata", "precipitation", "weather", "GPM", "agriculture", "RWA", "ESG", "flood-risk", "satellite-intelligence"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: [{
+          name: "Precipitation query",
+          description: "Query rainfall at a specific point for crop insurance verification",
+          input: { lat: 37.5, lon: -120.5, date: "2026-03-01" },
+          output: { precipitation_mm: 42.3, source: "GPM IMERG Final Run", resolution_deg: 0.1 }
+        }]
+      },
+      {
+        id: "earthdata-ocean-temp",
+        name: "MUR Sea Surface Temperature",
+        description: "Multi-scale Ultra-high Resolution (MUR) Sea Surface Temperature at 1km daily resolution. Maritime logistics risk assessment, aquaculture monitoring, carbon credit verification. Also available at /api/satellite/earthdata/sst. $0.25 per request.",
+        tags: ["NASA", "Earthdata", "SST", "ocean", "temperature", "maritime", "supply-chain", "RWA", "carbon-credits", "aquaculture", "satellite-intelligence"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: [{
+          name: "Sea surface temperature",
+          description: "Get SST at a coordinate for shipping route risk assessment",
+          input: { lat: 35.0, lon: -140.0, date: "2026-03-15" },
+          output: { sst_celsius: 18.4, source: "MUR", resolution_km: 1 }
+        }]
+      },
+      {
+        id: "earthdata-soil-moisture",
+        name: "SMAP Soil Moisture",
+        description: "NASA SMAP L3 soil moisture granule discovery. Agricultural yield verification, drought monitoring, and supply chain transparency for commodity markets. $0.25 per request. Endpoint: /api/satellite/earthdata/soil-moisture",
+        tags: ["NASA", "Earthdata", "SMAP", "soil", "moisture", "agriculture", "ESG", "drought", "commodity", "RWA", "satellite-intelligence"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: [{
+          name: "Soil moisture check",
+          description: "Retrieve soil moisture for a farmland coordinate for crop yield modeling",
+          input: { lat: 40.0, lon: -100.0, date: "2026-03-01" },
+          output: { soil_moisture_m3m3: 0.28, source: "SMAP SPL3SMP", pass: "ascending" }
+        }]
+      },
+      {
+        id: "earthdata-water-quality",
+        name: "Ocean Color & Water Quality",
+        description: "MODIS Ocean Color / Chlorophyll-a (MODISA_L3m_CHL) data. Carbon credit verification, marine ecosystem health monitoring, and ESG reporting for coastal industries. Also available at /api/satellite/earthdata/ocean-color. $0.25 per request.",
+        tags: ["NASA", "Earthdata", "ocean", "chlorophyll", "water-quality", "ESG", "carbon-credits", "marine", "RWA", "coastal", "satellite-intelligence"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: [{
+          name: "Chlorophyll-a measurement",
+          description: "Measure ocean chlorophyll concentration for carbon credit verification",
+          input: { lat: 36.5, lon: -122.0, date: "2026-03-01" },
+          output: { chlorophyll_mgl: 2.14, source: "MODIS-Aqua L3m", quality_flag: "good" }
+        }]
+      },
       // Trading Intelligence Services ($0.10-$0.75)
       {
         id: "gas-price-oracle",
@@ -3186,6 +3347,69 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       "https://x402.dexter.cash"
     ],
     endpoints: [
+      {
+        path: "/api/satellite/earthdata/granules",
+        methods: ["POST"],
+        price_usd: 0.25,
+        auth: "hybrid",
+        description: "CMR Granule Search for 1B+ granules (Landsat/Sentinel/MODIS/VIIRS). Part of the NASA Earthdata Intelligence suite.",
+        status: "healthy",
+        category: "satellite-intelligence"
+      },
+      {
+        path: "/api/satellite/earthdata/precipitation",
+        methods: ["POST"],
+        price_usd: 0.25,
+        auth: "hybrid",
+        description: "GPM IMERG Precipitation (OPeNDAP point query, 0.1° resolution). Part of the NASA Earthdata Intelligence suite.",
+        status: "healthy",
+        category: "satellite-intelligence"
+      },
+      {
+        path: "/api/satellite/earthdata/ocean-temp",
+        methods: ["POST"],
+        price_usd: 0.25,
+        auth: "hybrid",
+        description: "MUR Sea Surface Temperature (OPeNDAP 1km, daily). Part of the NASA Earthdata Intelligence suite.",
+        status: "healthy",
+        category: "satellite-intelligence"
+      },
+      {
+        path: "/api/satellite/earthdata/sst",
+        methods: ["POST"],
+        price_usd: 0.25,
+        auth: "hybrid",
+        description: "Alias for MUR Sea Surface Temperature. Part of the NASA Earthdata Intelligence suite.",
+        status: "healthy",
+        category: "satellite-intelligence"
+      },
+      {
+        path: "/api/satellite/earthdata/soil-moisture",
+        methods: ["POST"],
+        price_usd: 0.25,
+        auth: "hybrid",
+        description: "SMAP Soil Moisture (SPL3SMP granule discovery). Part of the NASA Earthdata Intelligence suite.",
+        status: "healthy",
+        category: "satellite-intelligence"
+      },
+      {
+        path: "/api/satellite/earthdata/water-quality",
+        methods: ["POST"],
+        price_usd: 0.25,
+        auth: "hybrid",
+        description: "Ocean Color/Chlorophyll (MODISA_L3m_CHL). Part of the NASA Earthdata Intelligence suite.",
+        status: "healthy",
+        category: "satellite-intelligence"
+      },
+      {
+        path: "/api/satellite/earthdata/ocean-color",
+        methods: ["POST"],
+        price_usd: 0.25,
+        auth: "hybrid",
+        description: "Alias for Ocean Color/Chlorophyll. Part of the NASA Earthdata Intelligence suite.",
+        status: "healthy",
+        category: "satellite-intelligence"
+      },
       // Trader-Focused Services (10 services)
       {
         path: "/x402/multi-chain-balance",

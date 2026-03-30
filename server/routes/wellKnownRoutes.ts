@@ -90,7 +90,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
   
   const a2aAgentCard = {
     name: "Coin Railz Multi-Chain Payment Infrastructure",
-    description: "Production-grade blockchain infrastructure for AI agents. 60 x402 micropayment services across 8 chains (7 EVM + Solana) + Native Coinbase Agentic Wallet support + MoonPay Agents compatible + Satellite Data APIs (NASA/ESA) + AI Inference Gateway (GPT-4o-mini, $0.05/call) + SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker) + Real Estate + Banking + Trading + Market Intelligence + Traditional Markets. Processing fee: 1.5% + $0.01 per transaction.",
+    description: "Production-grade blockchain infrastructure for AI agents. 65 x402 micropayment services across 8 chains (7 EVM + Solana) + Native Coinbase Agentic Wallet support + OWS (Open Wallet Standard) compatible + MoonPay Agents compatible + NASA Earthdata Intelligence (5 services, $0.25/call) + ESA Satellite Data + AI Inference Gateway (GPT-4o-mini, $0.05/call) + IoT/DePIN data + SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker) + Real Estate + Banking + Trading + Market Intelligence + Prediction Markets. Processing fee: 1.5% + $0.01 per transaction.",
     version: "0.6.0",
     agentId: "coinrailz-x402-infrastructure",
     
@@ -1843,6 +1843,362 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
         },
         pricing: { amount: 0.25, currency: "USD" },
         category: "prediction-markets"
+      },
+      // Polymarket Services
+      {
+        id: "polymarket_events",
+        name: "Polymarket Events",
+        description: "Browse active Polymarket prediction market events with volume and liquidity. Use when user asks 'Polymarket events', 'active prediction markets', 'Polymarket listings', or 'open prediction markets'.",
+        inputSchema: {
+          type: "object",
+          title: "Polymarket Events Request",
+          additionalProperties: false,
+          properties: {
+            limit: { type: "number", title: "Result Limit", minimum: 1, maximum: 50, default: 20 },
+            active: { type: "boolean", title: "Active Only", default: true }
+          }
+        },
+        outputSchema: {
+          type: "object",
+          title: "Polymarket Events Response",
+          additionalProperties: false,
+          properties: {
+            events: { type: "array", title: "Events", items: { type: "object", properties: { slug: { type: "string" }, title: { type: "string" }, volume24h: { type: "number" } } } }
+          }
+        },
+        pricing: { amount: 0.10, currency: "USD" },
+        category: "prediction-markets"
+      },
+      {
+        id: "polymarket_odds",
+        name: "Polymarket Odds",
+        description: "Real-time odds and orderbook for a specific Polymarket market. Use when user asks 'Polymarket odds', 'Polymarket probability', 'Polymarket prices', or 'prediction market odds'.",
+        inputSchema: {
+          type: "object",
+          title: "Polymarket Odds Request",
+          additionalProperties: false,
+          properties: {
+            marketSlug: { type: "string", title: "Market Slug" }
+          },
+          required: ["marketSlug"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "Polymarket Odds Response",
+          additionalProperties: false,
+          properties: {
+            market: { type: "object", title: "Market Details" },
+            outcomes: { type: "array", title: "Outcomes with Prices", items: { type: "object", properties: { outcome: { type: "string" }, price: { type: "number" } } } }
+          }
+        },
+        pricing: { amount: 0.25, currency: "USD" },
+        category: "prediction-markets"
+      },
+      {
+        id: "polymarket_search",
+        name: "Polymarket Market Search",
+        description: "Search Polymarket prediction markets by keyword. Use when user asks 'search Polymarket', 'find Polymarket market', 'Polymarket bitcoin', or 'Polymarket election'.",
+        inputSchema: {
+          type: "object",
+          title: "Polymarket Search Request",
+          additionalProperties: false,
+          properties: {
+            query: { type: "string", title: "Search Query" },
+            limit: { type: "number", title: "Result Limit", minimum: 1, maximum: 20, default: 10 }
+          },
+          required: ["query"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "Polymarket Search Response",
+          additionalProperties: false,
+          properties: {
+            results: { type: "array", items: { type: "object", properties: { slug: { type: "string" }, title: { type: "string" }, volume: { type: "number" } } } }
+          }
+        },
+        pricing: { amount: 0.25, currency: "USD" },
+        category: "prediction-markets"
+      },
+      // AI & Inference Services
+      {
+        id: "ai_inference",
+        name: "AI Inference Gateway",
+        description: "Pay-per-call LLM inference via GPT-4o-mini and GPT-4o. Use when user asks 'AI inference', 'LLM call', 'GPT-4o', 'cheap AI API', or 'pay-per-call AI'. $0.05 per request — lowest cost AI gateway.",
+        inputSchema: {
+          type: "object",
+          title: "AI Inference Request",
+          additionalProperties: false,
+          properties: {
+            prompt: { type: "string", title: "User Prompt" },
+            model: { type: "string", title: "Model", enum: ["gpt-4o-mini", "gpt-4o"], default: "gpt-4o-mini" },
+            maxTokens: { type: "number", title: "Max Tokens", minimum: 1, maximum: 4096, default: 512 }
+          },
+          required: ["prompt"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "AI Inference Response",
+          additionalProperties: false,
+          properties: {
+            response: { type: "string", title: "Model Response" },
+            model: { type: "string", title: "Model Used" },
+            tokensUsed: { type: "number", title: "Tokens Consumed" }
+          }
+        },
+        pricing: { amount: 0.05, currency: "USD" },
+        category: "ai"
+      },
+      // IoT & DePIN Services
+      {
+        id: "iot_sensor_reading",
+        name: "IoT Sensor Reading",
+        description: "Retrieve real-time sensor data from registered IoT devices. Use when user asks 'IoT sensor data', 'device reading', 'sensor telemetry', or 'device data'. Part of the DePIN payment infrastructure.",
+        inputSchema: {
+          type: "object",
+          title: "IoT Sensor Request",
+          additionalProperties: false,
+          properties: {
+            deviceId: { type: "string", title: "Device ID" },
+            sensorType: { type: "string", title: "Sensor Type", description: "e.g., temperature, humidity, pressure" }
+          },
+          required: ["deviceId"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "IoT Sensor Response",
+          additionalProperties: false,
+          properties: {
+            deviceId: { type: "string" },
+            readings: { type: "array", items: { type: "object", properties: { sensor: { type: "string" }, value: { type: "number" }, unit: { type: "string" }, timestamp: { type: "number" } } } }
+          }
+        },
+        pricing: { amount: 0.05, currency: "USD" },
+        category: "iot-depin"
+      },
+      {
+        id: "iot_device_stream",
+        name: "IoT Device Stream",
+        description: "Stream time-series data from IoT devices over a specified window. Use when user asks 'device stream', 'IoT time series', 'sensor history', or 'device data stream'.",
+        inputSchema: {
+          type: "object",
+          title: "IoT Stream Request",
+          additionalProperties: false,
+          properties: {
+            deviceId: { type: "string", title: "Device ID" },
+            from: { type: "number", title: "Start Timestamp (Unix)" },
+            to: { type: "number", title: "End Timestamp (Unix)" }
+          },
+          required: ["deviceId"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "IoT Stream Response",
+          additionalProperties: false,
+          properties: {
+            deviceId: { type: "string" },
+            dataPoints: { type: "array", items: { type: "object", properties: { timestamp: { type: "number" }, value: { type: "number" } } } }
+          }
+        },
+        pricing: { amount: 0.10, currency: "USD" },
+        category: "iot-depin"
+      },
+      {
+        id: "iot_bulk_data",
+        name: "IoT Bulk Data Export",
+        description: "Export bulk sensor data from multiple IoT devices in a single call. Use when user asks 'IoT bulk data', 'batch device data', 'export sensor data', or 'fleet data export'.",
+        inputSchema: {
+          type: "object",
+          title: "IoT Bulk Data Request",
+          additionalProperties: false,
+          properties: {
+            deviceIds: { type: "array", items: { type: "string" }, title: "Device IDs" },
+            from: { type: "number", title: "Start Timestamp (Unix)" },
+            to: { type: "number", title: "End Timestamp (Unix)" }
+          },
+          required: ["deviceIds"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "IoT Bulk Data Response",
+          additionalProperties: false,
+          properties: {
+            devices: { type: "array", items: { type: "object", properties: { deviceId: { type: "string" }, readings: { type: "array" } } } }
+          }
+        },
+        pricing: { amount: 0.25, currency: "USD" },
+        category: "iot-depin"
+      },
+      {
+        id: "fleet_telematics",
+        name: "Fleet Telematics",
+        description: "Real-time fleet telematics data including GPS, speed, fuel, and diagnostics for vehicle fleets. Use when user asks 'fleet telematics', 'vehicle tracking', 'GPS fleet', or 'fleet diagnostics'.",
+        inputSchema: {
+          type: "object",
+          title: "Fleet Telematics Request",
+          additionalProperties: false,
+          properties: {
+            fleetId: { type: "string", title: "Fleet ID" },
+            vehicleId: { type: "string", title: "Vehicle ID (optional)" }
+          },
+          required: ["fleetId"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "Fleet Telematics Response",
+          additionalProperties: false,
+          properties: {
+            vehicles: { type: "array", items: { type: "object", properties: { id: { type: "string" }, lat: { type: "number" }, lon: { type: "number" }, speed_kmh: { type: "number" }, fuel_pct: { type: "number" } } } }
+          }
+        },
+        pricing: { amount: 0.10, currency: "USD" },
+        category: "iot-depin"
+      },
+      {
+        id: "weather_station_data",
+        name: "Weather Station Data",
+        description: "Ground-truth weather observations from IoT weather stations. Use when user asks 'weather station', 'ground weather data', 'IoT weather', or 'local weather observation'.",
+        inputSchema: {
+          type: "object",
+          title: "Weather Station Request",
+          additionalProperties: false,
+          properties: {
+            stationId: { type: "string", title: "Station ID" },
+            lat: { type: "number", title: "Latitude (for nearest-station lookup)" },
+            lon: { type: "number", title: "Longitude (for nearest-station lookup)" }
+          }
+        },
+        outputSchema: {
+          type: "object",
+          title: "Weather Station Response",
+          additionalProperties: false,
+          properties: {
+            stationId: { type: "string" },
+            temperature_c: { type: "number" },
+            humidity_pct: { type: "number" },
+            pressure_hpa: { type: "number" },
+            wind_speed_ms: { type: "number" },
+            timestamp: { type: "number" }
+          }
+        },
+        pricing: { amount: 0.05, currency: "USD" },
+        category: "iot-depin"
+      },
+      // SDK & Wallet Services
+      {
+        id: "sdk_payments_evm",
+        name: "EVM Agent Payments SDK",
+        description: "Download and configure the @coinrailz/agent-payments NPM package for EVM chains. Enables x402 payments in Node.js, Python, and browser environments. Use when user asks 'EVM SDK', 'x402 SDK', or 'agent payments package'.",
+        inputSchema: { type: "object", additionalProperties: false, properties: { framework: { type: "string", enum: ["nodejs", "python", "browser"], default: "nodejs" } } },
+        outputSchema: { type: "object", additionalProperties: false, properties: { installCommand: { type: "string" }, quickstart: { type: "string" }, docsUrl: { type: "string" } } },
+        pricing: { amount: 0.00, currency: "USD" },
+        category: "sdk"
+      },
+      {
+        id: "sdk_payments_solana",
+        name: "Solana Agent Payments SDK",
+        description: "Download and configure the @coinrailz/agent-payments-solana NPM package for Solana. Use when user asks 'Solana SDK', 'Solana x402', or 'Solana agent payments'.",
+        inputSchema: { type: "object", additionalProperties: false, properties: { framework: { type: "string", enum: ["nodejs", "python"], default: "nodejs" } } },
+        outputSchema: { type: "object", additionalProperties: false, properties: { installCommand: { type: "string" }, quickstart: { type: "string" }, docsUrl: { type: "string" } } },
+        pricing: { amount: 0.00, currency: "USD" },
+        category: "sdk"
+      },
+      {
+        id: "seamless_chain_bridge",
+        name: "Seamless Cross-Chain Bridge",
+        description: "Route a token transfer across chains using DEX aggregation and bridging. Use when user asks 'bridge tokens', 'cross-chain transfer', 'move ETH to Base', or 'chain bridge'.",
+        inputSchema: {
+          type: "object",
+          title: "Bridge Request",
+          additionalProperties: false,
+          properties: {
+            fromChain: { type: "string", title: "Source Chain" },
+            toChain: { type: "string", title: "Destination Chain" },
+            token: { type: "string", title: "Token Symbol or Address" },
+            amount: { type: "string", title: "Amount" },
+            recipient: { type: "string", title: "Recipient Address" }
+          },
+          required: ["fromChain", "toChain", "token", "amount", "recipient"]
+        },
+        outputSchema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            bridgeTxHash: { type: "string" },
+            estimatedArrival: { type: "number" },
+            bridgeFee: { type: "string" }
+          }
+        },
+        pricing: { amount: 0.50, currency: "USD" },
+        category: "defi"
+      },
+      {
+        id: "agent_create_wallet",
+        name: "Agent Wallet Creation",
+        description: "Provision a new non-custodial wallet for an AI agent via Coinbase CDP. Returns wallet address and export format. Use when user asks 'create wallet', 'agent wallet', or 'provision wallet'.",
+        inputSchema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            agentId: { type: "string", title: "Agent ID" },
+            chain: { type: "string", title: "Chain", enum: ["base", "ethereum", "solana"], default: "base" }
+          }
+        },
+        outputSchema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            walletAddress: { type: "string" },
+            chain: { type: "string" },
+            createdAt: { type: "number" }
+          }
+        },
+        pricing: { amount: 0.00, currency: "USD" },
+        category: "wallet"
+      },
+      {
+        id: "solana_yield_finder",
+        name: "Solana Yield Finder",
+        description: "Discover top yield opportunities on Solana including staking, liquid staking, and DeFi protocols. Use when user asks 'Solana yield', 'Solana staking APY', 'best SOL yield', or 'Solana DeFi returns'.",
+        inputSchema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            minApy: { type: "number", title: "Minimum APY %", default: 0 },
+            protocol: { type: "string", title: "Protocol (optional)", description: "e.g., marinade, jito, raydium" }
+          }
+        },
+        outputSchema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            opportunities: { type: "array", items: { type: "object", properties: { protocol: { type: "string" }, apy: { type: "number" }, tvl: { type: "number" }, risk: { type: "string" } } } }
+          }
+        },
+        pricing: { amount: 0.10, currency: "USD" },
+        category: "solana"
+      },
+      {
+        id: "ping",
+        name: "Echo / Ping",
+        description: "Health check and latency test endpoint. Returns echo of input with server timestamp. Use as the cheapest first call to verify connectivity. $0.05.",
+        inputSchema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            message: { type: "string", title: "Message to echo", default: "ping" }
+          }
+        },
+        outputSchema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            echo: { type: "string" },
+            serverTimestamp: { type: "number" },
+            latencyMs: { type: "number" }
+          }
+        },
+        pricing: { amount: 0.05, currency: "USD" },
+        category: "utilities"
       }
     ],
     

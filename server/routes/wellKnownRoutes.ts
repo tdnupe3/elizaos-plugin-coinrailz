@@ -91,7 +91,8 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
   const a2aAgentCard = {
     name: "Coin Railz Multi-Chain Payment Infrastructure",
     description: "Production-grade blockchain infrastructure for AI agents. 65 x402 micropayment services across 8 chains (7 EVM + Solana) + Native Coinbase Agentic Wallet support + OWS (Open Wallet Standard) compatible + MoonPay Agents compatible + NASA Earthdata Intelligence (5 services, $0.25/call) + ESA Satellite Data + AI Inference Gateway (GPT-4o-mini, $0.05/call) + IoT/DePIN data + SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker) + Real Estate + Banking + Trading + Market Intelligence + Prediction Markets. Processing fee: 1.5% + $0.01 per transaction.",
-    version: "0.6.0",
+    version: "0.6.1",
+    x402ManifestVersion: "x402-2.3",
     agentId: "coinrailz-x402-infrastructure",
     
     // A2A v0.3 service endpoint
@@ -3662,7 +3663,8 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     homepage: "https://coinrailz.com",
     contact: "support@coinrailz.com",
     description: "AI agent marketplace with x402 autonomous payment endpoints, native Coinbase Agentic Wallet support, A2A 2.0 discovery, SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker), satellite data APIs (NASA/ESA), and multi-chain support across 8 networks (7 EVM + Solana). Processing fee: 1.5% + $0.01 per transaction.",
-    version: "x402-2.2",
+    version: "x402-2.3",
+    updated: "2026-04-01T12:00:00Z",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
     registrationEndpoint: `${baseUrl}/.well-known/agent-registration.json`,
     quickstart: {

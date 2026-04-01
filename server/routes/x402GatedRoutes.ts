@@ -61,9 +61,9 @@ function resourceUrl(path: string): `${string}://${string}` {
 // Service pricing (in USD for x402-express, converted internally)
 const SERVICE_PRICING = {
   'ping': 0.25,                      // $0.25 USD - industry standard discovery endpoint
-  'smart-contract-audit': 1000,      // $1000 USD
-  'payment-processing': 50,          // $50 USD
-  'compliance-consultation': 500,    // $500 USD
+  'smart-contract-audit': 10.00,     // $10.00 USD - Enterprise Premium
+  'payment-processing': 0.50,        // $0.50 USD - Enterprise Rate
+  'compliance-consultation': 5.00,   // $5.00 USD
   'multi-chain-balance': 0.50,       // $0.50 USD
   'gas-price-oracle': 0.10,          // $0.10 USD
   'token-price-lookup': 0.25,        // $0.25 USD
@@ -104,7 +104,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
-      resource: resourceUrl('/x402/service/smart-contract-audit'),
+      resource: resourceUrl('/x402/smart-contract-audit'),
       name: 'Smart Contract Auditor',
       description: 'Comprehensive smart contract security audit with vulnerability detection',
       mimeType: 'application/json',
@@ -116,7 +116,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
-      resource: resourceUrl('/x402/service/payment-processing'),
+      resource: resourceUrl('/x402/payment-processing'),
       name: 'Payment Processor',
       description: 'Multi-chain payment processing service (hourly rate)',
       mimeType: 'application/json',
@@ -128,7 +128,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
-      resource: resourceUrl('/x402/service/compliance-consultation'),
+      resource: resourceUrl('/x402/compliance-consultation'),
       name: 'Compliance Consultant',
       description: 'AML/KYC compliance consultation and risk assessment',
       mimeType: 'application/json',
@@ -140,7 +140,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
-      resource: resourceUrl('/x402/service/multi-chain-balance'),
+      resource: resourceUrl('/x402/multi-chain-balance'),
       name: 'Multi-Chain Balance Checker',
       description: 'Check wallet balances across multiple blockchain networks with AI-powered portfolio analysis',
       mimeType: 'application/json',
@@ -152,7 +152,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
-      resource: resourceUrl('/x402/service/gas-price-oracle'),
+      resource: resourceUrl('/x402/gas-price-oracle'),
       name: 'Gas Price Oracle',
       description: 'Real-time gas prices across multiple chains with AI-powered timing recommendations',
       mimeType: 'application/json',
@@ -164,7 +164,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
-      resource: resourceUrl('/x402/service/token-price-lookup'),
+      resource: resourceUrl('/x402/token-price-lookup'),
       name: 'Token Price Lookup',
       description: 'Real-time token pricing and market analysis powered by DEXScreener + AI',
       mimeType: 'application/json',
@@ -567,7 +567,7 @@ gatedServiceEndpoints.forEach(endpoint => {
         error: 'Method not allowed',
         message: `${endpoint} requires POST method. GET is only for discovery.`,
         correctMethod: 'POST',
-        endpoint: `/x402/service/${endpoint}`,
+        endpoint: `/x402/${endpoint}`,
       });
     }
     

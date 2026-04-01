@@ -102,6 +102,7 @@ const erc8004DiscoveryRoutes = (await import('./routes/erc8004DiscoveryRoutes'))
 const a2aMassDiscoveryRoutes = (await import('./routes/a2aMassDiscoveryRoutes')).default;
 const mcpServiceDiscoveryRoutes = (await import('./routes/mcpServiceDiscovery')).default;
 const iotPaymentsRoutes = (await import('./routes/iotPaymentsRoutes')).default;
+const esportsPartnerRoutes = (await import('./routes/esportsPartnerRoutes')).default;
 const a2dPaymentsRoutes = (await import('./routes/a2dPaymentsRoutes')).default;
 const unifiedCreditsRoutes = (await import('./routes/unifiedCreditsRoutes')).default;
 const satelliteDataRoutes = (await import('./routes/satelliteDataRoutes')).default;
@@ -876,6 +877,10 @@ app.use('/api/x402', x402Routes);
 // Production-grade device payment infrastructure
 // D2D transfers, metering, credits, topups
 app.use('/api/iot', iotPaymentsRoutes);
+
+// === ESPORTS PARTNER API (klic.gg integration) ===
+// Prize payouts, entry fee collection, viewer tips — all settled in USDC
+app.use('/api/partner/esports', esportsPartnerRoutes);
 
 // === A2D (Agent-to-Device) x402 PAYMENTS ===
 // AI agents pay IoT devices for data via x402 protocol

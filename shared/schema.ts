@@ -6512,3 +6512,44 @@ export const insertA2AInteractionSchema = createInsertSchema(a2aInteractions).om
 export type A2AInteraction = typeof a2aInteractions.$inferSelect;
 export type InsertA2AInteraction = z.infer<typeof insertA2AInteractionSchema>;
 
+// ============================================================
+// ESPORTS PARTNER TRANSACTIONS (klic.gg integration)
+// ============================================================
+export const esportsTransactions = pgTable(
+  "esports_transactions",
+  {
+    id: serial("id").primaryKey(),
+    sessionId: varchar("session_id", { length: 36 }).notNull().unique(),
+    type: varchar("type", { length: 20 }).notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("pending"),
+    chain: varchar("chain", { length: 20 }).notNull().default("base"),
+    partnerApiKeyHash: varchar("partner_api_key_hash", { length: 64 }),
+    fromAddress: varchar("from_address", { length: 42 }),
+    toAddress: varchar("to_address", { length: 42 }),
+    amountUsd: numeric("amount_usd"),
+    amountUsdc: numeric("amount_usdc"),
+    feeUsdc: numeric("fee_usdc"),
+    txHash: varchar("tx_hash", { length: 66 }),
+    tournamentId: varchar("tournament_id"),
+    playerId: varchar("player_id"),
+    streamerId: varchar("streamer_id"),
+    streamerWallet: varchar("streamer_wallet", { length: 42 }),
+    expiresAt: timestamp("expires_at"),
+    confirmedAt: timestamp("confirmed_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_esports_session").on(table.sessionId),
+    index("IDX_esports_type_status").on(table.type, table.status),
+    index("IDX_esports_from_addr").on(table.fromAddress),
+    index("IDX_esports_created").on(table.createdAt),
+  ]
+);
+
+export const insertEsportsTransactionSchema = createInsertSchema(esportsTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+export type EsportsTransaction = typeof esportsTransactions.$inferSelect;
+export type InsertEsportsTransaction = z.infer<typeof insertEsportsTransactionSchema>;
+

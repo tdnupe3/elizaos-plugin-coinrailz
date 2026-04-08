@@ -5758,6 +5758,273 @@ router.get('/.well-known/mpp.json', (req: Request, res: Response) => {
 });
 
 /**
+ * GET /.well-known/webmcp.json
+ *
+ * Web Model Context Protocol (WebMCP) manifest.
+ * Describes Coin Railz as an HTTP-accessible MCP server, allowing LLM clients
+ * (Claude, Cursor, GPT, etc.) and MCP crawlers to discover and connect to
+ * Coin Railz services via the MCP tool-call protocol over HTTPS.
+ *
+ * Consumers: AWI-Crawler/1.0, MCP client auto-configuration, IDE plugins.
+ */
+router.get('/.well-known/webmcp.json', (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.json({
+    schema: "https://webmcp.dev/schema/manifest.json",
+    schemaVersion: "1.0",
+    name: "Coin Railz x402 Payment Infrastructure",
+    description: "Production-grade multi-chain payment infrastructure for AI agents and MCP servers. 60 services across 8 blockchains. Pay-per-call via USDC/x402 or prepaid API-key credits. No account required for trial.",
+    version: "1.0.0",
+    provider: {
+      name: "Coin Railz",
+      url: baseUrl,
+      contact: "support@coinrailz.com",
+    },
+    mcpServers: {
+      coinrailz: {
+        type: "http",
+        url: `${baseUrl}/mcp/services`,
+        description: "MCP-compatible service discovery. Returns 60 paid services with schemas, pricing, and endpoint URLs.",
+        authentication: {
+          modes: ["x-api-key", "x402"],
+          trialKey: {
+            description: "Free $5 trial API key — instant, no crypto, no account",
+            endpoint: `${baseUrl}/api/m2m/credits/trial`,
+            method: "GET",
+            header: "X-API-KEY: cr_live_...",
+          },
+          x402: {
+            description: "On-chain USDC payment via x402 protocol (EIP-7615). Supported chains: Base, Ethereum, Polygon, Arbitrum, Solana.",
+            challengeHeader: "WWW-Authenticate",
+            paymentHeader: "X-Payment",
+            facilitators: ["cdp.coinbase.com", "dexter.cash"],
+          },
+        },
+        capabilities: {
+          toolDiscovery: true,
+          paidToolExecution: true,
+          freeTrialAvailable: true,
+          streamingSupported: false,
+        },
+        endpoints: {
+          serviceList: `${baseUrl}/mcp/services`,
+          checkout: `${baseUrl}/api/mcp/payments/checkout`,
+          services: `${baseUrl}/api/mcp/payments/services`,
+          health: `${baseUrl}/api/mcp/payments/health`,
+          trial: `${baseUrl}/api/m2m/credits/trial`,
+          purchase: `${baseUrl}/api/m2m/credits/checkout/session`,
+        },
+      },
+    },
+    protocols: ["x402", "MCP", "WebMCP", "A2A", "MPP"],
+    openapi: `${baseUrl}/openapi.json`,
+    agentCard: `${baseUrl}/.well-known/agent-card.json`,
+    integrationGuide: `${baseUrl}/mcp-integration-guide`,
+    updatedAt: new Date().toISOString(),
+  });
+});
+
+/**
+ * GET /.well-known/awi.json
+ *
+ * Agent Web Interface (AWI) manifest.
+ * Describes Coin Railz identity, capabilities, interaction endpoints, and
+ * payment onboarding for AWI-aware agent registries and crawlers.
+ *
+ * Consumers: AWI-Crawler/1.0, agent registries, emerging AWI-native frameworks.
+ */
+router.get('/.well-known/awi.json', (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.json({
+    schema: "https://awi.dev/schema/v1",
+    version: "1.0",
+    id: "coinrailz-x402-infrastructure",
+    name: "Coin Railz",
+    canonicalUrl: baseUrl,
+    description: "Universal payment rail for the AI agent economy. 60 pay-per-call services across 8 blockchains (7 EVM + Solana): financial data, satellite intelligence, AI inference, DeFi analytics, IoT/DePIN data, prediction markets, and more. Settles in USDC. API-key credits path requires no crypto wallet.",
+    version_platform: "2.3.0",
+    protocols: ["x402", "WebMCP", "A2A", "MPP", "OpenAPI"],
+    capabilities: [
+      {
+        id: "ai-inference",
+        name: "AI Inference (GPT-4o-mini)",
+        description: "Pay-per-call LLM inference. $0.05/call.",
+        endpoint: `${baseUrl}/x402/ai-inference`,
+        price: "$0.05 USDC",
+      },
+      {
+        id: "first-call",
+        name: "First Paid Call (Golden Path)",
+        description: "Canonical $0.05 onboarding endpoint for new agents. Start here.",
+        endpoint: `${baseUrl}/x402/first-call`,
+        price: "$0.05 USDC",
+      },
+      {
+        id: "satellite-earthdata",
+        name: "NASA Earthdata Intelligence",
+        description: "5 premium NASA data services: granules, precipitation, SST, soil moisture, ocean color. $0.25/call.",
+        endpoint: `${baseUrl}/api/satellite/earthdata/catalog`,
+        price: "$0.25 USDC",
+      },
+      {
+        id: "gas-price-oracle",
+        name: "Gas Price Oracle",
+        description: "Real-time gas prices across 6 EVM chains.",
+        endpoint: `${baseUrl}/x402/gas-price-oracle`,
+        price: "$0.10 USDC",
+      },
+      {
+        id: "catalog",
+        name: "Full Service Catalog",
+        description: "60 services with pricing, schemas, and endpoints.",
+        endpoint: `${baseUrl}/x402/catalog`,
+        price: "free",
+      },
+    ],
+    interactionEndpoints: {
+      a2a: `${baseUrl}/a2a/v1/message/send`,
+      checkout: `${baseUrl}/api/mcp/payments/checkout`,
+      serviceList: `${baseUrl}/mcp/services`,
+    },
+    authentication: {
+      modes: ["X-API-Key", "x402", "Bearer"],
+      onboarding: {
+        fastest: {
+          label: "Free $5 trial key — instant, no crypto",
+          endpoint: `${baseUrl}/api/m2m/credits/trial`,
+          method: "GET",
+        },
+        card: {
+          label: "Stripe hosted checkout — pay by card",
+          endpoint: `${baseUrl}/api/m2m/credits/checkout/session`,
+          method: "POST",
+        },
+        onChain: {
+          label: "x402 USDC on Base or Ethereum",
+          spec: "https://x402.org",
+          facilitators: ["cdp.coinbase.com", "dexter.cash"],
+        },
+      },
+    },
+    pricing: {
+      model: "pay-per-call",
+      settlementCurrency: "USDC",
+      settlementChains: ["Base", "Ethereum", "Polygon", "Arbitrum", "Solana"],
+      processingFee: "1.5% + $0.01/tx",
+      range: "$0.05–$0.25 per call",
+      freeTrial: "$5 USDC equivalent, no payment required",
+    },
+    discovery: {
+      x402Manifest: `${baseUrl}/.well-known/x402.json`,
+      agentCard: `${baseUrl}/.well-known/agent-card.json`,
+      openapi: `${baseUrl}/openapi.json`,
+      mppManifest: `${baseUrl}/.well-known/mpp.json`,
+      webmcp: `${baseUrl}/.well-known/webmcp.json`,
+    },
+    integrationGuide: `${baseUrl}/mcp-integration-guide`,
+    updatedAt: new Date().toISOString(),
+  });
+});
+
+/**
+ * GET /.well-known/mcp-integration.json
+ *
+ * Machine-readable MCP developer integration guide.
+ * Targeted at developers building MCP servers or agent frameworks that wrap
+ * Coin Railz services. Explains both payment paths with copy-paste examples.
+ */
+router.get('/.well-known/mcp-integration.json', (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.json({
+    title: "Coin Railz MCP Integration Guide",
+    version: "1.0.0",
+    audience: "Developers building MCP servers, LLM agent frameworks, or tool plugins that call Coin Railz services.",
+    summary: "If you are building an MCP wrapper for Coin Railz and are stuck at the payment step: skip on-chain complexity entirely. Use Path A (API key credits) to get paid access in under 60 seconds.",
+    paths: {
+      pathA: {
+        label: "Path A — API Key Credits (Fastest, no crypto required)",
+        steps: [
+          {
+            step: 1,
+            action: "Get your free trial key",
+            method: "GET",
+            endpoint: `${baseUrl}/api/m2m/credits/trial`,
+            curl: `curl ${baseUrl}/api/m2m/credits/trial`,
+            response: { apiKey: "cr_live_...", credits: 5, expiresIn: "7 days" },
+            note: "SAVE the apiKey — returned once only. $5 credit, good for ~80–100 calls.",
+          },
+          {
+            step: 2,
+            action: "Call any service with your key",
+            method: "POST",
+            endpoint: `${baseUrl}/x402/{serviceId}`,
+            curl: `curl -X POST ${baseUrl}/x402/gas-price-oracle -H 'X-API-KEY: cr_live_...' -H 'Content-Type: application/json' -d '{}'`,
+            billingHeaders: {
+              "X-Credits-Used": "credits deducted for this call",
+              "X-Credits-Remaining": "your remaining balance",
+              "X-Recharge-Url": "link to buy more credits",
+            },
+          },
+          {
+            step: 3,
+            action: "Buy more credits when trial runs out",
+            method: "POST",
+            endpoint: `${baseUrl}/api/m2m/credits/checkout/session`,
+            curl: `curl -X POST ${baseUrl}/api/m2m/credits/checkout/session -H 'Content-Type: application/json' -d '{"amount": 10}'`,
+            note: "Returns a Stripe hosted checkout URL. Complete in browser. API key is auto-provisioned within ~60s of payment.",
+          },
+        ],
+      },
+      pathB: {
+        label: "Path B — Native x402 On-Chain USDC (for crypto-native agents)",
+        description: "Standard x402 protocol (EIP-7615). Call endpoint → receive 402 challenge → construct payment header → retry with payment.",
+        steps: [
+          {
+            step: 1,
+            action: "Call any x402 endpoint — receive 402 challenge",
+            curl: `curl -X POST ${baseUrl}/x402/gas-price-oracle -H 'Content-Type: application/json' -d '{}'`,
+            response402: { status: 402, headers: { "WWW-Authenticate": "Payment ..." } },
+          },
+          {
+            step: 2,
+            action: "Parse challenge, construct X-Payment header",
+            note: "Use the x402 SDK: https://github.com/coinbase/x402 or Dexter at https://dexter.cash",
+            sdks: {
+              typescript: "npm install x402",
+              python: "pip install x402",
+            },
+          },
+          {
+            step: 3,
+            action: "Retry with payment header",
+            curl: `curl -X POST ${baseUrl}/x402/gas-price-oracle -H 'Content-Type: application/json' -H 'X-Payment: <base64-payload>' -d '{}'`,
+            facilitators: ["cdp.coinbase.com", "dexter.cash"],
+          },
+        ],
+      },
+    },
+    serviceDiscovery: {
+      catalog: `${baseUrl}/x402/catalog`,
+      mcpServices: `${baseUrl}/mcp/services`,
+      openapi: `${baseUrl}/openapi.json`,
+    },
+    support: {
+      email: "support@coinrailz.com",
+      humanGuide: `${baseUrl}/mcp-integration-guide`,
+    },
+  });
+});
+
+/**
  * Catch-all: unknown /.well-known/* paths return 404
  * Prevents PHP exploit probes and unknown paths from falling through
  * to the Vite frontend, which would return 200 with index.html.
@@ -5776,6 +6043,9 @@ router.all('/.well-known/*', (req: Request, res: Response) => {
       '/.well-known/agent-registration.json',
       '/.well-known/x402.json',
       '/.well-known/mpp.json',
+      '/.well-known/webmcp.json',
+      '/.well-known/awi.json',
+      '/.well-known/mcp-integration.json',
       '/.well-known/service-manifest.json',
       '/.well-known/payment-methods.json',
       '/.well-known/pricing.json',

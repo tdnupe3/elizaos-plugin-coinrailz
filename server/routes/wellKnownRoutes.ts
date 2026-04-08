@@ -2609,12 +2609,19 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
       serviceCatalog: `${baseUrl}/x402/catalog`,
       paymentDocs: `${baseUrl}/x402/payment-docs`,
       agentCard: `${baseUrl}/.well-known/agent.json`,
+      agentCardA2A: `${baseUrl}/.well-known/agent-card.json`,
       x402Manifest: `${baseUrl}/.well-known/x402.json`,
+      webmcpManifest: `${baseUrl}/.well-known/webmcp.json`,
+      awiManifest: `${baseUrl}/.well-known/awi.json`,
+      mppManifest: `${baseUrl}/.well-known/mpp.json`,
+      mcpIntegrationManifest: `${baseUrl}/.well-known/mcp-integration.json`,
+      mcpIntegrationGuide: `${baseUrl}/mcp-integration-guide`,
       apiDiscovery: `${baseUrl}/api/discovery/resources`,
       mcpServices: `${baseUrl}/mcp/services`,
       freeWallet: `${baseUrl}/x402/wallet/free`,
       credits: `${baseUrl}/credits`,
-      documentation: `${baseUrl}/docs`
+      documentation: `${baseUrl}/docs`,
+      openapi: `${baseUrl}/openapi.json`
     }
   };
   
@@ -3368,7 +3375,18 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         pythonSolana: "coinrailz-solana",
         docker: "tdnupe3/agent-payments"
       },
-      processingFee: "1.5% + $0.01"
+      processingFee: "1.5% + $0.01",
+      discoveryProtocols: ["x402", "A2A", "WebMCP", "AWI", "MPP", "OpenAPI"],
+      discoveryManifests: {
+        x402: `${baseUrl}/.well-known/x402.json`,
+        agentCard: `${baseUrl}/.well-known/agent-card.json`,
+        webmcp: `${baseUrl}/.well-known/webmcp.json`,
+        awi: `${baseUrl}/.well-known/awi.json`,
+        mpp: `${baseUrl}/.well-known/mpp.json`,
+        openapi: `${baseUrl}/openapi.json`,
+        mcpServices: `${baseUrl}/mcp/services`,
+        integrationGuide: `${baseUrl}/mcp-integration-guide`
+      }
     }
   };
   
@@ -4595,7 +4613,19 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     a2a: {
       protocol_version: "2.0.0",
       agent_directory: `${baseUrl}/api/agents/directory`,
-      discovery_enabled: true
+      discovery_enabled: true,
+      agent_card: `${baseUrl}/.well-known/agent-card.json`
+    },
+    webmcp: {
+      manifest: `${baseUrl}/.well-known/webmcp.json`,
+      protocol_version: "1.0",
+      server_type: "http",
+      service_list: `${baseUrl}/mcp/services`,
+      checkout: `${baseUrl}/api/mcp/payments/checkout`
+    },
+    awi: {
+      manifest: `${baseUrl}/.well-known/awi.json`,
+      protocol_version: "1.0"
     },
     commerce: {
       total_services: 60,

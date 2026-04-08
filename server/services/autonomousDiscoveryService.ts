@@ -189,7 +189,16 @@ class AutonomousDiscoveryService {
         '/api/satellite/earthdata/water-quality',
         // Machine-to-machine discovery endpoints
         '/api/auth/capabilities',
-        '/openapi.json'
+        '/openapi.json',
+        // AWI + WebMCP discovery manifests (Apr 2026)
+        '/.well-known/webmcp.json',
+        '/.well-known/awi.json',
+        '/.well-known/mcp-integration.json',
+        '/.well-known/mpp.json',
+        '/.well-known/payment-methods.json',
+        '/.well-known/pricing.json',
+        // MCP integration guide (human-readable developer page)
+        '/mcp-integration-guide'
       ];
       
       // GPT Action endpoints for ChatGPT integration

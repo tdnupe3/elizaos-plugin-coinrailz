@@ -679,6 +679,11 @@ router.get('/capabilities', (req: Request, res: Response) => {
           manifest: `${baseUrl}/.well-known/x402.json`,
           instructions: `${baseUrl}/.well-known/agent-instructions.json`,
           agentCard: `${baseUrl}/.well-known/agent-card.json`,
+          webmcp: `${baseUrl}/.well-known/webmcp.json`,
+          awi: `${baseUrl}/.well-known/awi.json`,
+          mpp: `${baseUrl}/.well-known/mpp.json`,
+          mcpIntegration: `${baseUrl}/.well-known/mcp-integration.json`,
+          integrationGuide: `${baseUrl}/mcp-integration-guide`,
         },
         firstCall: {
           url: `${baseUrl}/x402/first-call`,

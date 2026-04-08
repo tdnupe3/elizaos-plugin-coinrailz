@@ -2309,6 +2309,19 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       documentation: `${baseUrl}/developers`,
       marketplace: `${baseUrl}/marketplace`
     },
+
+    discoveryManifests: {
+      x402: `${baseUrl}/.well-known/x402.json`,
+      agentCard: `${baseUrl}/.well-known/agent-card.json`,
+      agentInstructions: `${baseUrl}/.well-known/agent-instructions.json`,
+      webmcp: `${baseUrl}/.well-known/webmcp.json`,
+      awi: `${baseUrl}/.well-known/awi.json`,
+      mpp: `${baseUrl}/.well-known/mpp.json`,
+      mcpServices: `${baseUrl}/mcp/services`,
+      mcpIntegration: `${baseUrl}/.well-known/mcp-integration.json`,
+      integrationGuide: `${baseUrl}/mcp-integration-guide`,
+      openapi: `${baseUrl}/openapi.json`
+    },
     
     // Rate limiting metadata (A2A v0.3 optional field)
     rateLimits: {
@@ -2323,7 +2336,8 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       url: baseUrl,
       type: "payment_infrastructure",
       chains: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"],
-      positioning: "Multi-Chain Payment Infrastructure for Crypto Communities"
+      positioning: "Multi-Chain Payment Infrastructure for Crypto Communities",
+      supportedProtocols: ["x402", "A2A", "WebMCP", "AWI", "MPP", "AP2", "OpenAPI"]
     }
   };
   
@@ -3574,7 +3588,17 @@ router.get('/.well-known/service-manifest.json', async (req: Request, res: Respo
         price_usd: 0.25,
         category: "prediction-markets"
       }
-    ]
+    ],
+    discoveryManifests: {
+      x402: `${baseUrl}/.well-known/x402.json`,
+      agentCard: `${baseUrl}/.well-known/agent-card.json`,
+      webmcp: `${baseUrl}/.well-known/webmcp.json`,
+      awi: `${baseUrl}/.well-known/awi.json`,
+      mpp: `${baseUrl}/.well-known/mpp.json`,
+      mcpServices: `${baseUrl}/mcp/services`,
+      integrationGuide: `${baseUrl}/mcp-integration-guide`,
+      openapi: `${baseUrl}/openapi.json`
+    }
   };
   
   res.status(200).json(manifest);
@@ -3586,6 +3610,7 @@ router.get('/.well-known/service-manifest.json', async (req: Request, res: Respo
  * Detailed payment methods and wallet information
  */
 router.get('/.well-known/payment-methods.json', async (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
   const paymentMethods = {
     platform: "Coin Railz",
     version: "2.0.0",
@@ -3661,6 +3686,20 @@ router.get('/.well-known/payment-methods.json', async (req: Request, res: Respon
         minimum_purchase: 10.00,
         bonus_tiers: []
       }
+    },
+    discovery: {
+      protocols: ["x402", "A2A", "WebMCP", "AWI", "MPP", "AP2"],
+      manifests: {
+        x402: `${baseUrl}/.well-known/x402.json`,
+        webmcp: `${baseUrl}/.well-known/webmcp.json`,
+        awi: `${baseUrl}/.well-known/awi.json`,
+        mpp: `${baseUrl}/.well-known/mpp.json`,
+        agentCard: `${baseUrl}/.well-known/agent-card.json`,
+        mcpServices: `${baseUrl}/mcp/services`,
+        openapi: `${baseUrl}/openapi.json`
+      },
+      integrationGuide: `${baseUrl}/mcp-integration-guide`,
+      trialKey: `${baseUrl}/api/m2m/credits/trial`
     }
   };
   

@@ -102,7 +102,17 @@ router.get("/mcp/services", async (req: Request, res: Response) => {
       },
       supportedNetworks: ["base", "base-sepolia", "ethereum", "polygon", "arbitrum", "optimism", "bnb", "solana"],
       documentation: `${baseUrl}/docs/x402`,
-      catalogUrl: `${baseUrl}/api/x402/catalog`
+      catalogUrl: `${baseUrl}/api/x402/catalog`,
+      discoveryManifests: {
+        webmcp: `${baseUrl}/.well-known/webmcp.json`,
+        awi: `${baseUrl}/.well-known/awi.json`,
+        x402: `${baseUrl}/.well-known/x402.json`,
+        agentCard: `${baseUrl}/.well-known/agent-card.json`,
+        mpp: `${baseUrl}/.well-known/mpp.json`,
+        openapi: `${baseUrl}/openapi.json`,
+        integrationGuide: `${baseUrl}/mcp-integration-guide`,
+        mcpIntegration: `${baseUrl}/.well-known/mcp-integration.json`
+      }
     });
   } catch (error: any) {
     console.error('MCP service discovery error:', error);

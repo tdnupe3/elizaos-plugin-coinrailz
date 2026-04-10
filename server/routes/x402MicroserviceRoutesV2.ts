@@ -4814,6 +4814,12 @@ router.post("/land-use",
 // IoT/DePIN SERVICES
 // ============================================================================
 
+router.get("/fleet-telematics",
+  createPaymentOrchestrator("fleet-telematics", SERVICE_PRICING_MICRO["fleet-telematics"], async (req: Request, res: Response) => {
+    res.json({ service: "fleet-telematics", method: "POST", description: "Use POST to retrieve fleet telematics data. See 402 challenge above for payment instructions." });
+  })
+);
+
 router.post("/fleet-telematics",
   createPaymentOrchestrator("fleet-telematics", SERVICE_PRICING_MICRO["fleet-telematics"], async (req: Request, res: Response) => {
     const startTime = Date.now();
@@ -4862,6 +4868,12 @@ router.post("/fleet-telematics",
   })
 );
 
+router.get("/weather-station-data",
+  createPaymentOrchestrator("weather-station-data", SERVICE_PRICING_MICRO["weather-station-data"], async (req: Request, res: Response) => {
+    res.json({ service: "weather-station-data", method: "POST", description: "Use POST to retrieve weather station data. See 402 challenge above for payment instructions." });
+  })
+);
+
 router.post("/weather-station-data",
   createPaymentOrchestrator("weather-station-data", SERVICE_PRICING_MICRO["weather-station-data"], async (req: Request, res: Response) => {
     const startTime = Date.now();
@@ -4899,6 +4911,12 @@ router.post("/weather-station-data",
   })
 );
 
+router.get("/iot-sensor-reading",
+  createPaymentOrchestrator("iot-sensor-reading", SERVICE_PRICING_MICRO["iot-sensor-reading"], async (req: Request, res: Response) => {
+    res.json({ service: "iot-sensor-reading", method: "POST", description: "Use POST to retrieve IoT sensor readings. See 402 challenge above for payment instructions." });
+  })
+);
+
 router.post("/iot-sensor-reading",
   createPaymentOrchestrator("iot-sensor-reading", SERVICE_PRICING_MICRO["iot-sensor-reading"], async (req: Request, res: Response) => {
     const startTime = Date.now();
@@ -4927,6 +4945,12 @@ router.post("/iot-sensor-reading",
       await trackRequest("iot-sensor-reading", req.body, null, responseTime, SERVICE_PRICING_USD["iot-sensor-reading"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
+  })
+);
+
+router.get("/iot-device-stream",
+  createPaymentOrchestrator("iot-device-stream", SERVICE_PRICING_MICRO["iot-device-stream"], async (req: Request, res: Response) => {
+    res.json({ service: "iot-device-stream", method: "POST", description: "Use POST to stream IoT device data. See 402 challenge above for payment instructions." });
   })
 );
 
@@ -4966,6 +4990,12 @@ router.post("/iot-device-stream",
       await trackRequest("iot-device-stream", req.body, null, responseTime, SERVICE_PRICING_USD["iot-device-stream"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
+  })
+);
+
+router.get("/iot-bulk-data",
+  createPaymentOrchestrator("iot-bulk-data", SERVICE_PRICING_MICRO["iot-bulk-data"], async (req: Request, res: Response) => {
+    res.json({ service: "iot-bulk-data", method: "POST", description: "Use POST to export bulk IoT data. See 402 challenge above for payment instructions." });
   })
 );
 

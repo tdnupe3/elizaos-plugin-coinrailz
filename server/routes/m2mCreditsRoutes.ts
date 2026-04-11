@@ -24,8 +24,8 @@ import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { creditsService } from '../services/creditsService.js';
 import { db } from '../db.js';
-import { paymentIntentTracking, apiKeys } from '../../shared/schema.js';
-import { eq } from 'drizzle-orm';
+import { paymentIntentTracking, apiKeys, freeCreditsClaimLog, endpointHits } from '../../shared/schema.js';
+import { eq, gt, and } from 'drizzle-orm';
 import crypto from 'crypto';
 import { emitFirstContactAsync, emitFunnelEventAsync } from '../services/funnelHelper.js';
 import { provisionCreditsAndKey } from '../services/m2mProvisioningService.js';
@@ -701,12 +701,18 @@ router.get('/capabilities', (req: Request, res: Response) => {
 // ──────────────────────────────────────────────────────────────────────────────
 // GET /api/m2m/trial
 // Free $5 trial API key — no payment, no crypto wallet required.
-// Rate limited: 1 per IP per 7 days (in-memory, single-instance v1).
+// Rate limited: 1 per IP per 7 days.
+//   L1: in-memory Map (fast path, clears on restart)
+//   L2: free_credits_claim_log DB table (authoritative, survives restarts)
+// Every hit (success, blocked, error) is logged to endpoint_hits for full
+// traffic visibility including blocked retry attempts.
 // Excludes internal/RFC-1918 IPs. Creates an m2m_ user and provisions a
 // cr_live_ key with $5 credits and a 7-day expiry.
 // ──────────────────────────────────────────────────────────────────────────────
 
 const TRIAL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+// L1 in-memory cache — fast path, cleared on restart (DB is authoritative)
 const trialClaimedByIp = new Map<string, number>(); // ip → claimedAt timestamp
 
 function isInternalIp(ip: string): boolean {
@@ -720,12 +726,72 @@ function isInternalIp(ip: string): boolean {
   );
 }
 
+// Hash IP for privacy-safe storage (same approach as funnelHelper)
+function hashIp(ip: string): string {
+  return crypto.createHash('sha256').update(ip).digest('hex').substring(0, 16);
+}
+
+// L2: check DB for an active trial claim — used when L1 cache is cold (post-restart)
+async function checkTrialClaimedInDb(ip: string): Promise<{ claimed: boolean; claimedAt?: Date }> {
+  try {
+    const cutoff = new Date(Date.now() - TRIAL_TTL_MS);
+    const rows = await db
+      .select({ claimedAt: freeCreditsClaimLog.claimedAt })
+      .from(freeCreditsClaimLog)
+      .where(
+        and(
+          eq(freeCreditsClaimLog.ipAddress, ip),
+          gt(freeCreditsClaimLog.claimedAt, cutoff)
+        )
+      )
+      .limit(1);
+    if (rows.length > 0 && rows[0].claimedAt) {
+      return { claimed: true, claimedAt: rows[0].claimedAt };
+    }
+    return { claimed: false };
+  } catch {
+    // DB check failure is non-fatal — fall through to allow provisioning
+    // (fail-open is safer than denying legitimate agents on DB hiccup)
+    return { claimed: false };
+  }
+}
+
+// Write a claim record to DB — fire-and-forget, non-blocking
+function recordTrialClaimAsync(ip: string, userId: string, userAgent?: string): void {
+  const fingerprint = hashIp(ip); // M2M calls have no browser fingerprint; use IP hash
+  void db.insert(freeCreditsClaimLog).values({
+    ipAddress: ip,
+    fingerprint,
+    userId,
+    sessionId: `trial_${fingerprint}`,
+    userAgent: userAgent || null,
+  }).catch((err: Error) => {
+    console.error('⚠️ trial claim log write failed (non-blocking):', err.message);
+  });
+}
+
+// Log every trial hit to endpoint_hits — fire-and-forget
+function trackTrialHitAsync(ip: string, statusCode: number, userAgent?: string): void {
+  void db.insert(endpointHits).values({
+    endpoint: '/api/m2m/credits/trial',
+    endpointType: 'trial',
+    ipHash: hashIp(ip),
+    userAgent: userAgent ? userAgent.substring(0, 255) : null,
+    method: 'GET',
+    statusCode,
+  }).catch((err: Error) => {
+    console.error('⚠️ trial endpoint_hit write failed (non-blocking):', err.message);
+  });
+}
+
 router.get('/trial', async (req: Request, res: Response) => {
   const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
     || req.socket?.remoteAddress
     || 'unknown';
+  const userAgent = req.headers['user-agent'] as string | undefined;
 
   if (isInternalIp(ip)) {
+    trackTrialHitAsync(ip, 403, userAgent);
     return res.status(403).json({
       error: 'INTERNAL_IP',
       message: 'Trial keys are reserved for external agents. Use the paid M2M endpoint for internal testing.',
@@ -734,11 +800,14 @@ router.get('/trial', async (req: Request, res: Response) => {
   }
 
   const now = Date.now();
-  const claimedAt = trialClaimedByIp.get(ip);
-  if (claimedAt && now - claimedAt < TRIAL_TTL_MS) {
-    const retryAfterMs = TRIAL_TTL_MS - (now - claimedAt);
+
+  // ── L1 check: in-memory Map (fast, cleared on restart) ──
+  const cachedClaimedAt = trialClaimedByIp.get(ip);
+  if (cachedClaimedAt && now - cachedClaimedAt < TRIAL_TTL_MS) {
+    const retryAfterMs = TRIAL_TTL_MS - (now - cachedClaimedAt);
     const retryAfterDays = Math.ceil(retryAfterMs / (24 * 60 * 60 * 1000));
     const baseUrl = process.env.PUBLIC_BASE_URL || 'https://coinrailz.com';
+    trackTrialHitAsync(ip, 429, userAgent);
     return res.status(429).json({
       error: 'TRIAL_ALREADY_CLAIMED',
       message: `Trial key already issued to this IP. Available again in ${retryAfterDays} day(s).`,
@@ -757,7 +826,35 @@ router.get('/trial', async (req: Request, res: Response) => {
     });
   }
 
-  // Mark as claimed immediately (before DB ops — prevents duplicate provisioning on concurrent requests)
+  // ── L2 check: DB (authoritative — survives restarts) ──
+  const dbCheck = await checkTrialClaimedInDb(ip);
+  if (dbCheck.claimed && dbCheck.claimedAt) {
+    const claimedAtMs = dbCheck.claimedAt.getTime();
+    const retryAfterMs = TRIAL_TTL_MS - (now - claimedAtMs);
+    const retryAfterDays = Math.ceil(retryAfterMs / (24 * 60 * 60 * 1000));
+    const baseUrl = process.env.PUBLIC_BASE_URL || 'https://coinrailz.com';
+    // Repopulate L1 so subsequent requests from same IP skip the DB query
+    trialClaimedByIp.set(ip, claimedAtMs);
+    trackTrialHitAsync(ip, 429, userAgent);
+    return res.status(429).json({
+      error: 'TRIAL_ALREADY_CLAIMED',
+      message: `Trial key already issued to this IP. Available again in ${retryAfterDays} day(s).`,
+      retryAfterSeconds: Math.ceil(retryAfterMs / 1000),
+      upgrade: {
+        description: 'Purchase credits — no wait, same API key pattern',
+        hostedCheckout: {
+          description: 'No Stripe.js needed — open URL in any browser, key delivered via webhook',
+          method: 'POST',
+          url: `${baseUrl}/api/m2m/credits/checkout/session`,
+          body: { amountUsd: 10 },
+          curl: `curl -X POST ${baseUrl}/api/m2m/credits/checkout/session -H "Content-Type: application/json" -d '{"amountUsd":10}'`,
+        },
+        directCard: `${baseUrl}/api/m2m/credits/purchase`,
+      },
+    });
+  }
+
+  // ── Mark claimed in L1 immediately (prevents duplicate provisioning on concurrent requests) ──
   trialClaimedByIp.set(ip, now);
 
   const ipHash = crypto.createHash('sha256').update(ip).digest('hex').substring(0, 12);
@@ -784,6 +881,10 @@ router.get('/trial', async (req: Request, res: Response) => {
 
     console.log(`🎁 Trial key provisioned: ${keyPrefix}... for IP hash ${ipHash} ($${TRIAL_CREDITS} credits)`);
 
+    // ── Persist claim to DB (L2) and track hit ──
+    recordTrialClaimAsync(ip, userId, userAgent);
+    trackTrialHitAsync(ip, 200, userAgent);
+
     emitFirstContactAsync(ip, 'direct_trial', '/api/m2m/credits/trial');
     emitFunnelEventAsync({ stage: 'trial_claimed', source: 'direct_trial', ip, apiKeyPrefix: keyPrefix, creditsAmount: TRIAL_CREDITS });
 
@@ -804,9 +905,10 @@ router.get('/trial', async (req: Request, res: Response) => {
       note: "SAVE this key — it is returned once only and cannot be retrieved again.",
     });
   } catch (err: any) {
-    // Undo the rate-limit claim so the agent can retry
+    // Undo the L1 rate-limit claim so the agent can retry
     trialClaimedByIp.delete(ip);
     console.error(`❌ Trial key provisioning failed for IP hash ${ipHash}:`, err?.message);
+    trackTrialHitAsync(ip, 500, userAgent);
     return res.status(500).json({
       error: 'PROVISIONING_FAILED',
       message: 'Trial key provisioning failed. Please retry in a few seconds.',

@@ -1984,18 +1984,17 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
   
   // Build official Bazaar discovery extension metadata (spec-compliant format)
   // Using @x402/extensions/bazaar v2.0.0 DiscoveryInfo structure
-  // CRITICAL: Use canonical method (POST for most x402 services) NOT req.method
-  // Discovery crawlers probe POST services with GET - we must still advertise POST
-  const canonicalMethod: 'GET' | 'POST' = 'POST'; // x402 services are POST-based (accept body params)
+  // These endpoints are registered as GET routes with full GET handler implementations.
+  // Advertising GET as canonical tells Bazaar to probe via GET, which is accurate.
+  const canonicalMethod: 'GET' | 'POST' = 'GET';
   const bazaarMetadata = catalogEntry 
     ? buildBazaarDiscoveryMetadata(catalogEntry, canonicalMethod) 
     : {
         input: {
           type: "http" as const,
-          method: "POST" as const,
-          bodyType: "json" as const,
-          body: { query: "example parameter" },
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+          method: "GET" as const,
+          queryParams: {},
+          headers: { 'Accept': 'application/json' }
         },
         output: {
           type: "application/json",

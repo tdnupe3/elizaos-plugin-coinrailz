@@ -311,14 +311,14 @@ export function x402ResponseEnricher() {
             }
           }
           
-          // x402scan requires CAIP-2 format in the `network` field and requires `amount` field
-          // Keep networkLegacy for older x402-fetch clients that need "base"/"solana"
+          // x402-fetch v0.7.3 requires legacy shorthand in `network` field ("base", "ethereum")
+          // x402Network holds CAIP-2 for x402scan / discovery systems that need it
           if (enriched.network === 'ethereum' || enriched.network === 'eip155:1') {
-            enriched.network = 'eip155:1';
+            enriched.network = 'ethereum';
             enriched.networkLegacy = enriched.networkLegacy || 'ethereum';
             enriched.x402Network = 'eip155:1';
-          } else if (enriched.network === 'base' || !enriched.network) {
-            enriched.network = 'eip155:8453';
+          } else if (enriched.network === 'base' || enriched.network === 'eip155:8453' || !enriched.network) {
+            enriched.network = 'base';
             enriched.networkLegacy = enriched.networkLegacy || 'base';
             enriched.x402Network = 'eip155:8453';
           } else if (enriched.network === 'solana' || enriched.network === 'solana:mainnet') {

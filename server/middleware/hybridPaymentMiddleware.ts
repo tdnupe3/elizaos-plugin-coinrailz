@@ -371,7 +371,7 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
           message: "Transaction not found, insufficient amount, or already used",
           accepts: [{
             scheme: "exact",
-            network: "eip155:8453",
+            network: "base",
             maxAmountRequired: requiredAmount.toString(),
             resource: getCanonicalResourceUrl(serviceName),
             payTo: PLATFORM_WALLET,

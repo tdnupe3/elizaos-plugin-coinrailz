@@ -1823,11 +1823,16 @@ router.use((req: Request, res: Response, next) => {
             .replace(/https:\/\/[^\/]+\.replit\.dev\//, `${publicBaseUrl}/`);
         }
         
-        // x402scan requires CAIP-2 network format and amount field
-        if (enriched.network === 'base' || !enriched.network) {
-          enriched.network = 'eip155:8453';
+        // x402-fetch v0.7.3 requires legacy shorthand ("base", "ethereum") in network field
+        // CAIP-2 goes in x402Network for x402scan discovery compatibility
+        if (enriched.network === 'eip155:8453' || enriched.network === 'base' || !enriched.network) {
+          enriched.network = 'base';
           enriched.networkLegacy = enriched.networkLegacy || 'base';
           enriched.x402Network = 'eip155:8453';
+        } else if (enriched.network === 'eip155:1' || enriched.network === 'ethereum') {
+          enriched.network = 'ethereum';
+          enriched.networkLegacy = enriched.networkLegacy || 'ethereum';
+          enriched.x402Network = 'eip155:1';
         }
         if (enriched.network === 'solana' || enriched.network === 'solana:mainnet') {
           // Use official CAIP-2 Solana mainnet chain ID (required by Dexter facilitator)
@@ -2542,7 +2547,7 @@ enterpriseDirectEndpoints.forEach(service => {
       error: "X-PAYMENT header is required",
       accepts: [{
         scheme: "exact",
-        network: "eip155:8453",
+        network: "base",
         networkLegacy: "base",
         x402Network: "eip155:8453",
         amount: String(priceInMicro),

@@ -1185,7 +1185,7 @@ let platformPublicClient: ReturnType<typeof createPublicClient> | null = null;
 
 function getPlatformWalletClient() {
   if (!platformWalletClient) {
-    const privateKey = process.env.PLATFORM_EOA_PRIVATE_KEY || process.env.CDP_PRIVATE_KEY;
+    const privateKey = process.env.PLATFORM_EOA_PRIVATE_KEY || process.env.EVM_PRIVATE_KEY;
     if (!privateKey) {
       console.error("❌ No platform wallet private key available for EIP-3009 execution");
       return null;
@@ -2621,7 +2621,7 @@ function generate402Response(
     // Base Chain - USDC (primary)
     {
       scheme: "exact",
-      network: "eip155:8453",
+      network: "base",
       networkLegacy: "base",
       x402Network: "eip155:8453",
       amount: requiredAmount.toString(),
@@ -2651,7 +2651,7 @@ function generate402Response(
     // Base Chain - USDT
     {
       scheme: "exact",
-      network: "eip155:8453",
+      network: "base",
       networkLegacy: "base",
       x402Network: "eip155:8453",
       amount: requiredAmount.toString(),
@@ -2675,7 +2675,7 @@ function generate402Response(
     // Ethereum L1 - USDC
     {
       scheme: "exact",
-      network: "eip155:1",
+      network: "ethereum",
       networkLegacy: "ethereum",
       x402Network: "eip155:1",
       amount: requiredAmount.toString(),
@@ -2699,7 +2699,7 @@ function generate402Response(
     // Ethereum L1 - USDT
     {
       scheme: "exact",
-      network: "eip155:1",
+      network: "ethereum",
       networkLegacy: "ethereum",
       x402Network: "eip155:1",
       amount: requiredAmount.toString(),

@@ -104,7 +104,7 @@ function generateX402PaymentRequired(product: typeof SATELLITE_DATA_PRODUCTS[0],
     accepts: [
       {
         scheme: 'exact',
-        network: 'eip155:8453',
+        network: 'base',
         networkLegacy: 'base',
         x402Network: 'eip155:8453',
         amount: Math.ceil(product.priceUsd * 1000000).toString(),

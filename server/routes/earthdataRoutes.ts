@@ -69,7 +69,7 @@ function buildX402Challenge(req: Request, serviceId: string, name: string, descr
     accepts: [
       {
         scheme: 'exact',
-        network: 'eip155:8453',
+        network: 'base',
         networkLegacy: 'base',
         x402Network: 'eip155:8453',
         amount: PRICE_USDC_UNITS,

@@ -15,18 +15,22 @@ export class GlobalErrorHandler {
 
     // Handle uncaught exceptions
     process.on('uncaughtException', (error: any) => {
-      console.error('Uncaught Exception:', error);
       const isTransient = error.code === 'ECONNRESET'
         || error.code === 'ECONNREFUSED'
         || error.code === 'ETIMEDOUT'
         || error.code === 'EPIPE'
         || error.message?.includes('socket hang up')
         || error.message?.includes('Connection terminated unexpectedly')
-        || error.message?.includes('fetch failed');
+        || error.message?.includes('fetch failed')
+        // Neon serverless WebSocket transient errors — safe to swallow, not app faults
+        || error.message?.includes('Cannot set property message of #<ErrorEvent>')
+        || error.message?.includes('Cannot read properties of null (reading \'setHeader\')')
+        || (error.stack && error.stack.includes('@neondatabase/serverless'));
       if (isTransient) {
-        console.warn('⚠️ Transient network error caught — server continues running');
+        console.warn('⚠️ Transient network error caught — server continues running:', error.message);
         return;
       }
+      console.error('Uncaught Exception:', error);
       if (process.env.NODE_ENV === 'production') {
         console.error('💀 Fatal uncaught exception — exiting');
         process.exit(1);

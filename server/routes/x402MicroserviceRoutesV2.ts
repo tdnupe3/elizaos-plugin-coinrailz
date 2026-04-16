@@ -2015,6 +2015,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       scheme: "exact",
       network: "base", // Legacy format for x402-fetch v0.7.3 compatibility
       x402Network: "eip155:8453", // V2 CAIP-2 format for spec compliance
+      amount: priceInMicroUnits, // Explicit amount field (x402 v1 spec - used by createPaymentHeader)
       maxAmountRequired: priceInMicroUnits,
       maxAmountRequiredUSD: `$${priceUsd.toFixed(2)}`,
       resource: resourceUrl,

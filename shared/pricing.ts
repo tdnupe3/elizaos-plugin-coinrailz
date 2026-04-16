@@ -78,6 +78,7 @@ export type ServiceName =
   | "air-quality"
   | "land-use"
   // NASA Earthdata Intelligence Services ($0.25/call — authenticated OPeNDAP + CMR)
+  | "satellite-earthdata"
   | "earthdata-granules"
   | "earthdata-precipitation"
   | "earthdata-sst"
@@ -199,6 +200,7 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   "earthdata-precipitation": 250000,   // $0.25 - GPM IMERG rain rate (OPeNDAP point)
   "earthdata-sst": 250000,             // $0.25 - MUR sea surface temperature (OPeNDAP point)
   "earthdata-soil-moisture": 250000,   // $0.25 - SMAP soil moisture granule discovery
+  "satellite-earthdata": 250000,        // $0.25 - NASA Earthdata gateway (granules, precip, SST, soil, ocean)
   "earthdata-ocean-color": 250000,     // $0.25 - MODIS ocean color / chlorophyll-a
   
   // IoT/DePIN VERTICAL - Device Data Monetization
@@ -294,6 +296,7 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   "land-use": 0.15,
   
   // NASA Earthdata Intelligence Services
+  "satellite-earthdata": 0.25,
   "earthdata-granules": 0.25,
   "earthdata-precipitation": 0.25,
   "earthdata-sst": 0.25,

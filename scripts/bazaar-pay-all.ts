@@ -167,13 +167,20 @@ async function settle(challenge: any, name: string, auth: string | null, path: s
   return { success: false, error: `${data.errorReason || settleResp.status}: ${data.errorMessage || ''}` };
 }
 
-// Round 3 — final 1 service that was interrupted mid-payment in round 1
+// Round 4 — 6 new NASA Earthdata services (previously ghost routes, now Bazaar-compatible)
+// These were previously only reachable via /api/satellite/earthdata/* with custom middleware.
+// The agent at 104.131.41.96 hammered /x402/satellite-earthdata 237+ times — this fixes it.
 const SERVICES = [
-  { path: '/credit-risk-score', name: 'credit-risk-score' },   // $1.25
+  { path: '/satellite-earthdata',   name: 'satellite-earthdata' },    // $0.25 — gateway
+  { path: '/earthdata-granules',    name: 'earthdata-granules' },     // $0.25 — CMR search
+  { path: '/earthdata-precipitation', name: 'earthdata-precipitation' }, // $0.25 — GPM IMERG
+  { path: '/earthdata-sst',         name: 'earthdata-sst' },          // $0.25 — MUR SST
+  { path: '/earthdata-soil-moisture', name: 'earthdata-soil-moisture' }, // $0.25 — SMAP
+  { path: '/earthdata-ocean-color', name: 'earthdata-ocean-color' },  // $0.25 — MODIS chlorophyll
 ];
 
 async function main() {
-  console.log('=== Full Bazaar Indexing — Round 3 (credit-risk-score) ===\n');
+  console.log('=== Bazaar Indexing — Round 4 (6 new NASA Earthdata routes) ===\n');
   console.log('RPC:', BASE_RPC.includes('alchemy') ? '✅ Alchemy' : '⚠️ Public (rate-limited)');
   console.log('CDP auth:', CDP_KEY_ID ? '✅' : '⚠️ MISSING');
 

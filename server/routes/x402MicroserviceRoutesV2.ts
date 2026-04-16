@@ -73,6 +73,7 @@ import { offerLinkService } from "../services/offerLinkService";
 import { buildBazaarDiscoveryMetadata } from "../discovery/officialBazaarIntegration";
 import { dialectMarketsService } from "../services/dialectMarketsService";
 import { satelliteDataService } from '../services/satelliteDataService';
+import { earthdataService } from '../services/earthdataService';
 
 const router = Router();
 
@@ -5110,6 +5111,210 @@ router.post("/ai-inference",
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
       await trackRequest("ai-inference", req.body, null, responseTime, SERVICE_PRICING_USD["ai-inference"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+// ============================================================================
+// NASA EARTHDATA INTELLIGENCE SERVICES — x402 Orchestrator (Bazaar-compatible)
+// Previously only accessible via /api/satellite/earthdata/* with custom middleware.
+// These routes fix the ghost /x402/satellite-earthdata path (237+ failed retries)
+// and expose all 5 NASA services through the standard CDP/Bazaar payment flow.
+// ============================================================================
+
+// GET handlers return 402 challenges for Bazaar discovery crawls
+router.get("/satellite-earthdata",
+  createPaymentOrchestrator("satellite-earthdata", SERVICE_PRICING_MICRO["satellite-earthdata"], (_req, res) => {
+    res.json({ service: "satellite-earthdata", method: "POST", description: "NASA Earthdata Intelligence gateway. POST to receive: granule metadata, precipitation, SST, soil moisture, or ocean color. $0.25/call." });
+  })
+);
+
+router.post("/satellite-earthdata",
+  createPaymentOrchestrator("satellite-earthdata", SERVICE_PRICING_MICRO["satellite-earthdata"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const lat = req.body.lat ?? 40.7128;
+      const lon = req.body.lon ?? -74.006;
+      const product = (req.body.product ?? 'precipitation') as string;
+      let data: any;
+      let poweredBy = 'NASA Earthdata';
+      if (product === 'granules') {
+        const bbox = { west: req.body.west ?? lon - 0.5, south: req.body.south ?? lat - 0.5, east: req.body.east ?? lon + 0.5, north: req.body.north ?? lat + 0.5 };
+        data = await earthdataService.searchGranules({ bbox, limit: req.body.limit ?? 5 });
+        poweredBy = 'NASA CMR';
+      } else if (product === 'ocean-temp' || product === 'sst') {
+        data = await earthdataService.getSeaSurfaceTemp(lat, lon, req.body.date);
+        poweredBy = 'NASA MUR-SST via PODAAC';
+      } else if (product === 'soil-moisture') {
+        data = await earthdataService.getSoilMoisture(lat, lon, req.body.date);
+        poweredBy = 'NASA SMAP via NSIDC';
+      } else if (product === 'ocean-color' || product === 'water-quality') {
+        data = await earthdataService.getOceanColor(lat, lon, req.body.date);
+        poweredBy = 'NASA MODIS-Aqua via OB.DAAC';
+      } else {
+        const hoursBack = Math.min(Number(req.body.hours_back ?? 24), 168);
+        data = await earthdataService.getPrecipitation(lat, lon, hoursBack);
+        poweredBy = 'NASA GPM IMERG via GES DISC';
+      }
+      const result = {
+        success: true,
+        product,
+        data,
+        availableProducts: ['precipitation', 'granules', 'ocean-temp', 'soil-moisture', 'ocean-color'],
+        poweredBy,
+        timestamp: new Date().toISOString(),
+      };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("satellite-earthdata", req.body, result, responseTime, SERVICE_PRICING_USD["satellite-earthdata"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "satellite-earthdata", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("satellite-earthdata", req.body, null, responseTime, SERVICE_PRICING_USD["satellite-earthdata"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.get("/earthdata-granules",
+  createPaymentOrchestrator("earthdata-granules", SERVICE_PRICING_MICRO["earthdata-granules"], (_req, res) => {
+    res.json({ service: "earthdata-granules", method: "POST", description: "Search 1B+ NASA satellite granules by bbox, date, platform, and cloud cover. Returns metadata + download URLs. $0.25/call." });
+  })
+);
+
+router.post("/earthdata-granules",
+  createPaymentOrchestrator("earthdata-granules", SERVICE_PRICING_MICRO["earthdata-granules"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const bbox = {
+        west: req.body.west ?? -122.5,
+        south: req.body.south ?? 37.7,
+        east: req.body.east ?? -122.3,
+        north: req.body.north ?? 37.9,
+      };
+      const data = await earthdataService.searchGranules({
+        bbox,
+        startDate: req.body.start_date,
+        endDate: req.body.end_date,
+        platform: req.body.platform,
+        shortName: req.body.short_name,
+        maxCloudCover: req.body.max_cloud_cover,
+        limit: req.body.limit ?? 10,
+      });
+      const result = { success: true, data, poweredBy: 'NASA Common Metadata Repository (CMR)', timestamp: new Date().toISOString() };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("earthdata-granules", req.body, result, responseTime, SERVICE_PRICING_USD["earthdata-granules"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "earthdata-granules", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("earthdata-granules", req.body, null, responseTime, SERVICE_PRICING_USD["earthdata-granules"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.get("/earthdata-precipitation",
+  createPaymentOrchestrator("earthdata-precipitation", SERVICE_PRICING_MICRO["earthdata-precipitation"], (_req, res) => {
+    res.json({ service: "earthdata-precipitation", method: "POST", description: "Observed satellite rain rate at any global coordinate. NASA GPM IMERG — actual measurement, not a forecast. $0.25/call." });
+  })
+);
+
+router.post("/earthdata-precipitation",
+  createPaymentOrchestrator("earthdata-precipitation", SERVICE_PRICING_MICRO["earthdata-precipitation"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const lat = Number(req.body.lat ?? 34.05);
+      const lon = Number(req.body.lon ?? -118.25);
+      const hoursBack = Math.min(Number(req.body.hours_back ?? 24), 168);
+      const data = await earthdataService.getPrecipitation(lat, lon, hoursBack);
+      const result = { success: true, data, poweredBy: 'NASA GPM IMERG via GES DISC', timestamp: new Date().toISOString() };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("earthdata-precipitation", req.body, result, responseTime, SERVICE_PRICING_USD["earthdata-precipitation"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "earthdata-precipitation", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("earthdata-precipitation", req.body, null, responseTime, SERVICE_PRICING_USD["earthdata-precipitation"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.get("/earthdata-sst",
+  createPaymentOrchestrator("earthdata-sst", SERVICE_PRICING_MICRO["earthdata-sst"], (_req, res) => {
+    res.json({ service: "earthdata-sst", method: "POST", description: "Sea surface temperature from NASA MUR-SST Level 4 analysis. 1km resolution, daily. $0.25/call." });
+  })
+);
+
+router.post("/earthdata-sst",
+  createPaymentOrchestrator("earthdata-sst", SERVICE_PRICING_MICRO["earthdata-sst"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const lat = Number(req.body.lat ?? 35.5);
+      const lon = Number(req.body.lon ?? -140.0);
+      const data = await earthdataService.getSeaSurfaceTemp(lat, lon, req.body.date);
+      const result = { success: true, data, poweredBy: 'NASA MUR-SST via PODAAC', timestamp: new Date().toISOString() };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("earthdata-sst", req.body, result, responseTime, SERVICE_PRICING_USD["earthdata-sst"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "earthdata-sst", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("earthdata-sst", req.body, null, responseTime, SERVICE_PRICING_USD["earthdata-sst"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.get("/earthdata-soil-moisture",
+  createPaymentOrchestrator("earthdata-soil-moisture", SERVICE_PRICING_MICRO["earthdata-soil-moisture"], (_req, res) => {
+    res.json({ service: "earthdata-soil-moisture", method: "POST", description: "SMAP L3 daily soil moisture for any coordinate. 36km resolution, 2-3 day repeat cycle. $0.25/call." });
+  })
+);
+
+router.post("/earthdata-soil-moisture",
+  createPaymentOrchestrator("earthdata-soil-moisture", SERVICE_PRICING_MICRO["earthdata-soil-moisture"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const lat = Number(req.body.lat ?? 40.0);
+      const lon = Number(req.body.lon ?? -95.0);
+      const data = await earthdataService.getSoilMoisture(lat, lon, req.body.date);
+      const result = { success: true, data, poweredBy: 'NASA SMAP via NSIDC', timestamp: new Date().toISOString() };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("earthdata-soil-moisture", req.body, result, responseTime, SERVICE_PRICING_USD["earthdata-soil-moisture"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "earthdata-soil-moisture", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("earthdata-soil-moisture", req.body, null, responseTime, SERVICE_PRICING_USD["earthdata-soil-moisture"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.get("/earthdata-ocean-color",
+  createPaymentOrchestrator("earthdata-ocean-color", SERVICE_PRICING_MICRO["earthdata-ocean-color"], (_req, res) => {
+    res.json({ service: "earthdata-ocean-color", method: "POST", description: "MODIS-Aqua chlorophyll-a and ocean color at any coastal or ocean coordinate. Daily 4km composites. $0.25/call." });
+  })
+);
+
+router.post("/earthdata-ocean-color",
+  createPaymentOrchestrator("earthdata-ocean-color", SERVICE_PRICING_MICRO["earthdata-ocean-color"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const lat = Number(req.body.lat ?? 36.0);
+      const lon = Number(req.body.lon ?? -122.0);
+      const data = await earthdataService.getOceanColor(lat, lon, req.body.date);
+      const result = { success: true, data, poweredBy: 'NASA MODIS-Aqua via OB.DAAC', timestamp: new Date().toISOString() };
+      const responseTime = Date.now() - startTime;
+      await trackRequest("earthdata-ocean-color", req.body, result, responseTime, SERVICE_PRICING_USD["earthdata-ocean-color"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "earthdata-ocean-color", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("earthdata-ocean-color", req.body, null, responseTime, SERVICE_PRICING_USD["earthdata-ocean-color"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   })

@@ -129,7 +129,12 @@ async function payService(path: string, name: string, auth: string | null): Prom
 }
 
 const SERVICES = [
-  { path: '/x402/arbitrage-scanner', name: 'arbitrage-scanner' },
+  { path: '/x402/fire-alerts', name: 'fire-alerts' },
+  { path: '/x402/weather-imagery', name: 'weather-imagery' },
+  { path: '/x402/vegetation', name: 'vegetation' },
+  { path: '/x402/flood-detection', name: 'flood-detection' },
+  { path: '/x402/air-quality', name: 'air-quality' },
+  { path: '/x402/land-use', name: 'land-use' },
 ];
 
 async function main() {

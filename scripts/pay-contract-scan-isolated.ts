@@ -129,7 +129,7 @@ async function payService(path: string, name: string, auth: string | null): Prom
 }
 
 const SERVICES = [
-  { path: '/x402/polymarket-odds', name: 'polymarket-odds' },
+  { path: '/x402/arbitrage-scanner', name: 'arbitrage-scanner' },
 ];
 
 async function main() {

@@ -2531,6 +2531,12 @@ function generate402Response(
     "polymarket-odds": "Current odds for prediction markets",
     "polymarket-search": "Search prediction markets by keyword",
     "prediction-market-odds": "Current odds for any prediction market event",
+    "satellite-earthdata": "NASA Earthdata Intelligence gateway — precipitation, granule search, SST, soil moisture, or ocean color. Pass { product: 'precipitation'|'granules'|'sst'|'soil-moisture'|'ocean-color' } in body. $0.25/call.",
+    "earthdata-granules": "Search 1B+ NASA satellite granules (Landsat, Sentinel, MODIS, VIIRS) by bbox, date, platform, cloud cover. Returns granule metadata + download URLs. $0.25/call.",
+    "earthdata-precipitation": "Observed satellite rain rate at any global coordinate. NASA GPM IMERG — actual measurement, not a model forecast. Pass { lat, lon, hours_back }. $0.25/call.",
+    "earthdata-sst": "Sea surface temperature from NASA MUR-SST Level 4 analysis. 1km resolution, daily composites. Pass { lat, lon, date? }. $0.25/call.",
+    "earthdata-soil-moisture": "NASA SMAP L3 daily soil moisture at any coordinate. 36km resolution, 2-3 day repeat cycle. Pass { lat, lon, date? }. $0.25/call.",
+    "earthdata-ocean-color": "MODIS-Aqua chlorophyll-a and ocean color at any coastal or ocean coordinate. Daily 4km composites. Pass { lat, lon, date? }. $0.25/call.",
   };
 
   // Build base response - x402 V2 compliant with MULTI-CHAIN support
@@ -2608,6 +2614,40 @@ function generate402Response(
     "sentiment-analysis": {
       asset: "BTC", overall: "bullish", score: 68, sources: { twitter: 71, reddit: 65, news: 68 },
       keyThemes: ["ETF_inflows", "halving_narrative"], timestamp: "2026-03-17T12:00:00Z"
+    },
+    "satellite-earthdata": {
+      success: true, product: "precipitation",
+      data: { lat: 40.71, lon: -74.01, precipRate_mm_hr: 2.4, qualityFlag: "good", granule: "3B-HHR.MS.MRG.3IMERG", hoursBack: 24 },
+      availableProducts: ["precipitation","granules","ocean-temp","soil-moisture","ocean-color"],
+      poweredBy: "NASA GPM IMERG via GES DISC", timestamp: "2026-04-16T00:00:00Z"
+    },
+    "earthdata-granules": {
+      success: true,
+      data: { count: 3, granules: [
+        { id: "G2890123456-LPCLOUD", shortName: "HLSL30", version: "2.0", timeStart: "2026-04-15T10:22:00Z", cloudCover: 5, downloadUrl: "https://data.lpdaac.earthdatacloud.nasa.gov/..." },
+        { id: "G2890123457-LPCLOUD", shortName: "HLSS30", version: "2.0", timeStart: "2026-04-15T10:44:00Z", cloudCover: 12, downloadUrl: "https://data.lpdaac.earthdatacloud.nasa.gov/..." }
+      ]},
+      poweredBy: "NASA CMR", timestamp: "2026-04-16T00:00:00Z"
+    },
+    "earthdata-precipitation": {
+      success: true,
+      data: { lat: 34.05, lon: -118.25, precipRate_mm_hr: 0.8, precipAccum_mm: 4.2, qualityFlag: "good", source: "GPM IMERG Final Run", hoursBack: 24 },
+      poweredBy: "NASA GPM IMERG via GES DISC", timestamp: "2026-04-16T00:00:00Z"
+    },
+    "earthdata-sst": {
+      success: true,
+      data: { lat: 35.5, lon: -140.0, sst_celsius: 18.3, sst_fahrenheit: 64.9, anomaly_celsius: 1.2, resolution_km: 1, product: "MUR-SST L4", date: "2026-04-15" },
+      poweredBy: "NASA MUR-SST via PODAAC", timestamp: "2026-04-16T00:00:00Z"
+    },
+    "earthdata-soil-moisture": {
+      success: true,
+      data: { lat: 40.0, lon: -95.0, soilMoisture_m3m3: 0.312, uncertainity: 0.04, retrievalQual: "good", product: "SMAP L3 SPL3SMP", date: "2026-04-15", resolution_km: 36 },
+      poweredBy: "NASA SMAP via NSIDC", timestamp: "2026-04-16T00:00:00Z"
+    },
+    "earthdata-ocean-color": {
+      success: true,
+      data: { lat: 36.0, lon: -122.0, chlorophyll_mg_m3: 2.14, qualityFlag: "good", product: "MODISA_L3m_CHL", resolution_km: 4, date: "2026-04-15" },
+      poweredBy: "NASA MODIS-Aqua via OB.DAAC", timestamp: "2026-04-16T00:00:00Z"
     },
   };
   const sampleOutput = sampleOutputs[serviceName] || { success: true, data: {}, service: serviceName, timestamp: new Date().toISOString() };

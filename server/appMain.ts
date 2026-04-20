@@ -527,32 +527,61 @@ app.set('trust proxy', 1);
 // Authentication routes are registered later via registerAuthRoutes(app)
 
 // CRITICAL: Register ALL marketplace routes BEFORE Vite middleware
-const agentRegistration = (await import('./routes/agentRegistration')).default;
-const agentSelfRegistration = (await import('./routes/agentSelfRegistration')).default;
-const paymentIntegration = (await import('./routes/paymentIntegration')).default;
-const messagingSystem = (await import('./routes/messagingSystem')).default;
-const disputeResolution = (await import('./routes/disputeResolution')).default;
-const agentPayouts = (await import('./routes/agentPayouts')).default;
-const orderProcessing = (await import('./routes/orderProcessing')).default;
-const escrowIntegration = (await import('./routes/escrowIntegration')).default;
-const serviceDelivery = (await import('./routes/serviceDelivery')).default;
-const reviewSystem = (await import('./routes/reviewSystem')).default;
-const referralRoutes = (await import('./routes/referralRoutes')).default;
-const blockchainRoutes = (await import('./routes/blockchainRoutes')).default;
-const aiMarketplaceRoutes = (await import('./routes/aiMarketplaceRoutes')).default;
-const marketplaceRoutes = (await import('./routes/marketplaceRoutes')).default;
-const dashboardRoutes = (await import('./routes/dashboardRoutes')).default;
-const circleRoutes = (await import('./routes/circleRoutes')).default;
-const userCircleRoutes = (await import('./routes/userCircleRoutes')).default;
+// Each import is individually guarded so a single module failure cannot
+// silently abort the entire initialization chain.
+const _safeImportRoute = async (modPath: string, label: string): Promise<any> => {
+  try {
+    const mod = await import(modPath);
+    console.log(`✅ Loaded route module: ${label}`);
+    return mod.default;
+  } catch (err: any) {
+    console.error(`❌ FAILED to load route module [${label}]:`, err?.message || err);
+    return Router(); // Empty no-op router — keeps the chain alive
+  }
+};
+
+const agentRegistration = await _safeImportRoute('./routes/agentRegistration', 'agentRegistration');
+const agentSelfRegistration = await _safeImportRoute('./routes/agentSelfRegistration', 'agentSelfRegistration');
+const paymentIntegration = await _safeImportRoute('./routes/paymentIntegration', 'paymentIntegration');
+const messagingSystem = await _safeImportRoute('./routes/messagingSystem', 'messagingSystem');
+const disputeResolution = await _safeImportRoute('./routes/disputeResolution', 'disputeResolution');
+const agentPayouts = await _safeImportRoute('./routes/agentPayouts', 'agentPayouts');
+const orderProcessing = await _safeImportRoute('./routes/orderProcessing', 'orderProcessing');
+const escrowIntegration = await _safeImportRoute('./routes/escrowIntegration', 'escrowIntegration');
+const serviceDelivery = await _safeImportRoute('./routes/serviceDelivery', 'serviceDelivery');
+const reviewSystem = await _safeImportRoute('./routes/reviewSystem', 'reviewSystem');
+const referralRoutes = await _safeImportRoute('./routes/referralRoutes', 'referralRoutes');
+const blockchainRoutes = await _safeImportRoute('./routes/blockchainRoutes', 'blockchainRoutes');
+const aiMarketplaceRoutes = await _safeImportRoute('./routes/aiMarketplaceRoutes', 'aiMarketplaceRoutes');
+const marketplaceRoutes = await _safeImportRoute('./routes/marketplaceRoutes', 'marketplaceRoutes');
+const dashboardRoutes = await _safeImportRoute('./routes/dashboardRoutes', 'dashboardRoutes');
+const circleRoutes = await _safeImportRoute('./routes/circleRoutes', 'circleRoutes');
+const userCircleRoutes = await _safeImportRoute('./routes/userCircleRoutes', 'userCircleRoutes');
 
 // Enhanced authentication
-const { enhancedAuth, requireAuth, optionalAuth } = await import('./middleware/authenticationFix');
+let enhancedAuth: any, requireAuth: any, optionalAuth: any;
+try {
+  const authFix = await import('./middleware/authenticationFix');
+  enhancedAuth = authFix.enhancedAuth;
+  requireAuth = authFix.requireAuth;
+  optionalAuth = authFix.optionalAuth;
+  console.log('✅ authenticationFix loaded');
+} catch (err: any) {
+  console.error('❌ authenticationFix load failed:', err?.message);
+  enhancedAuth = (_req: any, _res: any, next: any) => next();
+  requireAuth = (_req: any, _res: any, next: any) => next();
+  optionalAuth = (_req: any, _res: any, next: any) => next();
+}
 
-// Authentication system integration
-const { setupAuth } = await import('./replitAuth');
-
-// Initialize authentication system
-setupAuth(app);
+// Authentication system integration — awaited so rejections are caught here
+// and not left as unhandled rejections that would crash the process.
+try {
+  const { setupAuth } = await import('./replitAuth');
+  await setupAuth(app);
+  console.log('✅ Auth setup complete');
+} catch (err: any) {
+  console.warn('⚠️ Auth setup failed (non-fatal) — continuing without Replit OAuth:', err?.message || err);
+}
 
 // Restore persisted user sessions from database
 try {

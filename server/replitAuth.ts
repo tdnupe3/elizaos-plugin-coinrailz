@@ -108,7 +108,10 @@ export async function setupAuth(app: Express) {
       console.log('Using fallback authentication for development');
       return setupFallbackAuth(app);
     }
-    throw error;
+    // Production: OIDC discovery failed - skip Replit OAuth gracefully
+    // Other auth methods (email, Coinbase OAuth) will still work
+    console.warn('⚠️ Replit OAuth skipped (OIDC discovery failed). Email/Coinbase auth still active.');
+    return;
   }
 
   const verify: VerifyFunction = async (

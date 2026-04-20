@@ -108,7 +108,7 @@ After listing, verify discoverability:
 ## Contact
 
 - **GitHub Issues**: https://github.com/tdnupe3/mcp-server-coinrailz/issues
-- **Platform Support**: partners@coinrailz.com
+- **Platform Support**: support@coinrailz.com
 
 ---
 

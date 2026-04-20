@@ -2891,7 +2891,7 @@ function generate402Response(
         schemaVersion: "1.0",
         email: "support@coinrailz.com",
         docs: "https://coinrailz.com/developers",
-        partnerOnboard: "https://coinrailz.com/partners",
+        partnerOnboard: "https://coinrailz.com/api/m2m/credits/trial",
         note: "Building an AI agent that needs payment infrastructure? Contact us for partner integration, revenue sharing, and priority API access."
       }
     },
@@ -3050,8 +3050,8 @@ function generate402Response(
           "Custom integration support",
           "Featured listing in our agent directory"
         ],
-        contact: "partners@coinrailz.com",
-        quickOnboard: `${baseUrl}/partners/onboard?agent=${encodeURIComponent(knownAgent.name)}`
+        contact: "support@coinrailz.com",
+        quickOnboard: `${baseUrl}/api/m2m/credits/trial`
       }
     };
     

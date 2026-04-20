@@ -298,7 +298,7 @@ export default function ProofOfExecution() {
       </Card>
 
       <div className="text-center text-sm text-muted-foreground pt-4">
-        <p>Data is updated manually. For real-time analytics, contact partners@coinrailz.com</p>
+        <p>Data is updated manually. For real-time analytics, contact support@coinrailz.com</p>
         <p className="mt-1">All transactions are verifiable on-chain via BaseScan.</p>
       </div>
     </div>

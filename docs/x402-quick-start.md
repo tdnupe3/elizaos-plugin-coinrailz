@@ -282,7 +282,7 @@ Full catalog: https://coinrailz.com/x402/catalog
 ### Need Help?
 - Docs: https://coinrailz.com/docs
 - Status: https://coinrailz.com/health
-- Partners: partners@coinrailz.com
+- Support: support@coinrailz.com
 
 ---
 

@@ -508,7 +508,7 @@ const x402Limiter = createRateLimit({
   legacyHeaders: false,
   message: {
     x402Version: 2,
-    error: 'Rate limit exceeded. Maximum 500 requests per minute.',
+    error: 'Rate limit exceeded. Maximum 200 requests per minute.',
     retryAfter: 60,
   },
 });
@@ -971,7 +971,7 @@ console.log('✅ NASA Earthdata routes registered at /api/satellite/earthdata/* 
 // which is incompatible with @x402/fetch and Coinbase CDP facilitator v2
 const { hybridPaymentMiddleware } = await import('./middleware/hybridPaymentMiddleware');
 console.log('🔒 Mounting /x402 routes (V2 microservices + enterprise services)...');
-app.use('/x402', x402Limiter); // 🛡️ Rate limit: 500 req/min per identity (wallet > api-key > IP), internal IPs exempt
+app.use('/x402', x402Limiter); // 🛡️ Rate limit: 200 req/min per identity (wallet > api-key > IP), internal IPs exempt
 app.use('/x402', x402MicroserviceRoutes);
 
 // === MPP (Machine Payments Protocol) ROUTES ===

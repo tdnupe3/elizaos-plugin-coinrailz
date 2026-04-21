@@ -488,10 +488,10 @@ const authLimiter = createRateLimit({
 // Using direct app.use() avoids the wrapper-function re-entry issue that caused the previous
 // "infinite loop" when the general /api limiter was applied inside an anonymous callback.
 // Key strategy: wallet address > API key > IP address (avoids penalizing shared NAT exits)
-// 500 req/min: blocks DDoS bursts while safely above the heaviest legitimate probe (~24/min)
+// 200 req/min: 8x above the heaviest legitimate probe (~24/min); stops single-IP abuse without blocking any real agent
 const x402Limiter = createRateLimit({
   windowMs: 60 * 1000, // 1-minute window (short window = memory counters reset often = no Redis needed)
-  max: 500,
+  max: 200, // 200 req/min = 8x above the heaviest legitimate probe (~24/min); single-IP DDoS protection
   skip: (req: any) => {
     const ip = req.ip || '';
     return ip === '127.0.0.1' || ip === '::1' || ip.startsWith('10.');

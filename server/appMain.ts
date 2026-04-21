@@ -484,6 +484,35 @@ const authLimiter = createRateLimit({
   legacyHeaders: false,
 });
 
+// x402 endpoint protection — targeted rate limiter applied DIRECTLY (no wrapper function)
+// Using direct app.use() avoids the wrapper-function re-entry issue that caused the previous
+// "infinite loop" when the general /api limiter was applied inside an anonymous callback.
+// Key strategy: wallet address > API key > IP address (avoids penalizing shared NAT exits)
+// 500 req/min: blocks DDoS bursts while safely above the heaviest legitimate probe (~24/min)
+const x402Limiter = createRateLimit({
+  windowMs: 60 * 1000, // 1-minute window (short window = memory counters reset often = no Redis needed)
+  max: 500,
+  skip: (req: any) => {
+    const ip = req.ip || '';
+    return ip === '127.0.0.1' || ip === '::1' || ip.startsWith('10.');
+  },
+  keyGenerator: (req: any) => {
+    // Prefer wallet/API-key identity over IP so NAT-shared agents aren't grouped together
+    return req.headers['x-payment-address']
+      || req.headers['x-api-key']
+      || req.headers['x-wallet-address']
+      || req.ip
+      || 'unknown';
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    x402Version: 2,
+    error: 'Rate limit exceeded. Maximum 500 requests per minute.',
+    retryAfter: 60,
+  },
+});
+
 // Initialize blockchain services
 if (bnbChainService.isEnabled()) {
   console.log('✅ BNB Chain service initialized:', { 
@@ -942,6 +971,7 @@ console.log('✅ NASA Earthdata routes registered at /api/satellite/earthdata/* 
 // which is incompatible with @x402/fetch and Coinbase CDP facilitator v2
 const { hybridPaymentMiddleware } = await import('./middleware/hybridPaymentMiddleware');
 console.log('🔒 Mounting /x402 routes (V2 microservices + enterprise services)...');
+app.use('/x402', x402Limiter); // 🛡️ Rate limit: 500 req/min per identity (wallet > api-key > IP), internal IPs exempt
 app.use('/x402', x402MicroserviceRoutes);
 
 // === MPP (Machine Payments Protocol) ROUTES ===

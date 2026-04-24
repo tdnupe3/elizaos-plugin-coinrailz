@@ -29,42 +29,53 @@ class UserCircleService {
       }
 
       // Create new wallet set if user doesn't have one
+      const circleService = new CircleService();
       let walletSetId = user.circleWalletSetId;
       if (!walletSetId) {
-        const circleService = new CircleService();
-        const walletSet = await circleService.createWalletSet(`${user.firstName || 'User'} ${user.lastName || userId} Wallet Set`);
-        if (!walletSet || !walletSet.id) {
-          throw new Error('Failed to create wallet set');
+        const walletSetResult = await circleService.createWalletSet(`${user.firstName || 'User'} ${user.lastName || userId} Wallet Set`);
+        if (!walletSetResult?.success || !walletSetResult?.data) {
+          throw new Error(`Failed to create wallet set: ${walletSetResult?.message || 'Unknown error from Circle API'}`);
         }
-        walletSetId = walletSet.id;
+        walletSetId = walletSetResult.data?.walletSetId || walletSetResult.data?.id;
+        if (!walletSetId) {
+          throw new Error('Failed to extract wallet set ID from Circle API response');
+        }
       }
 
       // Create wallet in the wallet set
-      const wallet = await circleService.createWallet(walletSetId, blockchain);
-      if (!wallet || !wallet.id) {
-        throw new Error('Failed to create wallet');
+      const walletResult = await circleService.createWallet({ walletSetId, blockchain });
+      if (!walletResult?.success || !walletResult?.data) {
+        throw new Error(`Failed to create wallet: ${walletResult?.message || 'Unknown error from Circle API'}`);
+      }
+      const walletData = walletResult.data;
+      const walletId = walletData?.walletId || walletData?.wallet?.id;
+      const walletAddress = walletData?.address || walletData?.wallet?.address;
+      const walletState = walletData?.state || walletData?.wallet?.state;
+      const walletAccountType = walletData?.accountType || walletData?.wallet?.accountType;
+      if (!walletId) {
+        throw new Error('Failed to extract wallet ID from Circle API response');
       }
 
       // Update user record with Circle wallet details
       await db.update(users)
         .set({
-          circleWalletId: wallet.id,
+          circleWalletId: walletId,
           circleWalletSetId: walletSetId,
-          circleWalletAddress: wallet.address,
+          circleWalletAddress: walletAddress,
           circleBlockchain: blockchain,
-          circleWalletState: wallet.state,
-          circleAccountType: wallet.accountType,
+          circleWalletState: walletState,
+          circleAccountType: walletAccountType,
           usdcBalance: '0.00000000'
         })
         .where(eq(users.id, userId));
 
       return {
         success: true,
-        walletId: wallet.id,
-        walletSetId: walletSetId,
-        address: wallet.address,
-        blockchain: blockchain,
-        state: wallet.state,
+        walletId,
+        walletSetId,
+        address: walletAddress,
+        blockchain,
+        state: walletState,
         existing: false
       };
 

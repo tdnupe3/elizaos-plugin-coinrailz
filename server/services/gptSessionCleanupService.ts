@@ -37,8 +37,8 @@ export class GptSessionCleanupService {
       return;
     }
 
-    // Run daily at 4:00 AM: 0 4 * * *
-    this.cronJob = cron.schedule('0 4 * * *', async () => {
+    // Run daily at 4:05 AM — offset 5 min to avoid hourly cleanup cron event-loop contention at :00
+    this.cronJob = cron.schedule('5 4 * * *', async () => {
       if (this.isRunning) {
         console.log('⏭️ Skipping GPT session cleanup - previous run still in progress');
         return;

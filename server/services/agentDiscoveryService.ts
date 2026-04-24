@@ -1088,8 +1088,8 @@ ${batchResults
     
     console.log('⏰ Initializing once-daily discovery scheduler (8am UTC)...');
     
-    // Run once daily at 8am UTC (reduced from twice-daily to avoid Bazaar 429 rate limits)
-    this.cronJob = cron.schedule('0 8 * * *', async () => {
+    // Run once daily at 8:05am UTC — offset 5 min to avoid hourly cleanup cron event-loop contention at :00
+    this.cronJob = cron.schedule('5 8 * * *', async () => {
       console.log('🕐 Daily scheduled discovery starting...');
       
       try {

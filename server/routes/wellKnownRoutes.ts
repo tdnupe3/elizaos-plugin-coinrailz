@@ -94,6 +94,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
     version: "0.6.1",
     x402ManifestVersion: "x402-2.3",
     agentId: "coinrailz-x402-infrastructure",
+    securityContact: "mailto:security@coinrailz.com",
     
     // A2A v0.3 service endpoint
     serviceUrl: `${baseUrl}/x402`,

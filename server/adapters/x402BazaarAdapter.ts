@@ -69,6 +69,7 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
 
     try {
       while (hasMore && currentPage < maxPages) {
+        console.log(`📡 Fetching Bazaar page ${currentPage + 1}...`);
         // Check rate limit
         if (!this.checkRateLimit()) {
           await this.waitForRateLimit();
@@ -85,6 +86,10 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
         // Process items (API returns 'items', not 'resources')
         const items = response.items || [];
         console.log(`📦 Processing page ${currentPage + 1}: ${items.length} resources (offset ${offset})`);
+        
+        if (items.length === 0) {
+          console.log('ℹ️ Page returned 0 items, checking if this is expected or a silent failure');
+        }
 
         for (const item of items) {
           // Normalize and add agent

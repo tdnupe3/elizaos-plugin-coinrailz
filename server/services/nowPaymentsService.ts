@@ -24,7 +24,9 @@ export class NOWPaymentsService {
 
   constructor() {
     if (!env.NOWPAYMENTS_API_KEY) {
-      throw new Error('NOWPayments API key is required');
+      console.warn('⚠️  NOWPAYMENTS_API_KEY not set — NOWPayments service disabled');
+      this.apiKey = '';
+      return;
     }
     this.apiKey = env.NOWPAYMENTS_API_KEY;
   }

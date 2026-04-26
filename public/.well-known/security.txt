@@ -1,5 +1,5 @@
 Contact: mailto:security@coinrailz.com
-Expires: 2026-04-25T13:00:00Z
+Expires: 2027-04-25T13:00:00Z
 Preferred-Languages: en
 Canonical: https://coinrailz.com/.well-known/security.txt
 Policy: https://coinrailz.com/security-policy
@@ -7,3 +7,4 @@ Hiring: https://coinrailz.com/jobs
 # x402 Ecosystem Security Policy
 # We accept coordinated vulnerability disclosure for our A2A/x402 infrastructure.
 # For urgent security matters regarding agent wallet safety, contact us immediately.
+# x402-Identity: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91

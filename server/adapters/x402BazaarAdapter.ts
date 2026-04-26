@@ -88,7 +88,7 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
         console.log(`📦 Processing page ${currentPage + 1}: ${items.length} resources (offset ${offset})`);
         
         if (items.length === 0) {
-          console.log('ℹ️ Page returned 0 items, checking if this is expected or a silent failure');
+          console.log(`ℹ️ Page returned 0 items. Offset: ${offset}, Limit: ${LIMIT}, Response Items: ${JSON.stringify(response.items)}`);
         }
 
         for (const item of items) {

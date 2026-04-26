@@ -22,6 +22,7 @@ export class GasPriceOracleHandler implements ServiceHandler {
 
       const chains = request.chains || ['ethereum', 'base', 'polygon', 'arbitrum', 'optimism'];
 
+      console.log(`⛽ Requesting AI gas prices for chains: ${chains.join(', ')}`);
       const aiResult = await getGasPricesWithAI(
         chains,
         request.orderId

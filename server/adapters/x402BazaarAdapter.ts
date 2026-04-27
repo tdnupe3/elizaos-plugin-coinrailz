@@ -292,11 +292,29 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
 
   async healthCheck(): Promise<boolean> {
     try {
-      // Discovery endpoint is public - just verify API is reachable
-      const response = await this.fetchBazaarPage(0, 1);
-      const hasItems = response?.items && response.items.length > 0;
-      const hasTotal = response?.pagination?.total && response.pagination.total > 0;
-      return hasItems || hasTotal;
+      // Single direct probe — no retryWithBackoff, no rate limit slot consumed.
+      // Must complete well under the 15s health-check timeout enforced by the
+      // discovery service (retryWithBackoff can sleep 14+ seconds on failures
+      // and will reliably kill the health check before discover() is ever called).
+      const url = `${this.bazaarEndpoint}?limit=1&offset=0`;
+      const response = await this.safeFetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'CoinRailz-x402-Platform/1.0'
+        }
+      }, 10000); // 10s hard cap — leaves 5s headroom under the 15s service limit
+
+      if (!response.ok) {
+        console.warn(`⚠️ Bazaar health check: HTTP ${response.status} — discovery will be skipped`);
+        return false;
+      }
+
+      const data = await this.safeJsonParse(response);
+      const total = data?.pagination?.total ?? 0;
+      const hasItems = (data?.items?.length ?? 0) > 0;
+      console.log(`✅ Bazaar health check: ${total} total resources available`);
+      return hasItems || total > 0;
     } catch (error) {
       console.error(`❌ Bazaar health check failed:`, error);
       return false;

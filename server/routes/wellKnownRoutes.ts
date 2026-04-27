@@ -101,6 +101,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
     
     // Machine-readable onboarding instructions for AI agents
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
+    agent_instructions: `${baseUrl}/.well-known/agent-instructions.json`,
 
     // Agent self-registration — record your wallet & capabilities before making first call
     registrationEndpoint: `${baseUrl}/.well-known/agent-registration.json`,
@@ -3724,6 +3725,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     version: "x402-2.3",
     updated: "2026-04-01T12:00:00Z",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
+    agent_instructions: `${baseUrl}/.well-known/agent-instructions.json`,
     registrationEndpoint: `${baseUrl}/.well-known/agent-registration.json`,
     quickstart: {
       summary: "Three paths to start using Coin Railz services. Fastest: free trial key in one GET request.",

@@ -113,7 +113,15 @@ const stripePaymentRoutes = (await import('./routes/stripePaymentRoutes.js')).de
 const campaignConversionRoutes = (await import('./routes/campaignConversionRoutes.js')).default;
 const { ProviderCapabilityService } = await import('./services/providerCapabilityService.js');
 const { createAllProviderRouters } = await import('./routes/a2aProviderRoutes.js');
-const { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } = await import('./paypal.js');
+let createPaypalOrder: any, capturePaypalOrder: any, loadPaypalDefault: any;
+try {
+  const paypalModule = await import('./paypal.js');
+  createPaypalOrder = paypalModule.createPaypalOrder;
+  capturePaypalOrder = paypalModule.capturePaypalOrder;
+  loadPaypalDefault = paypalModule.loadPaypalDefault;
+} catch (e: any) {
+  console.warn('⚠️  PayPal service disabled (missing credentials):', e.message);
+}
 const rateLimitImport = (await import('express-rate-limit')).default;
 // NOTE: initializeServiceHandlers is now dynamically imported in post-listen block
 

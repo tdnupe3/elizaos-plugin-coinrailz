@@ -96,6 +96,23 @@ export const discoveryRuns = pgTable(
   ],
 );
 
+// Persistent pagination state for long-running discovery adapters
+// Allows daily cron runs to resume from where the previous run ended
+// rather than always restarting at offset 0 and re-scanning duplicates.
+export const discoveryState = pgTable(
+  "discovery_state",
+  {
+    adapterId: varchar("adapter_id").primaryKey(), // e.g. 'x402-bazaar'
+    lastOffset: integer("last_offset").notNull().default(0), // next offset to fetch
+    totalSeen: integer("total_seen").default(0), // total resources reported by API on last run
+    lastRunAt: timestamp("last_run_at").defaultNow(),
+    metadata: jsonb("metadata"), // adapter-specific extras (e.g. cycle count)
+  }
+);
+
+export type DiscoveryState = typeof discoveryState.$inferSelect;
+export type InsertDiscoveryState = typeof discoveryState.$inferInsert;
+
 // Agent Outreach Messages table for tracking automated outreach
 export const agentOutreachMessages = pgTable(
   "agent_outreach_messages",

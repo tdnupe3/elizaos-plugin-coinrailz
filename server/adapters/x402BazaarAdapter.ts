@@ -10,6 +10,9 @@
 
 import { BaseDiscoveryAdapter } from './baseAdapter';
 import { DiscoveredAgentRaw } from '../services/agentDiscoveryService';
+import { db } from '../db';
+import { discoveryState } from '../../shared/schema';
+import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 
 interface X402BazaarAccepts {
@@ -53,23 +56,76 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
 
   private bazaarEndpoint = 'https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources';
   
+  /**
+   * Read the persisted starting offset from DB.
+   * Defaults to 0 if no row exists yet.
+   */
+  private async getStartOffset(): Promise<number> {
+    try {
+      const rows = await db
+        .select({ lastOffset: discoveryState.lastOffset })
+        .from(discoveryState)
+        .where(eq(discoveryState.adapterId, 'x402-bazaar'))
+        .limit(1);
+      return rows[0]?.lastOffset ?? 0;
+    } catch (err) {
+      console.warn('⚠️ Could not read Bazaar discovery state from DB — defaulting to offset 0:', err);
+      return 0;
+    }
+  }
+
+  /**
+   * Persist the next offset to DB after each successful page.
+   * Called after every page so a mid-run timeout still leaves a valid checkpoint.
+   * When nextOffset >= total, wraps back to 0 for the next full cycle.
+   */
+  private async saveOffset(nextOffset: number, total: number): Promise<void> {
+    try {
+      const effectiveOffset = nextOffset >= total ? 0 : nextOffset;
+      const wrapped = nextOffset >= total;
+      await db
+        .insert(discoveryState)
+        .values({
+          adapterId: 'x402-bazaar',
+          lastOffset: effectiveOffset,
+          totalSeen: total,
+          lastRunAt: new Date(),
+          metadata: { wrapped, savedAt: new Date().toISOString() }
+        })
+        .onConflictDoUpdate({
+          target: discoveryState.adapterId,
+          set: {
+            lastOffset: effectiveOffset,
+            totalSeen: total,
+            lastRunAt: new Date(),
+            metadata: { wrapped, savedAt: new Date().toISOString() }
+          }
+        });
+      if (wrapped) {
+        console.log(`🔄 Bazaar full cycle complete — offset reset to 0 for next run`);
+      }
+    } catch (err) {
+      // Non-fatal: if we can't save, next run just restarts from previous checkpoint
+      console.warn('⚠️ Could not save Bazaar discovery offset to DB:', err);
+    }
+  }
+
   async discover(options: { maxPages?: number } = {}): Promise<DiscoveredAgentRaw[]> {
-    console.log(`🎯 Starting Coinbase x402 Bazaar discovery (REAL paying agents)...`);
-    
-    // Discovery endpoint is PUBLIC - no credentials required
-    // (Only payment verification needs CDP auth)
+    // Read the persisted offset so we resume where we left off
+    const startOffset = await this.getStartOffset();
+    console.log(`🎯 Starting Coinbase x402 Bazaar discovery (REAL paying agents) from offset ${startOffset}...`);
 
     const discoveredAgents: DiscoveredAgentRaw[] = [];
     const LIMIT = 100; // Items per page
     const maxPages = options.maxPages || 
                      parseInt(process.env.X402_BAZAAR_MAX_PAGES || '50', 10);
     let currentPage = 0;
-    let offset = 0;
+    let offset = startOffset;
     let hasMore = true;
 
     try {
       while (hasMore && currentPage < maxPages) {
-        console.log(`📡 Fetching Bazaar page ${currentPage + 1}...`);
+        console.log(`📡 Fetching Bazaar page ${currentPage + 1} (offset ${offset})...`);
         // Check rate limit
         if (!this.checkRateLimit()) {
           await this.waitForRateLimit();
@@ -88,38 +144,41 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
         console.log(`📦 Processing page ${currentPage + 1}: ${items.length} resources (offset ${offset})`);
         
         if (items.length === 0) {
-          console.log(`ℹ️ Page returned 0 items. Offset: ${offset}, Limit: ${LIMIT}, Response Items: ${JSON.stringify(response.items)}`);
+          console.log(`ℹ️ Page returned 0 items. Offset: ${offset}, Limit: ${LIMIT}`);
         }
 
         for (const item of items) {
-          // Normalize and add agent
           const agent = this.normalizeAgent(item, 'x402-bazaar');
           if (agent) {
             discoveredAgents.push(agent);
           }
         }
 
-        // Update pagination (offset-based)
+        // Update pagination state
         const pagination = response.pagination;
         if (pagination) {
-          offset += LIMIT;
-          hasMore = offset < pagination.total;
-          console.log(`   Progress: ${offset}/${pagination.total} (${Math.min(100, Math.round(offset / pagination.total * 100))}%)`);
+          const nextOffset = offset + LIMIT;
+          const total = pagination.total;
+          hasMore = nextOffset < total && currentPage + 1 < maxPages;
+          console.log(`   Progress: ${nextOffset}/${total} (${Math.min(100, Math.round(nextOffset / total * 100))}%)`);
+
+          // Persist checkpoint after every successful page — safe against mid-run timeouts
+          await this.saveOffset(nextOffset, total);
+          offset = nextOffset;
         } else {
           hasMore = false;
         }
         
         currentPage++;
 
-        // Respect rate limits with adaptive delay to avoid 429s
-        if (hasMore && currentPage < maxPages) {
-          // Use 7s delay to stay safely under Coinbase's 10 req/min rate limit
+        // Respect rate limits — 7s delay stays safely under Coinbase's 10 req/min
+        if (hasMore) {
           const delayMs = parseInt(process.env.X402_BAZAAR_DELAY_MS || '7000', 10);
           await this.sleep(delayMs);
         }
       }
 
-      console.log(`✅ Bazaar discovery complete: ${discoveredAgents.length} REAL agents from ${currentPage} pages`);
+      console.log(`✅ Bazaar discovery complete: ${discoveredAgents.length} REAL agents from ${currentPage} pages (next run starts at offset ${offset})`);
       
     } catch (error) {
       console.error(`❌ Bazaar discovery failed:`, error);

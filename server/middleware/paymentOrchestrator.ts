@@ -1972,6 +1972,8 @@ export function createPaymentOrchestrator(
                 }
               });
               
+              res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
+              res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
               return res.status(402).json({
                 x402Version: 2,
                 error: "insufficient_balance",
@@ -2021,6 +2023,8 @@ export function createPaymentOrchestrator(
             }
             
             // Other EIP-3009 errors (expired, already used, invalid signature)
+            res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
+            res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
             return res.status(402).json({
               x402Version: 2,
               error: `Payment authorization failed: ${eip3009Error.message}`,

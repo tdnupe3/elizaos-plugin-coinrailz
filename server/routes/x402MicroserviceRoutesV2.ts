@@ -2212,6 +2212,8 @@ curl -X POST https://coinrailz.com/x402/gas-price-oracle \\
     }
   };
 
+  res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
+  res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
   res.status(402).json(response);
 }
 

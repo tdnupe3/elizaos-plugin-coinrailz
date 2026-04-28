@@ -540,6 +540,23 @@ if (pulseChainService.isEnabled()) {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Inject X-Agent-Instructions + Link headers on every 402 response automatically.
+// This covers all 60+ res.status(402).json(...) call sites without touching any of them.
+// Agents using HEAD requests or those that skip parsing the body (Meta, python-httpx monitors)
+// will now receive the instructions pointer in the HTTP headers themselves.
+app.use((_req, res, next) => {
+  const originalJson = res.json.bind(res);
+  res.json = function (body: unknown) {
+    if (res.statusCode === 402) {
+      res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
+      res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
+      res.setHeader('Access-Control-Expose-Headers', 'X-Agent-Instructions, Link, X-402-Version, X-Credits-Used, X-Credits-Remaining, X-Recharge-Url');
+    }
+    return originalJson(body);
+  };
+  next();
+});
+
 // Fix trust proxy for rate limiting
 app.set('trust proxy', 1);
 

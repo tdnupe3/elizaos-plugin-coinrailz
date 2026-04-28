@@ -142,6 +142,8 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
       const balance = await creditsService.getBalance(xInternalUserId);
       
       if (balance < requiredAmountUSD) {
+        res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
+        res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
         return res.status(402).json({
           error: "Insufficient credits",
           required: requiredAmountUSD,
@@ -171,6 +173,8 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
       return next();
     } catch (error: any) {
       console.error("Internal auth payment error:", error);
+      res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
+      res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
       return res.status(402).json({
         error: "Payment failed",
         message: error.message
@@ -214,6 +218,8 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
       const balance = await creditsService.getBalance(validation.userId);
       
       if (balance < requiredAmountUSD) {
+        res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
+        res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
         return res.status(402).json({
           error: "Insufficient credits",
           required: requiredAmountUSD,
@@ -365,6 +371,8 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
         return next();
       } else {
         console.log(`❌ Payment verification failed for ${serviceName} (chain: ${paymentChain})`);
+        res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
+        res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
         return res.status(402).json({
           x402Version: 2,
           error: "Payment verification failed",

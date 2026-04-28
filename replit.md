@@ -48,6 +48,7 @@ Coin Railz employs a USDC-first strategy, utilizing Coinbase CDP for wallet mana
 - **Discovery Surfaces Audit**: All 6 discovery surfaces (sitemap, agent-card, x402.json manifest, etc.) correctly list 60 services. IoT x402 discovery fixed to point to correct `/x402` routes and return 402 challenges on GET/HEAD probes.
 - **AWI + WebMCP Manifests**: Added `/.well-known/webmcp.json`, `/.well-known/awi.json`, and `/.well-known/mcp-integration.json` for agent web interface, MCP protocol, and integration guides.
 - **MCP Integration Guide Page**: Frontend page at `/mcp-integration-guide` with copy-paste instructions for API key credits and native x402 integration.
+- **X-Agent-Instructions Header (Global)**: A response interceptor middleware in `server/appMain.ts` automatically injects `X-Agent-Instructions` and `Link` headers on every 402 response platform-wide. This covers all 65+ `res.status(402)` call sites across 16 files without modifying individual routes. Agents using HEAD requests (Meta externalagent, python-httpx monitors) now receive the instructions pointer in HTTP headers without reading the body.
 
 ## External Dependencies
 - **Coinbase CDP:** Wallet creation, management, and transaction execution.

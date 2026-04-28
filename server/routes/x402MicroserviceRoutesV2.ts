@@ -2546,6 +2546,8 @@ enterpriseDirectEndpoints.forEach(service => {
       example: { success: true, result: {}, timestamp: new Date().toISOString() }
     };
     
+    res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
+    res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
     res.status(402).json({
       x402Version: 2,
       error: "X-PAYMENT header is required",

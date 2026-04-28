@@ -406,6 +406,8 @@ router.get('/data/:productId', async (req: Request, res: Response) => {
       ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
       : 'https://coinrailz.com';
     
+    res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
+    res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
     res.status(402).json({
       success: false,
       error: 'Payment required',
@@ -515,6 +517,8 @@ router.post('/data/:productId/verify', async (req: Request, res: Response) => {
       const payment = x402Payment[0];
       
       if (payment.status !== 'completed') {
+        res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
+        res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
         return res.status(402).json({
           success: false,
           error: 'Payment not completed',
@@ -525,6 +529,8 @@ router.post('/data/:productId/verify', async (req: Request, res: Response) => {
       
       const paymentAmount = parseFloat(payment.amount);
       if (paymentAmount < expectedPrice * 0.99) {
+        res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
+        res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
         return res.status(402).json({
           success: false,
           error: 'Insufficient payment amount',

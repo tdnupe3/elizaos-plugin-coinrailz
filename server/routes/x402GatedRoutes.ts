@@ -510,6 +510,8 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
     facilitatorUrl: getFacilitatorUrl()
   };
 
+  res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
+  res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
   res.status(402).json(response);
 }
 
@@ -741,6 +743,8 @@ function generateDynamic402Response(serviceSlug: string, req: Request, res: Resp
     totalServicesAvailable: ALL_SERVICE_SLUGS.length,
   };
 
+  res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
+  res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
   res.status(402).json(response);
 }
 

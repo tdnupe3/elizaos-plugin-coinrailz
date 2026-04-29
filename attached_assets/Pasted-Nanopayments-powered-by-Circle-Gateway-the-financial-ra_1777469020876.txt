@@ -1,0 +1,72 @@
+Nanopayments powered by Circle Gateway, the financial rail for AI agents, is now live on mainnet with support for 11 blockchains.
+
+ 
+
+Internet commerce is no longer just humans manually activating checkout buttons. It’s software, agents, APIs, and agentic machines transacting continuously, rapidly, and in miniscule monetary increments. But most payment infrastructure can’t meet modern needs. Traditional rails carry fixed costs and slow settlement. Standard onchain transfers require gas on every transaction. In both models, the transaction fee can easily exceed the payment amount, which breaks sub-cent economics before a product ever reaches scale. 
+
+ 
+
+Newer alternatives like the x402 protocol were created to make internet-native payments, and in its first few months, it processed more than $100 million in payments, demonstrating the latent market demand. Meanwhile, researchers estimate agentic commerce could reach $5 trillion in revenue by 2030.
+
+ 
+
+Today, Nanopayments moves from testnet to mainnet. Powered by Circle Gateway, it gives developers, agentic platforms, and infrastructure teams a purpose-built financial rail for agentic economic activity: gas-free USDC payments of any size, down to $0.000001, with instant verification, making high-frequency value transfer practical. 
+
+ 
+
+Nanopayments is a payment primitive designed for an interoperable machine-scale economy. 
+
+ 
+
+Built for an open agentic economy
+
+Two models are beginning to emerge in the agent-led economy: closed platforms that keep payments inside proprietary ecosystems, and open infrastructure that lets agents transact across apps, services, and chains. Circle is building the latter, combining the critical features that developers have not had in one system before: sub-cent USDC payments, a gas-free user experience, instant verification, and chain-abstracted settlement.
+ 
+
+Powered by Circle Gateway’s unified balance model, developers can deposit USDC into a non-custodial smart contract and access unified liquidity across supported chains in under 500 milliseconds, while Nanopayments batches thousands of transactions and settles them onchain.
+
+ 
+
+Instant verification allows merchants to confidently deliver goods or services immediately after payment authorization without waiting for onchain settlement. This gives sellers strong assurance that the transaction will be included in a batch, enabling them to trigger business logic within hundreds of milliseconds rather than waiting seconds (or longer) for block confirmation. It separates execution speed from final settlement, preserving trust while enabling sub-second user and agent experiences.
+
+
+This matters. Agents do not buy like humans. They pay per call, per second, per result, per crawl, per memory write, and per dataset read. These flows demand infrastructure that is programmable, neutral, and efficient at very small denominations. Nanopayments delivers, providing gas-free USDC transfers down to $0.000001, integrating with x402 as an additive payment option rather than a replacement, and preserving the non-custodial model where payments can only be executed from user-signed authorizations. In other words, builders do not have to choose between open standards and better nanopayment economics.
+
+ 
+
+How Nanopayments works
+
+First, users establish a USDC balance by depositing USDC into a Circle Gateway smart contract. This account balance can now make agentic payments of any size, including nanopayments. From there, the step-by-step payment flow process works as follows:
+
+Request USDC payment: Agent requests a paid resource. Merchant returns HTTP 402 payment instructions.
+Sign it: Agent signs an EIP-3009 authorization for the requested amount, preserving a non-custodial model.
+Submit it: Agent resubmits the request with the signed authorization. The merchant sends it to Nanopayments for validation.
+Verify it: Nanopayments verifies the signature, checks the user’s balance, and deducts the authorized amount.
+Confirm it: Nanopayments returns a successful response and the merchant receives the payment.
+That’s the entire process. Nanopayments handles all the technical onchain legwork while periodically settling batched transactions in the background.
+
+ 
+
+Nanopayments have arrived
+
+With mainnet live, builders now have quickstart guides, x402 integration paths that work with onchain flows, and Gateway support for unified USDC liquidity from day one. Just as importantly, the ecosystem has matured around it: x402 has expanded into infrastructure, data, cloud, and agent tooling, with a growing number of major participants already building. Developers and teams are not waiting for the agentic economy to arrive; they are already incorporating it into real products.
+
+Agent-to-agent and API payments: Pay for data, compute, inference, memory, and specialized services in real time, without account creation or per-transaction gas costs.
+Usage-based billing: Charge by the request, second, or event for AI tools, SaaS features, cloud resources, and developer APIs. No subscriptions required.
+Data and analytics markets: Monetize RPC requests, wallet intelligence, research feeds, and market data with granular pay-per-use pricing that works at scale.
+Content and licensing: Enable pay-per-article, pay-per-asset, and instant licensing flows for digital media and creative content, not just agentic endpoints.
+Games, rewards, and machine networks: Power micro-incentives, streaming value, machine-to-machine compensation, and batched economies where individual transfers are too small for traditional rails.
+Now available for builders and agents
+
+Nanopayments is built for Gateway-supported EVM environments and is designed to work across a growing set of chains where developers are building agentic applications. As of today, the Nanopayments mainnet is currently supported for Arbitrum, Avalanche, Base, Ethereum, HyperEVM, Optimism, Polygon PoS, Sei, Sonic, Unichain, and World Chain —  giving builders a strong foundation that provides a crosschain UX, unified USDC liquidity, and the open infrastructure that the agentic economy requires.
+
+ 
+
+Live integrations are already underway, with early builders actively using nanopayments in production environments. Early integrations include: AIsa, AgentCard, Alchemy, Arrays, blockrun.ai, Goldsky, Meridian, and Quicknode. 
+
+
+Nanopayments works with both x402 and standard HTTP 402 flows, letting teams add gas-free payments without rebuilding their payments stack from scratch. The goal is facilitating a more open financial layer for the agentic economy: interoperable, programmable, and ready for builders who want to move from demos to production.
+
+ 
+
+Explore the docs and guides, try plugging Nanopayments into your x402 flows, and start building in the agentic economy today.

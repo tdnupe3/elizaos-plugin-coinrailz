@@ -6,13 +6,14 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { SERVICE_PRICING_USD } from '@shared/pricing';
+import { SERVICE_PRICING_USD, formatUSD, ServiceName, isServiceName, getServicePriceUSD } from '@shared/pricing';
 import { getFacilitatorUrl, getAllFacilitatorUrls } from '../utils/facilitatorHelper';
 import { trackDiscovery } from '../middleware/hitTracker';
 import { db } from '../db';
 import { discoveredAgents } from '@shared/schema';
 import { eq, or } from 'drizzle-orm';
 import { emitFirstContactAsync } from '../services/funnelHelper.js';
+import { serviceCatalogService } from '../services/serviceCatalogService';
 
 const MPP_PROTOCOL_VERSION = "1.0";
 
@@ -6115,6 +6116,14 @@ router.get('/.well-known/mcp-integration.json', (req: Request, res: Response) =>
       mcpServices: `${baseUrl}/mcp/services`,
       openapi: `${baseUrl}/openapi.json`,
     },
+    mcpServiceMap: serviceCatalogService.getCatalog().services.map(s => ({
+      mcpTool: s.id.replace(/-/g, '_'),
+      serviceId: s.id,
+      endpoint: `${baseUrl}${s.endpoint}`,
+      priceUsd: getServicePriceUSD(s.id as ServiceName) || 0.25,
+      method: "POST",
+      inputSchema: (serviceCatalogService.getCatalog() as any).skills?.find((sk: any) => sk.id === s.id)?.inputSchema || { type: "object", properties: {} }
+    })),
     support: {
       email: "support@coinrailz.com",
       humanGuide: `${baseUrl}/mcp-integration-guide`,

@@ -351,6 +351,14 @@ function handleMessageSend(req: Request, res: Response) {
     priceUsd: top.priceUsd,
     x402Endpoint: top.x402Endpoint,
     paymentProtocol: 'x402',
+    freeTrial: {
+      url: `${BASE_URL}/api/m2m/credits/trial`,
+      method: 'GET',
+      note: 'No wallet required. Returns a $5 credit API key instantly. Works on all 65+ services.',
+      creditsUsd: 5,
+      callsEstimate: '80-100 calls at standard pricing',
+      curl: `curl ${BASE_URL}/api/m2m/credits/trial`
+    },
     alternateMatches: matches.slice(1, 4).map(s => ({ id: s.id, name: s.name, priceUsd: s.priceUsd, x402Endpoint: s.x402Endpoint })),
     paymentRequest: {
       protocol: 'x402',

@@ -2885,8 +2885,7 @@ curl -X POST ${baseUrl}/x402/first-call \\
 });
 
 router.post("/first-call",
-  createPaymentOrchestrator("first-call", SERVICE_PRICING_MICRO["first-call"], firstCallHandler),
-  firstCallHandler
+  createPaymentOrchestrator("first-call", SERVICE_PRICING_MICRO["first-call"], firstCallHandler)
 );
 
 // Service handler implementations with payment orchestrator

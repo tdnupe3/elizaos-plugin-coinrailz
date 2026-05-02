@@ -171,6 +171,22 @@ const { validateProductionReadiness } = await import('./healthChecks');
 validateProductionReadiness();
 // ============= END BOOT-TIME VALIDATION =============
 
+// ============= IP BLOCKLIST =============
+// Hard-blocked IPs: confirmed scrapers with zero payment intent causing DB pollution
+const BLOCKED_IPS = new Set([
+  '104.131.41.96', // axios/1.14.0 — bare DO VPS, 550k+ req over 17 days, 0 payments, 0 wallet, pure noise
+]);
+
+app.use((req: any, res: any, next: any) => {
+  const ip = req.ip || req.connection?.remoteAddress || '';
+  const normalizedIp = ip.replace('::ffff:', '');
+  if (BLOCKED_IPS.has(normalizedIp)) {
+    return res.status(403).end();
+  }
+  next();
+});
+// ============= END IP BLOCKLIST =============
+
 // NOTE: app, port, and health check routes are now defined at the very top of the file
 // for fast startup compliance. See lines 1-50.
 

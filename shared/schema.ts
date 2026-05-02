@@ -6570,3 +6570,19 @@ export const insertEsportsTransactionSchema = createInsertSchema(esportsTransact
 export type EsportsTransaction = typeof esportsTransactions.$inferSelect;
 export type InsertEsportsTransaction = z.infer<typeof insertEsportsTransactionSchema>;
 
+// ============= IP BLOCKLIST =============
+export const ipBlocklist = pgTable('ip_blocklist', {
+  id: serial('id').primaryKey(),
+  ipAddress: varchar('ip_address', { length: 64 }).notNull().unique(),
+  reason: text('reason').notNull(),
+  blockedBy: varchar('blocked_by', { length: 100 }).notNull().default('admin'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const insertIpBlocklistSchema = createInsertSchema(ipBlocklist).omit({
+  id: true,
+  createdAt: true,
+});
+export type IpBlocklistEntry = typeof ipBlocklist.$inferSelect;
+export type InsertIpBlocklistEntry = z.infer<typeof insertIpBlocklistSchema>;
+

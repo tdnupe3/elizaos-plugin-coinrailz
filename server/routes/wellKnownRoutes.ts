@@ -81,6 +81,69 @@ const getBaseUrl = (req?: any) => {
 };
 
 /**
+ * GET /.well-known/mcp.json
+ * 
+ * MCP discovery manifest for NotHumanSearch and other MCP-aware indexers
+ */
+router.get('/.well-known/mcp.json', async (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  res.status(200).json({
+    mcp_version: "1.0.0",
+    name: "Coin Railz MCP Server",
+    description: "Multi-chain x402 payment infrastructure for AI agents",
+    version: "1.0.0",
+    url: baseUrl,
+    endpoints: {
+      services: `${baseUrl}/mcp/services`
+    }
+  });
+});
+
+/**
+ * GET /.well-known/mcp-server.json
+ * 
+ * Secondary MCP discovery manifest probed by NotHumanSearch
+ */
+router.get('/.well-known/mcp-server.json', async (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  res.status(200).json({
+    name: "Coin Railz",
+    description: "Universal payment infrastructure for AI agents",
+    mcp_endpoint: `${baseUrl}/mcp/services`,
+    discovery_url: `${baseUrl}/.well-known/mcp.json`
+  });
+});
+
+/**
+ * GET /.well-known/ai-plugin.json
+ * 
+ * Legacy ChatGPT Plugin manifest (deprecated by OpenAI).
+ * Primarily served for third-party AI indexers (NotHumanSearch, AWI-Scanner).
+ * Current OpenAI discovery uses OpenAPI specs directly.
+ */
+router.get('/.well-known/ai-plugin.json', async (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  res.status(200).json({
+    schema_version: "v1",
+    name_for_human: "Coin Railz Payments",
+    name_for_model: "coin_railz_payments",
+    description_for_human: "Multi-chain x402 USDC payment infrastructure for AI agents.",
+    description_for_model: "Infrastructure for AI agents to make and receive x402 micropayments across 8 chains using USDC. Supports NASA Earthdata, AI inference, and IoT data.",
+    auth: {
+      type: "none"
+    },
+    api: {
+      type: "openapi",
+      url: `${baseUrl}/openapi.json`,
+      is_user_authenticated: false
+    },
+    logo_url: `${baseUrl}/attached_assets/Coin%20Railz%20Logo%20No%20BG.png`,
+    contact_email: "support@coinrailz.com",
+    legal_info_url: `${baseUrl}/legal`
+  });
+});
+
+/**
  * GET /.well-known/agent.json
  * 
  * A2A v0.3 compliant agent card for Google Agent2Agent protocol
@@ -6132,117 +6195,6 @@ router.get('/.well-known/mcp-integration.json', (req: Request, res: Response) =>
 });
 
 /**
- * GET /.well-known/mcp-server.json
- *
- * Standard MCP (Model Context Protocol) server definition.
- * NotHumanSearch/1.0 and other MCP-aware indexers probe this path.
- * Serves the canonical Coin Railz MCP capability declaration.
- */
-router.get('/.well-known/mcp-server.json', (req: Request, res: Response) => {
-  const baseUrl = getBaseUrl(req);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Cache-Control', 'public, max-age=300');
-  const catalog = serviceCatalogService.getCatalog();
-  res.json({
-    schema: "https://modelcontextprotocol.io/schema/server.json",
-    name: "Coin Railz Payment Infrastructure",
-    version: "1.0.0",
-    description: "65 x402-compatible USDC micropayment services across 8 chains. Satellite, IoT, financial, and AI inference data for AI agents.",
-    transport: [
-      { type: "http", endpoint: `${baseUrl}/x402`, protocol: "x402" },
-      { type: "http", endpoint: `${baseUrl}/api`, protocol: "rest" }
-    ],
-    auth: {
-      methods: [
-        { type: "api-key", header: "X-API-KEY", description: "Prepaid credits key (cr_live_...)" },
-        { type: "x402", header: "X-Payment", description: "Native USDC micropayment (EIP-3009 or on-chain)" }
-      ],
-      freeTrial: {
-        available: true,
-        endpoint: `${baseUrl}/api/m2m/credits/trial`,
-        method: "GET",
-        credits: 5,
-        description: "No wallet required. $5 credit, ~80-100 API calls."
-      }
-    },
-    tools: catalog.services.slice(0, 20).map(s => ({
-      name: s.id.replace(/-/g, '_'),
-      description: s.description || `${s.name} — pay-per-call via USDC on Base`,
-      endpoint: `${baseUrl}${s.endpoint}`,
-      method: "POST",
-      priceUsd: getServicePriceUSD(s.id as ServiceName) || 0.25,
-      payment: { required: true, method: "x402", currency: "USDC", chain: "base-mainnet" }
-    })),
-    resources: [
-      { uri: `${baseUrl}/.well-known/mcp-integration.json`, name: "Full Integration Guide", mimeType: "application/json" },
-      { uri: `${baseUrl}/openapi.json`, name: "OpenAPI 3.1 Spec", mimeType: "application/json" },
-      { uri: `${baseUrl}/x402/catalog`, name: "Full Service Catalog (65 services)", mimeType: "application/json" }
-    ],
-    discovery: {
-      x402Manifest: `${baseUrl}/.well-known/x402.json`,
-      agentCard: `${baseUrl}/.well-known/agent-card.json`,
-      openapi: `${baseUrl}/openapi.json`
-    }
-  });
-});
-
-/**
- * GET /.well-known/mcp.json
- *
- * Alias for mcp-server.json — some MCP clients probe this shorter path.
- * NotHumanSearch/1.0 probes both paths; serve the same content.
- */
-router.get('/.well-known/mcp.json', (req: Request, res: Response) => {
-  const baseUrl = getBaseUrl(req);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Cache-Control', 'public, max-age=300');
-  const catalog = serviceCatalogService.getCatalog();
-  res.json({
-    schema: "https://modelcontextprotocol.io/schema/server.json",
-    name: "Coin Railz Payment Infrastructure",
-    version: "1.0.0",
-    description: "65 x402-compatible USDC micropayment services across 8 chains. Satellite, IoT, financial, and AI inference data for AI agents.",
-    transport: [
-      { type: "http", endpoint: `${baseUrl}/x402`, protocol: "x402" },
-      { type: "http", endpoint: `${baseUrl}/api`, protocol: "rest" }
-    ],
-    auth: {
-      methods: [
-        { type: "api-key", header: "X-API-KEY", description: "Prepaid credits key (cr_live_...)" },
-        { type: "x402", header: "X-Payment", description: "Native USDC micropayment (EIP-3009 or on-chain)" }
-      ],
-      freeTrial: {
-        available: true,
-        endpoint: `${baseUrl}/api/m2m/credits/trial`,
-        method: "GET",
-        credits: 5,
-        description: "No wallet required. $5 credit, ~80-100 API calls."
-      }
-    },
-    tools: catalog.services.slice(0, 20).map(s => ({
-      name: s.id.replace(/-/g, '_'),
-      description: s.description || `${s.name} — pay-per-call via USDC on Base`,
-      endpoint: `${baseUrl}${s.endpoint}`,
-      method: "POST",
-      priceUsd: getServicePriceUSD(s.id as ServiceName) || 0.25,
-      payment: { required: true, method: "x402", currency: "USDC", chain: "base-mainnet" }
-    })),
-    resources: [
-      { uri: `${baseUrl}/.well-known/mcp-integration.json`, name: "Full Integration Guide", mimeType: "application/json" },
-      { uri: `${baseUrl}/openapi.json`, name: "OpenAPI 3.1 Spec", mimeType: "application/json" },
-      { uri: `${baseUrl}/x402/catalog`, name: "Full Service Catalog (65 services)", mimeType: "application/json" }
-    ],
-    discovery: {
-      x402Manifest: `${baseUrl}/.well-known/x402.json`,
-      agentCard: `${baseUrl}/.well-known/agent-card.json`,
-      openapi: `${baseUrl}/openapi.json`
-    }
-  });
-});
-
-/**
  * Catch-all: unknown /.well-known/* paths return 404
  * Prevents PHP exploit probes and unknown paths from falling through
  * to the Vite frontend, which would return 200 with index.html.
@@ -6266,6 +6218,7 @@ router.all('/.well-known/*', (req: Request, res: Response) => {
       '/.well-known/mcp-integration.json',
       '/.well-known/mcp-server.json',
       '/.well-known/mcp.json',
+      '/.well-known/ai-plugin.json',
       '/.well-known/service-manifest.json',
       '/.well-known/payment-methods.json',
       '/.well-known/pricing.json',

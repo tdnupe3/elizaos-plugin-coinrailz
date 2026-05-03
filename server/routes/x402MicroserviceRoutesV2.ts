@@ -1809,8 +1809,16 @@ router.use((req: Request, res: Response, next) => {
       body.extensions.facilitators = getAllFacilitatorUrls();
       body.extensions.walletProviders = ["coinbase-cdp", "moonpay-agents", "any-evm"];
       
-      // Inject discoverable:true + enriched fields into each payment requirement
-      body.accepts = body.accepts.map((paymentReq: any) => {
+      // Inject discoverable:true + enriched fields into each payment requirement.
+      // Filter out Ethereum mainnet first: x402-fetch v0.7.3 validates ALL accepts via
+      // PaymentRequirementsSchema.parse() before selecting — "ethereum"/"eip155:1" is not in
+      // the network enum, causing a ZodError that blocks Base and Solana payments too.
+      body.accepts = body.accepts
+        .filter((paymentReq: any) => {
+          const n = paymentReq.network || '';
+          return n !== 'ethereum' && n !== 'eip155:1';
+        })
+        .map((paymentReq: any) => {
         const enriched = {
           ...paymentReq,
           discoverable: true,
@@ -1824,20 +1832,16 @@ router.use((req: Request, res: Response, next) => {
             .replace(/https:\/\/[^\/]+\.replit\.dev\//, `${publicBaseUrl}/`);
         }
         
-        // x402-fetch v0.7.3 requires legacy shorthand ("base", "ethereum") in network field
-        // CAIP-2 goes in x402Network for x402scan discovery compatibility
+        // Normalize network fields — Base and Solana only (Ethereum excluded above)
         if (enriched.network === 'eip155:8453' || enriched.network === 'base' || !enriched.network) {
           enriched.network = 'base';
           enriched.networkLegacy = enriched.networkLegacy || 'base';
           enriched.x402Network = 'eip155:8453';
-        } else if (enriched.network === 'eip155:1' || enriched.network === 'ethereum') {
-          enriched.network = 'ethereum';
-          enriched.networkLegacy = enriched.networkLegacy || 'ethereum';
-          enriched.x402Network = 'eip155:1';
         }
-        if (enriched.network === 'solana' || enriched.network === 'solana:mainnet') {
-          // Use official CAIP-2 Solana mainnet chain ID (required by Dexter facilitator)
-          enriched.network = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
+        if (enriched.network === 'solana' || enriched.network === 'solana:mainnet' || enriched.network === 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp') {
+          // Keep network as "solana" shorthand — x402-fetch PaymentRequirementsSchema requires it
+          // x402Network holds the full CAIP-2 for Dexter facilitator compatibility
+          enriched.network = 'solana';
           enriched.networkLegacy = enriched.networkLegacy || 'solana';
           enriched.x402Network = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
           // Tag Solana entries with Dexter as the facilitator

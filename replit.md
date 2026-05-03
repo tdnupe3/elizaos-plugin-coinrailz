@@ -23,9 +23,10 @@ Coin Railz employs a USDC-first strategy, utilizing Coinbase CDP for wallet mana
 - **AI Agent Marketplace:** Leverages the x402 protocol for HTTP 402 payments on Ethereum and Base, Coinbase CDP for wallet creation, and Alchemy RPC for verification. ERC-8004 Blockchain Identity is used for agent identities on Base.
 - **Authentication:** Supports Coinbase OAuth, Replit OAuth, and email/password, with PostgreSQL.
 - **x402 Microservices**: 60 production services compatible with Coinbase Bazaar and x402scan, adhering to `x402Version: 2`. All discovery surfaces (sitemap, agent-card, x402.json manifest) are in sync.
-- **Golden Path Endpoint**: `POST /x402/first-call` serves as the canonical $0.05 USDC first-payment endpoint for AI agent onboarding, supporting EVM (Base, Ethereum) and Solana.
+- **Golden Path Endpoint**: `POST /x402/first-call` serves as the canonical $0.05 USDC first-payment endpoint for AI agent onboarding, supporting Base (EVM) and Solana. Verified with real on-chain USDC payment via x402-fetch v0.7.3.
 - **Payment Intent Ledger**: A durable ledger ensuring state transitions and replay protection for payment intents.
-- **Hybrid Facilitator**: Dynamically uses CDP facilitator, with Dexter as a fallback.
+- **Hybrid Facilitator**: Dynamically uses CDP facilitator, with Dexter as a fallback. `network` field uses shorthand (`"base"`, `"solana"`) required by x402-fetch PaymentRequirementsSchema; `x402Network` retains full CAIP-2 (`"eip155:8453"`, `"solana:5eykt4..."`) for Dexter compatibility. Ethereum mainnet removed from accepts array — it is not in the x402-fetch schema enum and caused ZodError blocking all payments.
+- **baseUrl Fix**: `getPublicBaseUrl(req)` used throughout `paymentOrchestrator.ts` — bare `baseUrl` variable was causing ReferenceError and billing-without-delivery on API key path.
 - **AI Inference Gateway**: An x402-protected pay-per-call LLM endpoint (`POST /x402/ai-inference`) supporting various GPT models via USDC on Base.
 - **Crypto Checkout Architecture**: Endpoints for creating pending orders and verifying on-chain payments, with multi-chain support across 8 chains.
 - **ACP Integration**: Endpoints (`/acp/v1/*`) for catalog, checkout, and order management, integrated with Stripe.

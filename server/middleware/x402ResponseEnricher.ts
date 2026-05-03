@@ -289,7 +289,18 @@ export function x402ResponseEnricher() {
           s.slug === servicePath
         );
         
-        body.accepts = body.accepts.map((paymentReq: any) => {
+        // Filter out Ethereum mainnet accepts entries before mapping.
+        // x402-fetch v0.7.3 (and @x402/evm) validate ALL entries via PaymentRequirementsSchema.parse()
+        // before selecting one. "ethereum" / "eip155:1" is absent from their network enum, so any
+        // Ethereum entry causes a ZodError that blocks Base and Solana payments too.
+        // Ethereum gas (~$2–10/tx) also makes it economically unviable for micropayments.
+        // Ethereum is still listed in supportedNetworks metadata and docs for reference.
+        body.accepts = body.accepts
+          .filter((paymentReq: any) => {
+            const n = paymentReq.network || '';
+            return n !== 'ethereum' && n !== 'eip155:1';
+          })
+          .map((paymentReq: any) => {
           const enriched = { ...paymentReq };
           
           // Remove duplicate x402Version from accepts items (should only be at top level)
@@ -311,19 +322,15 @@ export function x402ResponseEnricher() {
             }
           }
           
-          // x402-fetch v0.7.3 requires legacy shorthand in `network` field ("base", "ethereum")
-          // x402Network holds CAIP-2 for x402scan / discovery systems that need it
-          if (enriched.network === 'ethereum' || enriched.network === 'eip155:1') {
-            enriched.network = 'ethereum';
-            enriched.networkLegacy = enriched.networkLegacy || 'ethereum';
-            enriched.x402Network = 'eip155:1';
-          } else if (enriched.network === 'base' || enriched.network === 'eip155:8453' || !enriched.network) {
+          // Normalize network fields for x402-fetch / CAIP-2 compatibility
+          if (enriched.network === 'base' || enriched.network === 'eip155:8453' || !enriched.network) {
             enriched.network = 'base';
             enriched.networkLegacy = enriched.networkLegacy || 'base';
             enriched.x402Network = 'eip155:8453';
-          } else if (enriched.network === 'solana' || enriched.network === 'solana:mainnet') {
-            // Normalize to official CAIP-2 Solana mainnet chain ID (required by Dexter facilitator)
-            enriched.network = SOLANA_MAINNET;
+          } else if (enriched.network === 'solana' || enriched.network === 'solana:mainnet' || enriched.network === SOLANA_MAINNET) {
+            // Keep network as "solana" shorthand — x402-fetch PaymentRequirementsSchema requires it
+            // x402Network holds the full CAIP-2 for Dexter facilitator compatibility
+            enriched.network = 'solana';
             enriched.networkLegacy = enriched.networkLegacy || 'solana';
             enriched.x402Network = SOLANA_MAINNET;
             // Tag Solana entries with Dexter as facilitator (Dexter handles ~50% of Solana x402 volume)

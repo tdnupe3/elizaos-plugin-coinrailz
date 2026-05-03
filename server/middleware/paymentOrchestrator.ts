@@ -2716,58 +2716,10 @@ function generate402Response(
       },
       discoverable: false
     },
-    // Ethereum L1 - USDC
-    {
-      scheme: "exact",
-      network: "ethereum",
-      networkLegacy: "ethereum",
-      x402Network: "eip155:1",
-      amount: requiredAmount.toString(),
-      maxAmountRequired: requiredAmount.toString(),
-      maxAmountRequiredUSD: priceUsd,
-      resource: resource,
-      description: baseDescription,
-      mimeType: "application/json",
-      payTo: PLATFORM_WALLET,
-      maxTimeoutSeconds: 60,
-      asset: USDC_ETHEREUM,
-      extra: {
-        name: "USD Coin",
-        version: "2",
-        decimals: 6,
-        chainId: 1,
-        chainName: "Ethereum"
-      },
-      discoverable: false
-    },
-    // Ethereum L1 - USDT
-    {
-      scheme: "exact",
-      network: "ethereum",
-      networkLegacy: "ethereum",
-      x402Network: "eip155:1",
-      amount: requiredAmount.toString(),
-      maxAmountRequired: requiredAmount.toString(),
-      maxAmountRequiredUSD: priceUsd,
-      resource: resource,
-      description: baseDescription,
-      mimeType: "application/json",
-      payTo: PLATFORM_WALLET,
-      maxTimeoutSeconds: 60,
-      asset: USDT_ETHEREUM,
-      extra: {
-        name: "Tether USD",
-        version: "1",
-        decimals: 6,
-        chainId: 1,
-        chainName: "Ethereum"
-      },
-      discoverable: false
-    },
     // Solana - USDC
     {
       scheme: "exact",
-      network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+      network: "solana",
       networkLegacy: "solana",
       x402Network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
       amount: requiredAmount.toString(),
@@ -2792,7 +2744,7 @@ function generate402Response(
     // Solana - USDT
     {
       scheme: "exact",
-      network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+      network: "solana",
       networkLegacy: "solana",
       x402Network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
       amount: requiredAmount.toString(),

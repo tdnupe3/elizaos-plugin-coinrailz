@@ -81,6 +81,19 @@ const getBaseUrl = (req?: any) => {
 };
 
 /**
+ * GET /.well-known/402index-verify.txt
+ *
+ * Domain ownership verification for 402index.io directory claim.
+ * Token obtained via POST https://402index.io/api/v1/claim on 2026-05-03.
+ * Claim expires in 72 hours — serves the verification_hash as plain text.
+ */
+router.get('/.well-known/402index-verify.txt', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/plain');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.status(200).send('b0f8986ee7662d98dcbcaf58fab5c4631e44bae50e0cd98c965b705d3b3084ed');
+});
+
+/**
  * GET /.well-known/mcp.json
  * 
  * MCP discovery manifest for NotHumanSearch and other MCP-aware indexers
@@ -2684,6 +2697,137 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
       }
     },
     
+    codeExamples: {
+      summary: "Copy-paste ready code. Fastest start: free trial key — no wallet, no crypto, instant.",
+
+      python_free_trial: {
+        language: "python",
+        runtime: "pip install httpx",
+        description: "Recommended — free $5 trial key, works in 2 steps, no crypto required",
+        code: [
+          "import httpx",
+          "",
+          "# Step 1: get your free trial API key (one per IP per 7 days)",
+          `resp = httpx.get('${baseUrl}/api/m2m/credits/trial')`,
+          "api_key = resp.json()['apiKey']  # save this — shown once only",
+          "",
+          "# Step 2: call any service with your key",
+          `result = httpx.post('${baseUrl}/x402/gas-price-oracle',`,
+          "    headers={'X-API-KEY': api_key},",
+          "    json={'chains': ['base', 'ethereum']})",
+          "print(result.json())"
+        ].join("\n")
+      },
+
+      nodejs_free_trial: {
+        language: "javascript",
+        runtime: "node (built-in fetch, Node 18+)",
+        description: "Recommended — free $5 trial key, no crypto required",
+        code: [
+          "// Step 1: get your free trial API key",
+          `const trialResp = await fetch('${baseUrl}/api/m2m/credits/trial');`,
+          "const { apiKey } = await trialResp.json(); // save this — shown once only",
+          "",
+          "// Step 2: call any service",
+          `const result = await fetch('${baseUrl}/x402/gas-price-oracle', {`,
+          "  method: 'POST',",
+          "  headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },",
+          "  body: JSON.stringify({ chains: ['base', 'ethereum'] })",
+          "});",
+          "console.log(await result.json());"
+        ].join("\n")
+      },
+
+      python_x402_native: {
+        language: "python",
+        runtime: "pip install x402 httpx",
+        description: "Native x402 on-chain USDC payments — pay per call, no API key needed",
+        code: [
+          "from x402.client import with_payment_handler",
+          "import httpx",
+          "",
+          "# Your EVM private key with USDC on Base mainnet",
+          "PRIVATE_KEY = '0xYOUR_PRIVATE_KEY'",
+          "",
+          "# Wrap httpx client with automatic 402 payment handling",
+          "client = httpx.Client()",
+          "with_payment_handler(client, wallet_private_key=PRIVATE_KEY)",
+          "",
+          "# Now calls automatically pay the 402 challenge and retry",
+          `resp = client.post('${baseUrl}/x402/gas-price-oracle', json={'chains': ['base']})`,
+          "print(resp.json())  # $0.10 USDC deducted automatically"
+        ].join("\n")
+      },
+
+      nodejs_x402_native: {
+        language: "javascript",
+        runtime: "npm install x402 viem",
+        description: "Native x402 on-chain USDC payments — pay per call, no API key needed",
+        code: [
+          "import { wrapFetch } from 'x402/client';",
+          "import { privateKeyToAccount } from 'viem/accounts';",
+          "",
+          "// Your EVM private key with USDC on Base mainnet",
+          "const account = privateKeyToAccount('0xYOUR_PRIVATE_KEY');",
+          "",
+          "// Wrap fetch with automatic 402 payment handling",
+          "const fetch402 = wrapFetch(fetch, account);",
+          "",
+          "// Calls automatically pay the 402 challenge and retry",
+          `const resp = await fetch402('${baseUrl}/x402/gas-price-oracle', {`,
+          "  method: 'POST',",
+          "  headers: { 'Content-Type': 'application/json' },",
+          "  body: JSON.stringify({ chains: ['base'] })",
+          "});",
+          "console.log(await resp.json());  // $0.10 USDC deducted automatically"
+        ].join("\n")
+      },
+
+      manual_x402_flow: {
+        language: "python",
+        runtime: "pip install httpx",
+        description: "Manual x402 flow — understand what happens under the hood",
+        code: [
+          "import httpx, json",
+          "",
+          `ENDPOINT = '${baseUrl}/x402/gas-price-oracle'`,
+          "FACILITATOR = 'https://api.cdp.coinbase.com/platform/v2/x402'",
+          "",
+          "# Step 1: probe — expect 402",
+          "resp = httpx.post(ENDPOINT, json={})",
+          "assert resp.status_code == 402",
+          "payment_req = resp.json()",
+          "# payment_req['accepts'] contains: scheme, network, maxAmountRequired, payTo, asset",
+          "",
+          "# Step 2: sign payment via CDP facilitator (requires CDP API key)",
+          "pay_resp = httpx.post(f'{FACILITATOR}/pay', json={",
+          "    'paymentRequirements': payment_req['accepts'],",
+          "    'wallet': {'privateKey': '0xYOUR_KEY'}",
+          "})",
+          "x_payment = pay_resp.json()['payment']",
+          "",
+          "# Step 3: retry with X-PAYMENT header",
+          "final = httpx.post(ENDPOINT, headers={'X-PAYMENT': x_payment}, json={})",
+          "print(final.json())"
+        ].join("\n")
+      },
+
+      curl_free_trial: {
+        language: "bash",
+        description: "One-liner shell test — get trial key and make first call",
+        code: [
+          `# Get free trial key`,
+          `API_KEY=$(curl -s ${baseUrl}/api/m2m/credits/trial | python3 -c "import sys,json; print(json.load(sys.stdin)['apiKey'])")`,
+          "",
+          `# Call any service`,
+          `curl -s -X POST ${baseUrl}/x402/gas-price-oracle \\`,
+          `  -H "X-API-KEY: $API_KEY" \\`,
+          `  -H "Content-Type: application/json" \\`,
+          `  -d '{"chains":["base"]}' | python3 -m json.tool`
+        ].join("\n")
+      }
+    },
+
     links: {
       agentRegistration: `${baseUrl}/.well-known/agent-registration.json`,
       serviceCatalog: `${baseUrl}/x402/catalog`,
@@ -3787,7 +3931,9 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     contact: "support@coinrailz.com",
     description: "AI agent marketplace with x402 autonomous payment endpoints, native Coinbase Agentic Wallet support, A2A 2.0 discovery, SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker), satellite data APIs (NASA/ESA), and multi-chain support across 8 networks (7 EVM + Solana). Processing fee: 1.5% + $0.01 per transaction.",
     version: "x402-2.3",
-    updated: "2026-04-01T12:00:00Z",
+    x402Version: 2,
+    facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+    updated: "2026-05-03T00:00:00Z",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
     agent_instructions: `${baseUrl}/.well-known/agent-instructions.json`,
     registrationEndpoint: `${baseUrl}/.well-known/agent-registration.json`,

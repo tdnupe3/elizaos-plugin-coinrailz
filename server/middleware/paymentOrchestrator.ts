@@ -1463,7 +1463,7 @@ export function createPaymentOrchestrator(
             const remainingBalance = Math.max(0, deductResult.newBalance);
             res.setHeader('X-Credits-Used', priceUsd.toFixed(4));
             res.setHeader('X-Credits-Remaining', remainingBalance.toFixed(4));
-            res.setHeader('X-Recharge-Url', `${baseUrl}/api/m2m/credits/checkout/session`);
+            res.setHeader('X-Recharge-Url', `${getPublicBaseUrl(req)}/api/m2m/credits/checkout/session`);
             res.setHeader('X-Payment-Method', 'api-key');
 
             // Fire auto-recharge check non-blocking — does NOT affect latency of this request
@@ -2002,7 +2002,7 @@ export function createPaymentOrchestrator(
                   apiKey: {
                     recommended: true,
                     description: "Card-based M2M API key — no blockchain or crypto wallet required. Get a cr_live_ key in ~60 seconds.",
-                    purchaseEndpoint: `${baseUrl}/api/m2m/credits/purchase`,
+                    purchaseEndpoint: `${getPublicBaseUrl(req)}/api/m2m/credits/purchase`,
                     purchaseMethod: "POST",
                     purchaseBody: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "<uuid-v4>" },
                     idempotencyKeyFormat: "Any unique string, min 8 chars. UUID v4 recommended. Reuse on retry — safe for duplicate prevention.",

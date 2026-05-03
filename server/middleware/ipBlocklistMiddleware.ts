@@ -23,8 +23,8 @@ export function ipBlocklistMiddleware(req: Request, res: Response, next: NextFun
     refreshBlocklistCache(); // fire-and-forget; stale cache still protects during refresh
   }
 
-  const raw = req.ip || (req.connection as any)?.remoteAddress || '';
-  const ip = raw.replace('::ffff:', '');
+  const raw = req.get('x-forwarded-for')?.split(',')[0] || req.ip || (req.connection as any)?.remoteAddress || '';
+  const ip = raw.trim().replace('::ffff:', '');
 
   if (blockedIpCache.has(ip)) {
     res.status(403).end();

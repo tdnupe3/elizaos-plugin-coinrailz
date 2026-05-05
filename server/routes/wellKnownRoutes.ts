@@ -2878,7 +2878,19 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
     capabilities: {
       streaming: false,
       pushNotifications: false,
-      stateTransitionHistory: true
+      stateTransitionHistory: true,
+      x402Payments: true,
+      x402: {
+        protocolVersion: "2.0.0",
+        facilitatorUrl: "https://api.cdp.coinbase.com/platform/v2/x402",
+        payTo: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+        paymentNetwork: "eip155:8453",
+        paymentToken: {
+          symbol: "USDC",
+          address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          decimals: 6
+        }
+      }
     },
 
     iconUrl: "https://coinrailz.com/favicon.ico",
@@ -3932,6 +3944,8 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     description: "AI agent marketplace with x402 autonomous payment endpoints, native Coinbase Agentic Wallet support, A2A 2.0 discovery, SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker), satellite data APIs (NASA/ESA), and multi-chain support across 8 networks (7 EVM + Solana). Processing fee: 1.5% + $0.01 per transaction.",
     version: "x402-2.3",
     x402Version: 2,
+    facilitatorUrl: getFacilitatorUrl(),
+    payTo: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
     facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
     updated: "2026-05-03T00:00:00Z",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,

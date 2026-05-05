@@ -85,6 +85,10 @@ if (isProduction) {
   }
 }
 
+// Platform constants — used in fast-path discovery responses during cold-start
+const PLATFORM_PAY_TO = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
+const CDP_FACILITATOR_URL = 'https://api.cdp.coinbase.com/platform/v2/x402';
+
 // CRITICAL: Health check endpoints FIRST - before ANY other code
 app.get('/healthz', (_req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -102,21 +106,107 @@ app.get('/', (req, res, next) => {
   next();
 });
 
+// ============================================================================
+// FAST-PATH DISCOVERY ENDPOINTS
+// ============================================================================
+// These serve valid minimal responses during a cold-start stall (before initApp
+// completes). Once initApp() finishes and frontendReady is true, they pass
+// through to the full wellKnownRoutes handlers via next() — no permanent override.
+// This prevents crawlers (AgentIndex, Waggle, decixa.ai, flows-crawler, etc.)
+// from receiving 404s during the ~90s production cold-start window.
+// ============================================================================
+
+app.get('/.well-known/x402.json', (req, res, next) => {
+  if (frontendReady) return next();
+  console.log('⚡ Fast-path x402.json (cold-start)');
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.json({
+    x402Version: 2,
+    facilitatorUrl: CDP_FACILITATOR_URL,
+    payTo: PLATFORM_PAY_TO,
+    facilitator: CDP_FACILITATOR_URL,
+    description: 'Coin Railz - Universal payment infrastructure for AI agents. Multi-chain USDC across 8 networks (7 EVM + Solana).',
+    version: 'x402-2.3',
+    updated: '2026-05-05T00:00:00Z',
+    platformUrl: 'https://coinrailz.com',
+    services: [],
+    _cold_start: true,
+  });
+});
+
+app.get('/.well-known/agent-card.json', (req, res, next) => {
+  if (frontendReady) return next();
+  console.log('⚡ Fast-path agent-card.json (cold-start)');
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.json({
+    name: 'Coin Railz Payment Infrastructure',
+    description: 'Universal payment layer for the AI agent economy — x402 micropayments, multi-chain USDC, DEX aggregation, and IoT payment infrastructure.',
+    url: 'https://coinrailz.com',
+    version: '1.0.0',
+    capabilities: {
+      x402Payments: true,
+      x402: {
+        protocolVersion: '2.0.0',
+        facilitatorUrl: CDP_FACILITATOR_URL,
+        payTo: PLATFORM_PAY_TO,
+        paymentNetwork: 'eip155:8453',
+        paymentToken: {
+          symbol: 'USDC',
+          address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+          decimals: 6,
+        },
+      },
+    },
+    _cold_start: true,
+  });
+});
+
+app.get('/api/monitoring/health', (req, res, next) => {
+  if (frontendReady) return next();
+  res.json({ status: 'starting', ready: false, timestamp: new Date().toISOString() });
+});
+
 // START LISTENING IMMEDIATELY - before loading heavy modules
 httpServer.listen(port, '0.0.0.0', () => {
   console.log(`🚀 SERVER LISTENING ON PORT ${port} - Health checks now responding`);
   console.log('🔄 Loading application modules in background...');
 
   // Defer heavy application loading AFTER listen callback completes
+  const initStart = Date.now();
   setTimeout(async () => {
     try {
       const { initApp } = await import('./appMain.js');
       await initApp();
-      console.log('✅ Full application loaded and initialized');
+      console.log(`✅ Full application loaded and initialized (${Math.round((Date.now() - initStart) / 1000)}s)`);
     } catch (err) {
       console.error('❌ Failed to load application:', err);
+      // Even on failure, call markFrontendReady so static frontend is served
+      if (!frontendReady) {
+        console.warn('⚠️ Calling markFrontendReady after initApp failure to unblock static serving');
+        markFrontendReady();
+      }
     }
   }, 100);
+
+  // ============================================================================
+  // STARTUP WATCHDOG — production cold-start resilience
+  // ============================================================================
+  // If initApp() hangs (external API timeout, Neon WS stall, etc.) without
+  // throwing, the server would stay in fast-startup mode forever — crawlers and
+  // users both get 404/partial responses. This watchdog fires after 150s and
+  // calls markFrontendReady() regardless, so the static frontend always serves.
+  // API routes may still be unavailable if initApp() is mid-stall, but the
+  // platform is not completely dark.
+  if (isProduction) {
+    setTimeout(() => {
+      if (!frontendReady) {
+        console.warn('⚠️ STARTUP WATCHDOG: initApp() did not complete within 150s — calling markFrontendReady to unblock serving');
+        markFrontendReady();
+      }
+    }, 150_000);
+  }
 });
 
 export { app, httpServer, port };

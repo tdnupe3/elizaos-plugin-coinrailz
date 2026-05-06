@@ -1,0 +1,43 @@
+
+Mercury<the-messenger@mercury.com>
+
+​Travis Kellogg​
+
+
+
+
+
+ 
+Welcome to The Messenger, your monthly dose of Mercury product updates.
+
+In this issue, we’re introducing Mercury CLI, upgrades to creating invoices on mobile, approval updates, and more.
+
+💬 Command your money with Mercury CLI
+A terminal window showing a Mercury CLI command requesting an ACH payment.
+Introducing Mercury CLI, a command-line interface for you and your agents to work directly with your Mercury account. Read balances and transactions, perform write actions like payments and categorization, and chain operations into scripts or agentic workflows. No brittle scrapers, CSV exports, or credential handoffs.
+
+Install Mercury CLI
+📱 Invoicing on mobile, upgraded
+An image showing invoicing on the mobile app.
+You can now do more with Invoicing — wherever you are. Create invoices from the Mercury iOS app with full access to your item catalog, tax setting, due dates, and scheduled reminders.
+
+Customers now automatically receive a receipt when a payment clears and you can access both invoices and receipts as PDFs from the invoice details page.
+
+Plus, Invoicing API read access is now free for all accounts, so you can query your data programmatically, or upgrade to Plus or Pro to create and send invoices via API.
+
+Try it now
+⚙️ Refined approval controls
+Mercury’s per-payment approvals interface showing a rule that requires approval from a department lead.
+As your team grows, having the right people involved in per-payment approvals matters even more. You can now add any user or department lead to your approval workflow. Adding department leads as first approvers helps filter declined requests for your finance team or other admins.
+
+Set up approvals
+🍿 Bite-sized improvements
+Mercury's dashboard navigation got an update. Products are now consolidated so your banking and operations live in one unified view. You can now also pin your most-used pages as bookmarks in the sidebar, keeping your most-used tools within reach.
+We now offer 24/7 live support with an average response time of under 5 minutes. You can chat with our support team right from your dashboard.
+In April we acquired Central, an AI-native payroll and benefits platform for startups. It’s the next step in making Mercury the single place for everything you do with money. Full payroll integration is coming soon — in the meantime, Mercury customers can sign up for Central today.
+Auto transfer rules can now be paused — toggle a rule off to pause it indefinitely, or click into a rule to add a resume date.
+Catch all of our latest product updates here.
+
+Thanks,
+
+The Mercury Team

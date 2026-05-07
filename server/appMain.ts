@@ -8,6 +8,17 @@ const _lap = (label: string) => {
   console.log(`⏱️  [initApp stage] ${label}: ${ms}ms elapsed`);
 };
 
+const _withStartupTimeout = <T>(label: string, ms: number, fn: () => Promise<T>): Promise<T | undefined> => {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      console.warn(`⚠️  [initApp timeout] ${label} exceeded ${ms}ms budget — continuing degraded`);
+      resolve(undefined);
+    }, ms);
+    fn().then((v) => { clearTimeout(timer); resolve(v); })
+        .catch((err) => { clearTimeout(timer); console.warn(`⚠️  [initApp error] ${label}:`, err?.message || err); resolve(undefined); });
+  });
+};
+
 const express = (await import('express')).default;
 const { Router } = await import('express');
 
@@ -651,27 +662,27 @@ try {
   optionalAuth = (_req: any, _res: any, next: any) => next();
 }
 
-// Authentication system integration — awaited so rejections are caught here
-// and not left as unhandled rejections that would crash the process.
+// Authentication system integration — time-boxed to 12s so a slow Replit
+// OAuth server response cannot stall the rest of initApp().
 _lap('pre-setupAuth');
-try {
+await _withStartupTimeout('setupAuth', 12000, async () => {
   const { setupAuth } = await import('./replitAuth');
   await setupAuth(app);
   console.log('✅ Auth setup complete');
-} catch (err: any) {
-  console.warn('⚠️ Auth setup failed (non-fatal) — continuing without Replit OAuth:', err?.message || err);
-}
+});
 _lap('setupAuth done');
 
-// Restore persisted user sessions from database
+// Restore persisted user sessions from database — time-boxed to 6s each.
+// Neon serverless can cold-start slowly; we must not block the critical path.
 _lap('pre-loadSessionsFromDB');
-try {
-  const { loadSessionsFromDB, cleanExpiredSessions } = await import('./services/sessionManager');
+await _withStartupTimeout('loadSessionsFromDB', 6000, async () => {
+  const { loadSessionsFromDB } = await import('./services/sessionManager');
   await loadSessionsFromDB();
+});
+await _withStartupTimeout('cleanExpiredSessions', 6000, async () => {
+  const { cleanExpiredSessions } = await import('./services/sessionManager');
   await cleanExpiredSessions();
-} catch (err: any) {
-  console.warn('Session restore skipped:', err.message);
-}
+});
 _lap('loadSessionsFromDB done');
 
 // Mark passport as configured for OAuth routes
@@ -854,6 +865,7 @@ console.log('✅ Campaign conversion routes registered successfully');
 app.use('/api', marketplaceRoutes);
 app.use('/api', dashboardRoutes);
 
+_lap('post-sync-routes — entering deferred-import block');
 const ipBlocklistRoutes = (await import('./routes/ipBlocklistRoutes')).default;
 app.use('/api/admin/ip-blocklist', ipBlocklistRoutes);
 
@@ -1175,6 +1187,7 @@ app.get('/api/agent-discovery/stats', async (req, res) => {
 });
 
 console.log('✅ x402scan Agent Discovery routes registered - intelligent agent targeting operational');
+_lap('post-x402scan-discovery');
 
 // Import and register Monitoring Dashboard routes
 const monitoringDashboard = (await import('./routes/monitoringDashboard')).default;
@@ -2158,6 +2171,7 @@ app.get('/api/ai-marketplace/payment-methods', (req, res) => {
 });
 
 // Additional marketplace routes
+_lap('pre-marketplaceCore-import');
 const marketplaceCore = (await import('./routes/marketplaceCore')).default;
 const marketplaceDemo = (await import('./routes/marketplaceDemo')).default;
 
@@ -3642,8 +3656,10 @@ app.post('/api/orders/create-bypass', (req, res) => {
   });
 });
 
-// Setup simple API routes BEFORE Vite middleware (contains catch-all 404 handler)  
+// Setup simple API routes BEFORE Vite middleware (contains catch-all 404 handler)
+_lap('pre-setupSimpleRoutes');
 const server = setupSimpleRoutes(app);
+_lap('post-setupSimpleRoutes');
 
 // Gas Station routes are now registered inside setupSimpleRoutes to avoid middleware conflicts
 console.log('✅ Gas Station routes included in setupSimpleRoutes');
@@ -3760,6 +3776,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   // GPT OAuth Routes - MUST be registered BEFORE static serving in BOTH environments
   // This enables ChatGPT OAuth flow to work in production
   // ============================================================================
+  _lap('pre-static-late-imports');
   const gptOAuthRoutes = await import('./routes/gptOAuthRoutes').then(m => m.default);
   app.use('/oauth', gptOAuthRoutes);
   console.log('✅ GPT OAuth routes registered (pre-static, both dev & prod)');
@@ -3806,6 +3823,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     res.redirect(301, '/api-keys');
   });
   console.log('✅ Dashboard API keys redirect registered (pre-static)');
+  _lap('pre-serveStatic — all pre-static routes registered');
   
   if (isProduction) {
     // Production: use serveStatic from vite.ts (handles paths correctly)

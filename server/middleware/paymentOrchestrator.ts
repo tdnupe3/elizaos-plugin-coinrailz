@@ -2654,7 +2654,224 @@ function generate402Response(
       poweredBy: "NASA MODIS-Aqua via OB.DAAC", timestamp: "2026-04-16T00:00:00Z"
     },
   };
-  const sampleOutput = sampleOutputs[serviceName] || { success: true, data: {}, service: serviceName, timestamp: new Date().toISOString() };
+  const _extraSamples: Record<string, any> = {
+    "multi-chain-balance": {
+      wallet: "0xAbC123...", totalUSD: 18420.50,
+      balances: [
+        { chain: "base", token: "USDC", amount: 4200.00 },
+        { chain: "ethereum", token: "ETH", amount: 2.84, usd: 9712.60 },
+        { chain: "solana", token: "USDC", amount: 4507.90 }
+      ],
+      chainsQueried: 7, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "trending-tokens": {
+      tokens: [
+        { symbol: "cbBTC", rank: 1, change24h: 4.8, volume24h: 920000000, chain: "base" },
+        { symbol: "AERO", rank: 2, change24h: 12.3, volume24h: 180000000, chain: "base" },
+        { symbol: "SOL", rank: 3, change24h: 3.1, volume24h: 2400000000, chain: "solana" }
+      ],
+      window: "24h", timestamp: "2026-04-16T12:00:00Z"
+    },
+    "batch-quote": {
+      quotes: [
+        { symbol: "ETH", price: 3421.50, source: "coingecko", confidence: 0.99 },
+        { symbol: "SOL", price: 148.20, source: "coingecko", confidence: 0.99 },
+        { symbol: "USDC", price: 1.0001, source: "coinbase", confidence: 1.0 }
+      ],
+      count: 3, latencyMs: 88, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "approval-manager": {
+      wallet: "0xAbC123...", approvals: [
+        { token: "USDC", spender: "Uniswap V3", allowance: "unlimited", riskLevel: "medium", recommendation: "revoke" },
+        { token: "WETH", spender: "Aave V3", allowance: "1.5", riskLevel: "low", recommendation: "keep" }
+      ],
+      totalApprovals: 2, riskySpendings: 1, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "payment-processing": {
+      success: true, txHash: "0x8f3c...", amount: "5.00 USDC", chain: "base",
+      to: "0xa4bbe37...", confirmations: 1, settlementMs: 1200, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "instant-agent-wallet": {
+      success: true, walletAddress: "0xNewAgent...", chain: "base",
+      initialBalance: "0 USDC", managed: true, provider: "Coinbase CDP", timestamp: "2026-04-16T12:00:00Z"
+    },
+    "agent-create-wallet": {
+      success: true, walletId: "cdp_wallet_abc123", walletAddress: "0xAgent...",
+      chain: "base", type: "evm", ready: true, provider: "Coinbase CDP", timestamp: "2026-04-16T12:00:00Z"
+    },
+    "seamless-chain-bridge": {
+      from: { chain: "ethereum", token: "USDC", amount: 100 },
+      to: { chain: "base", token: "USDC", estimatedAmount: 99.85 },
+      bridgeFee: 0.15, estimatedTimeSeconds: 180, provider: "Across Protocol",
+      quoteId: "bridge_xyz789", timestamp: "2026-04-16T12:00:00Z"
+    },
+    "property-valuation": {
+      address: "123 Main St, Austin TX 78701",
+      estimatedValue: 685000, confidence: 0.87, pricePerSqFt: 420,
+      comparables: 8, marketTrend: "appreciating", yearlyAppreciation: 4.2,
+      timestamp: "2026-04-16T12:00:00Z"
+    },
+    "lease-analysis": {
+      property: "500 Broadway, NYC", leaseType: "NNN", monthlyRent: 18500,
+      annualRent: 222000, pricePerSqFt: 74, marketRate: 71, variance: "+4.2%",
+      redFlags: ["no_cap_on_cam_charges"], recommendation: "negotiate", timestamp: "2026-04-16T12:00:00Z"
+    },
+    "fraud-detection": {
+      transaction: { from: "0xAbC123...", to: "0xDef456...", amount: "500 USDC" },
+      fraudScore: 8, riskLevel: "low", flags: [], recommendation: "approve",
+      confidence: 0.97, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "credit-risk-score": {
+      wallet: "0xAbC123...", creditScore: 720, tier: "A",
+      metrics: { collateralizationRatio: 2.4, historicalDefault: false, protocolsUsed: ["aave", "compound"] },
+      borrowLimit: "75% LTV", timestamp: "2026-04-16T12:00:00Z"
+    },
+    "compliance-check": {
+      address: "0xAbC123...", status: "clear",
+      checks: { ofac: "pass", chainalysis: "pass", elliptic: "pass" },
+      sanctioned: false, pep: false, jurisdiction: "US", timestamp: "2026-04-16T12:00:00Z"
+    },
+    "compliance-consultation": {
+      question: "Is this DeFi yield strategy compliant in the EU?",
+      answer: "Based on MiCA regulations effective Jan 2025, yield-bearing stablecoin products are classified as e-money tokens...",
+      confidence: 0.82, jurisdictions: ["EU", "MiCA"], disclaimer: "Not legal advice",
+      timestamp: "2026-04-16T12:00:00Z"
+    },
+    "trading-signal": {
+      symbol: "SOL/USDC", signal: "long", strength: "strong",
+      entry: 145.50, target: 168.00, stopLoss: 138.00,
+      riskReward: 2.9, confidence: 0.81, timeframe: "1d", reasoning: "breakout above key resistance + volume confirmation",
+      timestamp: "2026-04-16T12:00:00Z"
+    },
+    "portfolio-optimization": {
+      currentPortfolio: { ETH: 0.45, BTC: 0.30, SOL: 0.15, USDC: 0.10 },
+      optimizedPortfolio: { ETH: 0.35, BTC: 0.35, SOL: 0.20, USDC: 0.10 },
+      expectedAnnualReturn: 0.24, sharpeRatio: 1.42, maxDrawdown: 0.28,
+      rebalanceActions: [{ asset: "BTC", action: "buy", amount: 0.05 }, { asset: "ETH", action: "sell", amount: 0.10 }],
+      timestamp: "2026-04-16T12:00:00Z"
+    },
+    "correlation-matrix": {
+      assets: ["BTC", "ETH", "SOL", "USDC"],
+      matrix: { BTC: { ETH: 0.87, SOL: 0.74, USDC: -0.02 }, ETH: { SOL: 0.79, USDC: -0.03 }, SOL: { USDC: -0.01 } },
+      window: "30d", timestamp: "2026-04-16T12:00:00Z"
+    },
+    "risk-metrics": {
+      portfolio: "0xAbC123...", VaR95_1d: -0.043, CVaR95_1d: -0.072,
+      sharpeRatio: 1.28, sortinoRatio: 1.84, maxDrawdown: -0.32, beta: 0.91,
+      riskLevel: "moderate", window: "90d", timestamp: "2026-04-16T12:00:00Z"
+    },
+    "polymarket-events": {
+      events: [
+        { id: "evt_001", title: "Will BTC hit $100k before July 2026?", volume: 2400000, liquidity: 890000, endDate: "2026-07-01" },
+        { id: "evt_002", title: "Will ETH ETF inflows exceed $2B in May?", volume: 760000, liquidity: 310000, endDate: "2026-05-31" }
+      ],
+      count: 2, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "polymarket-odds": {
+      eventId: "evt_001", title: "Will BTC hit $100k before July 2026?",
+      outcomes: [{ label: "Yes", probability: 0.34, price: 0.34 }, { label: "No", probability: 0.66, price: 0.66 }],
+      volume: 2400000, liquidity: 890000, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "polymarket-search": {
+      query: "bitcoin ETF", results: [
+        { id: "evt_012", title: "Will spot Bitcoin ETF AUM exceed $100B?", probability_yes: 0.71, volume: 1200000 },
+        { id: "evt_017", title: "Will BlackRock BTC ETF hit record inflows in Q2?", probability_yes: 0.44, volume: 480000 }
+      ],
+      count: 2, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "prediction-market-odds": {
+      market: "Will the Fed cut rates in June 2026?",
+      outcomes: [{ label: "Yes", probability: 0.62 }, { label: "No", probability: 0.38 }],
+      sources: ["polymarket", "kalshi"], volume: 3200000, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "kalshi-markets": {
+      markets: [
+        { id: "KAL_FED_JUNE", title: "Fed rate cut June 2026", yesPrice: 0.62, noPrice: 0.38, volume: 1800000 },
+        { id: "KAL_BTC_100K", title: "BTC above $100k by year end", yesPrice: 0.48, noPrice: 0.52, volume: 940000 }
+      ],
+      count: 2, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "kalshi-search": {
+      query: "inflation", results: [
+        { id: "KAL_CPI_MARCH", title: "Will CPI exceed 3.5% in March 2026?", yesPrice: 0.29, volume: 620000 }
+      ],
+      count: 1, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "kalshi-odds": {
+      marketId: "KAL_FED_JUNE", title: "Fed rate cut June 2026",
+      yes: { price: 0.62, shares: 180000 }, no: { price: 0.38, shares: 290000 },
+      closingDate: "2026-06-15", timestamp: "2026-04-16T12:00:00Z"
+    },
+    "stock-sentiment": {
+      symbol: "NVDA", sentiment: "bullish", score: 74,
+      sources: { twitter: 78, reddit: 69, news: 75 },
+      keyThemes: ["AI_demand", "data_center_growth", "earnings_beat"],
+      recommendation: "positive_momentum", timestamp: "2026-04-16T12:00:00Z"
+    },
+    "forex-sentiment": {
+      pair: "EUR/USD", sentiment: "bearish", score: 38,
+      signals: ["dollar_strength", "ecb_dovish_stance"],
+      bias: "short_eur", confidence: 0.71, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "solana-yield-finder": {
+      topOpportunities: [
+        { protocol: "Kamino Finance", strategy: "SOL/USDC LP", apy: 18.4, tvl: 42000000, risk: "medium", chain: "solana" },
+        { protocol: "MarginFi", strategy: "USDC lending", apy: 8.2, tvl: 180000000, risk: "low", chain: "solana" },
+        { protocol: "Drift Protocol", strategy: "JLP vault", apy: 24.1, tvl: 28000000, risk: "high", chain: "solana" }
+      ],
+      bestRiskAdjusted: "MarginFi USDC lending (8.2% APY, low risk)",
+      timestamp: "2026-04-16T12:00:00Z"
+    },
+    "smart-contract-audit": {
+      contractAddress: "0x...", chain: "base", auditScore: 88,
+      findings: [
+        { severity: "low", title: "Missing zero-address check", line: 42, recommendation: "Add require(addr != address(0))" }
+      ],
+      criticalIssues: 0, highIssues: 0, mediumIssues: 0, lowIssues: 1,
+      verdict: "safe_to_deploy_with_minor_fixes", timestamp: "2026-04-16T12:00:00Z"
+    },
+    "verified-agent-identity": {
+      agentId: "agent_abc123", wallet: "0xAbC123...", chain: "base",
+      erc8004: { registered: true, name: "YieldMaxAgent v2", version: "2.1.0" },
+      reputation: { score: 94, totalTransactions: 1247, successRate: 0.997 },
+      verified: true, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "ai-inference": {
+      model: "gpt-4o", prompt: "Summarize market conditions",
+      response: "Current market shows strong momentum in AI-adjacent tokens with Base L2 volume hitting all-time highs...",
+      tokens: { prompt: 18, completion: 64, total: 82 },
+      latencyMs: 1240, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "iot-sensor-reading": {
+      deviceId: "sensor_xyz001", location: { lat: 37.77, lon: -122.41 },
+      readings: { temperature_c: 22.4, humidity_pct: 58, pressure_hpa: 1013.2, pm25: 8.1 },
+      quality: "good", batteryPct: 87, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "iot-device-stream": {
+      deviceId: "cam_fleet_001", streamUrl: "wss://stream.coinrailz.com/device/cam_fleet_001",
+      format: "h264", resolution: "1080p", fps: 30, latencyMs: 45,
+      sessionToken: "st_abc123", expiresIn: 3600, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "iot-bulk-data": {
+      deviceIds: ["sensor_001", "sensor_002", "sensor_003"], period: "1h",
+      records: 180, format: "jsonl",
+      downloadUrl: "https://data.coinrailz.com/bulk/export_abc123.jsonl.gz",
+      expiresIn: 900, timestamp: "2026-04-16T12:00:00Z"
+    },
+    "fleet-telematics": {
+      fleetId: "fleet_001", vehicles: 12, activeNow: 9,
+      summary: { avgSpeedKph: 48, totalDistanceKm: 2847, idleTimeMin: 234, fuelEfficiencyLKm: 8.2 },
+      alerts: [{ vehicleId: "truck_03", type: "hard_brake", timestamp: "2026-04-16T11:42:00Z" }],
+      timestamp: "2026-04-16T12:00:00Z"
+    },
+    "weather-station-data": {
+      stationId: "wx_sf_001", location: "San Francisco, CA",
+      current: { temp_c: 14.8, humidity_pct: 72, wind_kph: 18, precip_mm_1h: 0.0, visibility_km: 16 },
+      forecast6h: { temp_c: 13.2, precip_prob: 0.15 },
+      dataSource: "ground_station", timestamp: "2026-04-16T12:00:00Z"
+    },
+  };
+  const sampleOutput = sampleOutputs[serviceName] || _extraSamples[serviceName] || { success: true, data: {}, service: serviceName, timestamp: new Date().toISOString() };
 
   // Solana feePayer: must be the buyer's own address (they pay tx fee + sign).
   // Clients should send X-Solana-Wallet header with their public key.

@@ -2,6 +2,12 @@ import { app, httpServer, port, markFrontendReady } from './index.js';
 
 export async function initApp() {
 
+const _initStart = Date.now();
+const _lap = (label: string) => {
+  const ms = Date.now() - _initStart;
+  console.log(`⏱️  [initApp stage] ${label}: ${ms}ms elapsed`);
+};
+
 const express = (await import('express')).default;
 const { Router } = await import('express');
 
@@ -85,12 +91,18 @@ const subscriptionPayments = (await import('./routes/subscriptionPayments')).def
 const aiAgentServices = (await import('./routes/aiAgentServices')).default;
 const agentServiceRoutes = (await import('./routes/agentServiceRoutes')).default;
 const microservicesRoutes = (await import('./routes/microservices')).default;
+_lap('pre-heavy-services-import');
 const { telegramOutreachService } = await import('./services/telegramOutreachService.js');
+_lap('telegramOutreachService imported');
 const telegramMiniAppRoutes = (await import('./routes/telegramMiniAppRoutes')).default;
 const { bnbChainService } = await import("./services/bnbChainService");
+_lap('bnbChainService imported');
 const { pulseChainService } = await import("./services/pulseChainService");
+_lap('pulseChainService imported');
 const { connectionManager } = await import("./services/connectionManager");
+_lap('connectionManager imported');
 const { peezyService } = await import('./services/peezyIntegrationService');
+_lap('peezyService imported');
 const a2aWrapperRoutes = (await import('./routes/a2aWrapperRoutes')).default;
 const a2aBridgeRoutes = (await import('./routes/a2aBridgeRoutes.js')).default;
 const a2aCoinRailzRoutes = (await import('./routes/a2aCoinRailzRoutes')).default;
@@ -167,15 +179,19 @@ function validateRequiredEnvironmentVariables() {
 validateRequiredEnvironmentVariables();
 
 // Additional production health checks
+_lap('pre-validateProductionReadiness');
 const { validateProductionReadiness } = await import('./healthChecks');
 validateProductionReadiness();
+_lap('validateProductionReadiness done');
 // ============= END BOOT-TIME VALIDATION =============
 
 // ============= IP BLOCKLIST =============
 // DB-backed in-memory cache — add/remove IPs via POST/DELETE /api/admin/ip-blocklist
 // Cache refreshes every 5 minutes automatically; no redeploy needed for new blocks.
 const { ipBlocklistMiddleware, refreshBlocklistCache } = await import('./middleware/ipBlocklistMiddleware');
+_lap('pre-refreshBlocklistCache');
 await refreshBlocklistCache();
+_lap('refreshBlocklistCache done');
 app.use(ipBlocklistMiddleware);
 // ============= END IP BLOCKLIST =============
 
@@ -637,6 +653,7 @@ try {
 
 // Authentication system integration — awaited so rejections are caught here
 // and not left as unhandled rejections that would crash the process.
+_lap('pre-setupAuth');
 try {
   const { setupAuth } = await import('./replitAuth');
   await setupAuth(app);
@@ -644,8 +661,10 @@ try {
 } catch (err: any) {
   console.warn('⚠️ Auth setup failed (non-fatal) — continuing without Replit OAuth:', err?.message || err);
 }
+_lap('setupAuth done');
 
 // Restore persisted user sessions from database
+_lap('pre-loadSessionsFromDB');
 try {
   const { loadSessionsFromDB, cleanExpiredSessions } = await import('./services/sessionManager');
   await loadSessionsFromDB();
@@ -653,6 +672,7 @@ try {
 } catch (err: any) {
   console.warn('Session restore skipped:', err.message);
 }
+_lap('loadSessionsFromDB done');
 
 // Mark passport as configured for OAuth routes
 console.log('✅ OAuth configuration loaded successfully');
@@ -3818,6 +3838,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     
     serveStatic(app);
     console.log('✅ Static file serving configured');
+    _lap('serveStatic done — calling markFrontendReady (production)');
     markFrontendReady();
   }
   
@@ -4240,8 +4261,10 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   // Skip in DEV_LITE_MODE - heavy logging and catalog building blocks event loop
   if (isBazaarDiscoveryEnabled() && !DEV_LITE_MODE) {
     try {
+      _lap('pre-initializeBazaarDiscovery');
       console.log('📡 Initializing Bazaar Discovery service registration...');
       await initializeBazaarDiscovery();
+      _lap('initializeBazaarDiscovery done');
     } catch (error) {
       console.error('❌ Bazaar Discovery initialization failed:', error);
     }
@@ -4249,6 +4272,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     console.log('🧪 DEV LITE: Bazaar Discovery deferred');
   }
   
+  _lap('post-listen complete');
   console.log('✅ Post-listen initialization complete');
   
   } catch (error) {

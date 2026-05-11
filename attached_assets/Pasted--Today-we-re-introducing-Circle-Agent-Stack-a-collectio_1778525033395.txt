@@ -1,0 +1,37 @@
+
+Today, we’re introducing Circle Agent Stack: a collection of new capabilities that enable your agents to participate in real-world workflows, including holding funds, discovering services, and making payments as part of completing tasks.
+
+ 
+
+With Circle Agent Stack, agents can now act as participants in economic systems. Agent Wallets, Agent Marketplace, and Circle CLI (command line interface) empower your agents to create wallets, discover agentic services, and execute financial actions through precise commands.
+
+ 
+
+Together, these products help agents:
+
+Hold and move funds within defined permissions
+Discover and evaluate services dynamically
+Execute repeatable financial actions through CLI
+ 
+What’s new
+Agent Wallets
+Create wallets designed for machine-initiated economic activity. Agent Wallets gives agents a way to hold and move USDC while operating within guardrails such as time-bound USDC spending limits for transfers and x402 services, as well as allowlists and blocklists for wallet and contract addresses.
+
+ 
+Agent Marketplace
+Discover agentic services in a structured, machine-readable marketplace. Agents can evaluate service capabilities and pricing, then pay for services using USDC where supported.
+
+ 
+Circle CLI
+Use an agent-native command line interface to create wallets, define policies, discover services, and trigger transactions through deterministic commands. CLI is designed to reduce integration friction and give developers a consistent way to orchestrate agent financial actions.
+
+ 
+What you can build
+With Agent Wallets, Agent Marketplace, and CLI, you can start building agents that:
+
+Pay for data, compute, APIs, or other services as part of a task
+Support agent-to-agent payments and pay-per-request service access
+Move USDC through Circle infrastructure without stitching together fragmented APIs, SDKs, and signing flows
+Get started today
+Read the Circle Agent Stack launch announcement, explore Agent Marketplace, and join the Build on Circle community for tutorials, demos, and support.
+

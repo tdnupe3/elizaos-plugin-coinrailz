@@ -1,14 +1,46 @@
 /**
  * Circle USDC Integration API Routes
  * Implements comprehensive Circle Developer-Controlled Wallets endpoints
+ *
+ * SECURITY: All wallet management, transfer, and entity-secret routes require
+ * admin authentication via X-Admin-Key header. Public routes (health, supported
+ * tokens/blockchains) are open for discovery purposes only.
  */
 
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { CircleService } from '../services/circleService';
 import { z } from 'zod';
+import crypto from 'crypto';
 
 const router = express.Router();
 const circleService = new CircleService();
+
+// --- Admin auth middleware ---
+const ADMIN_API_KEY_HASH = process.env.ADMIN_API_KEY
+  ? crypto.createHash('sha256').update(process.env.ADMIN_API_KEY).digest('hex')
+  : null;
+
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const apiKey = req.headers['x-admin-key'] as string;
+  const internalSecret = req.headers['x-internal-secret'] as string;
+
+  if (process.env.INTERNAL_SERVICE_SECRET && internalSecret === process.env.INTERNAL_SERVICE_SECRET) {
+    return next();
+  }
+
+  if (apiKey && ADMIN_API_KEY_HASH) {
+    const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
+    if (keyHash === ADMIN_API_KEY_HASH) {
+      return next();
+    }
+  }
+
+  return res.status(401).json({
+    success: false,
+    error: 'Unauthorized',
+    hint: 'Admin API key required via X-Admin-Key header',
+  });
+}
 
 // Request validation schemas
 const createWalletSetSchema = z.object({
@@ -34,7 +66,7 @@ const registerEntitySecretSchema = z.object({
 
 /**
  * GET /api/circle/health
- * Get Circle service health status
+ * Public — returns service health status only
  */
 router.get('/health', async (req, res) => {
   try {
@@ -55,379 +87,259 @@ router.get('/health', async (req, res) => {
 });
 
 /**
- * POST /api/circle/entity-secret/register
- * Register entity secret with Circle
+ * GET /api/circle/supported-blockchains
+ * Public — informational only
  */
-router.post('/entity-secret/register', async (req, res) => {
+router.get('/supported-blockchains', async (req, res) => {
+  try {
+    const blockchains = await circleService.getSupportedBlockchains();
+    res.json({ success: true, blockchains });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: 'Failed to get supported blockchains', message: error.message });
+  }
+});
+
+/**
+ * GET /api/circle/supported-tokens
+ * Public — informational only
+ */
+router.get('/supported-tokens', async (req, res) => {
+  try {
+    const tokens = await circleService.getSupportedTokens();
+    res.json({ success: true, tokens });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: 'Failed to get supported tokens', message: error.message });
+  }
+});
+
+/**
+ * GET /api/circle/public-key
+ * Public — Circle's public key for entity secret encryption (not sensitive)
+ */
+router.get('/public-key', async (req, res) => {
+  try {
+    const publicKey = await circleService.getPublicKey();
+    res.json({ success: true, publicKey });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: 'Failed to get public key', message: error.message });
+  }
+});
+
+// ============================================================
+// ALL ROUTES BELOW REQUIRE ADMIN AUTH
+// ============================================================
+
+/**
+ * POST /api/circle/entity-secret/register
+ * Admin only — registers entity secret with Circle
+ */
+router.post('/entity-secret/register', requireAdmin, async (req, res) => {
   try {
     const { entitySecret } = registerEntitySecretSchema.parse(req.body);
-    
     const result = await circleService.registerEntitySecret(entitySecret);
-    
     res.json({
       success: true,
       message: 'Entity secret registered successfully',
       recoveryFile: result.recoveryFile
     });
   } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to register entity secret',
-      message: error.message
-    });
+    res.status(400).json({ success: false, error: 'Failed to register entity secret', message: error.message });
   }
 });
 
 /**
  * GET /api/circle/entity-secret/generate
- * Generate a new entity secret
+ * Admin only — generates a new entity secret
  */
-router.get('/entity-secret/generate', async (req, res) => {
+router.get('/entity-secret/generate', requireAdmin, async (req, res) => {
   try {
     const result = await CircleService.generateEntitySecret();
-    
     res.json({
       success: true,
       entitySecret: result.entitySecret || 'Generated via Circle Console',
       note: 'Store this secret securely - it cannot be recovered if lost'
     });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to generate entity secret',
-      message: error.message
-    });
-  }
-});
-
-/**
- * GET /api/circle/public-key
- * Get Circle's public key for entity secret encryption
- */
-router.get('/public-key', async (req, res) => {
-  try {
-    const publicKey = await circleService.getPublicKey();
-    
-    res.json({
-      success: true,
-      publicKey: publicKey
-    });
-  } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to get public key',
-      message: error.message
-    });
+    res.status(500).json({ success: false, error: 'Failed to generate entity secret', message: error.message });
   }
 });
 
 /**
  * POST /api/circle/wallet-set/create
- * Create a new wallet set
+ * Admin only — creates a new wallet set
  */
-router.post('/wallet-set/create', async (req, res) => {
+router.post('/wallet-set/create', requireAdmin, async (req, res) => {
   try {
     const { name } = createWalletSetSchema.parse(req.body);
-    
     const walletSet = await circleService.createWalletSet({ name });
-    
-    res.json({
-      success: true,
-      walletSet: walletSet
-    });
+    res.json({ success: true, walletSet });
   } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to create wallet set',
-      message: error.message
-    });
+    res.status(400).json({ success: false, error: 'Failed to create wallet set', message: error.message });
   }
 });
 
 /**
  * POST /api/circle/wallet/create
- * Create a new wallet within a wallet set
+ * Admin only — creates a new wallet within a wallet set
  */
-router.post('/wallet/create', async (req, res) => {
+router.post('/wallet/create', requireAdmin, async (req, res) => {
   try {
     const { walletSetId, blockchain, accountType } = createWalletSchema.parse(req.body);
-    
     const wallet = await circleService.createWallet({
       walletSetId: walletSetId || undefined,
       blockchain: blockchain || 'ETH',
       accountType: accountType || 'SCA'
     });
-    
-    res.json({
-      success: true,
-      wallet: wallet
-    });
+    res.json({ success: true, wallet });
   } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to create wallet',
-      message: error.message
-    });
+    res.status(400).json({ success: false, error: 'Failed to create wallet', message: error.message });
   }
 });
 
 /**
  * GET /api/circle/wallet/:walletId
- * Get wallet details
+ * Admin only — get wallet details
  */
-router.get('/wallet/:walletId', async (req, res) => {
+router.get('/wallet/:walletId', requireAdmin, async (req, res) => {
   try {
     const { walletId } = req.params;
-    
     const wallet = await circleService.getWallet({ walletId });
-    
-    res.json({
-      success: true,
-      wallet: wallet
-    });
+    res.json({ success: true, wallet });
   } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to get wallet',
-      message: error.message
-    });
+    res.status(400).json({ success: false, error: 'Failed to get wallet', message: error.message });
   }
 });
 
 /**
  * GET /api/circle/wallet/:walletId/balance
- * Get wallet balance
+ * Admin only — get wallet balance
  */
-router.get('/wallet/:walletId/balance', async (req, res) => {
+router.get('/wallet/:walletId/balance', requireAdmin, async (req, res) => {
   try {
     const { walletId } = req.params;
-    
     const balances = await circleService.getWalletBalance(walletId);
-    
-    res.json({
-      success: true,
-      balances: balances
-    });
+    res.json({ success: true, balances });
   } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to get wallet balance',
-      message: error.message
-    });
+    res.status(400).json({ success: false, error: 'Failed to get wallet balance', message: error.message });
   }
 });
 
 /**
  * GET /api/circle/wallet-set/:walletSetId/wallets
- * List all wallets in a wallet set
+ * Admin only — list all wallets in a wallet set
  */
-router.get('/wallet-set/:walletSetId/wallets', async (req, res) => {
+router.get('/wallet-set/:walletSetId/wallets', requireAdmin, async (req, res) => {
   try {
-    const { walletSetId } = req.params;
-    
     const wallets = await circleService.listWallets();
-    
-    res.json({
-      success: true,
-      wallets: wallets
-    });
+    res.json({ success: true, wallets });
   } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to list wallets',
-      message: error.message
-    });
+    res.status(400).json({ success: false, error: 'Failed to list wallets', message: error.message });
   }
 });
 
 /**
  * POST /api/circle/transfer
- * Create a USDC transfer transaction
+ * Admin only — creates a USDC transfer transaction
  */
-router.post('/transfer', async (req, res) => {
+router.post('/transfer', requireAdmin, async (req, res) => {
   try {
     const { walletId, destinationAddress, amount, tokenId } = createTransferSchema.parse(req.body);
-    
     const transaction = await circleService.createTransfer({
       walletId,
       destinationAddress,
       amount,
       tokenId: tokenId || 'USDC'
     });
-    
-    res.json({
-      success: true,
-      transaction: transaction
-    });
+    res.json({ success: true, transaction });
   } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to create transfer',
-      message: error.message
-    });
+    res.status(400).json({ success: false, error: 'Failed to create transfer', message: error.message });
   }
 });
 
 /**
  * GET /api/circle/transaction/:transactionId
- * Get transaction details
+ * Admin only — get transaction details
  */
-router.get('/transaction/:transactionId', async (req, res) => {
+router.get('/transaction/:transactionId', requireAdmin, async (req, res) => {
   try {
     const { transactionId } = req.params;
-    
     const transaction = await circleService.getTransaction({ transactionId });
-    
-    res.json({
-      success: true,
-      transaction: transaction
-    });
+    res.json({ success: true, transaction });
   } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to get transaction',
-      message: error.message
-    });
+    res.status(400).json({ success: false, error: 'Failed to get transaction', message: error.message });
   }
 });
 
 /**
  * GET /api/circle/wallet/:walletId/transactions
- * List transactions for a wallet
+ * Admin only — list transactions for a wallet
  */
-router.get('/wallet/:walletId/transactions', async (req, res) => {
+router.get('/wallet/:walletId/transactions', requireAdmin, async (req, res) => {
   try {
     const { walletId } = req.params;
-    
     const transactions = await circleService.listTransactions({ walletId });
-    
-    res.json({
-      success: true,
-      transactions: transactions
-    });
+    res.json({ success: true, transactions });
   } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to list transactions',
-      message: error.message
-    });
-  }
-});
-
-/**
- * GET /api/circle/supported-blockchains
- * Get supported blockchains
- */
-router.get('/supported-blockchains', async (req, res) => {
-  try {
-    const blockchains = await circleService.getSupportedBlockchains();
-    
-    res.json({
-      success: true,
-      blockchains: blockchains
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get supported blockchains',
-      message: error.message
-    });
-  }
-});
-
-/**
- * GET /api/circle/supported-tokens
- * Get supported tokens
- */
-router.get('/supported-tokens', async (req, res) => {
-  try {
-    const tokens = await circleService.getSupportedTokens();
-    
-    res.json({
-      success: true,
-      tokens: tokens
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get supported tokens',
-      message: error.message
-    });
+    res.status(400).json({ success: false, error: 'Failed to list transactions', message: error.message });
   }
 });
 
 /**
  * POST /api/circle/usdc/payment
- * Process USDC payment (for AI marketplace, P2P transfers, etc.)
+ * Admin only — processes USDC payment from a Circle developer wallet
  */
-router.post('/usdc/payment', async (req, res) => {
+router.post('/usdc/payment', requireAdmin, async (req, res) => {
   try {
     const { walletId, destinationAddress, amount, purpose } = req.body;
-    
-    // Validate required fields
     if (!walletId || !destinationAddress || !amount) {
       return res.status(400).json({
         success: false,
         error: 'Missing required fields: walletId, destinationAddress, amount'
       });
     }
-    
-    // Create USDC transfer
     const transaction = await circleService.createTransfer({
       walletId,
       destinationAddress,
       amount,
       tokenId: 'USDC'
     });
-    
     res.json({
       success: true,
-      transaction: transaction,
+      transaction,
       purpose: purpose || 'USDC Payment',
       message: 'USDC payment initiated successfully'
     });
   } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to process USDC payment',
-      message: error.message
-    });
+    res.status(400).json({ success: false, error: 'Failed to process USDC payment', message: error.message });
   }
 });
 
 /**
  * GET /api/circle/investigate-transaction/:txHash
- * Investigate specific transaction hash across all wallets
+ * Admin only — investigate a transaction hash across all wallets
  */
-router.get('/investigate-transaction/:txHash', async (req, res) => {
+router.get('/investigate-transaction/:txHash', requireAdmin, async (req, res) => {
   try {
     const { txHash } = req.params;
     console.log(`🔍 Investigating transaction: ${txHash}`);
-    
-    const investigation = {
-      txHash: txHash,
+
+    const investigation: any = {
+      txHash,
       timestamp: new Date().toISOString(),
       walletSets: [],
       findings: []
     };
-    
-    // Get all wallet sets
+
     const walletSets = await circleService.listWalletSets();
     console.log(`Found ${walletSets.length} wallet sets`);
-    
+
     for (const walletSet of walletSets) {
-      const walletSetInfo = {
-        id: walletSet.id,
-        name: walletSet.name,
-        wallets: []
-      };
-      
-      // Get wallets in this set
+      const walletSetInfo: any = { id: walletSet.id, name: walletSet.name, wallets: [] };
       const wallets = await circleService.listWallets();
       console.log(`Wallet set ${walletSet.name} has ${wallets?.data?.wallets?.length || 0} wallets`);
-      
+
       for (const wallet of wallets) {
-        const walletInfo = {
+        const walletInfo: any = {
           id: wallet.id,
           address: wallet.address,
           blockchain: wallet.blockchain,
@@ -436,191 +348,119 @@ router.get('/investigate-transaction/:txHash', async (req, res) => {
           transactions: [],
           matchingTransaction: null
         };
-        
+
         try {
-          // Get balance
           const balances = await circleService.getWalletBalance(wallet.id);
-          const usdcBalance = balances.find((b: any) => b.tokenId === 'USDC')?.amount || '0.00000000';
-          walletInfo.usdcBalance = usdcBalance;
-          
-          // Get recent transactions
+          walletInfo.usdcBalance = balances.find((b: any) => b.tokenId === 'USDC')?.amount || '0.00000000';
           const transactionResponse = await circleService.listTransactions({ walletId: wallet.id });
           const transactions = transactionResponse?.data?.transactions || [];
           walletInfo.transactions = transactions.map((tx: any) => ({
-            id: tx.id,
-            type: tx.transactionType,
-            amount: tx.amount,
-            tokenId: tx.tokenId,
-            state: tx.state,
-            txHash: tx.txHash,
-            createDate: tx.createDate
+            id: tx.id, type: tx.transactionType, amount: tx.amount,
+            tokenId: tx.tokenId, state: tx.state, txHash: tx.txHash, createDate: tx.createDate
           }));
-          
-          // Check for matching transaction
           const matchingTx = transactions.find((tx: any) => tx.txHash === txHash);
           if (matchingTx) {
             walletInfo.matchingTransaction = matchingTx;
-            (investigation.findings as any[]).push({
-              type: 'TRANSACTION_FOUND',
-              walletId: wallet.id,
-              address: wallet.address,
-              transaction: matchingTx,
-              message: `Found matching transaction in wallet ${wallet.address}`
+            investigation.findings.push({
+              type: 'TRANSACTION_FOUND', walletId: wallet.id, address: wallet.address,
+              transaction: matchingTx, message: `Found matching transaction in wallet ${wallet.address}`
             });
             console.log(`🎯 Found matching transaction in wallet ${wallet.address}`);
           }
-          
         } catch (error: any) {
-          (investigation.findings as any[]).push({
-            type: 'ERROR',
-            walletId: wallet.id,
-            address: wallet.address,
-            error: error.message,
-            message: `Error checking wallet ${wallet.address}: ${error.message}`
+          investigation.findings.push({
+            type: 'ERROR', walletId: wallet.id, address: wallet.address,
+            error: error.message, message: `Error checking wallet ${wallet.address}: ${error.message}`
           });
         }
-        
-        (walletSetInfo.wallets as any[]).push(walletInfo);
+
+        walletSetInfo.wallets.push(walletInfo);
       }
-      
-      (investigation.walletSets as any[]).push(walletSetInfo);
+      investigation.walletSets.push(walletSetInfo);
     }
-    
-    res.json({
-      success: true,
-      investigation: investigation
-    });
-    
+
+    res.json({ success: true, investigation });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to investigate transaction',
-      message: error.message
-    });
+    res.status(500).json({ success: false, error: 'Failed to investigate transaction', message: error.message });
   }
 });
 
 /**
  * GET /api/circle/test-connection
- * Test Circle API connection with simplified client
+ * Admin only — tests Circle API connection
  */
-router.get('/test-connection', async (req, res) => {
+router.get('/test-connection', requireAdmin, async (req, res) => {
   try {
     const { circleClient } = await import('../services/circleClient');
-    
     const isConnected = await circleClient.testConnection();
-    
     if (isConnected) {
       const wallets = await circleClient.listWallets();
       res.json({
-        success: true,
-        connected: true,
+        success: true, connected: true,
         message: 'Circle API connection successful',
         walletsCount: wallets.data?.wallets?.length || 0,
         timestamp: new Date().toISOString()
       });
     } else {
       res.status(500).json({
-        success: false,
-        connected: false,
+        success: false, connected: false,
         message: 'Circle API connection failed',
         timestamp: new Date().toISOString()
       });
     }
   } catch (error: any) {
     console.error('Circle connection test failed:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
+    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
   }
 });
 
 /**
  * GET /api/circle/simple-balance/:walletId
- * Check Circle balance with simplified client for debugging
+ * Admin only — check Circle balance with simplified client
  */
-router.get('/simple-balance/:walletId', async (req, res) => {
+router.get('/simple-balance/:walletId', requireAdmin, async (req, res) => {
   try {
     const { walletId } = req.params;
     console.log(`🔍 Checking Circle balance for wallet: ${walletId}`);
-    
     const { circleClient } = await import('../services/circleClient');
-    
     const data = await circleClient.getWalletBalance(walletId);
     const balances = data.data?.balances || [];
     const usdcBalance = balances.find((b: any) => b.currency === 'USD')?.amount || '0';
-
     res.json({
-      success: true,
-      walletId,
-      usdcBalance,
-      allBalances: balances,
-      raw: data,
-      timestamp: new Date().toISOString()
+      success: true, walletId, usdcBalance,
+      allBalances: balances, raw: data, timestamp: new Date().toISOString()
     });
-
   } catch (error: any) {
     console.error('Circle API check failed:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      walletId: req.params.walletId,
-      timestamp: new Date().toISOString()
-    });
+    res.status(500).json({ success: false, error: error.message, walletId: req.params.walletId, timestamp: new Date().toISOString() });
   }
 });
 
 /**
  * GET /api/circle/wallet-sets
- * List all wallet sets
+ * Admin only — list all wallet sets
  */
-router.get('/wallet-sets', async (req, res) => {
+router.get('/wallet-sets', requireAdmin, async (req, res) => {
   try {
     const walletSets = await circleService.listWalletSets();
-    
-    // Ensure the response is serializable
     const serializedWalletSets = JSON.parse(JSON.stringify(walletSets || []));
-    
-    res.json({
-      success: true,
-      walletSets: serializedWalletSets,
-      count: serializedWalletSets.length,
-      message: 'Wallet sets retrieved successfully'
-    });
+    res.json({ success: true, walletSets: serializedWalletSets, count: serializedWalletSets.length, message: 'Wallet sets retrieved successfully' });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to list wallet sets',
-      message: error.message || 'Unknown error'
-    });
+    res.status(500).json({ success: false, error: 'Failed to list wallet sets', message: error.message || 'Unknown error' });
   }
 });
 
 /**
  * GET /api/circle/wallets
- * List all wallets
+ * Admin only — list all wallets
  */
-router.get('/wallets', async (req, res) => {
+router.get('/wallets', requireAdmin, async (req, res) => {
   try {
     const wallets = await circleService.listWallets();
-    
-    // Ensure the response is serializable
     const serializedWallets = JSON.parse(JSON.stringify(wallets || []));
-    
-    res.json({
-      success: true,
-      wallets: serializedWallets,
-      count: serializedWallets.length,
-      message: 'Wallets retrieved successfully'
-    });
+    res.json({ success: true, wallets: serializedWallets, count: serializedWallets.length, message: 'Wallets retrieved successfully' });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to list wallets',
-      message: error.message || 'Unknown error'
-    });
+    res.status(500).json({ success: false, error: 'Failed to list wallets', message: error.message || 'Unknown error' });
   }
 });
 

@@ -147,7 +147,7 @@ router.get('/.well-known/ai-plugin.json', async (req: Request, res: Response) =>
     },
     api: {
       type: "openapi",
-      url: `${baseUrl}/x402/openapi.json`,
+      url: `${baseUrl}/openapi.json`,
       is_user_authenticated: false
     },
     logo_url: `${baseUrl}/attached_assets/Coin%20Railz%20Logo%20No%20BG.png`,
@@ -2382,7 +2382,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
     
     // Endpoints
     endpoints: {
-      openapi: `${baseUrl}/x402/openapi.json`,
+      openapi: `${baseUrl}/openapi.json`,
       serviceManifest: `${baseUrl}/.well-known/service-manifest.json`,
       pricing: `${baseUrl}/.well-known/pricing.json`,
       documentation: `${baseUrl}/developers`,
@@ -2399,7 +2399,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       mcpServices: `${baseUrl}/mcp/services`,
       mcpIntegration: `${baseUrl}/.well-known/mcp-integration.json`,
       integrationGuide: `${baseUrl}/mcp-integration-guide`,
-      openapi: `${baseUrl}/x402/openapi.json`
+      openapi: `${baseUrl}/openapi.json`
     },
     
     // Rate limiting metadata (A2A v0.3 optional field)
@@ -2845,7 +2845,7 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
       freeWallet: `${baseUrl}/x402/wallet/free`,
       credits: `${baseUrl}/credits`,
       documentation: `${baseUrl}/docs`,
-      openapi: `${baseUrl}/x402/openapi.json`
+      openapi: `${baseUrl}/openapi.json`
     }
   };
   
@@ -3619,7 +3619,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         webmcp: `${baseUrl}/.well-known/webmcp.json`,
         awi: `${baseUrl}/.well-known/awi.json`,
         mpp: `${baseUrl}/.well-known/mpp.json`,
-        openapi: `${baseUrl}/x402/openapi.json`,
+        openapi: `${baseUrl}/openapi.json`,
         mcpServices: `${baseUrl}/mcp/services`,
         integrationGuide: `${baseUrl}/mcp-integration-guide`
       }
@@ -3819,7 +3819,7 @@ router.get('/.well-known/service-manifest.json', async (req: Request, res: Respo
       mpp: `${baseUrl}/.well-known/mpp.json`,
       mcpServices: `${baseUrl}/mcp/services`,
       integrationGuide: `${baseUrl}/mcp-integration-guide`,
-      openapi: `${baseUrl}/x402/openapi.json`
+      openapi: `${baseUrl}/openapi.json`
     }
   };
   
@@ -3918,7 +3918,7 @@ router.get('/.well-known/payment-methods.json', async (req: Request, res: Respon
         mpp: `${baseUrl}/.well-known/mpp.json`,
         agentCard: `${baseUrl}/.well-known/agent-card.json`,
         mcpServices: `${baseUrl}/mcp/services`,
-        openapi: `${baseUrl}/x402/openapi.json`
+        openapi: `${baseUrl}/openapi.json`
       },
       integrationGuide: `${baseUrl}/mcp-integration-guide`,
       trialKey: `${baseUrl}/api/m2m/credits/trial`
@@ -6039,7 +6039,7 @@ router.get('/.well-known/mpp.json', (req: Request, res: Response) => {
       },
     },
     agentCard: `${baseUrl}/.well-known/agent-card.json`,
-    openapi: `${baseUrl}/x402/openapi.json`,
+    openapi: `${baseUrl}/openapi.json`,
     updatedAt: new Date().toISOString(),
   });
 });
@@ -6107,7 +6107,7 @@ router.get('/.well-known/webmcp.json', (req: Request, res: Response) => {
       },
     },
     protocols: ["x402", "MCP", "WebMCP", "A2A", "MPP"],
-    openapi: `${baseUrl}/x402/openapi.json`,
+    openapi: `${baseUrl}/openapi.json`,
     agentCard: `${baseUrl}/.well-known/agent-card.json`,
     integrationGuide: `${baseUrl}/mcp-integration-guide`,
     updatedAt: new Date().toISOString(),
@@ -6245,7 +6245,7 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
     discovery: {
       x402Manifest: `${baseUrl}/.well-known/x402.json`,
       agentCard: `${baseUrl}/.well-known/agent-card.json`,
-      openapi: `${baseUrl}/x402/openapi.json`,
+      openapi: `${baseUrl}/openapi.json`,
       mppManifest: `${baseUrl}/.well-known/mpp.json`,
       webmcp: `${baseUrl}/.well-known/webmcp.json`,
     },
@@ -6337,7 +6337,7 @@ router.get('/.well-known/mcp-integration.json', (req: Request, res: Response) =>
     serviceDiscovery: {
       catalog: `${baseUrl}/x402/catalog`,
       mcpServices: `${baseUrl}/mcp/services`,
-      openapi: `${baseUrl}/x402/openapi.json`,
+      openapi: `${baseUrl}/openapi.json`,
     },
     mcpServiceMap: serviceCatalogService.getCatalog().services.map(s => ({
       mcpTool: s.id.replace(/-/g, '_'),

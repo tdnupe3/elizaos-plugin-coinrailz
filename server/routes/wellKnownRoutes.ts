@@ -140,14 +140,14 @@ router.get('/.well-known/ai-plugin.json', async (req: Request, res: Response) =>
     schema_version: "v1",
     name_for_human: "Coin Railz Payments",
     name_for_model: "coin_railz_payments",
-    description_for_human: "Multi-chain x402 USDC payment infrastructure for AI agents.",
-    description_for_model: "Infrastructure for AI agents to make and receive x402 micropayments across 8 chains using USDC. Supports NASA Earthdata, AI inference, and IoT data.",
+    description_for_human: "63-service x402 USDC payment infrastructure for AI agents across 8 blockchains.",
+    description_for_model: "Production-grade x402 micropayment infrastructure for AI agents. 63 services across 8 blockchains (7 EVM + Solana), settling in USDC. Categories: Crypto Intelligence, Trading, Market Intelligence, Prediction Markets (Kalshi/Polymarket), Satellite Intelligence (NASA/ESA), IoT & DePIN (fleet telematics, weather stations, sensor data), AI Inference (GPT-4o-mini at $0.05/call), Real Estate, Banking, and Compliance. Pricing: $0.05–$0.25 per call. Free $5 trial key available at /api/m2m/credits/trial. Supports API-key prepaid credits and native x402 on-chain USDC payments.",
     auth: {
       type: "none"
     },
     api: {
       type: "openapi",
-      url: `${baseUrl}/openapi.json`,
+      url: `${baseUrl}/x402/openapi.json`,
       is_user_authenticated: false
     },
     logo_url: `${baseUrl}/attached_assets/Coin%20Railz%20Logo%20No%20BG.png`,
@@ -2382,7 +2382,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
     
     // Endpoints
     endpoints: {
-      openapi: `${baseUrl}/.well-known/openapi.json`,
+      openapi: `${baseUrl}/x402/openapi.json`,
       serviceManifest: `${baseUrl}/.well-known/service-manifest.json`,
       pricing: `${baseUrl}/.well-known/pricing.json`,
       documentation: `${baseUrl}/developers`,
@@ -2399,7 +2399,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       mcpServices: `${baseUrl}/mcp/services`,
       mcpIntegration: `${baseUrl}/.well-known/mcp-integration.json`,
       integrationGuide: `${baseUrl}/mcp-integration-guide`,
-      openapi: `${baseUrl}/openapi.json`
+      openapi: `${baseUrl}/x402/openapi.json`
     },
     
     // Rate limiting metadata (A2A v0.3 optional field)
@@ -2845,7 +2845,7 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
       freeWallet: `${baseUrl}/x402/wallet/free`,
       credits: `${baseUrl}/credits`,
       documentation: `${baseUrl}/docs`,
-      openapi: `${baseUrl}/openapi.json`
+      openapi: `${baseUrl}/x402/openapi.json`
     }
   };
   
@@ -3619,7 +3619,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         webmcp: `${baseUrl}/.well-known/webmcp.json`,
         awi: `${baseUrl}/.well-known/awi.json`,
         mpp: `${baseUrl}/.well-known/mpp.json`,
-        openapi: `${baseUrl}/openapi.json`,
+        openapi: `${baseUrl}/x402/openapi.json`,
         mcpServices: `${baseUrl}/mcp/services`,
         integrationGuide: `${baseUrl}/mcp-integration-guide`
       }
@@ -3819,7 +3819,7 @@ router.get('/.well-known/service-manifest.json', async (req: Request, res: Respo
       mpp: `${baseUrl}/.well-known/mpp.json`,
       mcpServices: `${baseUrl}/mcp/services`,
       integrationGuide: `${baseUrl}/mcp-integration-guide`,
-      openapi: `${baseUrl}/openapi.json`
+      openapi: `${baseUrl}/x402/openapi.json`
     }
   };
   
@@ -3918,7 +3918,7 @@ router.get('/.well-known/payment-methods.json', async (req: Request, res: Respon
         mpp: `${baseUrl}/.well-known/mpp.json`,
         agentCard: `${baseUrl}/.well-known/agent-card.json`,
         mcpServices: `${baseUrl}/mcp/services`,
-        openapi: `${baseUrl}/openapi.json`
+        openapi: `${baseUrl}/x402/openapi.json`
       },
       integrationGuide: `${baseUrl}/mcp-integration-guide`,
       trialKey: `${baseUrl}/api/m2m/credits/trial`
@@ -6039,7 +6039,7 @@ router.get('/.well-known/mpp.json', (req: Request, res: Response) => {
       },
     },
     agentCard: `${baseUrl}/.well-known/agent-card.json`,
-    openapi: `${baseUrl}/openapi.json`,
+    openapi: `${baseUrl}/x402/openapi.json`,
     updatedAt: new Date().toISOString(),
   });
 });
@@ -6107,7 +6107,7 @@ router.get('/.well-known/webmcp.json', (req: Request, res: Response) => {
       },
     },
     protocols: ["x402", "MCP", "WebMCP", "A2A", "MPP"],
-    openapi: `${baseUrl}/openapi.json`,
+    openapi: `${baseUrl}/x402/openapi.json`,
     agentCard: `${baseUrl}/.well-known/agent-card.json`,
     integrationGuide: `${baseUrl}/mcp-integration-guide`,
     updatedAt: new Date().toISOString(),
@@ -6245,7 +6245,7 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
     discovery: {
       x402Manifest: `${baseUrl}/.well-known/x402.json`,
       agentCard: `${baseUrl}/.well-known/agent-card.json`,
-      openapi: `${baseUrl}/openapi.json`,
+      openapi: `${baseUrl}/x402/openapi.json`,
       mppManifest: `${baseUrl}/.well-known/mpp.json`,
       webmcp: `${baseUrl}/.well-known/webmcp.json`,
     },
@@ -6337,7 +6337,7 @@ router.get('/.well-known/mcp-integration.json', (req: Request, res: Response) =>
     serviceDiscovery: {
       catalog: `${baseUrl}/x402/catalog`,
       mcpServices: `${baseUrl}/mcp/services`,
-      openapi: `${baseUrl}/openapi.json`,
+      openapi: `${baseUrl}/x402/openapi.json`,
     },
     mcpServiceMap: serviceCatalogService.getCatalog().services.map(s => ({
       mcpTool: s.id.replace(/-/g, '_'),

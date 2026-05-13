@@ -13,6 +13,7 @@ import { db } from '../db';
 import { discoveredAgents } from '@shared/schema';
 import { eq, or } from 'drizzle-orm';
 import { emitFirstContactAsync } from '../services/funnelHelper.js';
+import { getCanonicalServiceCount } from '../utils/serviceCount';
 import { serviceCatalogService } from '../services/serviceCatalogService';
 
 const MPP_PROTOCOL_VERSION = "1.0";
@@ -167,7 +168,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
   
   const a2aAgentCard = {
     name: "Coin Railz Multi-Chain Payment Infrastructure",
-    description: "Production-grade blockchain infrastructure for AI agents. 65 x402 micropayment services across 8 chains (7 EVM + Solana) + Native Coinbase Agentic Wallet support + OWS (Open Wallet Standard) compatible + MoonPay Agents compatible + NASA Earthdata Intelligence (5 services, $0.25/call) + ESA Satellite Data + AI Inference Gateway (GPT-4o-mini, $0.05/call) + IoT/DePIN data + SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker) + Real Estate + Banking + Trading + Market Intelligence + Prediction Markets. Processing fee: 1.5% + $0.01 per transaction.",
+    description: `Production-grade blockchain infrastructure for AI agents. ${getCanonicalServiceCount()} x402 micropayment services across 8 chains (7 EVM + Solana) + Native Coinbase Agentic Wallet support + OWS (Open Wallet Standard) compatible + MoonPay Agents compatible + NASA Earthdata Intelligence (5 services, $0.25/call) + ESA Satellite Data + AI Inference Gateway (GPT-4o-mini, $0.05/call) + IoT/DePIN data + SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker) + Real Estate + Banking + Trading + Market Intelligence + Prediction Markets. Processing fee: 1.5% + $0.01 per transaction.`,
     version: "0.6.1",
     x402ManifestVersion: "x402-2.3",
     agentId: "coinrailz-x402-infrastructure",
@@ -2441,7 +2442,7 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
 
     recommended_next_step: {
       action: "claim_free_trial",
-      description: "Get a FREE $5 trial API key instantly — no payment, no crypto wallet, no account. Works on all 60 services. 1 per IP per 7 days.",
+      description: `Get a FREE $5 trial API key instantly — no payment, no crypto wallet, no account. Works on all ${getCanonicalServiceCount()} services. 1 per IP per 7 days.`,
       endpoint: `${baseUrl}/api/m2m/credits/trial`,
       method: "GET",
       headers: { "Accept": "application/json" },
@@ -2866,11 +2867,12 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
 router.get('/.well-known/agent-card.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
   
-  // A2A Protocol v0.3.0 compliant agent card - ALL 65 SERVICES
+  // A2A Protocol v0.3.0 compliant agent card
+  const svcCount = getCanonicalServiceCount();
   const agentCard = {
     protocolVersion: "0.3.0",
     name: "Coin Railz",
-    description: "Multi-chain x402 micropayment infrastructure for AI agents. 65 pay-per-call API services for crypto analytics, trading signals, security audits, satellite data (NASA Earthdata Intelligence + ESA), real estate, banking, market intelligence, prediction markets, IoT/DePIN data, and AI inference. Native Coinbase Agentic Wallet compatible. OWS (Open Wallet Standard) compatible. Pay with USDC on Ethereum or Base - prices from $0.05 to $10.00 per request.",
+    description: `Multi-chain x402 micropayment infrastructure for AI agents. ${svcCount} pay-per-call API services for crypto analytics, trading signals, security audits, satellite data (NASA Earthdata Intelligence + ESA), real estate, banking, market intelligence, prediction markets, IoT/DePIN data, and AI inference. Native Coinbase Agentic Wallet compatible. OWS (Open Wallet Standard) compatible. Pay with USDC on Ethereum or Base - prices from $0.05 to $10.00 per request.`,
     url: `${baseUrl}/a2a/v1`,
     version: "3.1.0",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
@@ -3636,181 +3638,24 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
  */
 router.get('/.well-known/service-manifest.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
-  
+  const { getCanonicalServices } = await import('../utils/serviceCount');
+  const canonicalServices = getCanonicalServices();
+
+  const services = canonicalServices.map(s => ({
+    id: s.id,
+    name: s.name,
+    description: s.description,
+    endpoint: `${baseUrl}${s.endpoint}`,
+    price_usd: s.priceUsd,
+    category: s.category,
+    method: s.method,
+  }));
+
   const manifest = {
     platform: "Coin Railz",
-    version: "2.0.0",
-    total_services: 24,
-    services: [
-      {
-        id: "contract-scanner",
-        name: "Smart Contract Scanner",
-        description: "Deep analysis of smart contract code, security vulnerabilities, and on-chain behavior",
-        endpoint: `${baseUrl}/x402/contract-scanner`,
-        price_usd: 0.50,
-        category: "security"
-      },
-      {
-        id: "whale-tracker",
-        name: "Whale Tracker & Alerts",
-        description: "Real-time monitoring of large wallet movements and whale activity",
-        endpoint: `${baseUrl}/x402/whale-tracker`,
-        price_usd: 0.30,
-        category: "analytics"
-      },
-      {
-        id: "trade-signals",
-        name: "Trade Signal Generator",
-        description: "AI-powered trading signals based on technical analysis and on-chain data",
-        endpoint: `${baseUrl}/x402/trade-signals`,
-        price_usd: 0.20,
-        category: "trading"
-      },
-      {
-        id: "contract-audit",
-        name: "Smart Contract Audit",
-        description: "Comprehensive security audit with vulnerability detection",
-        endpoint: `${baseUrl}/x402/contract-audit`,
-        price_usd: 1.00,
-        category: "security"
-      },
-      {
-        id: "gas-oracle",
-        name: "Gas Price Oracle",
-        description: "Real-time gas price predictions across multiple chains",
-        endpoint: `${baseUrl}/x402/gas-oracle`,
-        price_usd: 0.10,
-        category: "utilities"
-      },
-      {
-        id: "token-analytics",
-        name: "Token Analytics",
-        description: "Deep dive into token metrics, holder distribution, and price action",
-        endpoint: `${baseUrl}/x402/token-analytics`,
-        price_usd: 0.40,
-        category: "analytics"
-      },
-      {
-        id: "dex-aggregator",
-        name: "DEX Price Aggregator",
-        description: "Best price discovery across all major DEXs",
-        endpoint: `${baseUrl}/x402/dex-aggregator`,
-        price_usd: 0.25,
-        category: "trading"
-      },
-      {
-        id: "liquidity-scanner",
-        name: "Liquidity Pool Scanner",
-        description: "Analyze liquidity pools, APYs, and impermanent loss risk",
-        endpoint: `${baseUrl}/x402/liquidity-scanner`,
-        price_usd: 0.35,
-        category: "defi"
-      },
-      {
-        id: "nft-floor-tracker",
-        name: "NFT Floor Price Tracker",
-        description: "Real-time NFT floor prices and collection analytics",
-        endpoint: `${baseUrl}/x402/nft-floor-tracker`,
-        price_usd: 0.15,
-        category: "nft"
-      },
-      {
-        id: "portfolio-analytics",
-        name: "Wallet Portfolio Analytics",
-        description: "Complete portfolio breakdown with P&L and allocation insights",
-        endpoint: `${baseUrl}/x402/portfolio-analytics`,
-        price_usd: 0.50,
-        category: "analytics"
-      },
-      {
-        id: "on-chain-query",
-        name: "On-chain Data Query",
-        description: "Query blockchain data with natural language",
-        endpoint: `${baseUrl}/x402/on-chain-query`,
-        price_usd: 0.20,
-        category: "utilities"
-      },
-      {
-        id: "risk-assessment",
-        name: "Risk Assessment Engine",
-        description: "Evaluate smart contract and protocol risk levels",
-        endpoint: `${baseUrl}/x402/risk-assessment`,
-        price_usd: 0.75,
-        category: "security"
-      },
-      {
-        id: "bridge-monitor",
-        name: "Cross-chain Bridge Monitor",
-        description: "Track bridge transactions and security status",
-        endpoint: `${baseUrl}/x402/bridge-monitor`,
-        price_usd: 0.30,
-        category: "utilities"
-      },
-      {
-        id: "staking-calculator",
-        name: "Staking Rewards Calculator",
-        description: "Calculate staking yields across protocols",
-        endpoint: `${baseUrl}/x402/staking-calculator`,
-        price_usd: 0.15,
-        category: "defi"
-      },
-      {
-        id: "defi-scanner",
-        name: "DeFi Protocol Scanner",
-        description: "Analyze DeFi protocols for yields and risks",
-        endpoint: `${baseUrl}/x402/defi-scanner`,
-        price_usd: 0.40,
-        category: "defi"
-      },
-      {
-        id: "holder-analytics",
-        name: "Token Holder Analytics",
-        description: "Analyze token holder behavior and distribution",
-        endpoint: `${baseUrl}/x402/holder-analytics`,
-        price_usd: 0.35,
-        category: "analytics"
-      },
-      {
-        id: "pattern-detector",
-        name: "Transaction Pattern Detector",
-        description: "Detect suspicious transaction patterns and wash trading",
-        endpoint: `${baseUrl}/x402/pattern-detector`,
-        price_usd: 0.45,
-        category: "security"
-      },
-      {
-        id: "sentiment-analyzer",
-        name: "Market Sentiment Analyzer",
-        description: "AI-powered sentiment analysis from social media and on-chain data",
-        endpoint: `${baseUrl}/x402/sentiment-analyzer`,
-        price_usd: 0.30,
-        category: "analytics"
-      },
-      {
-        id: "kalshi-markets",
-        name: "Kalshi Prediction Markets",
-        description: "Active markets from Kalshi (CFTC-regulated prediction exchange)",
-        endpoint: `${baseUrl}/x402/kalshi-markets`,
-        price_usd: 0.25,
-        category: "prediction-markets"
-      },
-      {
-        id: "kalshi-odds",
-        name: "Kalshi Odds Lookup",
-        description: "Current odds and orderbook for specific Kalshi markets",
-        endpoint: `${baseUrl}/x402/kalshi-odds`,
-        price_usd: 0.50,
-        category: "prediction-markets"
-      },
-      {
-        id: "kalshi-search",
-        name: "Kalshi Market Search",
-        description: "Search Kalshi prediction markets by keyword",
-        endpoint: `${baseUrl}/x402/kalshi-search`,
-        price_usd: 0.25,
-        category: "prediction-markets"
-      }
-    ],
+    version: "2.1.0",
+    total_services: services.length,
+    services,
     discoveryManifests: {
       x402: `${baseUrl}/.well-known/x402.json`,
       agentCard: `${baseUrl}/.well-known/agent-card.json`,
@@ -3822,7 +3667,7 @@ router.get('/.well-known/service-manifest.json', async (req: Request, res: Respo
       openapi: `${baseUrl}/openapi.json`
     }
   };
-  
+
   res.status(200).json(manifest);
 });
 
@@ -4885,7 +4730,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       protocol_version: "1.0"
     },
     commerce: {
-      total_services: 60,
+      total_services: getCanonicalServiceCount(),
       categories: ["discovery", "trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence", "prediction-markets", "traditional-markets", "satellite-data", "ai-inference", "iot"],
       platform_commission: 15,
       minimum_payment: 0.10,
@@ -5527,7 +5372,7 @@ router.get('/.well-known/agent-registration.json', (req: Request, res: Response)
 
   res.status(200).json({
     specVersion: 'coinrailz-agent-registration/1.0',
-    description: 'Register your AI agent with Coin Railz to access 60 x402 micropayment services across 8 chains.',
+    description: `Register your AI agent with Coin Railz to access ${getCanonicalServiceCount()} x402 micropayment services across 8 chains.`,
 
     service: {
       name: 'Coin Railz',
@@ -5633,7 +5478,7 @@ router.get('/.well-known/agent-registration.json', (req: Request, res: Response)
       },
     },
     cardPaymentPath: {
-      description: 'EASIER ALTERNATIVE — No crypto required. One POST call with a Stripe card → receive API key → use on all 60 services instantly.',
+      description: `EASIER ALTERNATIVE — No crypto required. One POST call with a Stripe card → receive API key → use on all ${getCanonicalServiceCount()} services instantly.`,
       endpoint: `${baseUrl}/api/m2m/credits/purchase`,
       method: 'POST',
       steps: [
@@ -5797,7 +5642,7 @@ router.post('/.well-known/agent-registration.json', async (req: Request, res: Re
     // RECOMMENDED: card purchase → instant API key — no crypto required, works in ~60 seconds
     cardPaymentPath: {
       label: 'RECOMMENDED — Get started in ~60 seconds, no crypto required',
-      description: 'Purchase credits with a card and get an API key in one call. Key works on all 60 /x402/* services immediately.',
+      description: `Purchase credits with a card and get an API key in one call. Key works on all ${getCanonicalServiceCount()} /x402/* services immediately.`,
       endpoint: `${baseUrl}/api/m2m/credits/purchase`,
       method: 'POST',
       tiers: [

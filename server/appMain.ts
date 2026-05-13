@@ -939,6 +939,16 @@ console.log('🔌 Registering MCP service discovery routes for AI agent tooling.
 app.use(mcpServiceDiscoveryRoutes);
 console.log('✅ MCP service discovery routes registered - 41 services available at /mcp/services');
 
+// Register MCP Delivery Layer (tool list + tool call adapter)
+const mcpDeliveryRoutes = (await import('./routes/mcpDeliveryRoutes')).default;
+app.use('/mcp', mcpDeliveryRoutes);
+console.log('✅ MCP delivery routes registered at /mcp/tools/list and /mcp/tools/call');
+
+// Register Admin Observability Dashboard
+const adminObservabilityRoutes = (await import('./routes/adminObservabilityRoutes')).default;
+app.use('/api/admin', adminObservabilityRoutes);
+console.log('✅ Admin observability routes registered at /api/admin/observability');
+
 // === BAZAAR DISCOVERY EXTENSION (DUAL-STACK) ===
 // This provides Coinbase Bazaar-compatible discovery metadata alongside existing payment middleware
 // Feature flag controlled: BAZAAR_DISCOVERY_ENABLED=true

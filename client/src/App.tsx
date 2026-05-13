@@ -150,6 +150,7 @@ const CoinbaseWallet = lazy(() => import("@/pages/coinbase-wallet"));
 const ReferralDashboardNew = lazy(() => import("@/pages/referral-dashboard"));
 const EnterprisePortal = lazy(() => import("@/pages/enterprise-portal"));
 const AdminAnalytics = lazy(() => import("@/pages/admin-analytics"));
+const AdminObservability = lazy(() => import("@/pages/admin-observability"));
 const SocialLoginPage = lazy(() => import("@/components/social-login"));
 const SecurityDashboard = lazy(() => import("@/components/enhanced-security"));
 const SubscriptionPage = lazy(() => import("@/pages/subscription"));
@@ -900,6 +901,9 @@ function Router() {
       </Route>
       <Route path="/admin-analytics">
         {() => <LazyLoadWrapper><AdminAnalytics /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/admin/observability">
+        {() => <LazyLoadWrapper><AdminObservability /></LazyLoadWrapper>}
       </Route>
       <Route path="/social-login">
         {() => <LazyLoadWrapper><SocialLoginPage /></LazyLoadWrapper>}

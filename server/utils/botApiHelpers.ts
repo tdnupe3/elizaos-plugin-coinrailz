@@ -39,6 +39,7 @@ export const TOKEN_METADATA: Record<string, Record<string, TokenMetadata>> = {
     USDT: { symbol: 'USDT', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6, isNative: false },
     DAI: { symbol: 'DAI', address: '0x6B175474E89094C44Da98b954EedeAC495271d0F', decimals: 18, isNative: false },
     WBTC: { symbol: 'WBTC', address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599', decimals: 8, isNative: false },
+    VLT: { symbol: 'VLT', address: '0x6b785a0322126826d8226d77e173d75DAfb84d11', decimals: 18, isNative: false },
   },
   base: {
     ETH: { symbol: 'ETH', address: NATIVE_TOKEN_ADDRESS, decimals: 18, isNative: true },

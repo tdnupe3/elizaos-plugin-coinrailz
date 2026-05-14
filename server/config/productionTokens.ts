@@ -106,6 +106,16 @@ export const PRODUCTION_TOKENS = {
     coingeckoId: 'railz-token',
     chain: 'base',
     description: 'Native utility token for Coin Railz platform - AI-powered fintech infrastructure'
+  },
+  // VLT - Bankroll Vault (Ethereum mainnet)
+  VLT: {
+    address: '0x6b785a0322126826d8226d77e173d75DAfb84d11',
+    symbol: 'VLT',
+    name: 'Bankroll Vault',
+    decimals: 18,
+    coingeckoId: 'bankroll-vault',
+    chain: 'ethereum',
+    description: 'Fixed-supply Ethereum asset backed by secured onchain liquidity. Proof of Liquidity model — trading fees deepen the Uniswap V2 pool. No admin keys. No mint function. Immutable contracts since 2020.'
   }
 };
 
@@ -118,7 +128,10 @@ export const POPULAR_PAIRS = [
   ['PEPE', 'ETH'],
   ['SHIB', 'ETH'],
   ['DAI', 'USDC'],
-  ['AAVE', 'ETH']
+  ['AAVE', 'ETH'],
+  ['VLT', 'ETH'],
+  ['VLT', 'USDC'],
+  ['ETH', 'VLT']
 ];
 
 export function getTokenBySymbol(symbol: string) {

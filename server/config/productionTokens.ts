@@ -9,7 +9,7 @@ export const PRODUCTION_TOKENS = {
     coingeckoId: 'ethereum'
   },
   USDC: {
-    address: '0xA0b86a33E6441E983BF0A96a1a5E86C3c1b8c2Fb',
+    address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
     symbol: 'USDC',
     name: 'USD Coin',
     decimals: 6,

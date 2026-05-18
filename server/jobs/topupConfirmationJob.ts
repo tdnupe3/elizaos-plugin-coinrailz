@@ -21,11 +21,13 @@ interface VerificationResult {
   failureReason?: string;
 }
 
-const DB_QUERY_TIMEOUT_MS = 30000; // 30s — prevents Neon serverless query hangs
+const DB_QUERY_TIMEOUT_MS = 60000; // 60s — allows Neon WS pool to reconnect after transient stall
+const MAX_CONSECUTIVE_WARN = 2; // log WARN for first 2 transient timeouts, then escalate to ERROR
 
 export class TopupConfirmationJob {
   private static running = false;
   private static intervalId: NodeJS.Timeout | null = null;
+  private static consecutiveTimeoutFailures = 0;
 
   private static readonly RPC_URLS: Record<string, string> = {
     'base-mainnet': 'https://mainnet.base.org',
@@ -41,7 +43,9 @@ export class TopupConfirmationJob {
     }
 
     console.log(`🚀 Starting topup confirmation job (interval: ${intervalMs}ms)`);
-    this.intervalId = setInterval(() => this.runOnce(), intervalMs);
+    // Add ±15s interval jitter to prevent lock-step firing with other jobs
+    const jitter = Math.floor(Math.random() * 30000) - 15000;
+    this.intervalId = setInterval(() => this.runOnce(), intervalMs + jitter);
     
     // Delay initial run by 30s — Neon WebSocket pool needs time to warm up on cold start.
     // Running immediately causes "timeout exceeded when trying to connect" at startup.
@@ -106,10 +110,22 @@ export class TopupConfirmationJob {
         }
       }
 
+      this.consecutiveTimeoutFailures = 0; // reset on successful DB query
       const durationMs = Date.now() - startTime;
       console.log(`✅ Topup confirmation job completed in ${durationMs}ms`);
     } catch (error: any) {
-      console.error('❌ Topup confirmation job failed:', error);
+      const isTransientTimeout = error?.message?.includes('DB query timeout after');
+      if (isTransientTimeout) {
+        this.consecutiveTimeoutFailures++;
+        if (this.consecutiveTimeoutFailures <= MAX_CONSECUTIVE_WARN) {
+          console.warn(`⚠️ Topup confirmation job: transient DB timeout (occurrence ${this.consecutiveTimeoutFailures}) — Neon WS reconnect, will retry`);
+        } else {
+          console.error(`❌ Topup confirmation job failed: DB query timeout (${this.consecutiveTimeoutFailures} consecutive) — may need investigation`, error);
+        }
+      } else {
+        this.consecutiveTimeoutFailures = 0;
+        console.error('❌ Topup confirmation job failed:', error);
+      }
     } finally {
       this.running = false;
     }

@@ -13,8 +13,10 @@ import { createPaymentIntentMetadata } from "@shared/schema";
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "";
 const BASE_MAINNET_URL = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
 const ETH_MAINNET_URL = `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
+const ARB_MAINNET_URL = `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
 const baseProvider = new ethers.JsonRpcProvider(BASE_MAINNET_URL);
 const ethereumProvider = new ethers.JsonRpcProvider(ETH_MAINNET_URL);
+const arbitrumProvider = new ethers.JsonRpcProvider(ARB_MAINNET_URL);
 const provider = baseProvider;
 
 // Stablecoin contract addresses on Base mainnet
@@ -24,6 +26,10 @@ const USDT_BASE = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2";
 // Stablecoin contract addresses on Ethereum mainnet
 const USDC_ETH = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const USDT_ETH = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+
+// Stablecoin contract addresses on Arbitrum One (verified on-chain)
+const USDC_ARB = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
+const USDT_ARB = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
 
 // Accepted stablecoins per chain
 const ACCEPTED_STABLECOINS_BASE = [
@@ -36,23 +42,41 @@ const ACCEPTED_STABLECOINS_ETH = [
   { address: USDT_ETH, symbol: "USDT", name: "Tether USD" }
 ];
 
+const ACCEPTED_STABLECOINS_ARB = [
+  { address: USDC_ARB, symbol: "USDC", name: "USD Coin" },
+  { address: USDT_ARB, symbol: "USDT", name: "Tether USD" }
+];
+
 const ACCEPTED_STABLECOINS = ACCEPTED_STABLECOINS_BASE;
 
-type EvmChain = 'base' | 'ethereum';
+type EvmChain = 'base' | 'ethereum' | 'arbitrum';
 
 function getProviderForChain(chain: EvmChain): ethers.JsonRpcProvider {
-  return chain === 'ethereum' ? ethereumProvider : baseProvider;
+  if (chain === 'ethereum') return ethereumProvider;
+  if (chain === 'arbitrum') return arbitrumProvider;
+  return baseProvider;
 }
 
 function getStablecoinsForChain(chain: EvmChain) {
-  return chain === 'ethereum' ? ACCEPTED_STABLECOINS_ETH : ACCEPTED_STABLECOINS_BASE;
+  if (chain === 'ethereum') return ACCEPTED_STABLECOINS_ETH;
+  if (chain === 'arbitrum') return ACCEPTED_STABLECOINS_ARB;
+  return ACCEPTED_STABLECOINS_BASE;
 }
 
-function parseNetworkToChain(network?: string): EvmChain {
+/**
+ * Parse a network string to an EvmChain.
+ * IMPORTANT: Unknown networks are rejected explicitly — never fall back silently to Base.
+ * A silent fallback would cause an Arbitrum txHash to be verified against the Base RPC,
+ * which would return receipt-not-found and mis-report a valid payment as failed.
+ * Returns null for unknown networks; callers must handle the null case.
+ */
+function parseNetworkToChain(network?: string): EvmChain | null {
   if (!network) return 'base';
-  const n = network.toLowerCase();
+  const n = network.toLowerCase().trim();
   if (n === 'ethereum' || n === 'eip155:1' || n === 'ethereum-mainnet') return 'ethereum';
-  return 'base';
+  if (n === 'base' || n === 'eip155:8453' || n === 'base-mainnet') return 'base';
+  if (n === 'arbitrum' || n === 'eip155:42161' || n === 'arbitrum-one' || n === 'arb') return 'arbitrum';
+  return null;
 }
 
 // Platform wallet address
@@ -305,15 +329,18 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
           paymentAmount = parsed.amount;
         }
         
-        const VALID_NETWORKS = ['base', 'eip155:8453', 'ethereum', 'eip155:1', 'ethereum-mainnet'];
-        if (parsed.network && !VALID_NETWORKS.includes(parsed.network)) {
-          console.log(`❌ Invalid network in Base64 JSON: ${parsed.network}`);
-          return res.status(400).json({
-            error: "Invalid payment proof format",
-            message: "network must be one of: ethereum, eip155:1, base, eip155:8453"
-          });
+        if (parsed.network) {
+          const resolvedChain = parseNetworkToChain(parsed.network);
+          if (resolvedChain === null) {
+            console.log(`❌ Unknown network in Base64 JSON: ${parsed.network}`);
+            return res.status(400).json({
+              error: "Invalid payment proof format",
+              message: "Unsupported network. Supported: base, eip155:8453, ethereum, eip155:1, arbitrum, eip155:42161",
+              supportedNetworks: ["base", "eip155:8453", "ethereum", "eip155:1", "arbitrum", "eip155:42161", "arb"]
+            });
+          }
+          paymentChain = resolvedChain;
         }
-        paymentChain = parseNetworkToChain(parsed.network);
       }
     }
   } catch {
@@ -364,8 +391,8 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
 
   // Verify transaction on-chain (detect chain from payment payload)
   verifyTransactionPayment(txHash, serviceName, requiredAmount, paymentChain)
-    .then((verified) => {
-      if (verified) {
+    .then((result) => {
+      if (result.verified) {
         console.log(`✅ Payment verified on-chain for ${serviceName} (chain: ${paymentChain})`);
         (req as any).paymentAlreadyVerified = true;
         return next();
@@ -387,7 +414,8 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
           }],
           supportedNetworks: [
             { network: "eip155:1", legacy: "ethereum" },
-            { network: "eip155:8453", legacy: "base" }
+            { network: "eip155:8453", legacy: "base" },
+            { network: "eip155:42161", legacy: "arbitrum", note: "backend-verified out-of-band; include txHash in X-PAYMENT with network field set to eip155:42161" }
           ]
         });
       }
@@ -497,7 +525,7 @@ export async function verifyTransactionPayment(
 
     const chainProvider = getProviderForChain(chain);
     const chainStablecoins = getStablecoinsForChain(chain);
-    const chainId = chain === 'ethereum' ? 1 : 8453;
+    const chainId = chain === 'ethereum' ? 1 : chain === 'arbitrum' ? 42161 : 8453;
     console.log(`🔍 Verifying tx on ${chain} (chainId: ${chainId})`);
 
     for (let attempt = 1; attempt <= RECEIPT_MAX_RETRIES; attempt++) {
@@ -623,7 +651,7 @@ export async function verifyTransactionPayment(
       await db.insert(x402PaymentIntents).values({
         id: intentId,
         txHash,
-        network: chain === 'ethereum' ? "eip155:1" : "eip155:8453",
+        network: chain === 'ethereum' ? "eip155:1" : chain === 'arbitrum' ? "eip155:42161" : "eip155:8453",
         serviceName,
         payer: senderAddress,
         amount: (paymentAmount / 1e6).toString(),

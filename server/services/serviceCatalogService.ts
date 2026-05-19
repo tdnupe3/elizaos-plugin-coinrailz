@@ -92,7 +92,7 @@ export class ServiceCatalogService {
       {
         id: 'ping',
         name: 'x402 Discovery Ping',
-        description: 'x402 discovery and testing endpoint - returns 402 Payment Required challenge',
+        description: 'x402 payment infrastructure health check. Returns 402 challenge with valid EIP-712 payment requirements — use to verify your x402 client can parse and sign challenges before live payments.',
         endpoint: '/x402/ping',
         network: 'eip155:8453',
         category: 'discovery',
@@ -115,7 +115,7 @@ export class ServiceCatalogService {
       {
         id: 'trade-signals',
         name: 'AI Trade Signals',
-        description: 'Real-time AI-powered trading signals with entry/exit points',
+        description: 'AI-generated BUY/SELL/HOLD signal for any token with confidence score (0–100), price targets, stop-loss level, and multi-timeframe technical summary. GPT-4o powered. Pass { symbol } or { address }.',
         endpoint: '/x402/trade-signals',
         network: 'eip155:8453',
         category: 'trading-intelligence',
@@ -126,7 +126,7 @@ export class ServiceCatalogService {
       {
         id: 'wallet-risk',
         name: 'Wallet Risk Analysis',
-        description: 'Comprehensive risk scoring for any blockchain wallet',
+        description: 'On-chain risk score (0–100) for any EVM wallet. Flags mixer exposure, blacklisted counterparties, rug-pull history, concentration risk, and anomalous transfer patterns. Pass { address, chain? }.',
         endpoint: '/x402/wallet-risk',
         network: 'eip155:8453',
         category: 'trading-intelligence',
@@ -137,7 +137,7 @@ export class ServiceCatalogService {
       {
         id: 'token-sentiment',
         name: 'Deep Token Analysis',
-        description: 'Full token fundamentals, security analysis, and holder distribution',
+        description: 'Full token dossier: contract audit findings, top-10 holder distribution, liquidity depth across DEXs, and 7-day social sentiment score. Pass any EVM token address or symbol.',
         endpoint: '/x402/token-sentiment',
         network: 'eip155:8453',
         category: 'trading-intelligence',
@@ -148,7 +148,7 @@ export class ServiceCatalogService {
       {
         id: 'whale-alerts',
         name: 'Whale Movement Alerts',
-        description: 'Real-time whale transaction monitoring and alerts',
+        description: 'Track wallets moving >$100K for any EVM chain. Returns recent large transactions with counterparties, USD value, and direction (accumulation vs. distribution). Covers Base, Ethereum, Arbitrum, Polygon.',
         endpoint: '/x402/whale-alerts',
         network: 'eip155:8453',
         category: 'trading-intelligence',
@@ -159,7 +159,7 @@ export class ServiceCatalogService {
       {
         id: 'trending-tokens',
         name: 'Trending Tokens Scanner',
-        description: 'Track trending tokens and market momentum across chains',
+        description: 'Top trending tokens by volume momentum across Base, Ethereum, Arbitrum, and Polygon. Returns price change %, volume spike ratio, social velocity score, and DEX trade count in the last 1h/24h.',
         endpoint: '/x402/trending-tokens',
         network: 'eip155:8453',
         category: 'trading-intelligence',
@@ -170,7 +170,7 @@ export class ServiceCatalogService {
       {
         id: 'sentiment-analysis',
         name: 'Social Sentiment Analysis',
-        description: 'AI-powered sentiment analysis from Twitter, Reddit, Discord',
+        description: 'Aggregate bullish sentiment score (0–100) for any token or topic. Sourced from Twitter/X mentions, Reddit posts, and on-chain activity signals. Returns score breakdown by channel with trend direction.',
         endpoint: '/x402/sentiment-analysis',
         network: 'eip155:8453',
         category: 'trading-intelligence',
@@ -181,7 +181,7 @@ export class ServiceCatalogService {
       {
         id: 'dex-liquidity',
         name: 'DEX Liquidity Analysis',
-        description: 'Cross-DEX liquidity depth and best execution routing',
+        description: 'Liquidity depth at ±2% and ±5% slippage bands across Uniswap v3, Curve, Balancer, and Aerodrome. Returns best execution venue, estimated price impact, and available liquidity in USD per pool.',
         endpoint: '/x402/dex-liquidity',
         network: 'eip155:8453',
         category: 'trading-intelligence',
@@ -192,7 +192,7 @@ export class ServiceCatalogService {
       {
         id: 'contract-scan',
         name: 'Smart Contract Security Audit',
-        description: 'AI-powered smart contract vulnerability detection',
+        description: 'AI-powered Solidity audit flagging reentrancy, integer overflow, access control gaps, and known CVE patterns. Returns risk rating (Critical/High/Medium/Low) with line-level code findings.',
         endpoint: '/x402/contract-scan',
         network: 'eip155:8453',
         category: 'trading-intelligence',
@@ -203,7 +203,7 @@ export class ServiceCatalogService {
       {
         id: 'portfolio-optimization',
         name: 'Portfolio Optimization',
-        description: 'AI-powered portfolio rebalancing and yield optimization',
+        description: 'Modern Portfolio Theory rebalancing for any EVM wallet. Returns optimal target weights, projected Sharpe ratio improvement, and estimated rebalance cost. Pass { address } or { holdings: [{token, amount}] }.',
         endpoint: '/x402/portfolio-optimization',
         network: 'eip155:8453',
         category: 'trading-intelligence',
@@ -214,7 +214,7 @@ export class ServiceCatalogService {
       {
         id: 'token-price',
         name: 'Token Price Oracle',
-        description: 'Real-time token pricing across DEXs and exchanges',
+        description: 'Token price aggregated from Uniswap v3, CoinGecko, and direct DEX pool queries. Returns current price in USD, 24h change %, 24h volume, and market cap. Pass { symbol } or { address, chain? }.',
         endpoint: '/x402/token-price',
         network: 'eip155:8453',
         category: 'trading-intelligence',
@@ -225,7 +225,7 @@ export class ServiceCatalogService {
       {
         id: 'portfolio-tracker',
         name: 'Portfolio Tracker',
-        description: 'Track portfolio performance and holdings across chains',
+        description: 'Holdings and P&L for any EVM wallet across Base, Ethereum, Arbitrum, and Polygon. Returns current USD value, cost basis, unrealized gains/losses, and 30-day performance. Pass { address }.',
         endpoint: '/x402/portfolio-tracker',
         network: 'eip155:8453',
         category: 'trading-intelligence',
@@ -236,7 +236,7 @@ export class ServiceCatalogService {
       {
         id: 'multi-chain-balance',
         name: 'Multi-Chain Balance',
-        description: 'Get wallet balances across all supported chains',
+        description: 'USDC, ETH, and top-token balances for any wallet across 7 EVM chains + Solana. Returns USD-denominated totals aggregated in one call. Pass { address } — no chain parameter needed.',
         endpoint: '/x402/multi-chain-balance',
         network: 'eip155:8453',
         category: 'trading-intelligence',
@@ -292,7 +292,7 @@ export class ServiceCatalogService {
       {
         id: 'seamless-chain-bridge',
         name: 'Cross-Chain Bridge',
-        description: 'Seamless cross-chain token bridging',
+        description: 'Bridge quotes from Across, Stargate, and Hop for any EVM-to-EVM token transfer. Returns best route ranked by cost+speed, estimated output amount, bridge fee, and expected confirmation time.',
         endpoint: '/x402/seamless-chain-bridge',
         network: 'eip155:8453',
         category: 'execution',
@@ -304,7 +304,7 @@ export class ServiceCatalogService {
       {
         id: 'smart-contract-audit',
         name: 'Smart Contract Audit',
-        description: 'Comprehensive smart contract security audit',
+        description: 'Comprehensive Solidity security audit with severity-classified findings (Critical/High/Medium/Low). Checks reentrancy, access control, oracle manipulation, MEV exposure, and upgrade safety. Returns actionable findings report.',
         endpoint: '/x402/smart-contract-audit',
         network: 'eip155:8453',
         category: 'premium',
@@ -315,7 +315,7 @@ export class ServiceCatalogService {
       {
         id: 'trading-signal',
         name: 'Trading Signal',
-        description: 'AI-powered trading signals with entry/exit points',
+        description: 'Professional trading signal for any token: trend direction, RSI/MACD summary, key support/resistance levels, and risk/reward ratio. $0.10 USDC. Pass { symbol } or { address }.',
         endpoint: '/x402/trading-signal',
         network: 'eip155:8453',
         category: 'premium',
@@ -326,7 +326,7 @@ export class ServiceCatalogService {
       {
         id: 'payment-processing',
         name: 'Payment Processing',
-        description: 'Cross-chain payment processing and settlement',
+        description: 'Route any USDC or stablecoin payment across 7 EVM chains + Solana. Returns optimal network for lowest fees, estimated on-chain confirmation time, and payment receipt with txHash.',
         endpoint: '/x402/payment-processing',
         network: 'eip155:8453',
         category: 'premium',
@@ -450,7 +450,7 @@ export class ServiceCatalogService {
       {
         id: 'instant-agent-wallet',
         name: 'Instant Agent Wallet',
-        description: 'Create CDP wallet for AI agents instantly',
+        description: 'Provision a CDP-managed EVM wallet for any AI agent in one call. Returns address, private-key shard (non-custodial), and USDC-ready status on Base. Idempotent — safe to call multiple times.',
         endpoint: '/x402/instant-agent-wallet',
         network: 'eip155:8453',
         category: 'trading',

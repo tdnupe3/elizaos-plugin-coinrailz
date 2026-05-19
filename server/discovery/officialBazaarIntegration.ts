@@ -187,7 +187,7 @@ export function generate402ResponseWithBazaar(
     }],
     facilitatorUrl,
     error: 'Payment required',
-    message: `This service costs ${service.priceUSD}. Pay with USDC on Ethereum or Base chain.`
+    message: `This service costs ${service.priceUSD}. Pay with USDC on Base (advertised via 402 accepts[]) or Arbitrum One (backend-verified out-of-band: submit txHash with network=eip155:42161 in X-PAYMENT header).`
   };
 }
 

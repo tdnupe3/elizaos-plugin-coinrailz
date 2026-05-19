@@ -76,6 +76,13 @@ export function isUsingCdpFacilitator(): boolean {
  * Always use DUAL format in 402 responses:
  * - network: "base" (legacy for x402-fetch compatibility)
  * - x402Network: "eip155:8453" (V2 spec compliance)
+ * 
+ * NOTE ON ARBITRUM: "arbitrum" is NOT in the x402 NetworkSchema enum (as of x402@1.2.0).
+ * Adding it to the 402 accepts[] would break all x402-fetch clients (ZodError on parse).
+ * Arbitrum is supported as a BACKEND-VERIFIED OUT-OF-BAND payment network only:
+ * - Agents can send USDC on Arbitrum and submit the txHash in X-PAYMENT header
+ * - We verify via Alchemy Arbitrum RPC and record the payment correctly
+ * - Arbitrum does NOT appear in the 402 accepts[] until x402 ecosystem adds it to NetworkSchema
  */
 export const NETWORK_LEGACY = 'base';
 export const NETWORK_CAIP2 = 'eip155:8453';
@@ -83,9 +90,13 @@ export const NETWORK_CAIP2 = 'eip155:8453';
 export const ETHEREUM_NETWORK_LEGACY = 'ethereum';
 export const ETHEREUM_NETWORK_CAIP2 = 'eip155:1';
 
+export const ARBITRUM_NETWORK_LEGACY = 'arbitrum';
+export const ARBITRUM_NETWORK_CAIP2 = 'eip155:42161';
+
 export const SUPPORTED_EVM_NETWORKS = {
   ethereum: { caip2: 'eip155:1', chainId: 1, name: 'Ethereum' },
   base: { caip2: 'eip155:8453', chainId: 8453, name: 'Base' },
+  arbitrum: { caip2: 'eip155:42161', chainId: 42161, name: 'Arbitrum One' },
 } as const;
 
 // Ethereum L1 Stablecoin Addresses
@@ -96,14 +107,19 @@ export const USDT_ETHEREUM_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7
 export const USDC_BASE_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 export const USDT_BASE_ADDRESS = '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2';
 
+// Arbitrum One Stablecoin Addresses (verified on-chain: 0xaf88... returns symbol "USDC")
+export const USDC_ARBITRUM_ADDRESS = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831';
+export const USDT_ARBITRUM_ADDRESS = '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9';
+
 // Solana Stablecoin Mint Addresses
 export const USDC_SOLANA_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 export const USDT_SOLANA_MINT = 'Es9vMFrzaCERmnn4Xw4Jp9Dzk1XjCK8dygBBhPokv9wg';
 
-// Platform wallet addresses for each chain (same EVM wallet works on both Ethereum and Base)
+// Platform wallet addresses for each chain (same EVM address works on Ethereum, Base, and Arbitrum)
 export const PLATFORM_WALLETS = {
   ethereum: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
   base: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
+  arbitrum: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
   solana: 'Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k',
 } as const;
 
@@ -116,6 +132,10 @@ export const STABLECOIN_CONFIG = {
   base: {
     USDC: { address: USDC_BASE_ADDRESS, decimals: 6, supportsEIP3009: true },
     USDT: { address: USDT_BASE_ADDRESS, decimals: 6, supportsEIP3009: false },
+  },
+  arbitrum: {
+    USDC: { address: USDC_ARBITRUM_ADDRESS, decimals: 6, supportsEIP3009: true },
+    USDT: { address: USDT_ARBITRUM_ADDRESS, decimals: 6, supportsEIP3009: false },
   },
   solana: {
     USDC: { mint: USDC_SOLANA_MINT, decimals: 6 },

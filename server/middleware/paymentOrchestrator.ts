@@ -1596,7 +1596,7 @@ export function createPaymentOrchestrator(
     }
 
     let txHash: string | null = null;
-    let paymentChain: 'base' | 'ethereum' | 'solana' | null = null;
+    let paymentChain: 'base' | 'ethereum' | 'arbitrum' | 'solana' | null = null;
 
     // Case 1: Raw EVM transaction hash (0x prefixed, 66 chars)
     // Default to 'base' for backward compat; agents can specify network via JSON payload instead
@@ -1833,6 +1833,7 @@ export function createPaymentOrchestrator(
             const n = String(accNetwork).toLowerCase();
             if (n === 'eip155:8453' || n === 'base' || n === 'base-mainnet') paymentChain = 'base';
             else if (n === 'eip155:1' || n === 'ethereum' || n === 'ethereum-mainnet') paymentChain = 'ethereum';
+            else if (n === 'eip155:42161' || n === 'arbitrum' || n === 'arbitrum-mainnet' || n === 'arb') paymentChain = 'arbitrum';
             else if (n.startsWith('solana:') || n === 'solana' || n === 'solana-mainnet') paymentChain = 'solana';
             if (paymentChain) console.log(`🔐 Orchestrator: Chain inferred from Dexter accepted.network: ${accNetwork} -> ${paymentChain}`);
           }
@@ -1846,6 +1847,18 @@ export function createPaymentOrchestrator(
             paymentChain = 'ethereum';
           } else if (n === 'base' || n === 'eip155:8453' || n === 'base-mainnet') {
             paymentChain = 'base';
+          } else if (n === 'arbitrum' || n === 'eip155:42161' || n === 'arbitrum-mainnet' || n === 'arb') {
+            paymentChain = 'arbitrum';
+          } else if (n.startsWith('solana:') || n === 'solana' || n === 'solana-mainnet') {
+            // Solana handled in its own path below — do not reject here
+          } else {
+            // Explicitly unsupported network — reject fast, don't default to Base
+            console.log(`❌ Orchestrator: Unsupported network in payload: ${payloadNetwork}`);
+            return res.status(400).json({
+              error: "Invalid payment proof format",
+              message: `Unsupported network: ${payloadNetwork}. Supported: base, eip155:8453, ethereum, eip155:1, arbitrum, eip155:42161`,
+              supportedNetworks: ["base", "eip155:8453", "ethereum", "eip155:1", "arbitrum", "eip155:42161", "solana"]
+            });
           }
           console.log(`🔐 Orchestrator: Network detected from payload: ${payloadNetwork} -> chain: ${paymentChain}`);
         }
@@ -2300,7 +2313,7 @@ export function createPaymentOrchestrator(
     // If we have a transaction hash, verify it on-chain (EVM)
     if (txHash) {
       try {
-        const evmChain = (paymentChain === 'ethereum' || paymentChain === 'base') ? paymentChain : 'base';
+        const evmChain = (paymentChain === 'ethereum' || paymentChain === 'base' || paymentChain === 'arbitrum') ? paymentChain : 'base';
         const verificationResult = await verifyTransactionPayment(
           txHash,
           serviceName,
@@ -2406,14 +2419,14 @@ export function createPaymentOrchestrator(
           return generatePaymentErrorResponse(
             res,
             'PAYMENT_VERIFICATION_FAILED',
-            `On-chain verification failed for transaction ${txHash?.substring(0, 20)}... - payment not confirmed on Ethereum or Base chain`,
-            `Verify: (1) Transaction is confirmed on Ethereum or Base, (2) Payment sent to platform wallet 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91, (3) Amount is at least $${microToUSD(requiredAmount)} USDC`,
+            `On-chain verification failed for transaction ${txHash?.substring(0, 20)}... - payment not confirmed on Ethereum, Base, or Arbitrum`,
+            `Verify: (1) Transaction is confirmed on Ethereum, Base, or Arbitrum, (2) Payment sent to platform wallet 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91, (3) Amount is at least $${microToUSD(requiredAmount)} USDC`,
             requestId,
             {
               recoverable: true,
               httpStatus: 402,
               expectedFormat: {
-                txHash: 'Confirmed Ethereum or Base chain transaction hash (0x + 64 hex chars)',
+                txHash: 'Confirmed Ethereum, Base, or Arbitrum transaction hash (0x + 64 hex chars)',
                 examples: [
                   `Send $${microToUSD(requiredAmount)}+ USDC to 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
                   'Wait for transaction confirmation',
@@ -3075,7 +3088,7 @@ function generate402Response(
       step3: "Include transaction hash in X-PAYMENT header",
       step4: "Retry the request with X-PAYMENT header",
       supportedMethods: ["raw-transaction-hash", "eip3009-authorization", "api-key"],
-      supportedChains: ["ethereum (eip155:1)", "base (eip155:8453)", "solana (solana:mainnet)"],
+      supportedChains: ["ethereum (eip155:1)", "base (eip155:8453)", "arbitrum (eip155:42161)", "solana (solana:mainnet)"],
       supportedTokens: ["USDC", "USDT"]
     },
     alternativePaymentMethods: {

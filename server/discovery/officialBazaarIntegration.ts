@@ -221,7 +221,7 @@ export function createOfficialBazaarRouter(): Router {
       success: true,
       totalRoutes: Object.keys(routes).length,
       facilitatorUrl: getCdpFacilitatorUrl(),
-      specVersion: '@x402/extensions/bazaar v2.0.0',
+      specVersion: '@x402/extensions/bazaar v2.12.0',
       routes
     });
   });
@@ -261,12 +261,14 @@ export function createOfficialBazaarRouter(): Router {
     res.json({
       success: true,
       status: 'active',
-      integrationVersion: '2.0.0',
+      integrationVersion: '2.12.0',
       sdkPackages: {
-        '@x402/core': '2.0.0',
-        '@x402/express': '2.0.0',
-        '@x402/extensions': '2.0.0',
-        '@x402/evm': '2.0.0'
+        '@x402/core': '2.12.0',
+        '@x402/express': '2.12.0',
+        '@x402/extensions': '2.12.0',
+        '@x402/evm': '2.12.0',
+        '@x402/fetch': '2.12.0',
+        '@x402/svm': '2.12.0'
       },
       specCompliance: {
         format: '@x402/extensions/bazaar DiscoveryInfo',

@@ -1,13 +1,13 @@
 # Cloudflare x402 Gateway for Coin Railz
 
-This directory contains a Cloudflare Worker template that exposes Coin Railz x402 services to the Cloudflare Agent SDK ecosystem.
+This directory contains a Cloudflare Worker that exposes all 65 Coin Railz x402 services to the Cloudflare Agent SDK ecosystem.
 
 ## Overview
 
 This Worker acts as a gateway/proxy that:
-1. Accepts x402 payment requests from AI agents
-2. Forwards them to Coin Railz x402 endpoints
-3. Returns service data after payment verification
+1. Accepts x402 payment requests from AI agents via the standard `X-PAYMENT` header
+2. Forwards them to the Coin Railz x402 endpoints at `coinrailz.com`
+3. Returns service data after payment verification on Base or Solana
 
 ## Quick Start
 
@@ -25,61 +25,85 @@ wrangler deploy
 ## Configuration
 
 Edit `wrangler.toml` to set:
-- `COINRAILZ_BASE_URL`: Your Coin Railz deployment URL (default: https://coinrailz.com)
+- `COINRAILZ_BASE_URL`: Your Coin Railz deployment URL (default: `https://coinrailz.com`)
 
-## Available Services
+## Endpoints
 
-The gateway proxies to these x402 services:
+| Path | Description |
+|------|-------------|
+| `GET /` or `GET /health` | Health check, version, service count |
+| `GET /catalog` or `GET /services` | Full service catalog (65 services) |
+| `GET /<service-id>` | Call a service (returns 402 challenge if no payment) |
+| `POST /<service-id>` | Call a service with `X-PAYMENT` header |
 
-| Service | Price | Description |
-|---------|-------|-------------|
-| gas-price-oracle | $0.10 | Gas prices across 7 chains |
-| whale-alerts | $0.35 | Whale wallet movements |
-| token-price | $0.25 | Real-time token prices |
-| wallet-risk | $0.50 | Wallet risk scoring |
-| contract-scan | $1.00 | Smart contract security analysis |
-| trending-tokens | $0.50 | Trending token discovery |
-
-## Usage with Cloudflare Agent SDK
+## Usage with @x402/fetch (Recommended)
 
 ```typescript
-import { x402Fetch } from '@x402/fetch';
-import { EVMWallet } from '@x402/evm';
+import { wrapFetch } from '@x402/fetch';
+import { createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { base } from 'viem/chains';
 
-const wallet = new EVMWallet({
-  privateKey: process.env.AGENT_PRIVATE_KEY,
-  network: 'eip155:8453' // Base
-});
+const account = privateKeyToAccount(process.env.AGENT_PRIVATE_KEY as `0x${string}`);
+const walletClient = createWalletClient({ account, chain: base, transport: http() });
 
-// Call through Cloudflare Worker
-const response = await x402Fetch(
-  'https://your-worker.workers.dev/gas-price-oracle',
-  { wallet }
-);
+const fetch402 = wrapFetch(fetch, walletClient);
 
+// The worker returns a 402 challenge which @x402/fetch handles automatically
+const response = await fetch402('https://your-worker.workers.dev/gas-price-oracle');
 const data = await response.json();
+console.log(data);
 ```
 
-## MCP Integration
-
-This gateway can also be exposed as an MCP (Model Context Protocol) server for AI models:
+## Usage with Direct X-PAYMENT Header
 
 ```typescript
-// In your MCP server configuration
-{
-  tools: [
-    {
-      name: 'get_gas_prices',
-      description: 'Get current gas prices across 7 chains (costs $0.10 USDC)',
-      x402: {
-        scheme: 'exact',
-        amount: '100000', // $0.10 in USDC (6 decimals)
-        asset: 'USDC'
-      }
-    }
-  ]
-}
+// First get the 402 challenge
+const challenge = await fetch('https://your-worker.workers.dev/token-price');
+// challenge.status === 402, challenge.json() has accepts[], price, facilitatorUrl
+
+// Then submit payment proof
+const response = await fetch('https://your-worker.workers.dev/token-price', {
+  method: 'POST',
+  headers: {
+    'X-PAYMENT': '<base64-encoded-payment-payload>',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ tokens: ['ETH', 'SOL'] }),
+});
 ```
+
+## Available Service Categories (65 total)
+
+| Category | Example Services |
+|----------|----------|
+| Trading Intelligence | trade-signals, token-price, whale-alerts, trending-tokens, sentiment-analysis, dex-liquidity |
+| Execution | seamless-chain-bridge, transaction-builder, batch-quote, approval-manager |
+| Portfolio & Risk | portfolio-tracker, wallet-risk, multi-chain-balance |
+| On-chain Data | gas-price-oracle, contract-scan, token-metadata |
+| Agent Infrastructure | agent-wallet, verified-agent-identity, instant-agent-wallet |
+| Satellite & IoT Data | satellite-earthdata, fire-alerts, weather-data, fleet-telematics |
+| Real Estate | property-valuation, lease-analysis |
+| Prediction Markets | prediction-markets, trade-ideas |
+| AI & Inference | ai-inference, contract-audit |
+
+See `/catalog` for the full list with pricing.
+
+## Payment Details
+
+- **Protocol**: x402 v2
+- **Networks**: Base (`eip155:8453`), Solana (mainnet)
+- **Token**: USDC
+- **Facilitator**: `https://api.cdp.coinbase.com/platform/v2/x402`
+- **Price range**: $0.05 – $1.00 per call
+- **First call**: FREE (no payment needed for `/first-call`)
+
+## x402 Protocol Notes
+
+- Payment header: `X-PAYMENT` (not `X-402-Payment`)
+- All 402 responses include `facilitatorUrl`, `accepts[]`, and `extensions.bazaar` metadata
+- Replay protection is enforced — each transaction hash can only be used once per service
+- The gateway version tracks the `@x402` SDK version (currently `2.12.0`)
 
 ## License
 

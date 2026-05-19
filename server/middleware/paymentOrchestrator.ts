@@ -1599,11 +1599,13 @@ export function createPaymentOrchestrator(
     let paymentChain: 'base' | 'ethereum' | 'arbitrum' | 'solana' | null = null;
 
     // Case 1: Raw EVM transaction hash (0x prefixed, 66 chars)
-    // Default to 'base' for backward compat; agents can specify network via JSON payload instead
+    // No default chain — agents MUST specify network in JSON payload.
+    // Raw 0x hashes without a network field are verified against Base first (most common),
+    // then Ethereum, then Arbitrum. This prevents silent wrong-chain rejection.
     if (xPayment.startsWith("0x") && xPayment.length === 66) {
       txHash = xPayment;
-      paymentChain = 'base';
-      console.log(`🔐 Orchestrator: Raw EVM hash payment detected for ${serviceName}: ${xPayment.substring(0, 10)}...`);
+      paymentChain = 'base'; // will attempt Base first, then fallback multi-chain below
+      console.log(`🔐 Orchestrator: Raw EVM hash detected for ${serviceName}: ${xPayment.substring(0, 10)}... (will try Base→Ethereum→Arbitrum)`);
     } 
     // Case 2: Raw Solana transaction signature (base58, 87-88 chars)
     else if (isSolanaSignature(xPayment)) {
@@ -2313,13 +2315,29 @@ export function createPaymentOrchestrator(
     // If we have a transaction hash, verify it on-chain (EVM)
     if (txHash) {
       try {
-        const evmChain = (paymentChain === 'ethereum' || paymentChain === 'base' || paymentChain === 'arbitrum') ? paymentChain : 'base';
-        const verificationResult = await verifyTransactionPayment(
+        // For raw 0x hashes with no explicit network: try Base first (most traffic),
+        // then Ethereum, then Arbitrum. This prevents silent wrong-chain rejection
+        // while preserving the common-case fast path.
+        const explicitChain = (paymentChain === 'ethereum' || paymentChain === 'base' || paymentChain === 'arbitrum') ? paymentChain : null;
+        const evmChain = explicitChain || 'base';
+        let verificationResult = await verifyTransactionPayment(
           txHash,
           serviceName,
           requiredAmount,
           evmChain
         );
+        // If Base failed and no explicit chain was specified, try Ethereum then Arbitrum
+        if (!verificationResult.verified && !explicitChain) {
+          console.log(`🔄 Orchestrator: Base verification failed for raw hash, trying Ethereum...`);
+          verificationResult = await verifyTransactionPayment(txHash, serviceName, requiredAmount, 'ethereum');
+          if (!verificationResult.verified) {
+            console.log(`🔄 Orchestrator: Ethereum verification failed for raw hash, trying Arbitrum...`);
+            verificationResult = await verifyTransactionPayment(txHash, serviceName, requiredAmount, 'arbitrum');
+          }
+          if (verificationResult.verified) {
+            console.log(`✅ Orchestrator: Raw hash verified on fallback chain for ${serviceName}`);
+          }
+        }
 
         if (verificationResult.verified) {
           const priceUsd = SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD] || 1.00;

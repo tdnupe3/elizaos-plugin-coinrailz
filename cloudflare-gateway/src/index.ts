@@ -144,8 +144,10 @@ export default {
 
     // Forward to Coin Railz with x402 headers
     // CANONICAL ENDPOINT: /x402/{serviceId} (verified working in production)
-    const upstreamUrl =
+    // Preserve query string from original request
+    const upstreamBase =
       service.endpoint || `${env.COINRAILZ_BASE_URL}/x402/${serviceId}`;
+    const upstreamUrl = url.search ? `${upstreamBase}${url.search}` : upstreamBase;
 
     const headers = new Headers(request.headers);
     headers.set(

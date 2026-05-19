@@ -141,8 +141,8 @@ router.get('/.well-known/ai-plugin.json', async (req: Request, res: Response) =>
     schema_version: "v1",
     name_for_human: "Coin Railz Payments",
     name_for_model: "coin_railz_payments",
-    description_for_human: "63-service x402 USDC payment infrastructure for AI agents across 8 blockchains.",
-    description_for_model: "Production-grade x402 micropayment infrastructure for AI agents. 63 services across 8 blockchains (7 EVM + Solana), settling in USDC. Categories: Crypto Intelligence, Trading, Market Intelligence, Prediction Markets (Kalshi/Polymarket), Satellite Intelligence (NASA/ESA), IoT & DePIN (fleet telematics, weather stations, sensor data), AI Inference (GPT-4o-mini at $0.05/call), Real Estate, Banking, and Compliance. Pricing: $0.05–$0.25 per call. Free $5 trial key available at /api/m2m/credits/trial. Supports API-key prepaid credits and native x402 on-chain USDC payments.",
+    description_for_human: "65-service x402 USDC payment infrastructure for AI agents across 8 blockchains.",
+    description_for_model: "Production-grade x402 micropayment infrastructure for AI agents. 65 services across 8 blockchains (7 EVM + Solana), settling in USDC. Categories: Crypto Intelligence, Trading, Market Intelligence, Prediction Markets (Kalshi/Polymarket), Satellite Intelligence (NASA/ESA), IoT & DePIN (fleet telematics, weather stations, sensor data), AI Inference (GPT-4o-mini at $0.05/call), Real Estate, Banking, and Compliance. Pricing: $0.05–$0.25 per call. Free $5 trial key available at /api/m2m/credits/trial. Supports API-key prepaid credits and native x402 on-chain USDC payments.",
     auth: {
       type: "none"
     },
@@ -2883,7 +2883,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       stateTransitionHistory: true,
       x402Payments: true,
       x402: {
-        protocolVersion: "2.0.0",
+        protocolVersion: "2.12.0",
         facilitatorUrl: "https://api.cdp.coinbase.com/platform/v2/x402",
         payTo: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
         paymentNetwork: "eip155:8453",
@@ -3787,12 +3787,13 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     homepage: "https://coinrailz.com",
     contact: "support@coinrailz.com",
     description: "AI agent marketplace with x402 autonomous payment endpoints, native Coinbase Agentic Wallet support, A2A 2.0 discovery, SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker), satellite data APIs (NASA/ESA), and multi-chain support across 8 networks (7 EVM + Solana). Processing fee: 1.5% + $0.01 per transaction.",
-    version: "x402-2.3",
+    version: "x402-2.12",
+    specVersion: "2.12.0",
     x402Version: 2,
     facilitatorUrl: getFacilitatorUrl(),
     payTo: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
     facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
-    updated: "2026-05-03T00:00:00Z",
+    updated: "2026-05-19T00:00:00Z",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
     agent_instructions: `${baseUrl}/.well-known/agent-instructions.json`,
     registrationEndpoint: `${baseUrl}/.well-known/agent-registration.json`,
@@ -5908,7 +5909,7 @@ router.get('/.well-known/webmcp.json', (req: Request, res: Response) => {
     schema: "https://webmcp.dev/schema/manifest.json",
     schemaVersion: "1.0",
     name: "Coin Railz x402 Payment Infrastructure",
-    description: "Production-grade multi-chain payment infrastructure for AI agents and MCP servers. 60 services across 8 blockchains. Pay-per-call via USDC/x402 or prepaid API-key credits. No account required for trial.",
+    description: "Production-grade multi-chain payment infrastructure for AI agents and MCP servers. 65 services across 8 blockchains. Pay-per-call via USDC/x402 or prepaid API-key credits. No account required for trial.",
     version: "1.0.0",
     provider: {
       name: "Coin Railz",
@@ -5919,7 +5920,7 @@ router.get('/.well-known/webmcp.json', (req: Request, res: Response) => {
       coinrailz: {
         type: "http",
         url: `${baseUrl}/mcp/services`,
-        description: "MCP-compatible service discovery. Returns 60 paid services with schemas, pricing, and endpoint URLs.",
+        description: "MCP-compatible service discovery. Returns 65 paid services with schemas, pricing, and endpoint URLs.",
         authentication: {
           modes: ["x-api-key", "x402"],
           trialKey: {
@@ -5979,7 +5980,7 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
     id: "coinrailz-x402-infrastructure",
     name: "Coin Railz",
     canonicalUrl: baseUrl,
-    description: "Universal payment rail for the AI agent economy. 60 pay-per-call services across 8 blockchains (7 EVM + Solana): financial data, satellite intelligence, AI inference, DeFi analytics, IoT/DePIN data, prediction markets, and more. Settles in USDC. API-key credits path requires no crypto wallet.",
+    description: "Universal payment rail for the AI agent economy. 65 pay-per-call services across 8 blockchains (7 EVM + Solana): financial data, satellite intelligence, AI inference, DeFi analytics, IoT/DePIN data, prediction markets, and more. Settles in USDC. API-key credits path requires no crypto wallet.",
     version_platform: "2.3.0",
     protocols: ["x402", "WebMCP", "A2A", "MPP", "OpenAPI"],
     capabilities: [
@@ -6049,7 +6050,7 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
       {
         id: "catalog",
         name: "Full Service Catalog",
-        description: "60 services with pricing, schemas, and endpoints.",
+        description: "65 services with pricing, schemas, and endpoints.",
         endpoint: `${baseUrl}/x402/catalog`,
         price: "free",
       },

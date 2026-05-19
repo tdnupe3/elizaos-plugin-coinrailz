@@ -2737,7 +2737,7 @@ const firstCallHandler = async (req: Request, res: Response) => {
         schemaVersion: "1.0",
         email: "support@coinrailz.com",
         partnerOnboard: "https://coinrailz.com/api/m2m/credits/trial",
-        note: "You just made your first x402 payment. Contact us for partner integration, revenue sharing, and priority API access across all 60 services."
+        note: "You just made your first x402 payment. Contact us for partner integration, revenue sharing, and priority API access across all 65 services."
       },
       responseTimeMs: responseTime
     };
@@ -2877,7 +2877,7 @@ curl -X POST ${baseUrl}/x402/first-call \\
   "partnerContact": { "email": "support@coinrailz.com" }
 }</pre>
 
-    <a class="cta" href="${baseUrl}/x402/catalog">Browse All 60 Services →</a>
+    <a class="cta" href="${baseUrl}/x402/catalog">Browse All 65 Services →</a>
 
     <footer>
       Coin Railz · <a href="${baseUrl}" style="color:#475569;">coinrailz.com</a> · support@coinrailz.com

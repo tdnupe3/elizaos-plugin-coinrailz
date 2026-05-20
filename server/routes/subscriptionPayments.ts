@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { stripe } from '../services/stripeClient';
 import { db } from '../db';
 import { subscriptions, subscriptionPlans } from '../../shared/schema';
@@ -107,19 +107,28 @@ router.post('/create-subscription', async (req, res) => {
 
 /**
  * 🔄 STRIPE WEBHOOK FOR SUBSCRIPTION EVENTS
+ * Exported for pre-JSON mounting in appMain.ts — raw body required for signature verification.
  */
-router.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  let event;
+export async function subscriptionStripeWebhookHandler(req: Request, res: Response) {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('❌ STRIPE_WEBHOOK_SECRET not configured — rejecting webhook');
+    return res.status(500).json({ error: 'Webhook not configured' });
+  }
 
+  const sig = req.headers['stripe-signature'];
+  if (!sig) {
+    return res.status(400).json({ error: 'Missing stripe-signature header' });
+  }
+
+  let event;
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig!, process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test');
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err: any) {
     console.log(`⚠️  Webhook signature verification failed.`, err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Handle the event
   switch (event.type) {
     case 'checkout.session.completed':
       const session = event.data.object as Stripe.Checkout.Session;
@@ -193,7 +202,7 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
   }
 
   res.json({received: true});
-});
+}
 
 /**
  * 📊 GET USER SUBSCRIPTION STATUS

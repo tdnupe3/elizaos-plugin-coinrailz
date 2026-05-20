@@ -253,6 +253,8 @@ const { stripeWebhookHandler } = await import('./routes/stripePaymentRoutes.js')
 const { creditsStripeWebhookHandler } = await import('./routes/creditsRoutes.js');
 const { bundleStripeWebhookHandler } = await import('./routes/bundleRoutes.js');
 const { stripeMarketplaceWebhookHandler } = await import('./routes/stripeRoutes.js');
+const { aiAgentStripeWebhookHandler } = await import('./routes/aiAgentProductRoutes.js');
+const { subscriptionStripeWebhookHandler } = await import('./routes/subscriptionPayments.js');
 
 app.post('/api/fast-revenue/stripe-webhook', express.raw({type: 'application/json'}), stripeWebhookHandler);
 app.post('/api/credits/stripe-webhook', express.raw({type: 'application/json'}), creditsStripeWebhookHandler);
@@ -260,6 +262,10 @@ app.post('/api/credits/stripe-webhook', express.raw({type: 'application/json'}),
 app.post('/api/bundles/webhook', express.raw({type: 'application/json'}), bundleStripeWebhookHandler);
 // Marketplace/GPT Elements webhook - handles payment_intent.succeeded for GPT purchases
 app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), stripeMarketplaceWebhookHandler);
+// AI product store webhook - pre-JSON mount for raw body integrity
+app.post('/api/ai-products/stripe-webhook', express.raw({type: 'application/json'}), aiAgentStripeWebhookHandler);
+// CryptoJoiner Pro subscription webhook - pre-JSON mount for raw body integrity
+app.post('/api/payments/webhook', express.raw({type: 'application/json'}), subscriptionStripeWebhookHandler);
 
 // Apply JSON parsing middleware AFTER Stripe webhooks
 app.use(express.json({ limit: '50mb' }));

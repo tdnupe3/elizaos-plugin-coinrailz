@@ -306,11 +306,20 @@ const PILOT_TIERS = {
 // ============================================================
 // CRITICAL: Must receive raw body (Buffer) for Stripe signature verification
 export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
-  const sig = req.headers['stripe-signature'];
-  let event;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('❌ STRIPE_WEBHOOK_SECRET not configured — rejecting webhook');
+    return res.status(500).json({ error: 'Webhook not configured' });
+  }
 
+  const sig = req.headers['stripe-signature'];
+  if (!sig) {
+    return res.status(400).json({ error: 'Missing stripe-signature header' });
+  }
+
+  let event;
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig as string, process.env.STRIPE_WEBHOOK_SECRET || '');
+    event = stripe.webhooks.constructEvent(req.body, sig as string, webhookSecret);
   } catch (err: any) {
     console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);

@@ -3,7 +3,7 @@
  * Premium API access packages for AI agents
  * REAL PAYMENT PROCESSING - Stripe integration
  */
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { stripe } from '../services/stripeClient';
 import express from 'express';
@@ -415,43 +415,47 @@ async function activateSubscription(orderId: string, agentId: string, productId:
   return apiKey;
 }
 
-// Stripe webhook for payment confirmation (RAW BODY REQUIRED)
-aiAgentProductRoutes.post('/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  let event;
+// Stripe webhook handler — exported so appMain.ts can mount it PRE-JSON for raw body integrity
+export async function aiAgentStripeWebhookHandler(req: Request, res: Response) {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('❌ STRIPE_WEBHOOK_SECRET not configured — rejecting webhook');
+    return res.status(500).json({ error: 'Webhook not configured' });
+  }
 
+  const sig = req.headers['stripe-signature'];
+  if (!sig) {
+    return res.status(400).json({ error: 'Missing stripe-signature header' });
+  }
+
+  let event;
   try {
-    // Verify webhook signature with raw body
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test');
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
     console.log('✅ Stripe webhook signature verified:', event.type);
   } catch (err) {
     console.error('❌ Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Handle payment success
   if (event.type === 'payment_intent.succeeded') {
     const paymentIntent = event.data.object;
     const { productId, agentId } = paymentIntent.metadata;
-    
+
     console.log(`🎉 STRIPE PAYMENT CONFIRMED: ${paymentIntent.id} for agent ${agentId}`);
     console.log(`💰 Amount: $${(paymentIntent.amount / 100).toFixed(2)}, Product: ${productId}`);
-    
+
     try {
-      // Find the pending order by payment intent
       const orders = await db.select()
         .from(aiMarketplaceOrders)
         .where(eq(aiMarketplaceOrders.agentId, agentId))
         .where(eq(aiMarketplaceOrders.productId, productId))
         .where(eq(aiMarketplaceOrders.status, 'pending'))
         .limit(1);
-      
+
       if (orders.length > 0) {
         const order = orders[0];
         const product = API_PRODUCTS.find(p => p.id === productId);
-        
         if (product) {
-          // Activate subscription with verified payment
           const apiKey = await activateSubscription(order.id, agentId, productId, product, paymentIntent.id);
           console.log(`✅ PAYMENT VERIFIED & SUBSCRIPTION ACTIVATED: API key ${apiKey} issued for agent ${agentId}`);
           console.log(`📊 Revenue: $${product.priceUSD} collected successfully`);
@@ -463,14 +467,13 @@ aiAgentProductRoutes.post('/stripe-webhook', express.raw({ type: 'application/js
       }
     } catch (error) {
       console.error('💥 CRITICAL: Failed to activate subscription after confirmed payment:', error);
-      // TODO: Add alert system for manual intervention
     }
   } else {
     console.log(`📨 Stripe webhook event: ${event.type}`);
   }
 
   res.json({ received: true });
-});
+}
 
 // Order status endpoint
 aiAgentProductRoutes.get('/order/:orderId/status', async (req, res) => {

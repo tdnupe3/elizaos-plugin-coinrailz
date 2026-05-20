@@ -135,9 +135,15 @@ export async function bundleStripeWebhookHandler(req: Request, res: Response) {
       return res.status(500).json({ error: "Stripe is not configured" });
     }
 
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error('❌ STRIPE_WEBHOOK_SECRET not configured — rejecting webhook');
+      return res.status(500).json({ error: 'Webhook not configured' });
+    }
+
     const sig = req.headers['stripe-signature'];
     if (!sig) {
-      return res.status(400).json({ error: "No signature" });
+      return res.status(400).json({ error: 'Missing stripe-signature header' });
     }
 
     let event: Stripe.Event;
@@ -147,7 +153,7 @@ export async function bundleStripeWebhookHandler(req: Request, res: Response) {
       event = stripe.webhooks.constructEvent(
         req.body,
         sig,
-        process.env.STRIPE_WEBHOOK_SECRET || ''
+        webhookSecret
       );
     } catch (err) {
       console.error('Webhook signature verification failed:', err);
@@ -223,19 +229,27 @@ export async function bundleStripeWebhookHandler(req: Request, res: Response) {
 
 // GET /api/subscriptions/me - Get current user's bundle subscriptions
 router.get("/subscriptions/me", async (req, res) => {
-  // For now, return all subscriptions (in production, filter by authenticated user)
-  // TODO: Add proper authentication and user filtering
+  if (!req.user) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  const callerId: string = (req.user as any).id || (req.user as any).claims?.sub || '';
+  if (!callerId) {
+    return res.status(401).json({ error: "Unable to identify caller" });
+  }
+
   try {
-    const subscriptions = await db
+    const rawSubs = await db
       .select()
       .from(serviceBundleSubscriptions)
+      .where(eq(serviceBundleSubscriptions.subscriberId, callerId))
       .orderBy(desc(serviceBundleSubscriptions.createdAt));
 
-    // Enrich with bundle names
-    const enrichedSubscriptions = subscriptions.map(sub => {
+    const enrichedSubscriptions = rawSubs.map(sub => {
       const bundle = SERVICE_BUNDLES.find(b => b.id === sub.bundleId);
       return {
         ...sub,
+        apiKeyHash: undefined, // never expose key material
         bundleName: bundle?.name || sub.bundleId,
       };
     });

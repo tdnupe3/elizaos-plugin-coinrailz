@@ -129,6 +129,58 @@ router.get('/.well-known/mcp-server.json', async (req: Request, res: Response) =
 });
 
 /**
+ * GET /.well-known/server-card.json
+ * GET /.well-known/mcp/server-card.json
+ *
+ * MCP Server Card (SEP-1649 / SEP-2127).
+ * Probed by Claude, Cursor, Copilot, MCP registries, and ora.run validators
+ * before establishing an MCP session. Served at both the short compat alias
+ * and the canonical nested path defined in the spec.
+ */
+function buildServerCard(baseUrl: string) {
+  return {
+    $schema: "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+    name: "coinrailz/x402-payment-infrastructure",
+    title: "Coin Railz x402 Payment Infrastructure",
+    description: `Production-grade x402 USDC payment infrastructure for AI agents. ${getCanonicalServiceCount()} paid services across 8 blockchains (7 EVM + Solana) — Crypto Intelligence, Trading, Market Intelligence, Satellite Data (NASA/ESA), IoT/DePIN, AI Inference, and more. Settle in USDC with no accounts or API keys required.`,
+    version: "1.0.0",
+    protocolVersion: "2024-11-05",
+    serverUrl: `${baseUrl}/mcp/services`,
+    iconUrl: `${baseUrl}/attached_assets/Coin%20Railz%20Logo%20No%20BG.png`,
+    documentationUrl: `${baseUrl}/mcp-integration-guide`,
+    transport: {
+      type: "http",
+      endpoint: "/mcp/services"
+    },
+    capabilities: {
+      tools: { listChanged: false },
+      resources: false,
+      prompts: false
+    },
+    tools: "dynamic",
+    payment: {
+      href: `${baseUrl}/.well-known/x402.json`,
+      rel: "payment-policy",
+      rails: ["x402"]
+    },
+    authentication: {
+      required: false,
+      note: "Services are pay-per-call via x402 USDC on Base. Free trial key available at /api/m2m/credits/trial."
+    }
+  };
+}
+
+router.get('/.well-known/server-card.json', (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.status(200).json(buildServerCard(getBaseUrl(req)));
+});
+
+router.get('/.well-known/mcp/server-card.json', (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.status(200).json(buildServerCard(getBaseUrl(req)));
+});
+
+/**
  * GET /.well-known/ai-plugin.json
  * 
  * Legacy ChatGPT Plugin manifest (deprecated by OpenAI).
@@ -6224,6 +6276,8 @@ router.all('/.well-known/*', (req: Request, res: Response) => {
       '/.well-known/mcp-integration.json',
       '/.well-known/mcp-server.json',
       '/.well-known/mcp.json',
+      '/.well-known/server-card.json',
+      '/.well-known/mcp/server-card.json',
       '/.well-known/ai-plugin.json',
       '/.well-known/service-manifest.json',
       '/.well-known/payment-methods.json',

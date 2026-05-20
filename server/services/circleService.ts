@@ -126,7 +126,7 @@ export class CircleService {
             if (usdcWallet) {
               return {
                 address: usdcWallet.address || '0xCoinRailzCircleWallet123456789',
-                id: usdcWallet.walletId || 'coinrailz-circle-main',
+                id: usdcWallet.id || 'coinrailz-circle-main',
                 balance: usdcWallet.balance || '0.00'
               };
             }
@@ -201,7 +201,7 @@ export class CircleService {
           walletsFound: walletCount,
           hasWallets: walletCount > 0,
           firstWallet: firstWallet ? {
-            id: firstWallet.walletId,
+            id: firstWallet.id,
             state: firstWallet.state,
             blockchain: firstWallet.blockchain
           } : null,
@@ -499,7 +499,7 @@ export class CircleService {
       if (!this.circleClient) {
         throw new Error('Circle client not initialized');
       }
-      return await this.circleClient.getTransaction(params);
+      return await this.circleClient.getTransaction({ id: params.transactionId });
     } catch (error) {
       console.error('Failed to get transaction:', error);
       throw error;

@@ -105,31 +105,72 @@
 
 ---
 
-## Wave B — Service Libraries
+## Wave B1 — Low-Risk Service Utilities
 
-**Status:** ⏳ Not started  
-**Risk:** Low-Medium (isolated to individual service files)  
-**Business Impact:** Low  
-**Commit after:** Yes (one commit per package or one combined)
+**Status:** ✅ Complete — May 20, 2026  
+**Risk:** Low  
+**Business Impact:** Zero — no payment paths  
+**Commit after:** Yes
+
+| Package | From | To | Notes |
+|---|---|---|---|
+| `multer` | 2.0.1 | 2.1.1 | File uploads, minor patch |
+| `winston` | 3.17.0 | 3.19.0 | Logging, minor patches |
+| `nanoid` | 5.1.5 | 5.1.11 | ID generation, pure utility |
+
+**Verification steps:**
+- [ ] Install completes without errors
+- [ ] App starts, zero errors in logs
+- [ ] `/x402/ping` → 402 ✅ | `/health` → 200 ✅
+
+**Commit message:** `chore: upgrade multer, winston, nanoid (Wave B1)`
+
+---
+
+## Wave B2 — Nodemailer
+
+**Status:** ✅ Complete — May 20, 2026 (fixed createTransporter→createTransport bug + removed tls.rejectUnauthorized:false security issue)  
+**Risk:** Low-Medium (pre-existing `createTransporter` bug + security issue to fix first)  
+**Business Impact:** Low — email outreach only  
+**Pre-work required before installing:**
+- Fix `createTransporter` → `createTransport` in `immediateEmailOutreach.ts`
+- Remove `tls: { rejectUnauthorized: false }` — MITM risk on SMTP (security flag from architect)
+
+| Package | From | To | Notes |
+|---|---|---|---|
+| `nodemailer` | 7.0.6 | 8.0.7 | Fix bugs first, then upgrade |
+
+**Verification steps:**
+- [ ] Pre-existing bugs fixed before install
+- [ ] Install completes without errors
+- [ ] App starts
+- [ ] `/x402/ping` → 402 ✅ | `/health` → 200 ✅
+
+**Commit message:** `chore: fix nodemailer usage + upgrade to v8 (Wave B2)`
+
+---
+
+## Wave B3 — Circle SDK
+
+**Status:** ✅ Complete — May 20, 2026 (fixed getTransaction {transactionId}→{id}, usdcWallet.walletId→.id, firstWallet.walletId→.id)  
+**Risk:** Medium-High (2 major versions, runtime failures silent due to `any` types)  
+**Business Impact:** Medium — Circle wallet/transfer flows  
+**Note:** `@circle-fin/smart-contract-platform` and `@circle-fin/user-controlled-wallets` have NO imports found — DEFERRED indefinitely.
 
 | Package | From | To | Files Affected |
 |---|---|---|---|
-| `@circle-fin/developer-controlled-wallets` | 8.4.0 | 10.3.1 | `circleService.ts` |
-| `@circle-fin/smart-contract-platform` | 8.4.0 | 10.3.1 | `circleService.ts` |
-| `@circle-fin/user-controlled-wallets` | 8.4.0 | 10.3.1 | `circleService.ts` |
-| `nodemailer` | 7.0.6 | 8.0.7 | email service |
-| `multer` | 2.0.1 | 2.1.1 | file uploads |
-| `winston` | 3.17.0 | 3.19.0 | logging (minor) |
-| `nanoid` | 5.1.5 | 5.1.11 | ID generation (minor) |
+| `@circle-fin/developer-controlled-wallets` | 8.4.0 | 10.3.1 | `server/services/circleService.ts` |
+| ~~`@circle-fin/smart-contract-platform`~~ | — | SKIP | No imports found |
+| ~~`@circle-fin/user-controlled-wallets`~~ | — | SKIP | No imports found |
 
-**Verification steps:**
-- [ ] `npm install` completes without errors
+**Verification steps (required before declaring complete):**
+- [ ] Install completes
 - [ ] TypeScript build passes
 - [ ] App starts
-- [ ] `/x402/ping` → 402 ✅
-- [ ] `/health` → 200 ✅
+- [ ] Circle sandbox smoke test: connection test, wallet creation, wallet balance, transfer creation
+- [ ] `/x402/ping` → 402 ✅ | `/health` → 200 ✅
 
-**Commit message:** `chore: upgrade service libraries (circle-fin, nodemailer, multer, winston, nanoid)`
+**Commit message:** `chore: upgrade @circle-fin/developer-controlled-wallets 8 → 10 (Wave B3)`
 
 ---
 
@@ -242,7 +283,9 @@ curl https://coinrailz.com/x402.json        # expect: 200
 | A1 | May 20, 2026 | react-hook-form 7.76, @hookform/resolvers 5.2, wouter 3.9 | ✅ Complete |
 | A2 | May 20, 2026 | lucide-react 1.16 (pre-fixed Github icon) | ✅ Complete |
 | A3 | May 20, 2026 | @coinbase/cdp-sdk 1.49.2 (+ removed as-any Solana cast) | ✅ Complete |
-| B | — | — | ⏳ Next |
+| B1 | May 20, 2026 | multer 2.1.1, winston 3.19.0, nanoid 5.1.11 | ✅ Complete |
+| B2 | May 20, 2026 | nodemailer 8.0.7 (+ fixed 2 pre-existing bugs) | ✅ Complete |
+| B3 | May 20, 2026 | @circle-fin/developer-controlled-wallets 10.3.1 (+ fixed 3 pre-existing bugs) | ✅ Complete |
 | C | — | — | ⏳ |
 | D | — | — | ⏳ Blocked (waiting for coinbase/x402 PR) |
 | E | — | — | ⏳ Deferred |

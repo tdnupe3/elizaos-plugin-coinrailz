@@ -66,14 +66,11 @@ export class ImmediateEmailOutreach {
       try {
         console.log(`🔧 Testing ${config.name}...`);
         
-        const transporter = nodemailer.createTransporter({
+        const transporter = nodemailer.createTransport({
           host: config.host,
           port: config.port,
           secure: config.secure,
-          auth: config.auth,
-          tls: {
-            rejectUnauthorized: false // Allow self-signed certificates
-          }
+          auth: config.auth
         });
         
         // Test connection

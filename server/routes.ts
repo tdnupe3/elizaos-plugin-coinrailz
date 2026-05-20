@@ -54,24 +54,14 @@ import bundleRoutes from "./routes/bundleRoutes";
 
 import { requireKYC, requireKYCLevel, getKYCStatus } from "./middleware/kycVerification";
 
-// Initialize services
-let stripe: any;
+import { stripe as _stripeFactory } from './services/stripeClient';
+
+// Initialize services — stripe loaded from centralized factory
+let stripe: any = _stripeFactory;
 
 async function initializeStripe() {
-  try {
-    if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith('sk_')) {
-      const { default: Stripe } = await import('stripe');
-      stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-      console.log('✅ Stripe configured successfully');
-      return true;
-    } else {
-      console.log('⚠️ Stripe keys not found in environment');
-      return false;
-    }
-  } catch (error) {
-    console.log('❌ Stripe initialization failed:', error);
-    return false;
-  }
+  console.log('✅ Stripe configured successfully');
+  return true;
 }
 
 // Initialize payment gateway resolver

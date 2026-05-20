@@ -161,7 +161,7 @@
     "sharp": "^0.34.5",
     "solc": "^0.8.30",
     "speakeasy": "^2.0.0",
-    "stripe": "^18.5.0",
+    "stripe": "^22.1.1",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "tough-cookie": "^5.1.2",

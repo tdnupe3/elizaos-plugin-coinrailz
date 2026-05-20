@@ -1,4 +1,5 @@
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
+import { stripe as stripeClient } from './stripeClient';
 import axios from 'axios';
 
 export class RealDiscordPayments {
@@ -6,7 +7,7 @@ export class RealDiscordPayments {
   private discordToken: string;
 
   constructor() {
-    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+    this.stripe = stripeClient;
     this.discordToken = process.env.DISCORD_BOT_TOKEN!;
   }
 

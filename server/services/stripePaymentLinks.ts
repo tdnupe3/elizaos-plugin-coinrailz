@@ -2,15 +2,12 @@
  * Stripe Payment Links for Immediate Revenue Generation
  * Creates hosted payment links for CoinRailz AI Agent SDK services
  */
-import Stripe from 'stripe';
+import { stripe } from './stripeClient';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
-});
 
 export interface ServiceOffering {
   id: string;

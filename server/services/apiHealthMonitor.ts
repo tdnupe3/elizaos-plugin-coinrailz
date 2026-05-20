@@ -4,6 +4,7 @@
  */
 
 import { env } from '../environment';
+import { stripe as _stripeFactory } from './stripeClient';
 
 interface HealthCheck {
   service: string;
@@ -70,10 +71,7 @@ export class APIHealthMonitor {
         };
       }
 
-      const { default: Stripe } = await import('stripe');
-      const stripe = new Stripe(env.STRIPE_SECRET_KEY);
-      
-      await stripe.customers.list({ limit: 1 });
+      await _stripeFactory.customers.list({ limit: 1 });
       
       return {
         service: 'stripe',

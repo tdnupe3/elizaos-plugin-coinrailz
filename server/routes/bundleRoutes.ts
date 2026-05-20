@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import express from "express";
 import { SERVICE_BUNDLES, getBundlesForService, getServicesInBundle, calculateBundleSavings } from "../config/serviceBundles";
-import Stripe from "stripe";
+import { stripe } from '../services/stripeClient';
 import { db } from "../db";
 import { serviceBundleSubscriptions, serviceBundleUsage } from "../../shared/schema";
 import { eq, and, desc } from "drizzle-orm";
@@ -10,9 +10,6 @@ import crypto from "crypto";
 const router = Router();
 
 // Initialize Stripe
-const stripe = process.env.STRIPE_SECRET_KEY 
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-11-20.acacia' })
-  : null;
 
 // GET /api/bundles/service/:serviceSlug - Get bundles that include a specific service
 // CRITICAL: This route MUST be registered BEFORE the generic /:bundleId route

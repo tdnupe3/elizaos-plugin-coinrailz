@@ -41,7 +41,8 @@
  */
 
 import { Router, Request, Response } from "express";
-import Stripe from "stripe";
+import type Stripe from 'stripe';
+import { stripe as _stripeInstance } from '../services/stripeClient';
 import rateLimit from "express-rate-limit";
 import { ServiceCatalogService } from "../services/serviceCatalogService";
 import { SERVICE_PRICING_USD, isServiceName } from "../../shared/pricing";
@@ -69,15 +70,8 @@ const mcpPaymentsRateLimiter = rateLimit({
 // Apply rate limiting to all MCP payments routes
 router.use(mcpPaymentsRateLimiter);
 
-let stripeClient: Stripe | null = null;
-
-function getStripeClient(): Stripe | null {
-  if (!stripeClient && process.env.STRIPE_SECRET_KEY) {
-    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: "2025-01-27.acacia" as any
-    });
-  }
-  return stripeClient;
+function getStripeClient(): Stripe {
+  return _stripeInstance;
 }
 
 interface CheckoutRequest {

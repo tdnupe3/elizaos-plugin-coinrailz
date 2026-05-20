@@ -34,7 +34,8 @@ import { db } from '../db';
 import { sql, eq, desc, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import rateLimit from 'express-rate-limit';
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
+import { stripe as _stripeInstance } from '../services/stripeClient';
 import { CoinbaseCDPService } from '../services/coinbaseCDPService';
 import { trackIoTEndpoint } from '../middleware/hitTracker';
 import {
@@ -170,14 +171,8 @@ function requireAuth(allowPublic: boolean = false) {
 
 const MIN_TRANSFER_AMOUNT = 0.05;
 
-let stripeClient: Stripe | null = null;
-function getStripeClient(): Stripe | null {
-  if (!stripeClient && process.env.STRIPE_SECRET_KEY) {
-    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: "2025-01-27.acacia" as any
-    });
-  }
-  return stripeClient;
+function getStripeClient(): Stripe {
+  return _stripeInstance;
 }
 
 const createAccountSchema = z.object({

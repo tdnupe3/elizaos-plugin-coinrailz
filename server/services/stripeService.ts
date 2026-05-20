@@ -3,7 +3,8 @@
  * Handles credit/debit card processing for P2P transfers
  */
 
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
+import { stripe as stripeClient } from './stripeClient';
 import { env } from '../environment';
 
 interface PaymentIntentData {
@@ -17,11 +18,7 @@ class StripeService {
   private stripe: Stripe;
 
   constructor() {
-    if (!env.STRIPE_SECRET_KEY) {
-      throw new Error('Stripe secret key not configured');
-    }
-    
-    this.stripe = new Stripe(env.STRIPE_SECRET_KEY);
+    this.stripe = stripeClient;
   }
 
   async testAuthentication(): Promise<boolean> {

@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { subscriptions, subscriptionPlans, paymentMethods, type Subscription, type SubscriptionPlan } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
-import Stripe from "stripe";
+import { stripe } from './stripeClient';
 import { nowPaymentsService } from "./nowPaymentsService";
 import { XRPPaymentService } from "./xrpPaymentService";
 
@@ -9,9 +9,6 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-07-30.basil",
-});
 
 export interface SubscriptionTier {
   id: string;

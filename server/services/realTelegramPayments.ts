@@ -1,4 +1,5 @@
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
+import { stripe as stripeClient } from './stripeClient';
 import axios from 'axios';
 
 // Revenue wallet addresses for the platform
@@ -14,7 +15,7 @@ export class RealTelegramPayments {
   private telegramToken: string;
 
   constructor() {
-    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+    this.stripe = stripeClient;
     this.telegramToken = process.env.TELEGRAM_BOT_TOKEN!;
   }
 

@@ -1,7 +1,5 @@
 import express, { Express, Request, Response } from "express";
-import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+import { stripe } from '../services/stripeClient';
 
 export function registerProductsRoutes(app: Express) {
   

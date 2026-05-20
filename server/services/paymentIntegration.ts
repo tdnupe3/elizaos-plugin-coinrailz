@@ -3,7 +3,8 @@
  * Connects marketplace orders with payment processing (Stripe, PayPal, Circle USDC)
  */
 
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
+import { stripe as stripeClient } from './stripeClient';
 import { storage } from '../storage';
 
 interface PaymentOrderData {
@@ -28,11 +29,7 @@ export class PaymentIntegrationService {
   private static stripe: Stripe | null = null;
 
   static initialize() {
-    if (process.env.STRIPE_SECRET_KEY) {
-      this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-        apiVersion: "2025-08-27.basil",
-      });
-    }
+    this.stripe = stripeClient;
   }
 
   /**

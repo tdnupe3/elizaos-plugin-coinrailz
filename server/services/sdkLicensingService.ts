@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { sdkLicenseTiers, sdkLicenseSubscriptions, type SDKLicenseTier, type SDKLicenseSubscription } from "@shared/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
-import Stripe from "stripe";
+import { stripe } from './stripeClient';
 import crypto from "crypto";
 import { nanoid } from "nanoid";
 
@@ -9,9 +9,6 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-07-30.basil",
-});
 
 export interface SDKLicenseTierConfig {
   name: string;

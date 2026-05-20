@@ -3,14 +3,11 @@
  * Supports multiple payment methods with automatic agent payouts
  */
 
-import Stripe from 'stripe';
+import { stripe } from './stripeClient';
 import { storage } from '../storage';
 // PayPal integration handled in routes
 
 // Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-07-30.basil",
-});
 
 export interface PaymentRequest {
   orderId: string;

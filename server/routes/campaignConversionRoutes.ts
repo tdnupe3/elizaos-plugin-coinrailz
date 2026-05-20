@@ -1,7 +1,7 @@
 import express from 'express';
 // import secureAuthMiddleware from '../middleware/secureAuthMiddleware.js';
 import { FastRevenueDatabaseService } from '../services/fastRevenueDatabaseService.js';
-import Stripe from 'stripe';
+import { stripe } from '../services/stripeClient';
 
 const router = express.Router();
 
@@ -15,9 +15,6 @@ router.get('/test', (req, res) => {
   });
 });
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20' as any,
-});
 
 const fastRevenueDatabaseService = FastRevenueDatabaseService.getInstance();
 

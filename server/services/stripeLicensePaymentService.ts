@@ -3,7 +3,7 @@
  * Real payment processing for $2K-$200K enterprise license purchases
  */
 
-import Stripe from 'stripe';
+import { stripe } from './stripeClient';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { sdkLicenseSubscriptions, sdkLicenseTiers } from '../../shared/schema';
@@ -12,9 +12,6 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
-});
 
 export class StripeLicensePaymentService {
   

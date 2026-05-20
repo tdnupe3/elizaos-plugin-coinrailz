@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import Stripe from 'stripe';
+import { stripe } from '../services/stripeClient';
 import { nanoid } from 'nanoid';
 import { db } from '../db';
 import { acpProducts, acpOrders } from '@shared/schema';
@@ -7,7 +7,6 @@ import { eq, and, asc } from 'drizzle-orm';
 import { creditsService } from '../services/creditsService';
 
 const router = Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 const BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://coinrailz.com' 

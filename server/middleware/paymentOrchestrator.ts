@@ -19,9 +19,7 @@ import { nanoid } from "nanoid";
 import { db } from "../db";
 import { sql, and, eq, gt, or, isNull } from "drizzle-orm";
 import { x402Interactions, x402PaymentIntents, creditsAccounts } from "@shared/schema";
-import Stripe from "stripe";
-
-const _stripeForRecharge = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-07-30.basil' });
+import { stripe as _stripeForRecharge } from '../services/stripeClient';
 
 /**
  * Fire-and-forget auto-recharge trigger.

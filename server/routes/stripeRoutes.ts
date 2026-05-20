@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import express from 'express';
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
+import { stripe } from '../services/stripeClient';
 import { storage } from '../storage';
 import { isAuthenticated } from '../replitAuth';
 import { handlePaymentIntentSucceeded, handleGptPurchaseWebhook } from './gptCreditsRoutes';
@@ -11,14 +12,6 @@ import { unifiedCreditsService } from '../services/unifiedCreditsService';
 import { eq } from 'drizzle-orm';
 import { CoinbaseCDPService } from '../services/coinbaseCDPService';
 import { nanoid } from 'nanoid';
-
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
-}
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
-});
 
 const router = Router();
 
@@ -132,11 +125,21 @@ router.post('/confirm-payment', async (req, res) => {
 
     // Retrieve payment intent from Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    // Security: verify orderId matches what was embedded in the payment intent metadata
+    // Prevents an attacker from supplying an arbitrary orderId with a succeeded paymentIntentId
+    if (orderId && paymentIntent.metadata?.orderId && paymentIntent.metadata.orderId !== orderId) {
+      return res.status(403).json({
+        error: 'Order ID does not match payment intent metadata',
+        success: false,
+      });
+    }
     
     if (paymentIntent.status === 'succeeded') {
-      // Update order status to paid
-      if (orderId) {
-        await storage.updateMarketplaceOrder(orderId, {
+      // Fulfill using the orderId from payment intent metadata, not the raw request body
+      const safeOrderId = paymentIntent.metadata?.orderId || orderId;
+      if (safeOrderId) {
+        await storage.updateMarketplaceOrder(safeOrderId, {
           status: 'paid',
           completedAt: new Date()
         });
@@ -146,7 +149,7 @@ router.post('/confirm-payment', async (req, res) => {
         success: true, 
         status: 'paid',
         amount: paymentIntent.amount / 100,
-        orderId: orderId
+        orderId: safeOrderId
       });
     } else {
       res.json({ 

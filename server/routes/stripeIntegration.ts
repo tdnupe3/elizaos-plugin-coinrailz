@@ -4,6 +4,7 @@
  */
 
 import { Router } from 'express';
+import { stripe } from '../services/stripeClient';
 import { z } from 'zod';
 import { db } from '../db';
 import { serviceOrders } from '../../shared/schema';
@@ -11,14 +12,7 @@ import { eq } from 'drizzle-orm';
 
 const router = Router();
 
-// Initialize Stripe
-let stripe: any;
 async function initializeStripe() {
-  if (!stripe && process.env.STRIPE_SECRET_KEY) {
-    const { default: Stripe } = await import('stripe');
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    console.log('✅ Stripe initialized for payment processing');
-  }
   return stripe;
 }
 

@@ -1,13 +1,10 @@
 import express from 'express';
-import Stripe from 'stripe';
+import { stripe } from '../services/stripeClient';
 import { db } from '../db';
 import { subscriptions, subscriptionPlans } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
 const router = express.Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
 
 /**
  * 💳 CREATE SUBSCRIPTION CHECKOUT SESSION FOR CRYPTOJOINER PRO

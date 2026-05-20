@@ -3,13 +3,10 @@
  * Focuses on security, accuracy guarantees, and simple payment flow
  */
 
-import Stripe from 'stripe';
+import { stripe } from './stripeClient';
 import { db } from '../db';
 import { apiUsageTracking } from '../../shared/schema';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
 
 export interface DataProductPurchase {
   customerEmail: string;

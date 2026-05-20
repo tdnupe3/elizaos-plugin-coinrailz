@@ -13,11 +13,7 @@ import { sdkLicenseTiers, sdkLicenseSubscriptions, users } from '../../shared/sc
 import { createHash } from 'crypto';
 import authenticateUser from '../middleware/authMiddleware';
 import StripeLicensePaymentService from '../services/stripeLicensePaymentService';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: "2023-10-16",
-});
+import { stripe } from '../services/stripeClient';
 
 const router = Router();
 

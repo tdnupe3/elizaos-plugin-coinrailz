@@ -31,6 +31,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { stripe as _stripeFactory } from '../services/stripeClient';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { serviceCatalogService } from '../services/serviceCatalogService';
@@ -443,10 +444,7 @@ router.post('/ap2/v1/merchant', async (req: Request, res: Response) => {
         const stripeKey = process.env.STRIPE_SECRET_KEY;
         if (!stripeKey) throw new Error('Stripe not configured');
 
-        const Stripe = (await import('stripe')).default;
-        const stripe = new Stripe(stripeKey, { apiVersion: '2024-12-18.acacia' as any });
-
-        const paymentIntent = await stripe.paymentIntents.create({
+        const paymentIntent = await _stripeFactory.paymentIntents.create({
           amount: Math.round(requestedAmount * 100),
           currency: 'usd',
           payment_method: stripeToken.startsWith('pm_') ? stripeToken : undefined,

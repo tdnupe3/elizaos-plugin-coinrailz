@@ -4,22 +4,13 @@
  */
 
 import express from 'express';
-import Stripe from 'stripe';
+import { stripe } from '../services/stripeClient';
 import { secureRevenueAuth } from '../middleware/secureAuthMiddleware.js';
 import { FastRevenueService } from '../services/fastRevenueService.js';
 
 const router = express.Router();
 
 // Stripe client - graceful degradation for enterprise readiness
-let stripe: Stripe | null = null;
-
-if (!process.env.STRIPE_SECRET_KEY) {
-  console.error('💳 WARNING: STRIPE_SECRET_KEY not set - Stripe payment processing disabled. REQUIRED for production deployment!');
-} else {
-  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: "2023-10-16",
-  });
-}
 
 const revenueService = FastRevenueService.getInstance();
 

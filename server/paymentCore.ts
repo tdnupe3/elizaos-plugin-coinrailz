@@ -4,6 +4,7 @@
  */
 
 import { env } from './environment';
+import { stripe as _stripeFactory } from './services/stripeClient';
 
 interface PaymentRequest {
   userId: string;
@@ -55,10 +56,7 @@ export class PaymentCore {
     }
 
     try {
-      const { default: Stripe } = await import('stripe');
-      const stripe = new Stripe(env.STRIPE_SECRET_KEY);
-      
-      const paymentIntent = await stripe.paymentIntents.create({
+      const paymentIntent = await _stripeFactory.paymentIntents.create({
         amount: Math.round(request.amount * 100), // Convert to cents
         currency: request.currency.toLowerCase(),
         metadata: {

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import Stripe from 'stripe';
+import { stripe } from '../services/stripeClient';
 import { creditsService } from '../services/creditsService';
 import { nanoid } from 'nanoid';
 import { db } from '../db';
@@ -11,7 +11,6 @@ import { storage } from '../storage';
 console.log('📁 gptCreditsRoutes.ts FILE LOADED at', new Date().toISOString());
 
 const router = Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 // Feature flag: 'elements' = embedded Stripe Elements, 'checkout' = hosted redirect
 const CHECKOUT_MODE = process.env.GPT_CHECKOUT_MODE || 'checkout';

@@ -6,6 +6,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { stripe as _stripeFactory } from '../services/stripeClient';
 import { coinbaseIdBaseEthOutreach } from '../services/coinbaseIdBaseEthOutreach';
 import { db } from '../db';
 import { coinbaseAddressDatabase } from '../../shared/schema';
@@ -141,10 +142,7 @@ router.post('/create-payment-intent', async (req: Request, res: Response) => {
       });
     }
 
-    const Stripe = await import('stripe');
-    const stripe = new Stripe.default(process.env.STRIPE_SECRET_KEY!);
-    
-    const paymentIntent = await stripe.paymentIntents.create({
+    const paymentIntent = await _stripeFactory.paymentIntents.create({
       amount: 500000, // $5,000.00 in cents
       currency: 'usd',
       metadata: {
@@ -407,11 +405,8 @@ router.post('/confirm-payment-and-launch', async (req: Request, res: Response) =
       });
     }
 
-    const Stripe = await import('stripe');
-    const stripe = new Stripe.default(process.env.STRIPE_SECRET_KEY!);
-    
     // Verify payment was successful
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const paymentIntent = await _stripeFactory.paymentIntents.retrieve(paymentIntentId);
     
     if (paymentIntent.status !== 'succeeded') {
       return res.status(400).json({

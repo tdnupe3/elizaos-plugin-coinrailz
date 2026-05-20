@@ -943,9 +943,7 @@ Time-sensitive - can anyone help or connect with investors?`,
       
       // If Stripe payment, create checkout session instead
       if (paymentMethod === 'STRIPE') {
-        const Stripe = (await import('stripe')).default;
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
-        
+        const { stripe } = await import('./services/stripeClient');
         const session = await stripe.checkout.sessions.create({
           payment_method_types: ['card'],
           line_items: [{
@@ -6904,9 +6902,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       }
 
       // Test authentication with Stripe
-      const Stripe = (await import('stripe')).default;
-      const stripe = new Stripe(env.STRIPE_SECRET_KEY as string);
-      
+      const { stripe } = await import('./services/stripeClient');
       const account = await stripe.balance.retrieve();
       
       res.json({

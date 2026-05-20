@@ -192,7 +192,7 @@
 
 ## Wave C2 — Stripe
 
-**Status:** ⏳ Not started  
+**Status:** ✅ Complete — May 20, 2026 (centralized factory, 38 files migrated, fraud fix, Stripe.default() bug fixed)  
 **Risk:** HIGH — primary fiat payment path, 41 files affected  
 **Business Impact:** CRITICAL — all Stripe checkout, webhooks, subscriptions  
 **Commit after:** Yes, as one hardened commit
@@ -307,7 +307,7 @@ curl https://coinrailz.com/x402.json        # expect: 200
 | B2 | May 20, 2026 | nodemailer 8.0.7 (+ fixed 2 pre-existing bugs) | ✅ Complete |
 | B3 | May 20, 2026 | @circle-fin/developer-controlled-wallets 10.3.1 (+ fixed 3 pre-existing bugs) | ✅ Complete |
 | C1 | May 20, 2026 | openai 6.38.0 | ✅ Complete |
-| C2 | — | stripe 22.1.1 (+ centralize client, fix fraud risk) | ⏳ Pre-work required |
+| C2 | May 20, 2026 | stripe 22.1.1 (+ factory, 38 files migrated, fraud fix) | ✅ Complete |
 | C3 | — | @paypal/paypal-server-sdk 2.3.0 | ⏳ Deferred |
 | D | — | — | ⏳ Blocked (waiting for coinbase/x402 PR) |
 | E | — | — | ⏳ Deferred |

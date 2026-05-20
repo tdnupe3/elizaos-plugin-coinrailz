@@ -17,16 +17,13 @@ import multer from 'multer';
 import DOMPurify from 'isomorphic-dompurify';
 import { sql } from 'drizzle-orm';
 import { db } from '../db';
-import Stripe from 'stripe';
+import { stripe } from '../services/stripeClient';
 import { nanoid } from 'nanoid';
 import { conversations, messages, deliveries, insertConversationSchema, insertMessageSchema, insertDeliverySchema } from '../../shared/messagingSchema';
 import { x402Payments, x402PaymentIntents } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
 // Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
-});
 
 /**
  * Release escrow payment to agent (85% of total order amount)

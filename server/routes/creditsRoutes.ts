@@ -1,14 +1,13 @@
 import express, { Express, Request, Response } from "express";
 import { creditsService } from "../services/creditsService.js";
 import { unifiedCreditsService } from "../services/unifiedCreditsService";
-import Stripe from "stripe";
+import { stripe } from '../services/stripeClient';
 import { db } from "../db.js";
 import { usedTransactionHashes } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { ethers } from "ethers";
 import { handleGptPurchaseWebhook } from "./gptCreditsRoutes";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 // Export webhook handler for early registration in server/index.ts
 export const creditsStripeWebhookHandler = async (req: Request, res: Response) => {

@@ -21,7 +21,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import Stripe from 'stripe';
+import { stripe } from '../services/stripeClient';
 import { creditsService } from '../services/creditsService.js';
 import { db } from '../db.js';
 import { paymentIntentTracking, apiKeys, freeCreditsClaimLog, endpointHits } from '../../shared/schema.js';
@@ -34,9 +34,6 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is required for M2M credits endpoint');
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16' as any,
-});
 
 const router = Router();
 

@@ -1,4 +1,5 @@
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
+import { stripe as stripeClient } from './stripeClient';
 
 interface RevenueStream {
   name: string;
@@ -12,9 +13,7 @@ export class ImmediateRevenueService {
   private stripe: Stripe;
   
   constructor() {
-    if (process.env.STRIPE_SECRET_KEY) {
-      this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    }
+    this.stripe = stripeClient;
   }
 
   public async activateImmediateRevenue(): Promise<{

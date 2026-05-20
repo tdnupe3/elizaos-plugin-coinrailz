@@ -5,7 +5,7 @@
  */
 import { Router } from 'express';
 import { z } from 'zod';
-import Stripe from 'stripe';
+import { stripe } from '../services/stripeClient';
 import express from 'express';
 import { db } from '../db';
 import { aiAgentSubscriptions, aiMarketplaceOrders } from '@shared/schema';
@@ -15,9 +15,6 @@ import { nanoid } from 'nanoid';
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
-});
 
 export const aiAgentProductRoutes = Router();
 

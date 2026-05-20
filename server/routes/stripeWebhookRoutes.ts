@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import express from 'express';
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
+import { stripe } from '../services/stripeClient';
 import { db } from '../db';
 import { sdkLicenseSubscriptions, iotAccounts, iotTopups, paymentIntentTracking, creditsAccounts } from '../../shared/schema';
 import { creditsService } from '../services/creditsService.js';
@@ -14,9 +15,6 @@ import { emitFunnelEventAsync } from '../services/funnelHelper.js';
 const router = Router();
 
 // Initialize Stripe with secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-07-30.basil',
-});
 
 // Webhook endpoint secret for signature verification
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;

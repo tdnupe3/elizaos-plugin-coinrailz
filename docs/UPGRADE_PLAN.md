@@ -174,38 +174,58 @@
 
 ---
 
-## Wave C — Payment Layer
+## Wave C1 — OpenAI
+
+**Status:** ✅ Complete — May 20, 2026  
+**Risk:** Low — all 5 call sites use stable `chat.completions.create()` pattern  
+**Business Impact:** Low — AI inference gateway only
+
+| Package | From | To | Files |
+|---|---|---|---|
+| `openai` | 5.8.2 | 6.38.0 | openAIServiceDelivery.ts, microservices/common.ts, telegramMiniAppRoutes.ts, mppRoutes.ts, x402MicroserviceRoutesV2.ts |
+
+**Verification:** All 4 canary endpoints green ✅
+
+**Commit message:** `chore: upgrade openai 5 → 6 (Wave C1)`
+
+---
+
+## Wave C2 — Stripe
 
 **Status:** ⏳ Not started  
-**Risk:** High — direct payment processing impact  
-**Business Impact:** HIGH — Stripe is primary fiat payment path  
-**Commit after:** Yes — one commit per package  
-**Requires:** Live webhook replay + canary payment test before/after
+**Risk:** HIGH — primary fiat payment path, 41 files affected  
+**Business Impact:** CRITICAL — all Stripe checkout, webhooks, subscriptions  
+**Commit after:** Yes, as one hardened commit
 
-| Package | From | To | Files Affected | Key Breaking Change |
-|---|---|---|---|---|
-| `stripe` | 18.5.0 | 22.1.1 | 23 server files | `new Stripe()` required (was callable as function) |
-| `openai` | 5.8.2 | 6.38.0 | ~10 server files | Client instantiation + streaming API changes |
-| `@paypal/paypal-server-sdk` | 1.1.0 | 2.3.0 | ~40 files (mostly strings; real SDK in `paypalService.ts`) | API surface changes |
+**Pre-work required (do before installing 22.1.1):**
+1. Build a centralized Stripe client factory in `server/services/stripeClient.ts` — single `apiVersion` constant, key validation, exported singleton
+2. Migrate ALL 41 `new Stripe(...)` call sites to use the factory — eliminates 7 divergent `apiVersion` strings
+3. Fix `Stripe.default(process.env.STRIPE_SECRET_KEY!)` in `coinbaseAdvertisingRoutes.ts` lines ~145 and ~411 → `new Stripe(key)` using factory
+4. Standardize target `apiVersion` to latest Basil: `'2025-08-27.basil'`
+5. Address payment-intent-to-order binding fraud risk in `stripeRoutes.ts` confirmation endpoints (flagged by architect)
+6. THEN bump to stripe@22.1.1
 
-**Stripe breaking changes to fix:**
-- Replace `Stripe(key)` with `new Stripe(key)` across all 23 files
-- `Stripe.errors.StripeError` → `Stripe.ErrorType`
-- `Stripe.StripeContext` → `Stripe.StripeContextType`
-- Webhook construction method signature updated
+| Package | From | To | Files Affected |
+|---|---|---|---|
+| `stripe` | 18.5.0 | 22.1.1 | 41 server files |
 
-**Verification steps (per package):**
-- [ ] TypeScript build passes
+**Verification steps (required before declaring complete):**
+- [ ] TypeScript build passes (no `as any` casts on apiVersion)
 - [ ] App starts
-- [ ] Stripe webhook endpoint responds correctly
-- [ ] `/api/stripe/webhook` → processes test event
-- [ ] `/x402/ping` → 402 ✅
 - [ ] `/health` → 200 ✅
+- [ ] `/x402/ping` → 402 ✅
+- [ ] `/api/stripe/webhook` → processes Stripe CLI test event
+- [ ] Stripe Checkout session creates successfully in sandbox
+- [ ] Payment intent confirmation validates ownership before fulfillment
 
-**Commit message (per package):**
-- `chore: upgrade stripe 18 → 22 (fix breaking API changes)`
-- `chore: upgrade openai 5 → 6`
-- `chore: upgrade @paypal/paypal-server-sdk 1 → 2`
+**Commit message:** `chore: centralize Stripe client + upgrade to v22 (Wave C2)`
+
+---
+
+## Wave C3 — PayPal SDK (deferred)
+
+**Status:** ⏳ Deferred — assess scope before scheduling  
+**Note:** `@paypal/paypal-server-sdk` 1.1.0 → 2.3.0. Scope review needed before architect consult.
 
 ---
 
@@ -286,6 +306,8 @@ curl https://coinrailz.com/x402.json        # expect: 200
 | B1 | May 20, 2026 | multer 2.1.1, winston 3.19.0, nanoid 5.1.11 | ✅ Complete |
 | B2 | May 20, 2026 | nodemailer 8.0.7 (+ fixed 2 pre-existing bugs) | ✅ Complete |
 | B3 | May 20, 2026 | @circle-fin/developer-controlled-wallets 10.3.1 (+ fixed 3 pre-existing bugs) | ✅ Complete |
-| C | — | — | ⏳ |
+| C1 | May 20, 2026 | openai 6.38.0 | ✅ Complete |
+| C2 | — | stripe 22.1.1 (+ centralize client, fix fraud risk) | ⏳ Pre-work required |
+| C3 | — | @paypal/paypal-server-sdk 2.3.0 | ⏳ Deferred |
 | D | — | — | ⏳ Blocked (waiting for coinbase/x402 PR) |
 | E | — | — | ⏳ Deferred |

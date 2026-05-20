@@ -728,7 +728,7 @@ export async function markPaymentIntentSucceeded(
     if (existingHash.length === 0) {
       await db.insert(usedTransactionHashes).values({
         txHash,
-        network: "eip155:8453",
+        network: intent.network,
         serviceName,
         amount: (parseFloat(intent.amount) * 1e6).toString(),
         paidBy: senderAddress || intent.payer,

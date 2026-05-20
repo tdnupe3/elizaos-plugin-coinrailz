@@ -9,12 +9,12 @@ import {
   DollarSign, 
   CheckCircle, 
   Star,
-  Github,
   ExternalLink,
   Clock,
   Users,
   Zap
 } from 'lucide-react';
+import { Github } from '@/lib/minimal-icons-clean';
 
 export default function FreelanceDeveloperServices() {
   const [selectedService, setSelectedService] = useState<string | null>(null);

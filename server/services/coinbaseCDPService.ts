@@ -1577,7 +1577,7 @@ export class CoinbaseCDPService {
       const walletName = name || `agent-${agentId}-${Date.now()}`;
       
       // CDP Server Wallet v2 uses getOrCreateAccount for idempotent creation
-      const account = await (this.cdpClient as any).solana.getOrCreateAccount({
+      const account = await this.cdpClient.solana.getOrCreateAccount({
         name: walletName
       });
 

@@ -434,16 +434,19 @@ curl -s "https://coinrailz.com/api/x402-analytics/service/ping?days=7"
 
 When asked to "use all analytical tools" or perform daily checks:
 1. Run `refresh_all_logs` to get latest server activity
-2. Query `x402_interactions` for recent service requests
-3. Query `x402_payment_intents` for payment data
+2. Query `x402_interactions` for recent service requests (funnel, top agents, top services, hourly cadence)
+3. Query `x402_payment_intents` for payment data — **include chain breakdown** (see Multi-Chain section)
 4. **Query `endpoint_hits` for outreach campaign responses**
 5. **Query `endpoint_hits` WHERE endpoint_type='discovery' for manifest fetches** (NEW - Jan 31 2026)
 6. **Query `endpoint_hits` WHERE endpoint_type='a2a' for A2A interaction data** (NEW - Mar 1 2026)
-7. Check unique user agents for new discovery bots or AI agents
-8. Verify discovery endpoints are responding correctly
-9. Check for any error patterns in logs
-10. Use `/api/x402-analytics/hot-leads` to find potential customers
-11. Compare period-over-period metrics for trends
+7. **Query `endpoint_hits` WHERE resource_id IN ('server-card.json','mcp/server-card.json')** for MCP server-card traction (NEW - May 20 2026)
+8. **Run chain breakdown query** — check if any non-Base, non-Solana payments appear (Arbitrum `eip155:42161`, Ethereum `eip155:1`) and verify `used_transaction_hashes.network` matches `x402_payment_intents.network` (post-fix May 20 2026)
+9. Check unique user agents for new discovery bots or AI agents
+10. Verify discovery endpoints are responding correctly
+11. Check for any error patterns in logs
+12. Use `/api/x402-analytics/hot-leads` to find potential customers
+13. Compare period-over-period metrics for trends
+14. **Exclude known test wallets** from organic payment analysis (see Multi-Chain section)
 
 ### Important Metric Clarifications
 
@@ -599,27 +602,130 @@ Production uses `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}` for 
 `getAssociatedTokenAddressSync(mint, owner, ...)` — mint is first, owner is second. Previous code had these swapped causing 100% Solana verification failures. Fixed in `getAllPlatformTokenAccounts()` in `server/middleware/paymentOrchestrator.ts`.
 
 ---
-## Discovery Bot Glossary (Updated Mar 1, 2026)
+## Multi-Chain Payment Tracking (NEW - May 20, 2026)
+
+### Chain Architecture — What Is and Isn't x402-Native
+
+| Chain | Network ID | In `accepts[]`? | How payments arrive | Notes |
+|-------|-----------|-----------------|---------------------|-------|
+| Base (USDC) | `eip155:8453` | ✅ YES | Full x402 protocol flow | Primary chain. `"base"` shorthand used by x402-fetch. |
+| Base (USDT) | `eip155:8453` | ✅ YES | Full x402 protocol flow | |
+| Solana (USDC) | `solana:5eykt4...` | ✅ YES | Full x402 protocol flow (ExactSvmScheme) | See Solana section below. |
+| Solana (USDT) | `solana:5eykt4...` | ✅ YES | Full x402 protocol flow (ExactSvmScheme) | |
+| Arbitrum | `eip155:42161` | ❌ NO | Out-of-band path only | x402-fetch ZodError risk if added to accepts[]. Backend verification works; agent must manually pass `network=eip155:42161` in X-PAYMENT header. |
+| Ethereum mainnet | `eip155:1` | ❌ NO | Out-of-band path only | Removed from accepts[] — ZodError. Backend verification works. |
+| Polygon | `eip155:137` | ❌ NO | Out-of-band path only | |
+| Optimism | `eip155:10` | ❌ NO | Out-of-band path only | |
+
+**Critical distinction:** "x402 protocol payment" = agent received 402 challenge, read `accepts[]`, auto-paid, retried. "Out-of-band payment" = agent independently sent USDC on-chain and submitted txHash manually. The DB stores both; they look identical in `x402_payment_intents`. All Arbitrum records to date are out-of-band (our test payments using buyer wallet `0x5837...`).
+
+### All-Time Chain Breakdown Query
+```sql
+-- Payment intent ledger — all-time by chain and status
+SELECT 
+  network,
+  status,
+  COUNT(*) as count,
+  SUM(amount::numeric) as total_usdc
+FROM x402_payment_intents
+GROUP BY network, status
+ORDER BY network, status;
+```
+
+**Expected output reference (as of May 20, 2026):**
+| network | status | count | total_usdc |
+|---------|--------|-------|-----------|
+| base | SUCCEEDED | 104 | 105.02 |
+| eip155:1 | SUCCEEDED | 2 | 9.87 |
+| eip155:42161 | SUCCEEDED | 3 | 0.15 |
+| eip155:8453 | SUCCEEDED | 213 | 147.25 |
+| solana:5eykt4... | SUCCEEDED | 2 | 0.10 |
+
+### Arbitrum-Specific Queries
+```sql
+-- All Arbitrum payment intents ever
+SELECT tx_hash, status, amount, service_name, payer, succeeded_at
+FROM x402_payment_intents
+WHERE network = 'eip155:42161'
+ORDER BY succeeded_at DESC;
+
+-- Verify used_transaction_hashes.network is recorded correctly (post-fix May 20 2026)
+-- Pre-fix: all records showed eip155:8453 regardless of actual chain
+-- Post-fix: records show actual network (eip155:42161 for Arbitrum)
+SELECT tx_hash, network, service_name, amount, paid_by, used_at
+FROM used_transaction_hashes
+WHERE network = 'eip155:42161'
+ORDER BY used_at DESC;
+
+-- Cross-check: find any used_tx_hashes that are Arbitrum intents but recorded as Base (pre-fix residue)
+SELECT u.tx_hash, u.network as recorded_network, i.network as actual_network
+FROM used_transaction_hashes u
+JOIN x402_payment_intents i ON u.tx_hash = i.tx_hash
+WHERE i.network = 'eip155:42161' AND u.network != 'eip155:42161';
+-- Should return 0 rows post-fix. Returns 2 pre-fix rows (0xd828... and 0x40b3...).
+```
+
+### Period-Over-Period Chain Mix
+```sql
+-- Is organic traffic shifting to new chains over time?
+SELECT 
+  DATE_TRUNC('day', succeeded_at) as day,
+  network,
+  COUNT(*) as payments,
+  SUM(amount::numeric) as usdc
+FROM x402_payment_intents
+WHERE status = 'SUCCEEDED'
+  AND succeeded_at >= NOW() - INTERVAL '30 days'
+GROUP BY 1, 2
+ORDER BY 1 DESC, 3 DESC;
+```
+
+### Known Test Wallets (Exclude From Organic Analysis)
+| Wallet | Role | Chain |
+|--------|------|-------|
+| `0x5837A864C03912ea14a5609968F73E75B9d42a7C` | Internal buyer test wallet (X402_BUYER_PRIVATE_KEY) | All EVM |
+| `0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91` | Platform receiver wallet (EVM_PRIVATE_KEY) | All EVM |
+
+```sql
+-- Organic payments only (exclude known test wallets)
+SELECT network, COUNT(*) as count, SUM(amount::numeric) as total_usdc
+FROM x402_payment_intents
+WHERE status = 'SUCCEEDED'
+  AND payer NOT IN (
+    '0x5837a864c03912ea14a5609968f73e75b9d42a7c',
+    '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91'
+  )
+GROUP BY network
+ORDER BY total_usdc DESC;
+```
+
+---
+## Discovery Bot Glossary (Updated May 20, 2026)
 
 New bots observed — add to monitoring:
 
 | User Agent | Description | First Seen |
 |------------|-------------|------------|
+| `x402-healthbot/1.0 (+https://decixa.ai/bot)` | **HIGH PRIORITY.** decixa.ai's dedicated x402 health bot. Systematically probes 37+ services across 4 IPs per session. Runs multiple sessions per day. Named x402 ecosystem actor — they built tooling specifically for x402 services. 76 challenges in first 12h window observed. BD target. | May 20, 2026 |
+| `CarbonMonitor/0.1 healthcheck (+https://carbon-cashmere.de)` | carbon-cashmere.de infrastructure health monitor. Runs on a cron, hits ~26 services per session. 100+ hits per 12h window observed. Consistent recurring actor. | May 2026 |
+| `AgenstryBot/0.3.0` | Hits `/.well-known/mcp/server-card.json` (MCP SEP-1649 path). First agent to probe MCP server-card after deployment. | May 20, 2026 |
+| `python-httpx/0.28.1` (74.220.48.244) | Persistent cron actor — HEAD /x402 + HEAD /x402/gas-price-oracle every ~1.5h. Appears in deployment logs but NOT in x402_interactions DB (telemetry gap — HEAD probes bypass DB insert). Last DB record: May 15 2026. | Feb 2026 |
 | `agentcash-discovery-registry-audit/0.1` | AgentCash discovery registry auditor — indexes our agent card + x402 manifest | Mar 1, 2026 |
 | `agentcash-probe-audit/0.1` | AgentCash probe/audit crawler — appeared after A2A card republish | Mar 1, 2026 |
-| `node` (bare) | Bespoke Node.js crawler using core http/https (no library UA). More sophisticated than node-fetch. 654 hits in first observed window. | Mar 1, 2026 |
+| `node` (bare) | Bespoke Node.js crawler using core http/https (no library UA). More sophisticated than node-fetch. Full 61-service sweeps in under 10 seconds. Two distinct IPs running the same sweep pattern hours apart = scheduled automation. | Mar 1, 2026 |
 | `Anthill` | Unknown — 1 hit observed. May return. Not in any known crawler registry. | Mar 1, 2026 |
 | `ScoutScore-HealthCheck/1.0` | Unknown indexer/scout service probing endpoints | Feb 27, 2026 |
 | `ScoutScore-FidelityCheck/1.0` | ScoutScore fidelity verification crawler | Feb 27, 2026 |
 | `EntRoute-Probe/1.0` | Unknown routing/probe agent | Feb 27, 2026 |
 | `XGate-HealthCheck/1.0` | Unknown gateway health checker — hits catalog, 3+ IPs. Monitor for cadence/depth changes. | Feb 26, 2026 |
-| `meta-externalagent/1.1` | Facebook/Meta web crawler | Feb 27, 2026 |
+| `meta-externalagent/1.1` | Facebook/Meta web crawler. Steady ~14 hits/12h across 10-13 services. One service per IP, systematic pattern. 13 distinct IPs observed in a single 12h window. | Feb 27, 2026 |
 | `X402-Discovery-HealthCheck/2.0` | Coinbase Bazaar discovery crawler | Jan 2026 |
 | `Googlebot (mobile UA)` | Google crawler confirming `/x402/first-call` GET landing page — generates `landing-view` events, not payment events. Confirmed crawling Mar 10 2026 after Google Search Console indexing request. IP: 66.249.x.x | Mar 10, 2026 |
+| `SERankingBacklinksBot/1.0` | SEO backlink crawler from seranking.com. 10 hits across 8 services per session. Not an x402 actor. | May 2026 |
 | Chinese mobile UAs (43.x, 101.x, 150.x) | Browser-style exploration of `/x402/`, `/x402/catalog`, `/x402/wallet/free` — different ASN from GCP cron bots, non-cron behavior. Weak discovery signal. Generates `landing-view` events. | Mar 10, 2026 |
 
 ### Discovery Manifest Volume (endpoint_hits)
 At scale, check `/.well-known/x402`, `/.well-known/agent.json`, `/.well-known/agent-card.json`. In 24h post-republish (Feb 26-27): 532 fetches from 428 unique visitors to the x402 manifest, 165 fetches of agent.json from 162 unique visitors. This is top-of-funnel traction signal.
 
 ---
-Last Updated: March 10, 2026
+Last Updated: May 20, 2026

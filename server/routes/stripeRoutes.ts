@@ -403,13 +403,25 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
         }
       }
       
-      // Update order status if orderId is in metadata
+      // Update order status if orderId is in metadata — verify amount before fulfilling
+      // Mirrors the same underpayment guard in POST /confirm-payment
       if (paymentIntent.metadata.orderId) {
         try {
-          await storage.updateMarketplaceOrder(paymentIntent.metadata.orderId, {
-            status: 'paid',
-            completedAt: new Date()
-          });
+          const order = await storage.getMarketplaceOrder(paymentIntent.metadata.orderId);
+          if (!order) {
+            console.error(`❌ webhook payment_intent.succeeded: order ${paymentIntent.metadata.orderId} not found`);
+          } else {
+            const paidAmountUsd = paymentIntent.amount / 100;
+            const expectedAmountUsd = parseFloat(order.amount);
+            if (paymentIntent.currency === 'usd' && Math.abs(paidAmountUsd - expectedAmountUsd) <= 0.01) {
+              await storage.updateMarketplaceOrder(paymentIntent.metadata.orderId, {
+                status: 'paid',
+                completedAt: new Date()
+              });
+            } else {
+              console.error(`❌ webhook payment_intent.succeeded: amount/currency mismatch for order ${paymentIntent.metadata.orderId} — paid $${paidAmountUsd} ${paymentIntent.currency}, expected $${expectedAmountUsd} usd`);
+            }
+          }
         } catch (error) {
           console.error('Failed to update order after payment:', error);
         }

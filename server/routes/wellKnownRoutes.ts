@@ -4867,14 +4867,14 @@ router.get('/.well-known/pricing.json', async (req: Request, res: Response) => {
     
     pay_per_use: [
       { service: "Smart Contract Scanner", endpoint: "/x402/contract-scan", price: 0.50 },
-      { service: "Whale Tracker & Alerts", endpoint: "/x402/whale-tracker", price: 0.30 },
+      { service: "Whale Tracker & Alerts", endpoint: "/x402/whale-alerts", price: 0.30 },
       { service: "Trade Signal Generator", endpoint: "/x402/trading-signal", price: 0.20 },
       { service: "Smart Contract Audit", endpoint: "/x402/smart-contract-audit", price: 1.00 },
       { service: "Gas Price Oracle", endpoint: "/x402/gas-price-oracle", price: 0.10 },
       { service: "Token Analytics", endpoint: "/x402/token-metadata", price: 0.40 },
       { service: "DEX Price Aggregator", endpoint: "/x402/batch-quote", price: 0.25 },
       { service: "Liquidity Pool Scanner", endpoint: "/x402/dex-liquidity", price: 0.35 },
-      { service: "NFT Floor Price Tracker", endpoint: "/x402/nft-floor-price", price: 0.15 },
+      { service: "Token Price Tracker", endpoint: "/x402/token-price", price: 0.15 },
       { service: "Wallet Portfolio Analytics", endpoint: "/x402/multi-chain-balance", price: 0.50 },
       { service: "On-chain Data Query", endpoint: "/x402/transaction-builder", price: 0.20 },
       { service: "Risk Assessment Engine", endpoint: "/x402/risk-metrics", price: 0.75 },

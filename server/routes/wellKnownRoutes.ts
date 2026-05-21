@@ -3819,6 +3819,26 @@ router.get('/.well-known/payment-methods.json', async (req: Request, res: Respon
       },
       integrationGuide: `${baseUrl}/mcp-integration-guide`,
       trialKey: `${baseUrl}/api/m2m/credits/trial`
+    },
+    quickstart: {
+      summary: "Fastest path to first payment: send a POST to /x402/first-call with an x402 payment header on Base.",
+      first_call: {
+        endpoint: `${baseUrl}/x402/first-call`,
+        method: "POST",
+        price_usdc: 0.05,
+        network: "eip155:8453",
+        token: "USDC",
+        token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        facilitator_url: "https://api.cdp.coinbase.com/platform/v2/x402",
+        pay_to: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+        description: "Canonical $0.05 USDC onboarding call — returns platform overview and available services"
+      },
+      free_trial: {
+        endpoint: `${baseUrl}/api/m2m/credits/trial`,
+        method: "GET",
+        description: "Get a free API key with trial credits — no payment required to start"
+      },
+      full_catalog: `${baseUrl}/.well-known/x402.json`
     }
   };
   
@@ -4846,27 +4866,27 @@ router.get('/.well-known/pricing.json', async (req: Request, res: Response) => {
     ],
     
     pay_per_use: [
-      { service: "Smart Contract Scanner", price: 0.50 },
-      { service: "Whale Tracker & Alerts", price: 0.30 },
-      { service: "Trade Signal Generator", price: 0.20 },
-      { service: "Smart Contract Audit", price: 1.00 },
-      { service: "Gas Price Oracle", price: 0.10 },
-      { service: "Token Analytics", price: 0.40 },
-      { service: "DEX Price Aggregator", price: 0.25 },
-      { service: "Liquidity Pool Scanner", price: 0.35 },
-      { service: "NFT Floor Price Tracker", price: 0.15 },
-      { service: "Wallet Portfolio Analytics", price: 0.50 },
-      { service: "On-chain Data Query", price: 0.20 },
-      { service: "Risk Assessment Engine", price: 0.75 },
-      { service: "Cross-chain Bridge Monitor", price: 0.30 },
-      { service: "Staking Rewards Calculator", price: 0.15 },
-      { service: "DeFi Protocol Scanner", price: 0.40 },
-      { service: "Token Holder Analytics", price: 0.35 },
-      { service: "Transaction Pattern Detector", price: 0.45 },
-      { service: "Market Sentiment Analyzer", price: 0.30 },
-      { service: "Kalshi Prediction Markets", price: 0.25 },
-      { service: "Kalshi Odds Lookup", price: 0.50 },
-      { service: "Kalshi Market Search", price: 0.25 }
+      { service: "Smart Contract Scanner", endpoint: "/x402/contract-scan", price: 0.50 },
+      { service: "Whale Tracker & Alerts", endpoint: "/x402/whale-tracker", price: 0.30 },
+      { service: "Trade Signal Generator", endpoint: "/x402/trading-signal", price: 0.20 },
+      { service: "Smart Contract Audit", endpoint: "/x402/smart-contract-audit", price: 1.00 },
+      { service: "Gas Price Oracle", endpoint: "/x402/gas-price-oracle", price: 0.10 },
+      { service: "Token Analytics", endpoint: "/x402/token-metadata", price: 0.40 },
+      { service: "DEX Price Aggregator", endpoint: "/x402/batch-quote", price: 0.25 },
+      { service: "Liquidity Pool Scanner", endpoint: "/x402/dex-liquidity", price: 0.35 },
+      { service: "NFT Floor Price Tracker", endpoint: "/x402/nft-floor-price", price: 0.15 },
+      { service: "Wallet Portfolio Analytics", endpoint: "/x402/multi-chain-balance", price: 0.50 },
+      { service: "On-chain Data Query", endpoint: "/x402/transaction-builder", price: 0.20 },
+      { service: "Risk Assessment Engine", endpoint: "/x402/risk-metrics", price: 0.75 },
+      { service: "Cross-chain Bridge Monitor", endpoint: "/x402/seamless-chain-bridge", price: 0.30 },
+      { service: "Staking Rewards Calculator", endpoint: "/x402/solana-yield-finder", price: 0.15 },
+      { service: "DeFi Protocol Scanner", endpoint: "/x402/arbitrage-scanner", price: 0.40 },
+      { service: "Token Holder Analytics", endpoint: "/x402/trending-tokens", price: 0.35 },
+      { service: "Transaction Pattern Detector", endpoint: "/x402/fraud-detection", price: 0.45 },
+      { service: "Market Sentiment Analyzer", endpoint: "/x402/sentiment-analysis", price: 0.30 },
+      { service: "Kalshi Prediction Markets", endpoint: "/x402/prediction-market-odds", price: 0.25 },
+      { service: "Kalshi Odds Lookup", endpoint: "/x402/polymarket-odds", price: 0.50 },
+      { service: "Kalshi Market Search", endpoint: "/x402/polymarket-search", price: 0.25 }
     ],
     
     platform_fees: {

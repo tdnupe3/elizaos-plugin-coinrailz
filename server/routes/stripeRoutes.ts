@@ -117,45 +117,54 @@ router.post('/create-payment-intent', async (req, res) => {
 // Confirm payment success and update order
 router.post('/confirm-payment', async (req, res) => {
   try {
-    const { paymentIntentId, orderId } = req.body;
+    const { paymentIntentId, orderId: bodyOrderId } = req.body;
 
     if (!paymentIntentId) {
       return res.status(400).json({ error: 'Payment intent ID required' });
     }
 
-    // Retrieve payment intent from Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
-    // Security: verify orderId matches what was embedded in the payment intent metadata
-    // Prevents an attacker from supplying an arbitrary orderId with a succeeded paymentIntentId
-    if (orderId && paymentIntent.metadata?.orderId && paymentIntent.metadata.orderId !== orderId) {
-      return res.status(403).json({
-        error: 'Order ID does not match payment intent metadata',
-        success: false,
-      });
+    // Always derive orderId from payment intent metadata — never trust the request body alone.
+    // This prevents an attacker from creating a low-value intent with a chosen orderId in metadata.
+    const safeOrderId = paymentIntent.metadata?.orderId;
+    if (!safeOrderId) {
+      console.error(`❌ confirm-payment: PaymentIntent ${paymentIntentId} has no orderId in metadata`);
+      return res.status(403).json({ error: 'Payment intent has no orderId in metadata', success: false });
     }
-    
+
+    // If the caller also supplied an orderId, it must match what Stripe has — belt-and-suspenders.
+    if (bodyOrderId && bodyOrderId !== safeOrderId) {
+      console.error(`❌ confirm-payment: orderId mismatch — body=${bodyOrderId} metadata=${safeOrderId}`);
+      return res.status(403).json({ error: 'Order ID does not match payment intent metadata', success: false });
+    }
+
     if (paymentIntent.status === 'succeeded') {
-      // Fulfill using the orderId from payment intent metadata, not the raw request body
-      const safeOrderId = paymentIntent.metadata?.orderId || orderId;
-      if (safeOrderId) {
-        await storage.updateMarketplaceOrder(safeOrderId, {
-          status: 'paid',
-          completedAt: new Date()
-        });
+      // Fetch the order and verify the paid amount matches what was expected.
+      // Prevents underpayment: attacker pays $0.01 intent but expects a $100 order fulfilled.
+      const order = await storage.getMarketplaceOrder(safeOrderId);
+      if (!order) {
+        console.error(`❌ confirm-payment: order ${safeOrderId} not found`);
+        return res.status(404).json({ error: 'Order not found', success: false });
       }
 
-      res.json({ 
-        success: true, 
-        status: 'paid',
-        amount: paymentIntent.amount / 100,
-        orderId: safeOrderId
-      });
+      const paidAmountUsd = paymentIntent.amount / 100;
+      const expectedAmountUsd = parseFloat(order.amount);
+      if (Math.abs(paidAmountUsd - expectedAmountUsd) > 0.01) {
+        console.error(`❌ confirm-payment: amount mismatch — paid $${paidAmountUsd}, expected $${expectedAmountUsd} for order ${safeOrderId}`);
+        return res.status(403).json({ error: 'Payment amount does not match order amount', success: false });
+      }
+
+      if (paymentIntent.currency !== 'usd') {
+        console.error(`❌ confirm-payment: currency mismatch — got ${paymentIntent.currency} for order ${safeOrderId}`);
+        return res.status(403).json({ error: 'Currency mismatch', success: false });
+      }
+
+      await storage.updateMarketplaceOrder(safeOrderId, { status: 'paid', completedAt: new Date() });
+
+      res.json({ success: true, status: 'paid', amount: paidAmountUsd, orderId: safeOrderId });
     } else {
-      res.json({ 
-        success: false, 
-        status: paymentIntent.status 
-      });
+      res.json({ success: false, status: paymentIntent.status });
     }
   } catch (error: any) {
     console.error('Payment confirmation error:', error);

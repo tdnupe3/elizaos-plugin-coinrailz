@@ -115,7 +115,7 @@ export const PRODUCTION_TOKENS = {
     decimals: 18,
     coingeckoId: 'bankroll-vault',
     chain: 'ethereum',
-    description: 'Fixed-supply Ethereum token (1.8M max, fully circulating) with active liquidity on Uniswap V2 (VLT/WETH pool). Part of the Bankroll Network ecosystem at bankroll.network.'
+    description: 'Proof of Liquidity ERC-20 (contract VaultToken, verified on Etherscan since June 2020). Fixed supply 1.8M VLT — burn only, no mint function. Protocol-owned Uniswap V2 liquidity (~$705K VLT/WETH pool) that cannot be pulled by a central authority. ~465 holders, ~$212K/day volume. Details: bankroll.network.'
   }
 };
 

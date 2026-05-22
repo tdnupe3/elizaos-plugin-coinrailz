@@ -1146,11 +1146,13 @@ export class CoinbaseCDPService {
 
     // Ethereum network pairs
     const ethereumPairs = [
-      { from: 'ETH', to: 'USDC', verified: true },
-      { from: 'ETH', to: 'USDT', verified: true },
-      { from: 'ETH', to: 'DAI', verified: true },
+      { from: 'ETH',  to: 'USDC', verified: true },
+      { from: 'ETH',  to: 'USDT', verified: true },
+      { from: 'ETH',  to: 'DAI',  verified: true },
       { from: 'USDC', to: 'USDT', verified: true },
-      { from: 'ETH', to: 'WBTC', verified: true }
+      { from: 'ETH',  to: 'WBTC', verified: true },
+      { from: 'VLT',  to: 'ETH',  verified: true, contract: '0x6b785a0322126826d8226d77e173d75DAfb84d11', name: 'Bankroll Vault', pool: 'Uniswap V2' },
+      { from: 'ETH',  to: 'VLT',  verified: true, contract: '0x6b785a0322126826d8226d77e173d75DAfb84d11', name: 'Bankroll Vault', pool: 'Uniswap V2' },
     ];
 
     return chain === 'base-mainnet' ? basePairs : ethereumPairs;

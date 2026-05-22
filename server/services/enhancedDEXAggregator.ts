@@ -7,6 +7,35 @@ import { z } from 'zod';
 import { PIIEncryption } from '../utils/piiEncryption';
 import { SmartContractFeeRouter } from './smartContractFeeRouter';
 
+// ---------------------------------------------------------------------------
+// Live price cache — backed by CoinGecko free API, 5-minute TTL
+// ---------------------------------------------------------------------------
+const _cgPriceCache = new Map<string, { usd: number; fetchedAt: number }>();
+const _CG_CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function _fetchCoinGeckoUsd(coingeckoId: string): Promise<number | null> {
+  const cached = _cgPriceCache.get(coingeckoId);
+  if (cached && Date.now() - cached.fetchedAt < _CG_CACHE_TTL_MS) {
+    return cached.usd;
+  }
+  try {
+    const resp = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(coingeckoId)}&vs_currencies=usd`,
+      { signal: AbortSignal.timeout(4000) }
+    );
+    if (!resp.ok) return null;
+    const data = await resp.json() as Record<string, { usd?: number }>;
+    const price = data[coingeckoId]?.usd;
+    if (price && price > 0) {
+      _cgPriceCache.set(coingeckoId, { usd: price, fetchedAt: Date.now() });
+      return price;
+    }
+  } catch {
+    // network error or timeout — fall through to static fallback
+  }
+  return null;
+}
+
 // Validation schemas
 const swapQuoteSchema = z.object({
   fromToken: z.string().min(1, 'From token required'),
@@ -774,28 +803,65 @@ export class EnhancedDEXAggregator {
   }
 
   /**
-   * Get market rate between two tokens (chain-specific)
+   * Get market rate between two tokens.
+   * Priority: 1) live CoinGecko price (5-min cache)  2) static last-resort fallback
    */
   private static async getMarketRate(fromToken: string, toToken: string, chainId?: number): Promise<number> {
-    // Chain-specific rate tables
-    const ethRates: Record<string, Record<string, number>> = {
-      'USDC': { 'ETH': 0.0005, 'WBTC': 0.000028, 'PEEZY': 0.0012, 'VLT': 5.05 },
-      'ETH': { 'USDC': 2000, 'WBTC': 0.056, 'PEEZY': 0.0006, 'VLT': 10101 },
-      'WBTC': { 'ETH': 17.5, 'USDC': 35000, 'PEEZY': 0.000034, 'VLT': 176768 },
-      'PEEZY': { 'ETH': 1666.67, 'USDC': 833.33, 'WBTC': 0.000029, 'VLT': 4209 },
-      'VLT': { 'ETH': 0.0000990, 'USDC': 0.198, 'WBTC': 0.0000056, 'PEEZY': 0.000238 }
+    // PulseChain tokens have no CoinGecko IDs — static table only
+    if (chainId === 369) {
+      const pulseRates: Record<string, Record<string, number>> = {
+        'WPLS': { 'PLSX': 0.5,    'HEX': 0.001,  'INC': 2.5  },
+        'PLSX': { 'WPLS': 2.0,    'HEX': 0.002,  'INC': 5.0  },
+        'HEX':  { 'WPLS': 1000,   'PLSX': 500,   'INC': 2500 },
+        'INC':  { 'WPLS': 0.4,    'PLSX': 0.2,   'HEX': 0.0004 },
+        'PLS':  { 'WPLS': 1.0,    'PLSX': 2.0,   'HEX': 1000 }
+      };
+      return pulseRates[fromToken]?.[toToken] ?? 1;
+    }
+
+    // CoinGecko ID map for Ethereum-ecosystem tokens
+    const cgIds: Record<string, string> = {
+      'ETH':  'ethereum',
+      'WETH': 'ethereum',
+      'USDC': 'usd-coin',
+      'USDT': 'tether',
+      'DAI':  'dai',
+      'WBTC': 'wrapped-bitcoin',
+      'LINK': 'chainlink',
+      'UNI':  'uniswap',
+      'AAVE': 'aave',
+      'PEPE': 'pepe',
+      'SHIB': 'shiba-inu',
+      'VLT':  'bankroll-vault',
     };
-    
-    const pulseRates: Record<string, Record<string, number>> = {
-      'WPLS': { 'PLSX': 0.5, 'HEX': 0.001, 'INC': 2.5 },
-      'PLSX': { 'WPLS': 2.0, 'HEX': 0.002, 'INC': 5.0 },
-      'HEX': { 'WPLS': 1000, 'PLSX': 500, 'INC': 2500 },
-      'INC': { 'WPLS': 0.4, 'PLSX': 0.2, 'HEX': 0.0004 },
-      'PLS': { 'WPLS': 1.0, 'PLSX': 2.0, 'HEX': 1000 }
+
+    const fromId = cgIds[fromToken];
+    const toId   = cgIds[toToken];
+
+    if (fromId && toId) {
+      try {
+        const [fromUsd, toUsd] = await Promise.all([
+          _fetchCoinGeckoUsd(fromId),
+          _fetchCoinGeckoUsd(toId),
+        ]);
+        if (fromUsd && toUsd && toUsd > 0) {
+          return fromUsd / toUsd;
+        }
+      } catch {
+        // fall through to static fallback
+      }
+    }
+
+    // Static last-resort fallback — only reached if CoinGecko is down
+    // or the token pair has no CoinGecko ID (e.g. PEEZY)
+    const staticFallback: Record<string, Record<string, number>> = {
+      'USDC':  { 'ETH': 0.000286, 'WBTC': 0.0000105, 'VLT': 2.63,    'PEEZY': 0.0012  },
+      'ETH':   { 'USDC': 3500,    'WBTC': 0.0368,     'VLT': 9211,    'PEEZY': 0.0006  },
+      'WBTC':  { 'ETH': 27.2,     'USDC': 95000,      'VLT': 250000,  'PEEZY': 0.000034 },
+      'VLT':   { 'ETH': 0.0001086,'USDC': 0.381,      'WBTC': 0.000004, 'PEEZY': 0.000238 },
+      'PEEZY': { 'ETH': 1666.67,  'USDC': 833.33,     'WBTC': 0.000029, 'VLT': 4209    },
     };
-    
-    const rates = chainId === 369 ? pulseRates : ethRates;
-    return rates[fromToken]?.[toToken] || 1;
+    return staticFallback[fromToken]?.[toToken] ?? 1;
   }
 
   /**

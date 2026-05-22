@@ -115,7 +115,7 @@ export const PRODUCTION_TOKENS = {
     decimals: 18,
     coingeckoId: 'bankroll-vault',
     chain: 'ethereum',
-    description: 'Fixed-supply Ethereum asset backed by secured onchain liquidity. Proof of Liquidity model — trading fees deepen the Uniswap V2 pool. No admin keys. No mint function. Immutable contracts since 2020.'
+    description: 'Fixed-supply Ethereum token (1.8M max, fully circulating) with active liquidity on Uniswap V2 (VLT/WETH pool). Part of the Bankroll Network ecosystem at bankroll.network.'
   }
 };
 
@@ -130,7 +130,6 @@ export const POPULAR_PAIRS = [
   ['DAI', 'USDC'],
   ['AAVE', 'ETH'],
   ['VLT', 'ETH'],
-  ['VLT', 'USDC'],
   ['ETH', 'VLT']
 ];
 

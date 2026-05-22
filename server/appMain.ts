@@ -1557,11 +1557,31 @@ app.get('/api/dex/tokens', (req, res) => {
   res.json({
     success: true,
     tokens: [
-      { symbol: 'ETH', name: 'Ethereum', address: '0x0000000000000000000000000000000000000000' },
-      { symbol: 'USDC', name: 'USD Coin', address: '0xA0b86a33E6441E23B0F63E1ef1C07b3b1f24d13D' },
-      { symbol: 'USDT', name: 'Tether USD', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7' },
-      { symbol: 'BTC', name: 'Bitcoin', address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599' },
-      { symbol: 'PEEZY', name: 'PEEZY Token', address: '0x698b1d54E936b9F772b8F58447194bBc82EC1933' }
+      { symbol: 'ETH',   name: 'Ethereum',       address: '0x0000000000000000000000000000000000000000', chain: 'ethereum', decimals: 18, listingType: 'core' },
+      { symbol: 'USDC',  name: 'USD Coin',        address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', chain: 'ethereum', decimals: 6,  listingType: 'core' },
+      { symbol: 'USDT',  name: 'Tether USD',      address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', chain: 'ethereum', decimals: 6,  listingType: 'core' },
+      { symbol: 'WBTC',  name: 'Wrapped Bitcoin', address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599', chain: 'ethereum', decimals: 8,  listingType: 'core' },
+      { symbol: 'PEEZY', name: 'PEEZY Token',     address: '0x698b1d54E936b9F772b8F58447194bBc82EC1933', chain: 'ethereum', decimals: 18, listingType: 'community' },
+      {
+        symbol: 'VLT',
+        name: 'Bankroll Vault',
+        address: '0x6b785a0322126826d8226d77e173d75DAfb84d11',
+        chain: 'ethereum',
+        decimals: 18,
+        coingeckoId: 'bankroll-vault',
+        website: 'https://bankroll.network',
+        pool: 'Uniswap V2 VLT/WETH',
+        liquidityUsd: 705000,
+        vol24hUsd: 212000,
+        marketCapUsd: 685000,
+        maxSupply: 1800000,
+        riskTier: 'moderate',
+        listingType: 'trade-only',
+        not_payment_token: true,
+        etherscanVerified: true,
+        deployedSince: '2020-06-13',
+        notes: 'Fixed supply, burn-only (no mint), protocol-owned Uniswap V2 liquidity. Proof of Liquidity model.'
+      }
     ]
   });
 });

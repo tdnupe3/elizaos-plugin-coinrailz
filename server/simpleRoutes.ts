@@ -11823,55 +11823,51 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
     }
   });
 
+  // Shared token list for /api/dex/tokens and /api/dex/supported-tokens
+  const DEX_TOKEN_LIST = [
+    { symbol: 'ETH',   name: 'Ethereum',        address: '0x0000000000000000000000000000000000000000', chain: 'ethereum', decimals: 18, listingType: 'core' },
+    { symbol: 'USDC',  name: 'USD Coin',         address: '0xa0b86a33e6ba6fc3f3da9e88d1b0cac7d6f5b8b6', chain: 'ethereum', decimals: 6,  listingType: 'core' },
+    { symbol: 'USDT',  name: 'Tether',           address: '0xdac17f958d2ee523a2206206994597c13d831ec7', chain: 'ethereum', decimals: 6,  listingType: 'core' },
+    { symbol: 'DAI',   name: 'Dai Stablecoin',   address: '0x6b175474e89094c44da98b954eedeac495271d0f', chain: 'ethereum', decimals: 18, listingType: 'core' },
+    { symbol: 'WBTC',  name: 'Wrapped Bitcoin',  address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599', chain: 'ethereum', decimals: 8,  listingType: 'core' },
+    { symbol: 'PEEZY', name: 'PEEZY Token',      address: '0x698b1d54E936b9F772b8F58447194bBc82EC1933', chain: 'ethereum', decimals: 18, listingType: 'community' },
+    {
+      symbol: 'VLT',
+      name: 'Bankroll Vault',
+      address: '0x6b785a0322126826d8226d77e173d75DAfb84d11',
+      chain: 'ethereum',
+      decimals: 18,
+      coingeckoId: 'bankroll-vault',
+      website: 'https://bankroll.network',
+      pool: 'Uniswap V2 VLT/WETH',
+      liquidityUsd: 705000,
+      vol24hUsd: 212000,
+      marketCapUsd: 685000,
+      maxSupply: 1800000,
+      riskTier: 'moderate',
+      listingType: 'trade-only',
+      not_payment_token: true,
+      etherscanVerified: true,
+      deployedSince: '2020-06-13',
+      notes: 'Fixed supply, burn-only (no mint), protocol-owned Uniswap V2 liquidity. Proof of Liquidity model.'
+    }
+  ];
+
   // DEX tokens endpoint (expected by audit)
   app.get('/api/dex/tokens', async (req, res) => {
     try {
-      const tokens = [
-        { symbol: 'ETH', name: 'Ethereum', address: '0x0000000000000000000000000000000000000000' },
-        { symbol: 'USDC', name: 'USD Coin', address: '0xa0b86a33e6ba6fc3f3da9e88d1b0cac7d6f5b8b6' },
-        { symbol: 'USDT', name: 'Tether', address: '0xdac17f958d2ee523a2206206994597c13d831ec7' },
-        { symbol: 'DAI', name: 'Dai Stablecoin', address: '0x6b175474e89094c44da98b954eedeac495271d0f' },
-        { symbol: 'WBTC', name: 'Wrapped Bitcoin', address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599' },
-        { symbol: 'PEEZY', name: 'PEEZY Token', address: '0x698b1d54E936b9F772b8F58447194bBc82EC1933' }
-      ];
-      
-      res.json({
-        success: true,
-        tokens,
-        count: tokens.length
-      });
-      
+      res.json({ success: true, tokens: DEX_TOKEN_LIST, count: DEX_TOKEN_LIST.length });
     } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: 'Failed to fetch tokens'
-      });
+      res.status(500).json({ success: false, error: 'Failed to fetch tokens' });
     }
   });
 
   // DEX supported tokens endpoint (alias for compatibility)
   app.get('/api/dex/supported-tokens', async (req, res) => {
     try {
-      const tokens = [
-        { symbol: 'ETH', name: 'Ethereum', address: '0x0000000000000000000000000000000000000000' },
-        { symbol: 'USDC', name: 'USD Coin', address: '0xa0b86a33e6ba6fc3f3da9e88d1b0cac7d6f5b8b6' },
-        { symbol: 'USDT', name: 'Tether', address: '0xdac17f958d2ee523a2206206994597c13d831ec7' },
-        { symbol: 'DAI', name: 'Dai Stablecoin', address: '0x6b175474e89094c44da98b954eedeac495271d0f' },
-        { symbol: 'WBTC', name: 'Wrapped Bitcoin', address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599' },
-        { symbol: 'PEEZY', name: 'PEEZY Token', address: '0x698b1d54E936b9F772b8F58447194bBc82EC1933' }
-      ];
-      
-      res.json({
-        success: true,
-        tokens,
-        count: tokens.length
-      });
-      
+      res.json({ success: true, tokens: DEX_TOKEN_LIST, count: DEX_TOKEN_LIST.length });
     } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: 'Failed to fetch tokens'
-      });
+      res.status(500).json({ success: false, error: 'Failed to fetch tokens' });
     }
   });
 

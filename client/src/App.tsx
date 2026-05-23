@@ -184,6 +184,7 @@ const SolanaPayPage = lazy(() => import("@/pages/solana-pay"));
 const ProofOfExecution = lazy(() => import("@/pages/proof-of-execution"));
 const ServiceDetailPage = lazy(() => import("@/pages/ServiceDetailPage"));
 const McpIntegrationPage = lazy(() => import("@/pages/McpIntegrationPage"));
+const BuyerAnalysis = lazy(() => import("@/pages/BuyerAnalysis"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -975,6 +976,10 @@ function Router() {
 
       <Route path="/mcp-integration-guide">
         {() => <LazyLoadWrapper><McpIntegrationPage /></LazyLoadWrapper>}
+      </Route>
+
+      <Route path="/buyer-analysis">
+        {() => <LazyLoadWrapper><BuyerAnalysis /></LazyLoadWrapper>}
       </Route>
 
       <Route component={NotFound} />

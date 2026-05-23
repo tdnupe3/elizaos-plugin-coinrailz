@@ -121,6 +121,7 @@ const ap2MerchantRoutes = (await import('./routes/ap2MerchantRoutes')).default;
 const agentCardRoutes = (await import('./routes/agentCardRoutes')).default;
 const wellKnownRoutes = (await import('./routes/wellKnownRoutes')).default;
 const discoveryRoutes = (await import('./routes/discoveryRoutes')).default;
+const buyerAnalysisRoutes = (await import('./routes/buyerAnalysisRoutes')).default;
 const erc8004DiscoveryRoutes = (await import('./routes/erc8004DiscoveryRoutes')).default;
 const a2aMassDiscoveryRoutes = (await import('./routes/a2aMassDiscoveryRoutes')).default;
 const mcpServiceDiscoveryRoutes = (await import('./routes/mcpServiceDiscovery')).default;
@@ -929,6 +930,8 @@ app.use('/api/funnel', funnelAnalyticsRoutes);
 console.log('🔍 Registering Autonomous Discovery routes (sitemap, robots.txt, search engine pings)...');
 app.use(discoveryRoutes);
 console.log('✅ Discovery routes registered - Platform now discoverable by web crawlers and search engines');
+app.use(buyerAnalysisRoutes);
+console.log('✅ Buyer analysis routes registered');
 
 // Register ERC-8004 On-Chain Agent Discovery
 console.log('⛓️ Registering ERC-8004 on-chain agent discovery routes...');

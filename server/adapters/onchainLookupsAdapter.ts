@@ -428,6 +428,11 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
     const agents: DiscoveredAgentRaw[] = [];
     
     try {
+      if (!this.dataSources.onChainMessaging.apiKey) {
+        console.log('⚠️ No on-chain messaging API key configured, using known participants...');
+        return this.getKnownOnChainAgents();
+      }
+
       const response = await this.safeFetch(`${this.dataSources.onChainMessaging.endpoint}/participants`, {
         headers: {
           'Authorization': `Bearer ${this.dataSources.onChainMessaging.apiKey}`,

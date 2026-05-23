@@ -226,6 +226,12 @@ export abstract class BaseDiscoveryAdapter implements DiscoveryAdapter {
   protected async safeJsonParse(response: Response): Promise<any> {
     try {
       const text = await response.text();
+      const trimmed = text.trimStart();
+      if (trimmed.startsWith('<')) {
+        const contentType = response.headers.get('content-type') || 'unknown';
+        console.log(`⚠️ ${this.name}: received HTML instead of JSON (content-type: ${contentType}) — falling back`);
+        return null;
+      }
       return JSON.parse(text);
     } catch (error) {
       console.error(`❌ JSON parse error for ${this.name}:`, error);

@@ -23,7 +23,7 @@ import { base } from "viem/chains";
 import { wrapFetchWithPayment } from "x402-fetch";
 import { db } from "../db";
 import { x402CanaryPayments, x402PaymentIntents } from "@shared/schema";
-import { desc, eq, and, gte } from "drizzle-orm";
+import { desc, eq, and, gte, sql } from "drizzle-orm";
 import { invalidateCanaryCache } from "../middleware/x402ResponseEnricher";
 
 const CANARY_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours

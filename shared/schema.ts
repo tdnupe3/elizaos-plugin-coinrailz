@@ -6586,3 +6586,25 @@ export const insertIpBlocklistSchema = createInsertSchema(ipBlocklist).omit({
 export type IpBlocklistEntry = typeof ipBlocklist.$inferSelect;
 export type InsertIpBlocklistEntry = z.infer<typeof insertIpBlocklistSchema>;
 
+// x402 Canary Payments — Scheduled proof-of-settlement payments
+// A background job pays /x402/first-call every 6h so every 402 challenge body
+// can include a real, independently verifiable on-chain tx hash.
+export const x402CanaryPayments = pgTable("x402_canary_payments", {
+  id: serial("id").primaryKey(),
+  txHash: varchar("tx_hash", { length: 200 }),
+  explorerUrl: text("explorer_url"),
+  amountUsd: varchar("amount_usd", { length: 20 }).notNull().default("0.05"),
+  network: varchar("network").notNull().default("base"),
+  service: varchar("service").notNull().default("first-call"),
+  status: varchar("status").notNull().default("succeeded"), // succeeded | failed | skipped
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertX402CanaryPaymentSchema = createInsertSchema(x402CanaryPayments).omit({
+  id: true,
+  createdAt: true,
+});
+export type X402CanaryPayment = typeof x402CanaryPayments.$inferSelect;
+export type InsertX402CanaryPayment = z.infer<typeof insertX402CanaryPaymentSchema>;
+

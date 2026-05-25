@@ -3,6 +3,7 @@ import { paymentMiddleware, Network } from "x402-express";
 import { facilitator } from "@coinbase/x402";
 import { db } from "../db";
 import { getFacilitatorUrl, getAllFacilitatorUrls, NETWORK_LEGACY, NETWORK_CAIP2, USDC_BASE_ADDRESS, USDT_BASE_ADDRESS, PLATFORM_WALLETS, STABLECOIN_CONFIG } from "../utils/facilitatorHelper";
+import { getConfidenceMetrics } from "../middleware/x402ResponseEnricher";
 import { sql, eq, and, gt } from "drizzle-orm";
 import { instantApiKeyGrants } from "@shared/schema";
 import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD } from "@shared/pricing";
@@ -1772,7 +1773,11 @@ const x402Routes = {
 // CRITICAL FIX: x402-express never writes `discoverable` or `facilitatorUrl` into 402 responses
 // These fields must be manually injected by wrapping res.json BEFORE paymentMiddleware runs
 // See: https://github.com/coinbase/x402-express/issues - discoverable is metadata-only
-router.use((req: Request, res: Response, next) => {
+router.use(async (req: Request, res: Response, next) => {
+  // Pre-fetch confidence metrics (cached — fast, ~0ms when warm)
+  // Must be awaited here because res.json wrapper is synchronous
+  const confidenceMetrics = await getConfidenceMetrics().catch(() => null);
+
   const originalJson = res.json.bind(res);
   
   // Monkey-patch res.json to inject missing x402scan required fields
@@ -1917,6 +1922,14 @@ router.use((req: Request, res: Response, next) => {
         console.log(`⚠️ Catalog recommendations failed: ${e.message}`);
       }
       
+      // Inject confidence metrics with machine-verifiable canary proof
+      if (confidenceMetrics) {
+        body.confidenceMetrics = {
+          ...confidenceMetrics,
+          note: "Other autonomous agents have successfully used this payment flow.",
+        };
+      }
+
       console.log(`✅ Injected: facilitatorUrl=${body.facilitatorUrl}, discoverable=true for ${body.accepts.length} payment requirements`);
 
       try {

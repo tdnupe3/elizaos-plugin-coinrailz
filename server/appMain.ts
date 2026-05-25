@@ -4081,6 +4081,17 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       PilotCreditsConfirmationJob.start(300000); // Run every 5 minutes
       console.log('✅ Pilot credits crypto confirmation job started');
 
+      // Start x402 canary payment job (production only)
+      // Makes a real $0.05 USDC payment every 6h so 402 challenge bodies contain
+      // a verifiable on-chain tx hash as proof-of-settlement for evaluating agents.
+      try {
+        const { X402CanaryJob } = await import('./jobs/x402CanaryJob');
+        X402CanaryJob.start();
+        console.log('🕯️  x402 canary job registered');
+      } catch (canaryErr: any) {
+        console.warn('⚠️ x402 canary job failed to start (non-fatal):', canaryErr.message);
+      }
+
       // Initialize MPP ecosystem monitor (non-blocking)
       // Polls npm weekly for mppx version changes; tracks mpp-registry crawlers
       try {

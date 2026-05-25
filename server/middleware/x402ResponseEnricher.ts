@@ -16,8 +16,8 @@
 import { Request, Response, NextFunction } from "express";
 import { serviceCatalogService } from "../services/serviceCatalogService";
 import { db } from "../db";
-import { x402PaymentIntents } from "@shared/schema";
-import { sql, gte, eq } from "drizzle-orm";
+import { x402PaymentIntents, x402CanaryPayments } from "@shared/schema";
+import { sql, gte, eq, desc, and } from "drizzle-orm";
 import { getFacilitatorUrl, getDexterFacilitatorUrl, NETWORK_LEGACY, NETWORK_CAIP2 } from "../utils/facilitatorHelper";
 import { buildBazaarDiscoveryMetadata } from "../discovery/officialBazaarIntegration";
 
@@ -75,33 +75,106 @@ function normalizeResourceUrl(resource: string | undefined, endpoint: string): s
 let confidenceCache: { data: any; timestamp: number } | null = null;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+// Separate canary cache (refresh every 10 minutes — canary runs every 6h so 10min is plenty fresh)
+let canaryCache: { data: CanaryProof | null; timestamp: number } | null = null;
+const CANARY_CACHE_TTL_MS = 10 * 60 * 1000;
+
+interface CanaryProof {
+  txHash: string;
+  explorerUrl: string;
+  timestamp: string;
+  amountUsd: string;
+  service: string;
+}
+
 /**
- * Get confidence metrics for 402 responses (ChatGPT-recommended social proof)
- * Shows agents that other autonomous agents are successfully paying
- * 
- * IMPORTANT: Never expose "0 payments" - this undermines trust.
- * When activity is low, use generic positive messaging instead.
+ * Reads the latest successful canary payment from x402_canary_payments.
+ * Returns null if no canary payment exists within the last 24 hours.
+ * Results are cached for 10 minutes to keep the hot path fast.
  */
-async function getConfidenceMetrics(): Promise<{
+async function getLatestCanaryProof(): Promise<CanaryProof | null> {
+  const now = Date.now();
+
+  if (canaryCache && (now - canaryCache.timestamp) < CANARY_CACHE_TTL_MS) {
+    return canaryCache.data;
+  }
+
+  try {
+    const cutoff = new Date(now - 24 * 60 * 60 * 1000);
+    const rows = await db
+      .select({
+        txHash: x402CanaryPayments.txHash,
+        explorerUrl: x402CanaryPayments.explorerUrl,
+        createdAt: x402CanaryPayments.createdAt,
+        amountUsd: x402CanaryPayments.amountUsd,
+        service: x402CanaryPayments.service,
+      })
+      .from(x402CanaryPayments)
+      .where(
+        and(
+          eq(x402CanaryPayments.status, "succeeded"),
+          gte(x402CanaryPayments.createdAt, cutoff)
+        )
+      )
+      .orderBy(desc(x402CanaryPayments.createdAt))
+      .limit(1);
+
+    const row = rows[0];
+    const proof: CanaryProof | null =
+      row?.txHash && row?.explorerUrl
+        ? {
+            txHash: row.txHash,
+            explorerUrl: row.explorerUrl,
+            timestamp: row.createdAt instanceof Date
+              ? row.createdAt.toISOString()
+              : String(row.createdAt),
+            amountUsd: row.amountUsd ?? "0.05",
+            service: row.service ?? "first-call",
+          }
+        : null;
+
+    canaryCache = { data: proof, timestamp: now };
+    return proof;
+  } catch {
+    // Non-fatal: canary table may not exist yet on first deploy
+    canaryCache = { data: null, timestamp: now };
+    return null;
+  }
+}
+
+/**
+ * Invalidates the canary cache. Called by X402CanaryJob after a successful run
+ * so the next 402 response picks up the fresh tx hash without waiting 10 minutes.
+ */
+export function invalidateCanaryCache(): void {
+  canaryCache = null;
+}
+
+/**
+ * Get confidence metrics for 402 responses.
+ * Includes machine-verifiable canary proof when available so agents can
+ * independently confirm settlement works on-chain before committing to pay.
+ * Exported so other 402-response assemblers (e.g. x402MicroserviceRoutesV2) can use it.
+ */
+export async function getConfidenceMetrics(): Promise<{
   recentPayments24h?: number;
   recentPayments7d?: number;
   uniqueAgents7d?: number;
+  lastVerifiedPayment?: CanaryProof;
   message: string;
   status: "active" | "verified";
 }> {
   const now = Date.now();
   
-  // Return cached data if fresh
   if (confidenceCache && (now - confidenceCache.timestamp) < CACHE_TTL_MS) {
     return confidenceCache.data;
   }
   
   try {
-    // Query recent successful payments
     const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
     
-    const [payments24h, payments7d, agents7d] = await Promise.all([
+    const [payments24h, payments7d, agents7d, canaryProof] = await Promise.all([
       db.select({ count: sql<number>`count(*)::int` })
         .from(x402PaymentIntents)
         .where(sql`status = 'SUCCEEDED' AND created_at > ${oneDayAgo.toISOString()}`),
@@ -111,51 +184,65 @@ async function getConfidenceMetrics(): Promise<{
       db.select({ count: sql<number>`count(distinct payer)::int` })
         .from(x402PaymentIntents)
         .where(sql`status = 'SUCCEEDED' AND created_at > ${sevenDaysAgo.toISOString()}`),
+      getLatestCanaryProof(),
     ]);
     
     const recentPayments24h = payments24h[0]?.count || 0;
     const recentPayments7d = payments7d[0]?.count || 0;
     const uniqueAgents7d = agents7d[0]?.count || 0;
     
-    // ChatGPT recommendation: Never show "0 payments" - use generic positive messaging
-    // Only include specific numbers when they're impressive (builds trust)
     let data: any;
     
     if (recentPayments24h > 0) {
-      // High activity: show specific numbers (impressive)
       data = {
         recentPayments24h,
         recentPayments7d,
         uniqueAgents7d,
-        message: `This endpoint processed ${recentPayments24h} successful payment${recentPayments24h > 1 ? 's' : ''} in the last 24 hours.`,
+        message: `${recentPayments24h} successful payment${recentPayments24h > 1 ? 's' : ''} in the last 24 hours.`,
         status: "active" as const
       };
     } else if (recentPayments7d > 0) {
-      // Moderate activity: show 7-day stats
       data = {
         recentPayments7d,
         uniqueAgents7d,
-        message: `This endpoint has processed payments successfully from ${uniqueAgents7d} unique agent${uniqueAgents7d > 1 ? 's' : ''}.`,
+        message: `Payments processed successfully from ${uniqueAgents7d} unique agent${uniqueAgents7d > 1 ? 's' : ''} this week.`,
         status: "active" as const
       };
     } else {
-      // Low/no recent activity: generic positive messaging (never show 0)
       data = {
-        message: "This endpoint has processed payments successfully.",
+        message: "Payment rail is live. See lastVerifiedPayment for on-chain proof.",
         status: "verified" as const
       };
     }
+
+    // Always attach canary proof when available — this is the machine-verifiable signal
+    if (canaryProof) {
+      data.lastVerifiedPayment = canaryProof;
+      // Upgrade message to reference the verifiable proof
+      if (recentPayments24h === 0 && recentPayments7d === 0) {
+        data.message = `Last verified settlement ${formatAge(canaryProof.timestamp)} ago — tx verifiable on Base.`;
+      }
+    }
     
-    // Cache the result
     confidenceCache = { data, timestamp: now };
-    
     return data;
   } catch (error) {
-    // Return generic positive message on error (don't fail, don't show 0)
     return {
-      message: "This endpoint has processed payments successfully.",
+      message: "Payment rail is live.",
       status: "verified" as const
     };
+  }
+}
+
+function formatAge(isoTimestamp: string): string {
+  try {
+    const diffMs = Date.now() - new Date(isoTimestamp).getTime();
+    const hours = Math.floor(diffMs / 3_600_000);
+    if (hours < 1) return "< 1 hour";
+    if (hours === 1) return "1 hour";
+    return `${hours} hours`;
+  } catch {
+    return "recently";
   }
 }
 

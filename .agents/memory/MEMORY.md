@@ -1,0 +1,2 @@
+- [402 body injection architecture](402-injection-architecture.md) — confidenceMetrics must be injected in x402MicroserviceRoutesV2.ts router.use wrapper, NOT in x402ResponseEnricher (which is never registered in appMain)
+- [Canary job pattern](canary-job-pattern.md) — x402CanaryJob fires every 6h in prod, stores tx hash in x402_canary_payments, invalidates enricher cache after success

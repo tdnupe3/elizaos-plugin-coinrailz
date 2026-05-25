@@ -100,13 +100,20 @@ async function getCanaryWalletBalance(): Promise<{
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Shared admin-key guard — only accepts ADMIN_KEY from env; no hardcoded fallback
+function requireAdminKey(req: any, res: any): boolean {
+  const adminKey = req.headers['x-admin-key'];
+  const configuredKey = process.env.ADMIN_KEY;
+  if (!configuredKey || adminKey !== configuredKey) {
+    res.status(403).json({ error: 'Admin access required' });
+    return false;
+  }
+  return true;
+}
+
 // ADMIN ONLY - Platform Analytics Endpoint (requires admin authentication)
 router.get("/admin-stats", async (req, res) => {
-  // Check for admin access - you can add proper admin authentication here
-  const adminKey = req.headers['x-admin-key'];
-  if (adminKey !== process.env.ADMIN_KEY && adminKey !== 'admin-secret-key') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
+  if (!requireAdminKey(req, res)) return;
   try {
     // User Statistics
     const userStats = await db
@@ -571,9 +578,11 @@ router.get("/x402/iot-analysis", async (req, res) => {
 });
 
 // ─── Canary Status — single endpoint for "how is the platform doing?" queries ──
-// Combines: live USDC balance, canary job health, last 5 run records.
-// Alert fires if balance < $2 so you know before the canary starts failing.
+// Admin-gated: returns live USDC balance, canary job health, last 5 run records.
+// Alert fires if balance < $2 so you have advance warning before runs start failing.
 router.get("/x402/canary-status", async (req, res) => {
+  if (!requireAdminKey(req, res)) return;
+
   try {
     const [walletHealth, recentRuns] = await Promise.all([
       getCanaryWalletBalance(),

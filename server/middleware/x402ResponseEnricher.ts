@@ -143,11 +143,13 @@ async function getLatestCanaryProof(): Promise<CanaryProof | null> {
 }
 
 /**
- * Invalidates the canary cache. Called by X402CanaryJob after a successful run
- * so the next 402 response picks up the fresh tx hash without waiting 10 minutes.
+ * Invalidates both the canary cache and the confidence metrics cache.
+ * Called by X402CanaryJob after a successful run so the very next 402
+ * response picks up the fresh tx hash — no 5-minute stale window.
  */
 export function invalidateCanaryCache(): void {
   canaryCache = null;
+  confidenceCache = null;
 }
 
 /**

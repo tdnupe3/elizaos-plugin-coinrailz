@@ -128,8 +128,12 @@ export class X402CanaryJob {
       // Brief wait for the server-side DB write to complete before querying
       await new Promise((r) => setTimeout(r, 3000));
 
-      // Retrieve the tx hash from x402_payment_intents (written by the server on verification)
+      // Retrieve the tx hash from x402_payment_intents, scoped to the canary wallet address
+      // to prevent organic concurrent payments from being mis-attributed as canary proof.
       const cutoff = new Date(startedAt.getTime() - 5000); // 5s before we started
+      const keyHexForLookup: Hex = privateKey.startsWith("0x") ? (privateKey as Hex) : (`0x${privateKey}` as Hex);
+      const canaryAddress = privateKeyToAccount(keyHexForLookup).address.toLowerCase();
+
       const recentIntent = await db
         .select({ txHash: x402PaymentIntents.txHash, network: x402PaymentIntents.network })
         .from(x402PaymentIntents)
@@ -137,7 +141,8 @@ export class X402CanaryJob {
           and(
             eq(x402PaymentIntents.status, "SUCCEEDED"),
             eq(x402PaymentIntents.serviceName, CANARY_SERVICE),
-            gte(x402PaymentIntents.createdAt, cutoff)
+            gte(x402PaymentIntents.createdAt, cutoff),
+            sql`lower(${x402PaymentIntents.payerAddress}) = ${canaryAddress}`
           )
         )
         .orderBy(desc(x402PaymentIntents.createdAt))

@@ -1,10 +1,104 @@
 import { Router } from "express";
 import { db } from "../db";
-import { users, transactions, referrals, globalAIAgents, agentServiceOrders, microserviceRequests } from "@shared/schema";
+import { users, transactions, referrals, globalAIAgents, agentServiceOrders, microserviceRequests, x402CanaryPayments } from "@shared/schema";
 import { sql, count, sum, avg, desc, eq, gte } from "drizzle-orm";
 import { getUsageStats, detectSDK } from "../middleware/usageAnalyticsMiddleware";
+import { createPublicClient, http, formatUnits } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { base } from "viem/chains";
+import { X402CanaryJob } from "../jobs/x402CanaryJob";
 
 const router = Router();
+
+// ─── Canary Wallet Balance Check ─────────────────────────────────────────────
+const USDC_BASE_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
+const LOW_BALANCE_THRESHOLD_USD = 2.0;
+const BALANCE_ABI = [
+  {
+    name: "balanceOf",
+    type: "function",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+  },
+] as const;
+
+let _balanceCache: { balance: number; address: string; checkedAt: number } | null = null;
+const BALANCE_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
+async function getCanaryWalletBalance(): Promise<{
+  address: string;
+  usdcBalance: number;
+  isLow: boolean;
+  alert: string | null;
+  checkedAt: string;
+  error?: string;
+}> {
+  // Return cache if fresh
+  if (_balanceCache && Date.now() - _balanceCache.checkedAt < BALANCE_CACHE_TTL_MS) {
+    const balance = _balanceCache.balance;
+    const isLow = balance < LOW_BALANCE_THRESHOLD_USD;
+    return {
+      address: _balanceCache.address,
+      usdcBalance: balance,
+      isLow,
+      alert: isLow
+        ? `⚠️ Canary wallet USDC balance ($${balance.toFixed(2)}) is below the $${LOW_BALANCE_THRESHOLD_USD} threshold — top up to keep canary payments running`
+        : null,
+      checkedAt: new Date(_balanceCache.checkedAt).toISOString(),
+    };
+  }
+
+  const privateKey = process.env.PLATFORM_EOA_PRIVATE_KEY || process.env.EVM_PRIVATE_KEY;
+  if (!privateKey) {
+    return {
+      address: "unknown",
+      usdcBalance: 0,
+      isLow: true,
+      alert: "⚠️ No canary wallet key configured (PLATFORM_EOA_PRIVATE_KEY / EVM_PRIVATE_KEY missing)",
+      checkedAt: new Date().toISOString(),
+      error: "No wallet key",
+    };
+  }
+
+  try {
+    const normalizedKey = privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`;
+    const account = privateKeyToAccount(normalizedKey as `0x${string}`);
+    const BASE_RPC = process.env.BASE_RPC_URL || "https://mainnet.base.org";
+    const client = createPublicClient({ chain: base, transport: http(BASE_RPC) });
+
+    const raw = await client.readContract({
+      address: USDC_BASE_ADDRESS,
+      abi: BALANCE_ABI,
+      functionName: "balanceOf",
+      args: [account.address],
+    });
+
+    const balance = parseFloat(formatUnits(raw as bigint, 6));
+    _balanceCache = { balance, address: account.address, checkedAt: Date.now() };
+
+    const isLow = balance < LOW_BALANCE_THRESHOLD_USD;
+    return {
+      address: account.address,
+      usdcBalance: balance,
+      isLow,
+      alert: isLow
+        ? `⚠️ Canary wallet USDC balance ($${balance.toFixed(2)}) is below the $${LOW_BALANCE_THRESHOLD_USD} threshold — top up to keep canary payments running`
+        : null,
+      checkedAt: new Date().toISOString(),
+    };
+  } catch (err: any) {
+    return {
+      address: "unknown",
+      usdcBalance: 0,
+      isLow: true,
+      alert: "⚠️ Could not read canary wallet balance (RPC error)",
+      checkedAt: new Date().toISOString(),
+      error: err?.message ?? String(err),
+    };
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ADMIN ONLY - Platform Analytics Endpoint (requires admin authentication)
 router.get("/admin-stats", async (req, res) => {
@@ -105,6 +199,18 @@ router.get("/admin-stats", async (req, res) => {
         platformHealth: "Operational",
         lastUpdated: new Date().toISOString(),
       },
+    };
+
+    // Add canary wallet health — warns if USDC balance < $2
+    const walletHealth = await getCanaryWalletBalance();
+    (analytics as any).canaryWallet = {
+      usdcBalance: walletHealth.usdcBalance,
+      isLow: walletHealth.isLow,
+      alert: walletHealth.alert,
+      address: walletHealth.address,
+      explorerUrl: walletHealth.address !== "unknown"
+        ? `https://basescan.org/address/${walletHealth.address}`
+        : null,
     };
 
     res.json({
@@ -463,5 +569,67 @@ router.get("/x402/iot-analysis", async (req, res) => {
     });
   }
 });
+
+// ─── Canary Status — single endpoint for "how is the platform doing?" queries ──
+// Combines: live USDC balance, canary job health, last 5 run records.
+// Alert fires if balance < $2 so you know before the canary starts failing.
+router.get("/x402/canary-status", async (req, res) => {
+  try {
+    const [walletHealth, recentRuns] = await Promise.all([
+      getCanaryWalletBalance(),
+      db.query.x402CanaryPayments.findMany({
+        orderBy: [desc(x402CanaryPayments.createdAt)],
+        limit: 5,
+      }),
+    ]);
+
+    const jobStatus = X402CanaryJob.getStatus();
+    const lastSuccess = recentRuns.find((r) => r.status === "succeeded");
+
+    res.json({
+      success: true,
+      checkedAt: new Date().toISOString(),
+      walletHealth: {
+        address: walletHealth.address,
+        usdcBalance: walletHealth.usdcBalance,
+        lowBalanceThresholdUsd: LOW_BALANCE_THRESHOLD_USD,
+        isLow: walletHealth.isLow,
+        alert: walletHealth.alert,
+        explorerUrl: walletHealth.address !== "unknown"
+          ? `https://basescan.org/address/${walletHealth.address}`
+          : null,
+      },
+      canaryJob: {
+        running: jobStatus.running,
+        circuitOpen: jobStatus.circuitOpen,
+        consecutiveFailures: jobStatus.consecutiveFailures,
+        lastSuccessAt: jobStatus.lastSuccessAt,
+        intervalHours: 6,
+      },
+      lastVerifiedPayment: lastSuccess
+        ? {
+            txHash: lastSuccess.txHash,
+            explorerUrl: lastSuccess.explorerUrl,
+            amountUsd: lastSuccess.amountUsd,
+            network: lastSuccess.network,
+            at: lastSuccess.createdAt,
+          }
+        : null,
+      recentRuns: recentRuns.map((r) => ({
+        id: r.id,
+        status: r.status,
+        txHash: r.txHash,
+        explorerUrl: r.explorerUrl,
+        amountUsd: r.amountUsd,
+        errorMessage: r.errorMessage,
+        at: r.createdAt,
+      })),
+    });
+  } catch (err: any) {
+    console.error("❌ canary-status error:", err);
+    res.status(500).json({ success: false, error: err?.message ?? String(err) });
+  }
+});
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default router;

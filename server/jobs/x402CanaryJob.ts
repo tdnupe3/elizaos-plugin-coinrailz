@@ -142,7 +142,7 @@ export class X402CanaryJob {
             eq(x402PaymentIntents.status, "SUCCEEDED"),
             eq(x402PaymentIntents.serviceName, CANARY_SERVICE),
             gte(x402PaymentIntents.createdAt, cutoff),
-            sql`lower(${x402PaymentIntents.payerAddress}) = ${canaryAddress}`
+            sql`lower(${x402PaymentIntents.payer}) = ${canaryAddress}`
           )
         )
         .orderBy(desc(x402PaymentIntents.createdAt))

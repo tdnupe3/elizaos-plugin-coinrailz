@@ -77,4 +77,5 @@ The big `x402Routes` object in x402MicroserviceRoutesV2.ts uses old format (`pri
 2. ✅ Regression check: first-call + core endpoints still return correct 402 — PASSED
 3. ✅ Canary-only CAIP-2 toggle implemented and tested — DONE
 4. ✅ x402CanaryJob.ts migrated to @x402/fetch 2.x — DONE
-5. ⏳ Monitor prod canary: after ≥3 consecutive successes, remove `x402-fetch` from package.json
+5. ✅ First canary success in prod confirmed — tx 0xf2618fe9f4d0b8e0aec8d78b9a0887e62c0b4c7f4eeba6d05246d8e91cf51e8b (May 26 2026)
+6. ⏳ Monitor prod canary: after ≥3 consecutive successes, remove `x402-fetch` from package.json

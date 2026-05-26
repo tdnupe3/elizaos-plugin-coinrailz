@@ -21,7 +21,7 @@ import { createWalletClient, http, Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
 import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
-import { ExactEvmScheme, toClientEvmSigner } from "@x402/evm";
+import { ExactEvmScheme } from "@x402/evm";
 import { db } from "../db";
 import { x402CanaryPayments, x402PaymentIntents } from "@shared/schema";
 import { desc, eq, and, gte, sql } from "drizzle-orm";
@@ -113,7 +113,15 @@ export class X402CanaryJob {
 
       // @x402/fetch 2.x — 2-arg API: wrapFetchWithPayment(fetch, x402Client)
       // Payment cap enforced via registerPolicy (replaces old 3rd-arg MAX_PAYMENT_MICRO)
-      const evmSigner = toClientEvmSigner(walletClient);
+      //
+      // IMPORTANT: toClientEvmSigner(walletClient) reads signer.address directly, but
+      // viem WalletClient stores the address at account.address, not .address.
+      // That causes ExactEvmScheme to receive address=undefined and throw
+      // "Address 'undefined' is invalid". Construct ClientEvmSigner manually.
+      const evmSigner = {
+        address: account.address,
+        signTypedData: (args: any) => walletClient.signTypedData(args),
+      };
       const client = new x402Client()
         .register('eip155:8453', new ExactEvmScheme(evmSigner))
         .registerPolicy((_version, reqs) =>

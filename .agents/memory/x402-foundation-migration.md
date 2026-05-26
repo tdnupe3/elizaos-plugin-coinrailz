@@ -58,7 +58,14 @@ const x402Fetch = wrapFetchWithPayment(fetch, client);
 // Request must include "X-X402-Canary": "true" header to get CAIP-2 challenge
 ```
 
-**Why:** `toClientEvmSigner` adapts viem WalletClient → ClientEvmSigner (the type ExactEvmScheme requires). `registerPolicy` replaces the old 3rd-arg max-payment cap.
+**Why — CRITICAL GOTCHA:** Do NOT use `toClientEvmSigner(walletClient)`. It reads `signer.address` directly, but viem `WalletClient` stores the address at `account.address`, not `.address`. Result: `address=undefined` → viem throws "Address 'undefined' is invalid" inside `ExactEvmScheme.createPaymentPayload()`. Construct ClientEvmSigner manually:
+```typescript
+const evmSigner = {
+  address: account.address,            // account = privateKeyToAccount(keyHex)
+  signTypedData: (args: any) => walletClient.signTypedData(args),
+};
+```
+`registerPolicy` replaces the old 3rd-arg max-payment cap.
 
 ## x402Routes Config Object — Do NOT Convert
 

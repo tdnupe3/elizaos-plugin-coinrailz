@@ -1,6 +1,4 @@
 import { Router, Request, Response } from "express";
-import { paymentMiddleware, Network } from "x402-express";
-import { facilitator } from "@coinbase/x402";
 import { db } from "../db";
 import { getFacilitatorUrl, getAllFacilitatorUrls, NETWORK_LEGACY, NETWORK_CAIP2, USDC_BASE_ADDRESS, USDT_BASE_ADDRESS, PLATFORM_WALLETS, STABLECOIN_CONFIG } from "../utils/facilitatorHelper";
 import { getConfidenceMetrics } from "../middleware/x402ResponseEnricher";
@@ -127,7 +125,7 @@ const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae
 
 // Network selection based on environment
 // CRITICAL FIX: Force BASE MAINNET for Bazaar discovery (testnet services don't appear in Bazaar)
-const NETWORK: Network = "base"; // Always use mainnet for production discoverability
+const NETWORK = "base" as const; // Always use mainnet for production discoverability
 
 // Public base URL for Bazaar discovery (x402 crawler needs public URLs, not localhost)
 // CRITICAL: Use REPLIT_DOMAINS for workspace URLs (correct Replit env var)
@@ -2624,19 +2622,7 @@ console.log(`✅ GET handlers registered for ${totalServices} x402 services (Baz
 // Prevents middleware conflict by choosing verification path before x402-express runs
 console.log('🔄 Payment orchestrator configured - will apply per-route for flexibility');
 
-// Apply x402-express middleware ONLY as fallback for EIP-712 signatures
-// Orchestrator bypasses this for raw transaction hashes
-console.log('🔄 x402-express paymentMiddleware configured as EIP-712 fallback');
 console.log(`🌐 PUBLIC_BASE_URL set to: ${PUBLIC_BASE_URL}`);
-
-// NOTE: x402-express doesn't support baseURL parameter - it uses request headers
-// We've set resource field in each route config, but x402-express v0.7.1 ignores it
-// Will need to upgrade x402-express or modify request headers
-const x402Middleware = paymentMiddleware(
-  PLATFORM_WALLET,
-  x402Routes,
-  facilitator // Use the imported CDP facilitator (auto-registers with Bazaar)
-);
 
 // ============================================================================
 // PING/ECHO SERVICE - Discovery endpoint for payment explorers

@@ -77,5 +77,9 @@ The big `x402Routes` object in x402MicroserviceRoutesV2.ts uses old format (`pri
 2. ✅ Regression check: first-call + core endpoints still return correct 402 — PASSED
 3. ✅ Canary-only CAIP-2 toggle implemented and tested — DONE
 4. ✅ x402CanaryJob.ts migrated to @x402/fetch 2.x — DONE
-5. ✅ First canary success in prod confirmed — tx 0xf2618fe9f4d0b8e0aec8d78b9a0887e62c0b4c7f4eeba6d05246d8e91cf51e8b (May 26 2026)
-6. ⏳ Monitor prod canary: after ≥3 consecutive successes, remove `x402-fetch` from package.json
+5. ✅ 3 consecutive canary successes confirmed in prod (May 26 2026):
+   - tx 0xbc6b5a341e2024ba026163f96f8fdaab7b50d0f92c6d054ae76f99c810059f98
+   - tx 0x1c273394e21b53bbeaf322293846d98f84cd910045d9acbbada0dc87ac205b51
+   - tx 0xf84fe1180c994244653a25f2244ef0e67a20b4c431dd751e62b5bf967bff1f61
+6. ✅ `x402-fetch` removed from root package.json — MIGRATION COMPLETE
+7. Note: `elizaos-plugin-coinrailz/package.json` retains its own `x402-fetch@^0.6.0` — that is a separate package, do not touch it.

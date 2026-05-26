@@ -17,7 +17,7 @@
  *   - Uses global tx-hash replay protection (usedTransactionHashes unique index on txHash).
  */
 
-import { createWalletClient, http, Hex } from "viem";
+import { createWalletClient, createPublicClient, http, Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
 import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
@@ -118,9 +118,16 @@ export class X402CanaryJob {
       // viem WalletClient stores the address at account.address, not .address.
       // That causes ExactEvmScheme to receive address=undefined and throw
       // "Address 'undefined' is invalid". Construct ClientEvmSigner manually.
+      //
+      // We also compose a publicClient so ExactEvmScheme has readContract,
+      // estimateFeesPerGas, etc. for optional Permit2 extension paths.
+      const publicClient = createPublicClient({ chain: base, transport: http() });
       const evmSigner = {
         address: account.address,
         signTypedData: (args: any) => walletClient.signTypedData(args),
+        readContract: (args: any) => publicClient.readContract(args),
+        estimateFeesPerGas: () => publicClient.estimateFeesPerGas(),
+        getTransactionCount: (args: any) => publicClient.getTransactionCount(args),
       };
       const client = new x402Client()
         .register('eip155:8453', new ExactEvmScheme(evmSigner))

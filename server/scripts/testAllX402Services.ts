@@ -1,14 +1,18 @@
 /**
- * x402 Service Full Test Suite
- * 
- * Tests ALL 34 x402 services with REAL USDC payments on Base Chain.
- * USDC flows from test wallet → platform wallet (same owner, net cost = gas only)
- * 
- * Usage: npx tsx server/scripts/testAllX402Services.ts
+ * x402 Service Full Test Suite — RETIRED
+ *
+ * This script used x402-fetch@0.7.3 (wrapFetch 1-arg API) and @coinbase/coinbase-sdk.
+ * Both are no longer in use. Replaced by:
+ *   - server/scripts/runFullPaymentTest.ts   (all services, @x402/fetch 2.x)
+ *   - server/scripts/runAffordablePaymentTest.ts (affordable tier)
+ *   - server/scripts/runQuickPaymentTest.ts  (quick smoke test)
+ *
+ * DO NOT RUN — kept for historical reference only.
  */
 
-import { Coinbase, Wallet } from "@coinbase/coinbase-sdk";
-import { wrapFetch } from "x402-fetch";
+// RETIRED — imports removed to prevent x402-fetch dependency
+// import { Coinbase, Wallet } from "@coinbase/coinbase-sdk";
+// import { wrapFetch } from "x402-fetch";
 
 const BASE_URL = process.env.PUBLIC_BASE_URL || "https://coinrailz.com";
 

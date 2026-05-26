@@ -4,9 +4,10 @@
  */
 
 import { Coinbase, Wallet } from "@coinbase/coinbase-sdk";
-import { wrapFetchWithPayment } from "x402-fetch";
+import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
+import { ExactEvmScheme } from "@x402/evm";
 import { HDKey } from "@scure/bip32";
-import { createWalletClient, http, publicActions } from "viem";
+import { createWalletClient, createPublicClient, http, publicActions } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
 import * as fs from "fs";
@@ -91,7 +92,21 @@ async function runTest() {
   
   console.log("✅ Address matches! Starting targeted test suite...\n");
   
-  const x402Fetch = wrapFetchWithPayment(fetch, walletClient, BigInt(2 * 1_000_000));
+  // @x402/fetch 2.x: 2-arg API — build x402Client with ExactEvmScheme + policy cap
+  const publicClient = createPublicClient({ chain: base, transport: http() });
+  const evmSigner = {
+    address: account.address,
+    signTypedData: (args: any) => walletClient.signTypedData(args),
+    readContract: (args: any) => publicClient.readContract(args),
+    estimateFeesPerGas: () => publicClient.estimateFeesPerGas(),
+    getTransactionCount: (args: any) => publicClient.getTransactionCount(args),
+  };
+  const x402c = new x402Client()
+    .register('eip155:8453', new ExactEvmScheme(evmSigner))
+    .registerPolicy((_v: any, reqs: any[]) =>
+      reqs.filter((r: any) => { try { return BigInt(r.maxAmountRequired) <= BigInt(2 * 1_000_000); } catch { return false; } })
+    );
+  const x402Fetch = wrapFetchWithPayment(fetch, x402c);
   
   let passed = 0;
   let failed = 0;

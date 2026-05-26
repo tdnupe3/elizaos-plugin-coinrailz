@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Wallet, Download, ExternalLink, CheckCircle, AlertCircle } from "@/lib/icons";
+import { Fingerprint } from "lucide-react";
 
 interface CoinbaseApp {
   name: string;
@@ -102,6 +103,15 @@ export function CoinbaseWalletIntegration() {
     }
   };
 
+  const openBaseSmartWallet = () => {
+    window.open('https://keys.coinbase.com', '_blank');
+    toast({
+      title: "Opening Base Smart Wallet",
+      description: "Create a passkey wallet on Base — no seed phrase required",
+      variant: "default",
+    });
+  };
+
   const createNewWallet = (type: 'defi' | 'mobile') => {
     setIsCheckingForNewWallet(true);
     
@@ -190,6 +200,32 @@ export function CoinbaseWalletIntegration() {
               className="bg-blue-600 hover:bg-blue-700 text-white w-full"
             >
               Sign in with Coinbase Account
+            </Button>
+          </div>
+
+          {/* Base Smart Wallet - Primary Recommendation */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-lg p-4 text-white">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Fingerprint className="w-5 h-5 text-blue-200" />
+                <div>
+                  <h4 className="font-semibold text-white text-sm">Base Smart Wallet</h4>
+                  <p className="text-blue-200 text-xs">No seed phrase · Passkey login · Native on Base</p>
+                </div>
+              </div>
+              <Badge className="bg-blue-500/40 text-blue-100 border-blue-400/50 text-[10px] shrink-0">
+                Recommended
+              </Badge>
+            </div>
+            <p className="text-blue-100 text-xs mb-3">
+              Coinbase's smart contract wallet on Base chain. Log in with your device biometrics — no private keys to manage.
+            </p>
+            <Button
+              onClick={openBaseSmartWallet}
+              className="w-full bg-white text-blue-700 hover:bg-blue-50 font-semibold text-sm"
+            >
+              <Fingerprint className="w-4 h-4 mr-2" />
+              Create Base Smart Wallet
             </Button>
           </div>
 

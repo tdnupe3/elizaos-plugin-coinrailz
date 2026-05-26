@@ -1008,7 +1008,7 @@ export default function Landing() {
                 Native Coinbase Agentic Wallet support — the first wallet infrastructure built for AI agents
               </p>
               <p className="text-sm text-gray-500">
-                AgentKit v0.10.3 • x402 Protocol • search-for-service • pay-for-service • instant onboarding
+                AgentKit v0.10.4 • x402 Protocol • search-for-service • pay-for-service • instant onboarding
               </p>
             </div>
             <CoinbaseWalletIntegration />

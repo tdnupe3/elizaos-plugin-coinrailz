@@ -3893,6 +3893,12 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       res.sendFile(specPath);
     });
     
+    // Register analytics routes BEFORE serveStatic so the SPA catch-all
+    // doesn't swallow /api/analytics/* requests in production.
+    const gatewayAnalyticsRoutesP = await import('./routes/analyticsRoutes').then(m => m.default);
+    app.use('/api/analytics', gatewayAnalyticsRoutesP);
+    console.log('✅ Gateway analytics routes registered (pre-static, production)');
+
     serveStatic(app);
     console.log('✅ Static file serving configured');
     _lap('serveStatic done — calling markFrontendReady (production)');

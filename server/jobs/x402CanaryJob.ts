@@ -142,13 +142,14 @@ export class X402CanaryJob {
 
       const startedAt = new Date();
 
-      // X-X402-Canary:true triggers CAIP-2 network format in the 402 challenge
-      // so @x402/fetch 2.x ExactEvmScheme can parse the payment requirements.
+      // Run the normal-path probe first (no payment, no special headers) to confirm
+      // that the default 402 challenge emits CAIP-2 and is parseable by @x402/fetch 2.x.
+      await X402CanaryJob.runNormalPathProbe(targetUrl);
+
       const response = await x402Fetch(targetUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-X402-Canary": "true",
         },
         body: JSON.stringify({ message: "canary-health-check", isCanary: true }),
       });
@@ -236,6 +237,46 @@ export class X402CanaryJob {
     this.circuitOpen = false;
     this.consecutiveFailures = 0;
     await this.runCanary();
+  }
+
+  /**
+   * Normal-path probe: fires a raw HEAD request to the target (no payment, no special headers)
+   * and validates that the 402 challenge emits CAIP-2 network format ("eip155:8453").
+   * Logs a warning if "base" shorthand is detected — that would silently block @x402/fetch 2.x agents.
+   * This runs on every canary cycle and costs zero USDC.
+   */
+  private static async runNormalPathProbe(targetUrl: string): Promise<void> {
+    try {
+      const res = await fetch(targetUrl, { method: "HEAD" });
+      if (res.status !== 402) {
+        console.warn(`🕯️  NormalPathProbe: expected 402, got ${res.status} — probe inconclusive`);
+        return;
+      }
+      // HEAD responses have no body; re-probe with GET to read the challenge JSON
+      const res2 = await fetch(targetUrl, { method: "GET" });
+      const text = await res2.text().catch(() => "");
+      let network: string | undefined;
+      try {
+        const json = JSON.parse(text);
+        network = json?.accepts?.[0]?.network ?? json?.network;
+      } catch {
+        console.warn(`🕯️  NormalPathProbe: could not parse 402 body — probe inconclusive`);
+        return;
+      }
+
+      if (!network) {
+        console.warn(`🕯️  NormalPathProbe: ⚠️  no network field in 402 challenge`);
+      } else if (network === "eip155:8453") {
+        console.log(`🕯️  NormalPathProbe: ✅ network="${network}" — CAIP-2 correct, @x402/fetch 2.x will parse`);
+      } else {
+        console.error(
+          `🕯️  NormalPathProbe: ❌ network="${network}" — shorthand detected on default path. ` +
+          `@x402/fetch 2.x agents CANNOT pay (no alias map). Fix: emit "eip155:8453" in 402 challenge.`
+        );
+      }
+    } catch (err: any) {
+      console.warn(`🕯️  NormalPathProbe: probe error (non-fatal) — ${err?.message}`);
+    }
   }
 
   private static async recordResult(

@@ -263,8 +263,8 @@ router.get('/catalog', async (req: Request, res: Response) => {
       facilitatorUrl: getFacilitatorUrl(),
       registrationEndpoint: `${PUBLIC_BASE_URL}/.well-known/agent-registration.json`,
       totalServices: summary.totalServices,
-      network: 'base', // Legacy format for x402-fetch v0.7.3 compatibility
-      x402Network: 'eip155:8453', // V2 CAIP-2 format for spec compliance
+      network: 'eip155:8453',
+      x402Network: 'eip155:8453',
       paymentAsset: {
         symbol: 'USDC',
         address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
@@ -1837,12 +1837,9 @@ router.use(async (req: Request, res: Response, next) => {
         
         // Normalize network fields — Base and Solana only (Ethereum excluded above)
         if (enriched.network === 'eip155:8453' || enriched.network === 'base' || !enriched.network) {
-          // Canary-only CAIP-2 path: when X-X402-Canary:true header is present, emit CAIP-2
-          // format so @x402/fetch 2.x ExactEvmScheme can parse the challenge. All other
-          // clients continue to receive the "base" shorthand (x402-fetch 0.7.x compatibility).
-          const canaryHeader = req.headers['x-x402-canary'];
-          const isCanaryRequest = Array.isArray(canaryHeader) ? canaryHeader[0] === 'true' : canaryHeader === 'true';
-          enriched.network = isCanaryRequest ? 'eip155:8453' : 'base';
+          // Always emit CAIP-2 format. @x402/fetch 2.x does not alias "base" → "eip155:8453";
+          // network matching is exact string only, so shorthand causes "No network/scheme registered".
+          enriched.network = 'eip155:8453';
           enriched.networkLegacy = enriched.networkLegacy || 'base';
           enriched.x402Network = 'eip155:8453';
         }
@@ -2034,8 +2031,8 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
     error: "X-PAYMENT header is required",
     accepts: [{
       scheme: "exact",
-      network: "base", // Legacy format for x402-fetch v0.7.3 compatibility
-      x402Network: "eip155:8453", // V2 CAIP-2 format for spec compliance
+      network: "eip155:8453",
+      x402Network: "eip155:8453",
       amount: priceInMicroUnits, // Explicit amount field (x402 v1 spec - used by createPaymentHeader)
       maxAmountRequired: priceInMicroUnits,
       maxAmountRequiredUSD: `$${priceUsd.toFixed(2)}`,
@@ -2130,7 +2127,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       step4: "Retry the request with X-PAYMENT header",
       alternativeStep3: "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC",
       supportedMethods: ["eip3009-authorization", "raw-transaction-hash", "api-key"],
-      network: "base",
+      network: "eip155:8453",
       x402Network: "eip155:8453",
       chainId: 8453,
       token: "USDC",
@@ -2573,7 +2570,7 @@ enterpriseDirectEndpoints.forEach(service => {
       error: "X-PAYMENT header is required",
       accepts: [{
         scheme: "exact",
-        network: "base",
+        network: "eip155:8453",
         networkLegacy: "base",
         x402Network: "eip155:8453",
         amount: String(priceInMicro),

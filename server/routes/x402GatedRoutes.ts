@@ -12,8 +12,9 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { paymentMiddleware, Network } from 'x402-express';
-import { facilitator } from '@coinbase/x402';
+import { paymentMiddleware, x402ResourceServer } from '@x402/express';
+import { ExactEvmScheme } from '@x402/evm/exact/server';
+import { HTTPFacilitatorClient } from '@x402/core/server';
 import { nanoid } from 'nanoid';
 import { createPaymentOrchestrator } from '../middleware/paymentOrchestrator';
 import { getFacilitatorUrl } from '../utils/facilitatorHelper';
@@ -37,8 +38,8 @@ router.use(x402ResponseEnricher());
 // Platform wallet for receiving payments
 const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91') as `0x${string}`;
 
-// Network for x402 payments
-const NETWORK: Network = 'base';
+// Network for x402 payments (CAIP-2 format required by @x402/express 2.x)
+const NETWORK = 'eip155:8453' as const;
 
 // Public base URL for production discovery
 // OVERRIDE: Set PUBLIC_URL env var to force production URL (e.g., PUBLIC_URL=https://coinrailz.com)
@@ -84,101 +85,60 @@ router.use((req: Request, res: Response, next) => {
   next();
 });
 
-// Define x402 routes configuration (must match x402MicroserviceRoutesV2 structure)
-// Paths are relative to /x402/service mount point
+// Define x402 routes configuration — new @x402/express 2.x RouteConfig format
+// Each route: { accepts: PaymentOption, description, resource, mimeType }
 const x402Routes = {
   'GET /ping': {
-    price: `$${SERVICE_PRICING['ping']}`,
-    network: NETWORK,
-    config: {
-      discoverable: true,
-      resource: resourceUrl('/x402/service/ping'),
-      name: 'Ping/Echo Service',
-      description: 'x402 discovery and testing endpoint - returns 402 Payment Required challenge',
-      mimeType: 'application/json',
-      maxTimeoutSeconds: 10,
-    },
+    accepts: { scheme: 'exact', price: `$${SERVICE_PRICING['ping']}`, network: NETWORK, payTo: PLATFORM_WALLET, maxTimeoutSeconds: 10 },
+    description: 'x402 discovery and testing endpoint - returns 402 Payment Required challenge',
+    resource: resourceUrl('/x402/service/ping'),
+    mimeType: 'application/json',
   },
   'POST /smart-contract-audit': {
-    price: `$${SERVICE_PRICING['smart-contract-audit']}`,
-    network: NETWORK,
-    config: {
-      discoverable: true,
-      resource: resourceUrl('/x402/smart-contract-audit'),
-      name: 'Smart Contract Auditor',
-      description: 'Comprehensive smart contract security audit with vulnerability detection',
-      mimeType: 'application/json',
-      maxTimeoutSeconds: 900,
-    },
+    accepts: { scheme: 'exact', price: `$${SERVICE_PRICING['smart-contract-audit']}`, network: NETWORK, payTo: PLATFORM_WALLET, maxTimeoutSeconds: 900 },
+    description: 'Comprehensive smart contract security audit with vulnerability detection',
+    resource: resourceUrl('/x402/smart-contract-audit'),
+    mimeType: 'application/json',
   },
   'POST /payment-processing': {
-    price: `$${SERVICE_PRICING['payment-processing']}`,
-    network: NETWORK,
-    config: {
-      discoverable: true,
-      resource: resourceUrl('/x402/payment-processing'),
-      name: 'Payment Processor',
-      description: 'Multi-chain payment processing service (hourly rate)',
-      mimeType: 'application/json',
-      maxTimeoutSeconds: 300,
-    },
+    accepts: { scheme: 'exact', price: `$${SERVICE_PRICING['payment-processing']}`, network: NETWORK, payTo: PLATFORM_WALLET, maxTimeoutSeconds: 300 },
+    description: 'Multi-chain payment processing service (hourly rate)',
+    resource: resourceUrl('/x402/payment-processing'),
+    mimeType: 'application/json',
   },
   'POST /compliance-consultation': {
-    price: `$${SERVICE_PRICING['compliance-consultation']}`,
-    network: NETWORK,
-    config: {
-      discoverable: true,
-      resource: resourceUrl('/x402/compliance-consultation'),
-      name: 'Compliance Consultant',
-      description: 'AML/KYC compliance consultation and risk assessment',
-      mimeType: 'application/json',
-      maxTimeoutSeconds: 600,
-    },
+    accepts: { scheme: 'exact', price: `$${SERVICE_PRICING['compliance-consultation']}`, network: NETWORK, payTo: PLATFORM_WALLET, maxTimeoutSeconds: 600 },
+    description: 'AML/KYC compliance consultation and risk assessment',
+    resource: resourceUrl('/x402/compliance-consultation'),
+    mimeType: 'application/json',
   },
   'POST /multi-chain-balance': {
-    price: `$${SERVICE_PRICING['multi-chain-balance']}`,
-    network: NETWORK,
-    config: {
-      discoverable: true,
-      resource: resourceUrl('/x402/multi-chain-balance'),
-      name: 'Multi-Chain Balance Checker',
-      description: 'Check wallet balances across multiple blockchain networks with AI-powered portfolio analysis',
-      mimeType: 'application/json',
-      maxTimeoutSeconds: 60,
-    },
+    accepts: { scheme: 'exact', price: `$${SERVICE_PRICING['multi-chain-balance']}`, network: NETWORK, payTo: PLATFORM_WALLET, maxTimeoutSeconds: 60 },
+    description: 'Check wallet balances across multiple blockchain networks with AI-powered portfolio analysis',
+    resource: resourceUrl('/x402/multi-chain-balance'),
+    mimeType: 'application/json',
   },
   'POST /gas-price-oracle': {
-    price: `$${SERVICE_PRICING['gas-price-oracle']}`,
-    network: NETWORK,
-    config: {
-      discoverable: true,
-      resource: resourceUrl('/x402/gas-price-oracle'),
-      name: 'Gas Price Oracle',
-      description: 'Real-time gas prices across multiple chains with AI-powered timing recommendations',
-      mimeType: 'application/json',
-      maxTimeoutSeconds: 30,
-    },
+    accepts: { scheme: 'exact', price: `$${SERVICE_PRICING['gas-price-oracle']}`, network: NETWORK, payTo: PLATFORM_WALLET, maxTimeoutSeconds: 30 },
+    description: 'Real-time gas prices across multiple chains with AI-powered timing recommendations',
+    resource: resourceUrl('/x402/gas-price-oracle'),
+    mimeType: 'application/json',
   },
   'POST /token-price-lookup': {
-    price: `$${SERVICE_PRICING['token-price-lookup']}`,
-    network: NETWORK,
-    config: {
-      discoverable: true,
-      resource: resourceUrl('/x402/token-price-lookup'),
-      name: 'Token Price Lookup',
-      description: 'Real-time token pricing and market analysis powered by DEXScreener + AI',
-      mimeType: 'application/json',
-      maxTimeoutSeconds: 30,
-    },
+    accepts: { scheme: 'exact', price: `$${SERVICE_PRICING['token-price-lookup']}`, network: NETWORK, payTo: PLATFORM_WALLET, maxTimeoutSeconds: 30 },
+    description: 'Real-time token pricing and market analysis powered by DEXScreener + AI',
+    resource: resourceUrl('/x402/token-price-lookup'),
+    mimeType: 'application/json',
   },
 };
 
-// Create x402 middleware with official facilitator
-const x402Middleware = paymentMiddleware(
-  PLATFORM_WALLET,
-  x402Routes,
-  facilitator
-);
+// Create x402 resource server with Coinbase CDP facilitator + EVM scheme
+const facilitatorClient = new HTTPFacilitatorClient({ url: getFacilitatorUrl() });
+const resourceServer = new x402ResourceServer(facilitatorClient)
+  .register(NETWORK, new ExactEvmScheme());
+
+// Create x402 middleware — syncFacilitatorOnStart:false avoids startup delay
+const x402Middleware = paymentMiddleware(x402Routes, resourceServer, undefined, undefined, false);
 
 // Service Handlers
 

@@ -20,7 +20,8 @@
 import { createWalletClient, http, Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
-import { wrapFetchWithPayment } from "x402-fetch";
+import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
+import { ExactEvmScheme, toClientEvmSigner } from "@x402/evm";
 import { db } from "../db";
 import { x402CanaryPayments, x402PaymentIntents } from "@shared/schema";
 import { desc, eq, and, gte, sql } from "drizzle-orm";
@@ -110,13 +111,30 @@ export class X402CanaryJob {
         transport: http(),
       });
 
-      const x402Fetch = wrapFetchWithPayment(fetch as any, walletClient as any, MAX_PAYMENT_MICRO);
+      // @x402/fetch 2.x — 2-arg API: wrapFetchWithPayment(fetch, x402Client)
+      // Payment cap enforced via registerPolicy (replaces old 3rd-arg MAX_PAYMENT_MICRO)
+      const evmSigner = toClientEvmSigner(walletClient);
+      const client = new x402Client()
+        .register('eip155:8453', new ExactEvmScheme(evmSigner))
+        .registerPolicy((_version, reqs) =>
+          reqs.filter(r => {
+            try { return BigInt(r.maxAmountRequired) <= MAX_PAYMENT_MICRO; }
+            catch { return false; }
+          })
+        );
+
+      const x402Fetch = wrapFetchWithPayment(fetch, client);
 
       const startedAt = new Date();
 
+      // X-X402-Canary:true triggers CAIP-2 network format in the 402 challenge
+      // so @x402/fetch 2.x ExactEvmScheme can parse the payment requirements.
       const response = await x402Fetch(targetUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-X402-Canary": "true",
+        },
         body: JSON.stringify({ message: "canary-health-check", isCanary: true }),
       });
 

@@ -1837,7 +1837,12 @@ router.use(async (req: Request, res: Response, next) => {
         
         // Normalize network fields — Base and Solana only (Ethereum excluded above)
         if (enriched.network === 'eip155:8453' || enriched.network === 'base' || !enriched.network) {
-          enriched.network = 'base';
+          // Canary-only CAIP-2 path: when X-X402-Canary:true header is present, emit CAIP-2
+          // format so @x402/fetch 2.x ExactEvmScheme can parse the challenge. All other
+          // clients continue to receive the "base" shorthand (x402-fetch 0.7.x compatibility).
+          const canaryHeader = req.headers['x-x402-canary'];
+          const isCanaryRequest = Array.isArray(canaryHeader) ? canaryHeader[0] === 'true' : canaryHeader === 'true';
+          enriched.network = isCanaryRequest ? 'eip155:8453' : 'base';
           enriched.networkLegacy = enriched.networkLegacy || 'base';
           enriched.x402Network = 'eip155:8453';
         }

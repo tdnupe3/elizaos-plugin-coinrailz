@@ -17,11 +17,10 @@
  *   - Uses global tx-hash replay protection (usedTransactionHashes unique index on txHash).
  */
 
-import { createWalletClient, http, publicActions, Hex } from "viem";
+import { createWalletClient, http, Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
-import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm";
+import { wrapFetchWithPayment } from "x402-fetch";
 import { db } from "../db";
 import { x402CanaryPayments, x402PaymentIntents } from "@shared/schema";
 import { desc, eq, and, gte, sql } from "drizzle-orm";
@@ -109,17 +108,9 @@ export class X402CanaryJob {
         account,
         chain: base,
         transport: http(),
-      }).extend(publicActions);
+      });
 
-      const evmScheme = new ExactEvmScheme(walletClient as any);
-      const payClient = new x402Client()
-        .register("base" as any, evmScheme)       // matches server 402 shorthand network field
-        .register("eip155:8453" as any, evmScheme) // covers CAIP-2 format too
-        .registerPolicy((_version, reqs) =>
-          reqs.filter((r) => BigInt(r.maxAmountRequired) <= MAX_PAYMENT_MICRO)
-        );
-
-      const x402Fetch = wrapFetchWithPayment(fetch, payClient);
+      const x402Fetch = wrapFetchWithPayment(fetch as any, walletClient as any, MAX_PAYMENT_MICRO);
 
       const startedAt = new Date();
 

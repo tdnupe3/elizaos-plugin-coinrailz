@@ -113,7 +113,8 @@ export class X402CanaryJob {
 
       const evmScheme = new ExactEvmScheme(walletClient as any);
       const payClient = new x402Client()
-        .register("eip155:8453", evmScheme)
+        .register("base" as any, evmScheme)       // matches server 402 shorthand network field
+        .register("eip155:8453" as any, evmScheme) // covers CAIP-2 format too
         .registerPolicy((_version, reqs) =>
           reqs.filter((r) => BigInt(r.maxAmountRequired) <= MAX_PAYMENT_MICRO)
         );
@@ -204,6 +205,13 @@ export class X402CanaryJob {
     this.circuitOpen = false;
     this.consecutiveFailures = 0;
     console.log("🕯️  X402CanaryJob: circuit reset — will run at next scheduled interval");
+  }
+
+  static async triggerNow(): Promise<void> {
+    console.log("🕯️  X402CanaryJob: manual trigger requested");
+    this.circuitOpen = false;
+    this.consecutiveFailures = 0;
+    await this.runCanary();
   }
 
   private static async recordResult(

@@ -639,6 +639,26 @@ router.get("/x402/canary-status", async (req, res) => {
     res.status(500).json({ success: false, error: err?.message ?? String(err) });
   }
 });
+// ─── Canary Manual Trigger ────────────────────────────────────────────────────
+// Admin-only: fires the canary immediately, resets circuit breaker first.
+// Returns once the run completes (synchronous — ~20s for on-chain settlement).
+router.post("/x402/canary-trigger", async (req, res) => {
+  if (!requireAdminKey(req, res)) return;
+  try {
+    const before = X402CanaryJob.getStatus();
+    await X402CanaryJob.triggerNow();
+    const after = X402CanaryJob.getStatus();
+    res.json({
+      success: true,
+      triggeredAt: new Date().toISOString(),
+      before,
+      after,
+    });
+  } catch (err: any) {
+    console.error("❌ canary-trigger error:", err);
+    res.status(500).json({ success: false, error: err?.message ?? String(err) });
+  }
+});
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default router;

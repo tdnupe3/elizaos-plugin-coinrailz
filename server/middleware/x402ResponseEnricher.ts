@@ -85,6 +85,7 @@ interface CanaryProof {
   timestamp: string;
   amountUsd: string;
   service: string;
+  network: string;
 }
 
 /**
@@ -108,6 +109,7 @@ async function getLatestCanaryProof(): Promise<CanaryProof | null> {
         createdAt: x402CanaryPayments.createdAt,
         amountUsd: x402CanaryPayments.amountUsd,
         service: x402CanaryPayments.service,
+        network: x402CanaryPayments.network,
       })
       .from(x402CanaryPayments)
       .where(
@@ -130,6 +132,7 @@ async function getLatestCanaryProof(): Promise<CanaryProof | null> {
               : String(row.createdAt),
             amountUsd: row.amountUsd ?? "0.05",
             service: row.service ?? "first-call",
+            network: row.network ?? "base",
           }
         : null;
 
@@ -416,6 +419,10 @@ export function x402ResponseEnricher() {
             enriched.network = 'base';
             enriched.networkLegacy = enriched.networkLegacy || 'base';
             enriched.x402Network = 'eip155:8453';
+            // Tag EVM/Base entries with CDP as facilitator — consistent with Solana entries getting Dexter
+            if (!enriched.facilitator) {
+              enriched.facilitator = getFacilitatorUrl();
+            }
           } else if (enriched.network === 'solana' || enriched.network === 'solana:mainnet' || enriched.network === SOLANA_MAINNET) {
             // Keep network as "solana" shorthand — x402-fetch PaymentRequirementsSchema requires it
             // x402Network holds the full CAIP-2 for Dexter facilitator compatibility

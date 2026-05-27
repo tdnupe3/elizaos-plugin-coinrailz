@@ -224,6 +224,10 @@ export class OnChainX402Outreach {
     totalCost: string;
     transactions: Array<{ wallet: string; txHash?: string; error?: string }>;
   }> {
+    // AMOUNT PER MESSAGE — intentionally tiny. Message is in tx data field; value transfer is just for delivery.
+    const AMOUNT_ETH_PER_MSG = 0.000001; // ~$0.0035 at $3500/ETH
+    const MAX_TOTAL_ETH = 0.005; // Hard cap: abort if campaign would cost more than this (~$17.50)
+
     console.log('🚀 Starting on-chain x402 agent outreach campaign...');
     
     // Discover wallets if not provided
@@ -239,9 +243,16 @@ export class OnChainX402Outreach {
         transactions: []
       };
     }
-    
-    console.log(`🎯 Targeting ${wallets.length} active x402 agent wallets`);
-    console.log(`💰 Estimated cost: ~$${(wallets.length * 0.01).toFixed(2)} (Base chain gas + micro transfers)`);
+
+    // Cost cap safety check — abort before spending anything if estimate exceeds limit
+    const estimatedETH = wallets.length * AMOUNT_ETH_PER_MSG;
+    const estimatedUSD = estimatedETH * 3500;
+    console.log(`🎯 Targeting ${wallets.length} wallets | Estimated cost: ${estimatedETH.toFixed(6)} ETH (~$${estimatedUSD.toFixed(2)})`);
+    if (estimatedETH > MAX_TOTAL_ETH) {
+      const msg = `SAFETY ABORT: Campaign would cost ${estimatedETH.toFixed(6)} ETH (~$${estimatedUSD.toFixed(2)}), exceeding the ${MAX_TOTAL_ETH} ETH cap. Reduce wallet count or raise the cap explicitly.`;
+      console.error(`❌ ${msg}`);
+      throw new Error(msg);
+    }
     
     const results: Array<{ wallet: string; txHash?: string; error?: string }> = [];
     let successCount = 0;
@@ -254,7 +265,7 @@ export class OnChainX402Outreach {
       console.log(`📦 Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(wallets.length / batchSize)}`);
       
       for (const wallet of batch) {
-        const result = await this.sendOnChainMessage(wallet, 0.0001);
+        const result = await this.sendOnChainMessage(wallet, AMOUNT_ETH_PER_MSG);
         
         if (result.success) {
           successCount++;

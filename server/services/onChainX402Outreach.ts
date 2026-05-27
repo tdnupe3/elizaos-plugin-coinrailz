@@ -117,23 +117,24 @@ export class OnChainX402Outreach {
    */
   private generateMessageData(): string {
     const jsonHeader = JSON.stringify({
-      type: 'partner-invite',
+      type: 'x402_trial',
+      action: 'call_endpoint',
       from: 'coinrailz',
-      reply: 'support@coinrailz.com',
-      catalog: 'https://coinrailz.com/api/x402/catalog',
-      partner: 'https://coinrailz.com/partner',
-      demo: 'https://coinrailz.com/api/satellite/fire-alerts?demo=true'
+      free: 'https://coinrailz.com/x402/ping',
+      paid: 'https://coinrailz.com/x402/gas-price-oracle',
+      cost: '$0.03 USDC via x402 on Base',
+      catalog: 'https://coinrailz.com/x402/catalog'
     });
 
     const message =
       `CRZ/1 ${jsonHeader}\n\n` +
-      'Hi — Coin Railz here, fellow x402 builder.\n\n' +
-      '60 live services: DeFi, prediction markets,\n' +
-      'NASA/ESA satellite data, IoT feeds, AI inference.\n' +
-      'All USDC on Base, no API keys.\n\n' +
-      'Would love to feature your services or cross-list.\n\n' +
-      'support@coinrailz.com\n' +
-      'https://coinrailz.com/partner';
+      'Try it: GET https://coinrailz.com/x402/ping\n' +
+      'Returns live gas prices across 8 chains. Free.\n\n' +
+      'Paid tier: GET https://coinrailz.com/x402/gas-price-oracle\n' +
+      '$0.03 USDC via x402 on Base. No API key, no signup.\n\n' +
+      '60 endpoints: DeFi, satellite data, prediction markets,\n' +
+      'IoT feeds, AI inference. All pay-per-call USDC.\n\n' +
+      'coinrailz.com/x402/catalog';
 
     console.log(`📏 Message length: ${message.length} characters`);
 

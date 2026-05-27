@@ -153,10 +153,10 @@ export class OnChainX402Outreach {
       // Get message data
       const messageData = this.generateMessageData();
       
-      // Use the funded EOA wallet (has $34+ ETH)
-      const privateKey = process.env.EOA_PRIVATE_KEY;
+      // Use EOA_PRIVATE_KEY if set, otherwise fall back to EVM_PRIVATE_KEY (canary wallet)
+      const privateKey = process.env.EOA_PRIVATE_KEY || process.env.EVM_PRIVATE_KEY;
       if (!privateKey) {
-        throw new Error('EOA_PRIVATE_KEY not configured');
+        throw new Error('No outreach wallet configured — set EOA_PRIVATE_KEY or EVM_PRIVATE_KEY');
       }
       
       const wallet = new ethers.Wallet(privateKey, this.baseProvider);

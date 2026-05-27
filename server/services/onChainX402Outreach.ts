@@ -128,10 +128,10 @@ export class OnChainX402Outreach {
     const message =
       `CRZ/1 ${jsonHeader}\n\n` +
       'Hi — Coin Railz here, fellow x402 builder.\n\n' +
-      '58 services in our catalog, 14 categories,\n' +
-      '6 NASA/ESA satellite data products.\n\n' +
-      'Meeting Circle Feb 18 re: x402 ecosystem growth.\n' +
-      'Would love to feature your services or collaborate.\n\n' +
+      '60 live services: DeFi, prediction markets,\n' +
+      'NASA/ESA satellite data, IoT feeds, AI inference.\n' +
+      'All USDC on Base, no API keys.\n\n' +
+      'Would love to feature your services or cross-list.\n\n' +
       'support@coinrailz.com\n' +
       'https://coinrailz.com/partner';
 
@@ -145,7 +145,7 @@ export class OnChainX402Outreach {
    */
   async sendOnChainMessage(
     recipientAddress: string,
-    amountETH: number = 0.0001 // Tiny amount ~$0.30 to cover gas + delivery
+    amountETH: number = 0.000001 // Minimal transfer — message is in tx data, gas dominates cost
   ): Promise<{ success: boolean; txHash?: string; error?: string; cost?: string }> {
     try {
       console.log(`📤 Sending on-chain message to ${recipientAddress}...`);

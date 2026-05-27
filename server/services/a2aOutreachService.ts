@@ -241,14 +241,14 @@ export class A2AOutreachService {
 
     if (x402Native) {
       // These agents already speak x402 — pitch them as buyers of Coin Railz's data catalog
-      primaryMessage = 'Peer partnership opportunity: 59 live x402 data services available for your agents to consume';
+      primaryMessage = 'Peer partnership opportunity: 60 live x402 data services available for your agents to consume';
       proposalData = {
         type: 'x402_catalog_partnership',
         provider: 'Coin Railz',
         proposalId: messageId,
-        whyContacted: `${agentName} is already x402-native — your agents can immediately consume Coin Railz data services via the same protocol you already use, with no integration work.`,
+        whyContacted: `${agentName} is already x402-native — your agents can call Coin Railz's 60 data services immediately using the same protocol you already run, no integration work required. We can also cross-list your services in our catalog.`,
         catalog: {
-          description: '59 production x402 services across DeFi, prediction markets, satellite data, IoT feeds, and AI inference — all payable in USDC on Base',
+          description: '60 production x402 services across DeFi, prediction markets, NASA/ESA satellite data, IoT feeds, and AI inference — all payable in USDC on Base',
           catalogUrl: 'https://coinrailz.com/x402/catalog',
           sampleServices: [
             { id: 'gas-price-oracle', price: '$0.03/call', description: 'Real-time gas prices, 8 chains' },

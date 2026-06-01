@@ -2,3 +2,4 @@
 - [Canary job pattern](canary-job-pattern.md) — x402CanaryJob fires every 6h in prod, stores tx hash in x402_canary_payments, invalidates enricher cache after success
 - [x402 Foundation migration plan](x402-foundation-migration.md) — migration from x402-express 0.7.1 to @x402/express 2.12.0; phased: canary first, then gatedRoutes, then main router; plan saved at .local/x402-migration-plan.md
 - [Base Smart Wallet](base-smart-wallet.md) — keys.coinbase.com is Base Smart Wallet (passkey, ERC-4337, page title "Base"); different from wallet.coinbase.com (Coinbase DeFi Wallet); button added to CoinbaseWalletIntegration.tsx
+- [First organic external revenue](first-organic-payment.md) — wallet 0x3803a192... paid $0.25 (earthdata-ocean-color) and $0.05 (first-call) on June 1 2026; third attempt (satellite-earthdata $0.25) failed on wallet balance only — platform performed flawlessly

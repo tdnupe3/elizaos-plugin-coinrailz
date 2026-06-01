@@ -6273,6 +6273,136 @@ router.get('/.well-known/mcp-integration.json', (req: Request, res: Response) =>
 });
 
 /**
+ * GET /.well-known/x402-services.json
+ *
+ * ARI (Autonomous Resource Indexer) v2 per-service catalog.
+ * ari-indexer/2.0 has polled this path every 15 minutes since May 27, 2026
+ * (50+ consecutive 404s). Returns a flat service list in ARI v2 format.
+ */
+router.get('/.well-known/x402-services.json', (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  const catalog = serviceCatalogService.getCatalog();
+  const x402Services = catalog.services.filter(s => s.x402Compatible);
+
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.status(200).json({
+    version: '2.0',
+    protocol: 'x402',
+    specVersion: '2.12.0',
+    platform: {
+      name: 'Coin Railz',
+      url: baseUrl,
+      payTo: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
+      facilitator: 'https://api.cdp.coinbase.com/platform/v2/x402',
+      trialKey: `${baseUrl}/api/m2m/credits/trial`,
+      contact: 'support@coinrailz.com',
+    },
+    services: x402Services.map(s => ({
+      id: s.id,
+      name: s.name,
+      endpoint: s.endpoint,
+      url: `${baseUrl}${s.endpoint}`,
+      price: getServicePriceUSD(s.id as ServiceName) || 0.10,
+      currency: 'USDC',
+      network: 'base',
+      network_caip2: s.network || 'eip155:8453',
+      category: s.category,
+      description: s.description,
+      auth: 'x402',
+      methods: ['POST'],
+      capabilities: s.capabilities,
+    })),
+    total: x402Services.length,
+    updated: new Date().toISOString(),
+  });
+});
+
+/**
+ * GET /.well-known/x402/discovery/resources
+ *
+ * Bazaar-format resource discovery at the well-known namespace path.
+ * Cloudflare-infrastructure entities (172.70.x.x, 172.71.x.x) probe this
+ * on every full-catalog sweep. Mirrors /api/discovery/resources content.
+ */
+router.get('/.well-known/x402/discovery/resources', (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  const catalog = serviceCatalogService.getCatalog();
+  const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+  const PLATFORM_WALLET = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
+  const PRIMARY_FACILITATOR = 'https://api.cdp.coinbase.com/platform/v2/x402';
+
+  const resources = catalog.services
+    .filter(s => s.x402Compatible)
+    .map(s => {
+      const priceUsd = getServicePriceUSD(s.id as ServiceName) || 0.10;
+      return {
+        id: s.id,
+        url: `${baseUrl}${s.endpoint}`,
+        name: s.name,
+        description: s.description,
+        category: s.category,
+        capabilities: s.capabilities,
+        accepts: [{
+          scheme: 'exact',
+          network: s.network || 'eip155:8453',
+          maxAmountRequired: String(Math.round(priceUsd * 1_000_000)),
+          payTo: PLATFORM_WALLET,
+          asset: USDC_BASE,
+        }],
+      };
+    });
+
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.status(200).json({
+    resources,
+    total: resources.length,
+    facilitator: PRIMARY_FACILITATOR,
+    facilitators: [PRIMARY_FACILITATOR, 'https://x402.dexter.cash'],
+    baseUrl,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+/**
+ * GET /.well-known/api-catalog
+ *
+ * ScoutScore-Scanner OpenAPI-compatible catalog pointer.
+ * ScoutScore-Scanner has polled this path since May 21, 2026 (10+ attempts).
+ * Returns catalog metadata and a pointer to /openapi.json.
+ */
+router.get('/.well-known/api-catalog', (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  const catalog = serviceCatalogService.getCatalog();
+  const categories = [...new Set(catalog.services.map(s => s.category))];
+
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.status(200).json({
+    catalog_version: '1.0',
+    platform: 'Coin Railz',
+    description: 'Multi-chain x402 USDC micropayment infrastructure for AI agents. Pay-per-call across 8 blockchains with no accounts required.',
+    openapi: `${baseUrl}/openapi.json`,
+    services_total: catalog.services.length,
+    x402_services: catalog.services.filter(s => s.x402Compatible).length,
+    categories,
+    pricing_range: { min_usd: 0.05, max_usd: 0.50, currency: 'USDC' },
+    networks: ['base', 'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'solana'],
+    trial_key: `${baseUrl}/api/m2m/credits/trial`,
+    discovery: {
+      x402_manifest: `${baseUrl}/.well-known/x402.json`,
+      x402_services: `${baseUrl}/.well-known/x402-services.json`,
+      openapi: `${baseUrl}/openapi.json`,
+      agent_card: `${baseUrl}/.well-known/agent-card.json`,
+      discovery_resources: `${baseUrl}/.well-known/x402/discovery/resources`,
+    },
+    contact: 'support@coinrailz.com',
+    updated: new Date().toISOString(),
+  });
+});
+
+/**
  * Catch-all: unknown /.well-known/* paths return 404
  * Prevents PHP exploit probes and unknown paths from falling through
  * to the Vite frontend, which would return 200 with index.html.
@@ -6290,6 +6420,9 @@ router.all('/.well-known/*', (req: Request, res: Response) => {
       '/.well-known/agent-instructions.json',
       '/.well-known/agent-registration.json',
       '/.well-known/x402.json',
+      '/.well-known/x402-services.json',
+      '/.well-known/x402/discovery/resources',
+      '/.well-known/api-catalog',
       '/.well-known/mpp.json',
       '/.well-known/webmcp.json',
       '/.well-known/awi.json',

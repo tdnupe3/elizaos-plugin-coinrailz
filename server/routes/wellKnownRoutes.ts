@@ -6273,6 +6273,123 @@ router.get('/.well-known/mcp-integration.json', (req: Request, res: Response) =>
 });
 
 /**
+ * GET /.well-known/agent-directory.json
+ *
+ * OASF-compatible agent directory listing all hosted agents on this platform.
+ * Consumed by:
+ *   - AgenstryBot/0.3.0 (+https://agenstry.com/bot) — has probed this path twice
+ *   - Any OASF/AgentDirectory-aware crawler
+ *
+ * Spec: https://oasf.agentprotocol.xyz
+ */
+router.get('/.well-known/agent-directory.json', (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+  res.status(200).json({
+    schema: 'https://oasf.agentprotocol.xyz/schema/agent-directory/v1',
+    schemaVersion: '1.0',
+    platform: {
+      name: 'Coin Railz',
+      url: baseUrl,
+      description: 'Multi-chain AI agent payment infrastructure. 65 x402 micropayment services across 8 blockchains (7 EVM + Solana), settling in USDC.',
+      contact: 'support@coinrailz.com',
+      agentCard: `${baseUrl}/.well-known/agent.json`,
+      x402Manifest: `${baseUrl}/.well-known/x402.json`,
+      serviceManifest: `${baseUrl}/.well-known/x402-services.json`,
+    },
+    agents: [
+      {
+        id: 'coinrailz-payment-infrastructure',
+        name: 'Coin Railz Multi-Chain Payment Infrastructure',
+        description: `Production-grade x402 USDC payment infrastructure for AI agents. ${getCanonicalServiceCount()} micropayment services across 8 blockchains (Base, Ethereum, Polygon, Arbitrum, Optimism, BSC, Avalanche + Solana). Categories: Crypto Intelligence, Trading, Market Intelligence, Prediction Markets (Kalshi/Polymarket), Satellite Intelligence (NASA/ESA), IoT/DePIN, AI Inference, Real Estate, Banking, Compliance.`,
+        url: baseUrl,
+        endpoint: `${baseUrl}/a2a/v1/message/send`,
+        agentCard: `${baseUrl}/.well-known/agent.json`,
+        protocol: 'a2a',
+        version: '0.3',
+        type: 'infrastructure',
+        capabilities: [
+          'x402_payments',
+          'multi_chain_usdc',
+          'agent_wallet_creation',
+          'ai_inference_gateway',
+          'satellite_data',
+          'iot_depin_data',
+          'prediction_markets',
+          'defi_intelligence',
+          'compliance',
+          'sdk_evm',
+          'sdk_solana',
+        ],
+        pricing: {
+          model: 'pay-per-call',
+          currency: 'USDC',
+          range: '$0.05–$2.00 per call',
+          trialKey: `${baseUrl}/api/m2m/credits/trial`,
+        },
+        networks: ['base', 'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'solana'],
+        settlementCurrency: 'USDC',
+        status: 'active',
+      },
+      {
+        id: 'coinrailz-payment-processor',
+        name: 'Coin Railz Payment Processor',
+        description: 'USDC payment processing with Coinbase CDP integration. Instant settlements, x402 protocol support, multi-chain payments. Handles Base + Solana x402 challenges and Stripe card payments.',
+        url: baseUrl,
+        endpoint: `${baseUrl}/x402/first-call`,
+        protocol: 'x402',
+        type: 'service',
+        capabilities: ['payment_processing', 'usdc_transfers', 'x402_payments', 'multi_chain', 'instant_settlement'],
+        pricing: { model: 'pay-per-call', price: 0.05, currency: 'USDC' },
+        status: 'active',
+      },
+      {
+        id: 'coinrailz-compliance-consultant',
+        name: 'Coin Railz Compliance Consultant',
+        description: 'Regulatory compliance guidance for crypto and fintech. KYC/AML requirements, licensing analysis, securities law review. $0.50/call via x402 USDC on Base.',
+        url: baseUrl,
+        endpoint: `${baseUrl}/x402/compliance-consultation`,
+        protocol: 'x402',
+        type: 'service',
+        capabilities: ['regulatory_compliance', 'kyc_aml', 'licensing_analysis', 'securities_law', 'risk_assessment'],
+        pricing: { model: 'pay-per-call', price: 0.50, currency: 'USDC' },
+        status: 'active',
+      },
+      {
+        id: 'coinrailz-smart-contract-auditor',
+        name: 'Coin Railz Smart Contract Auditor',
+        description: 'Professional Solidity smart contract security audits using static analysis. Vulnerability detection, gas optimization, and security scoring. $1.00/call via x402 USDC on Base.',
+        url: baseUrl,
+        endpoint: `${baseUrl}/x402/smart-contract-audit`,
+        protocol: 'x402',
+        type: 'service',
+        capabilities: ['smart_contract_audit', 'security_analysis', 'vulnerability_detection', 'gas_optimization'],
+        pricing: { model: 'pay-per-call', price: 1.00, currency: 'USDC' },
+        status: 'active',
+      },
+      {
+        id: 'coinrailz-ai-inference-gateway',
+        name: 'Coin Railz AI Inference Gateway',
+        description: 'Pay-per-call LLM endpoint supporting GPT-4o, GPT-4o-mini, and GPT-3.5-turbo via USDC on Base. Use when agent needs AI completions without an OpenAI API key.',
+        url: baseUrl,
+        endpoint: `${baseUrl}/x402/ai-inference`,
+        protocol: 'x402',
+        type: 'service',
+        capabilities: ['llm_inference', 'gpt4o', 'gpt4o_mini', 'gpt35_turbo', 'usdc_payments'],
+        pricing: { model: 'pay-per-call', price: 0.05, currency: 'USDC' },
+        status: 'active',
+      },
+    ],
+    registrationEndpoint: `${baseUrl}/api/agent/register`,
+    a2aEndpoint: `${baseUrl}/a2a/v1/message/send`,
+    total: 5,
+    updated: new Date().toISOString(),
+  });
+});
+
+/**
  * GET /.well-known/x402-services.json
  *
  * ARI (Autonomous Resource Indexer) v2 per-service catalog.
@@ -6417,6 +6534,7 @@ router.all('/.well-known/*', (req: Request, res: Response) => {
     knownPaths: [
       '/.well-known/agent.json',
       '/.well-known/agent-card.json',
+      '/.well-known/agent-directory.json',
       '/.well-known/agent-instructions.json',
       '/.well-known/agent-registration.json',
       '/.well-known/x402.json',

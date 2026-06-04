@@ -78,8 +78,11 @@ export class CreditsService {
       const [newAccount] = await db.insert(creditsAccounts).values({
         userId,
         balance: "0.00"
-      }).returning();
-      account = newAccount;
+      }).onConflictDoNothing().returning();
+      // If insert was a no-op (lost a concurrent race), re-fetch the row the winner created
+      account = newAccount ?? await db.query.creditsAccounts.findFirst({
+        where: eq(creditsAccounts.userId, userId)
+      });
     }
 
     return account;
@@ -109,8 +112,11 @@ export class CreditsService {
       const [newAccount] = await db.insert(creditsAccounts).values({
         userId: params.userId,
         balance: "0.00"
-      }).returning();
-      account = newAccount;
+      }).onConflictDoNothing().returning();
+      // If insert was a no-op (lost a concurrent race), re-fetch the row the winner created
+      account = newAccount ?? await db.query.creditsAccounts.findFirst({
+        where: eq(creditsAccounts.userId, params.userId)
+      });
     }
 
     // Step 2: ATOMIC update - uses SQL expression to prevent lost updates

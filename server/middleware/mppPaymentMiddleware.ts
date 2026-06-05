@@ -394,6 +394,26 @@ export function createMppPaymentMiddleware(serviceName: string, amountUsd: numbe
       credential?.type === "evm.transfer" ||
       (isBaseTxHash(txHash) && (!credential?.type || credential.type !== "tempo.charge"));
 
+    // If agent declared evm.transfer but provided a malformed or missing tx hash, reject clearly
+    if (isBaseUsdcAttempt && !isBaseTxHash(txHash)) {
+      const challengeId = credential?.challengeId || `mpp_${nanoid(12)}`;
+      const { header, body } = buildMppChallenge(serviceName, amountUsd, challengeId);
+      res.setHeader("WWW-Authenticate", header);
+      res.setHeader("Content-Type", "application/problem+json");
+      res.setHeader("X-MPP-Protocol", MPP_PROTOCOL_VERSION);
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      return res.status(402).json({
+        ...body,
+        title: "Invalid evm.transfer Credential",
+        detail: txHash
+          ? `The provided transaction hash is not a valid Base mainnet tx hash (expected 0x + 64 hex chars, got: "${txHash.slice(0, 20)}...").`
+          : "The evm.transfer credential is missing the transaction hash. Provide credential.transaction = '0x...' (Base mainnet tx hash).",
+        credentialReceived: true,
+        credentialType: "evm.transfer",
+        expectedFormat: { type: "evm.transfer", transaction: "<0x + 64 hex chars>", challengeId: challengeId },
+      });
+    }
+
     if (isBaseUsdcAttempt && isBaseTxHash(txHash)) {
       const result = await verifyBaseUsdcCredential(txHash!, serviceName, amountUsd);
 

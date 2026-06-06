@@ -847,6 +847,16 @@ function detectKnownAgent(userAgent: string | undefined): { isKnown: boolean; na
 
 // Check if IP/User-Agent combo is eligible for first-call free
 async function isEligibleForFirstCallFree(ipAddress: string, userAgent: string | undefined): Promise<boolean> {
+  // UA guard: block empty/null user-agents from free tier.
+  // Rotating-IP scanners with no UA (e.g. Cloudflare fleet) were claiming a fresh
+  // free call on every sweep. Legitimate agents always supply a user-agent string.
+  // Feature flag: set FIRST_CALL_FREE_REQUIRE_UA=false to disable if needed.
+  const requireUA = process.env.FIRST_CALL_FREE_REQUIRE_UA !== 'false';
+  if (requireUA && (!userAgent || userAgent.trim() === '')) {
+    console.log(`🚫 First-call-free DENIED (no UA): IP=${ipAddress.substring(0, 15)}...`);
+    return false;
+  }
+
   const cacheKey = `${ipAddress}:${userAgent?.substring(0, 50) || 'none'}`;
   
   // Check in-memory cache first

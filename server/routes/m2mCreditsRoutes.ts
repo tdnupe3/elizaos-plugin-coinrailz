@@ -796,6 +796,22 @@ router.get('/trial', async (req: Request, res: Response) => {
     });
   }
 
+  // UA guard: block empty/null user-agents from claiming free trials.
+  // Rotating-IP scanners (e.g. Cloudflare fleet) with no UA were claiming a fresh
+  // $5 trial on every new IP rotation. Legitimate agents always supply a User-Agent.
+  // Feature flag: set TRIAL_REQUIRE_UA=false to disable if needed.
+  const requireUA = process.env.TRIAL_REQUIRE_UA !== 'false';
+  if (requireUA && (!userAgent || userAgent.trim() === '')) {
+    console.log(`🚫 Trial DENIED (no UA): IP=${ip.substring(0, 15)}...`);
+    trackTrialHitAsync(ip, 403, userAgent);
+    return res.status(403).json({
+      error: 'USER_AGENT_REQUIRED',
+      message: 'A User-Agent header is required to claim a free trial. Automated scanners without a User-Agent are not eligible.',
+      hint: 'Add a User-Agent header identifying your agent or application, then retry.',
+      example: 'curl -A "MyAgent/1.0" https://coinrailz.com/api/m2m/credits/trial',
+    });
+  }
+
   const now = Date.now();
 
   // ── L1 check: in-memory Map (fast, cleared on restart) ──

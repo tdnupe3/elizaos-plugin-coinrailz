@@ -4,7 +4,7 @@ import { serviceRegistryProvider } from './providers/serviceRegistry';
 
 export const coinrailzPlugin: Plugin = {
   name: 'coinrailz',
-  description: 'Coin Railz x402 micropayment services on Base mainnet - 41 production-ready APIs for AI agents',
+  description: 'Coin Railz x402 micropayment services on Base mainnet — 65 production APIs for AI agents: trading, satellite, IoT, AI inference, prediction markets, and more',
   actions: [payForServiceAction],
   evaluators: [],
   providers: [serviceRegistryProvider],
@@ -13,6 +13,5 @@ export const coinrailzPlugin: Plugin = {
 
 export default coinrailzPlugin;
 
-// Re-export types for external use
 export * from './types';
 export { X402Client } from './utils/x402Client';

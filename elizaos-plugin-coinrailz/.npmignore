@@ -1,0 +1,11 @@
+images/
+src/
+tests/
+.eslintrc.js
+.github/
+SUBMIT.sh
+SUBMISSION_GUIDE.md
+PULL_REQUEST_TEMPLATE.md
+QUICK_START.md
+jest.config.js
+tsconfig.json

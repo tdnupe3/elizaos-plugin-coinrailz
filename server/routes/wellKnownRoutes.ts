@@ -4825,77 +4825,154 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
  * Detailed pricing information for all services
  */
 router.get('/.well-known/pricing.json', async (req: Request, res: Response) => {
+  const baseUrl = req.protocol + '://' + req.get('host');
+
+  const categories: Record<string, Array<{ id: string; name: string; endpoint: string; price_usd: number; currency: string; network: string }>> = {
+    "discovery": [],
+    "trading_intelligence": [],
+    "execution_infrastructure": [],
+    "premium": [],
+    "real_estate": [],
+    "banking_finance": [],
+    "trading_investment": [],
+    "market_intelligence": [],
+    "prediction_markets": [],
+    "traditional_markets": [],
+    "solana_defi": [],
+    "satellite_data": [],
+    "nasa_earthdata": [],
+    "iot_depin": [],
+    "ai_inference": [],
+  };
+
+  const serviceCategories: Record<string, keyof typeof categories> = {
+    "ping": "discovery",
+    "first-call": "discovery",
+    "gas-price-oracle": "trading_intelligence",
+    "token-metadata": "trading_intelligence",
+    "dex-liquidity": "trading_intelligence",
+    "approval-manager": "trading_intelligence",
+    "token-price": "trading_intelligence",
+    "token-sentiment": "trading_intelligence",
+    "transaction-builder": "trading_intelligence",
+    "whale-alerts": "trading_intelligence",
+    "batch-quote": "trading_intelligence",
+    "multi-chain-balance": "trading_intelligence",
+    "trending-tokens": "trading_intelligence",
+    "portfolio-tracker": "trading_intelligence",
+    "wallet-risk": "trading_intelligence",
+    "trade-signals": "trading_intelligence",
+    "payment-processing": "execution_infrastructure",
+    "contract-scan": "execution_infrastructure",
+    "instant-agent-wallet": "execution_infrastructure",
+    "instant-api-key": "execution_infrastructure",
+    "agent-create-wallet": "execution_infrastructure",
+    "seamless-chain-bridge": "execution_infrastructure",
+    "verified-agent-identity": "premium",
+    "compliance-consultation": "premium",
+    "smart-contract-audit": "premium",
+    "property-valuation": "real_estate",
+    "lease-analysis": "real_estate",
+    "construction-progress": "real_estate",
+    "fraud-detection": "banking_finance",
+    "credit-risk-score": "banking_finance",
+    "compliance-check": "banking_finance",
+    "sentiment-analysis": "trading_investment",
+    "trading-signal": "trading_investment",
+    "portfolio-optimization": "trading_investment",
+    "correlation-matrix": "market_intelligence",
+    "risk-metrics": "market_intelligence",
+    "arbitrage-scanner": "market_intelligence",
+    "polymarket-events": "prediction_markets",
+    "polymarket-odds": "prediction_markets",
+    "polymarket-search": "prediction_markets",
+    "prediction-market-odds": "prediction_markets",
+    "kalshi-markets": "prediction_markets",
+    "kalshi-odds": "prediction_markets",
+    "kalshi-search": "prediction_markets",
+    "stock-sentiment": "traditional_markets",
+    "forex-sentiment": "traditional_markets",
+    "solana-yield-finder": "solana_defi",
+    "fire-alerts": "satellite_data",
+    "weather-imagery": "satellite_data",
+    "vegetation": "satellite_data",
+    "flood-detection": "satellite_data",
+    "air-quality": "satellite_data",
+    "land-use": "satellite_data",
+    "satellite-earthdata": "nasa_earthdata",
+    "earthdata-granules": "nasa_earthdata",
+    "earthdata-precipitation": "nasa_earthdata",
+    "earthdata-sst": "nasa_earthdata",
+    "earthdata-soil-moisture": "nasa_earthdata",
+    "earthdata-ocean-color": "nasa_earthdata",
+    "fleet-telematics": "iot_depin",
+    "weather-station-data": "iot_depin",
+    "iot-sensor-reading": "iot_depin",
+    "iot-device-stream": "iot_depin",
+    "iot-bulk-data": "iot_depin",
+    "ai-inference": "ai_inference",
+  };
+
+  for (const [serviceId, price] of Object.entries(SERVICE_PRICING_USD)) {
+    const cat = serviceCategories[serviceId];
+    if (!cat) continue;
+    categories[cat].push({
+      id: serviceId,
+      name: serviceId.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      endpoint: `${baseUrl}/x402/${serviceId}`,
+      price_usd: price,
+      currency: "USDC",
+      network: "base (eip155:8453)",
+    });
+  }
+
+  const totalServices = Object.values(categories).reduce((sum, arr) => sum + arr.length, 0);
+
   const pricing = {
     platform: "Coin Railz",
-    version: "2.0.0",
-    currency: "USD",
-    
-    subscription_plans: [
-      {
-        id: "ai_agent_bundle_launch",
-        name: "AI Agent Pro Bundle - Launch Price",
-        price_monthly: 49.00,
-        description: "All 21 x402 services included. Launch price locked in forever.",
-        features: [
-          "Unlimited contract scans",
-          "Real-time whale alerts",
-          "Trade signal generation",
-          "Smart contract auditing",
-          "All 21 AI services",
-          "API access",
-          "Priority support"
-        ],
-        available: true
-      },
-      {
-        id: "ai_agent_bundle",
-        name: "AI Agent Pro Bundle",
-        price_monthly: 99.00,
-        description: "All 18 x402 services included",
-        features: [
-          "Unlimited contract scans",
-          "Real-time whale alerts",
-          "Trade signal generation",
-          "Smart contract auditing",
-          "All 18 AI services",
-          "API access",
-          "Priority support"
-        ],
-        available: true
-      }
-    ],
-    
-    pay_per_use: [
-      { service: "Smart Contract Scanner", endpoint: "/x402/contract-scan", price: 0.50 },
-      { service: "Whale Tracker & Alerts", endpoint: "/x402/whale-alerts", price: 0.30 },
-      { service: "Trade Signal Generator", endpoint: "/x402/trading-signal", price: 0.20 },
-      { service: "Smart Contract Audit", endpoint: "/x402/smart-contract-audit", price: 1.00 },
-      { service: "Gas Price Oracle", endpoint: "/x402/gas-price-oracle", price: 0.10 },
-      { service: "Token Analytics", endpoint: "/x402/token-metadata", price: 0.40 },
-      { service: "DEX Price Aggregator", endpoint: "/x402/batch-quote", price: 0.25 },
-      { service: "Liquidity Pool Scanner", endpoint: "/x402/dex-liquidity", price: 0.35 },
-      { service: "Token Price Tracker", endpoint: "/x402/token-price", price: 0.15 },
-      { service: "Wallet Portfolio Analytics", endpoint: "/x402/multi-chain-balance", price: 0.50 },
-      { service: "On-chain Data Query", endpoint: "/x402/transaction-builder", price: 0.20 },
-      { service: "Risk Assessment Engine", endpoint: "/x402/risk-metrics", price: 0.75 },
-      { service: "Cross-chain Bridge Monitor", endpoint: "/x402/seamless-chain-bridge", price: 0.30 },
-      { service: "Staking Rewards Calculator", endpoint: "/x402/solana-yield-finder", price: 0.15 },
-      { service: "DeFi Protocol Scanner", endpoint: "/x402/arbitrage-scanner", price: 0.40 },
-      { service: "Token Holder Analytics", endpoint: "/x402/trending-tokens", price: 0.35 },
-      { service: "Transaction Pattern Detector", endpoint: "/x402/fraud-detection", price: 0.45 },
-      { service: "Market Sentiment Analyzer", endpoint: "/x402/sentiment-analysis", price: 0.30 },
-      { service: "Kalshi Prediction Markets", endpoint: "/x402/prediction-market-odds", price: 0.25 },
-      { service: "Kalshi Odds Lookup", endpoint: "/x402/polymarket-odds", price: 0.50 },
-      { service: "Kalshi Market Search", endpoint: "/x402/polymarket-search", price: 0.25 }
-    ],
-    
+    description: "Universal x402 payment infrastructure for the AI agent economy. Pay-per-call USDC micropayments on Base. No API keys, no subscriptions required.",
+    version: "3.0.0",
+    updated: new Date().toISOString().split('T')[0],
+    total_services: totalServices,
+    payment: {
+      protocol: "x402",
+      currency: "USDC",
+      primary_network: "Base (eip155:8453)",
+      also_accepted: ["Solana mainnet (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp)"],
+      facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+      how_to_pay: "Send POST to any /x402/* endpoint. Receive HTTP 402 with payment requirements. Submit USDC payment on Base. Include X-PAYMENT header on retry.",
+      onboarding_endpoint: `${baseUrl}/x402/first-call`,
+      onboarding_price_usd: 0.05,
+    },
+    api_key_path: {
+      description: "Prefer API keys? Purchase credits via Stripe and get an API key for header-based auth.",
+      purchase_url: `${baseUrl}/pricing`,
+      header: "X-API-Key",
+    },
+    services_by_category: categories,
     platform_fees: {
-      dex_swap: 0.75,
-      p2p_routing: 1.00,
-      description: "DEX aggregator: 0.75% per swap. P2P routing: 1% per transaction"
+      dex_swap_pct: 1.5,
+      p2p_transfer_pct: 3.5,
+      iot_d2d_transfer_pct: 2.0,
+      description: "DEX aggregation: 1.5% per swap. P2P routing: 3.5–6.5% tiered. IoT D2D: 2% + $0.02 flat."
+    },
+    iot_credits: {
+      description: "IoT/DePIN devices may also use pre-purchased credits (Stripe, PayPal, or on-chain USDC).",
+      packs: [
+        { name: "Starter", price_usd: 25.00, credits: 5000, per_credit_usd: 0.005 },
+        { name: "Growth", price_usd: 100.00, credits: 25000, per_credit_usd: 0.004 },
+        { name: "Enterprise", price_usd: 500.00, credits: 200000, per_credit_usd: 0.0025 },
+      ]
+    },
+    links: {
+      catalog: `${baseUrl}/x402/catalog`,
+      docs: `${baseUrl}/x402/payment-docs`,
+      agent_card: `${baseUrl}/.well-known/agent-card.json`,
+      x402_manifest: `${baseUrl}/.well-known/x402.json`,
+      openapi: `${baseUrl}/openapi.json`,
     }
   };
-  
+
   res.status(200).json(pricing);
 });
 

@@ -4825,7 +4825,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
  * Detailed pricing information for all services
  */
 router.get('/.well-known/pricing.json', async (req: Request, res: Response) => {
-  const baseUrl = req.protocol + '://' + req.get('host');
+  const baseUrl = getBaseUrl(req);
 
   const categories: Record<string, Array<{ id: string; name: string; endpoint: string; price_usd: number; currency: string; network: string }>> = {
     "discovery": [],
@@ -4843,6 +4843,7 @@ router.get('/.well-known/pricing.json', async (req: Request, res: Response) => {
     "nasa_earthdata": [],
     "iot_depin": [],
     "ai_inference": [],
+    "uncategorized": [],
   };
 
   const serviceCategories: Record<string, keyof typeof categories> = {
@@ -4914,8 +4915,7 @@ router.get('/.well-known/pricing.json', async (req: Request, res: Response) => {
   };
 
   for (const [serviceId, price] of Object.entries(SERVICE_PRICING_USD)) {
-    const cat = serviceCategories[serviceId];
-    if (!cat) continue;
+    const cat = serviceCategories[serviceId] ?? "uncategorized";
     categories[cat].push({
       id: serviceId,
       name: serviceId.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),

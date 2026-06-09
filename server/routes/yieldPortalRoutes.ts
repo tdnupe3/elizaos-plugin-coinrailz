@@ -15,10 +15,11 @@ const router = Router();
 
 // ── Base Mainnet Contract Addresses ──────────────────────────────────────────
 
-const BASE_USDC    = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
-const AAVE_POOL    = '0xA238Dd80C259a72e81d7e4664a9801593F98d1c5' as const;
-const AAVE_AUSDC   = '0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB' as const;
-const COMPOUND_COMET = '0xb125E6687d4313864e53df431d5425969c15Eb2' as const;
+const BASE_USDC      = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
+const AAVE_POOL      = '0xA238Dd80C259a72e81d7e4664a9801593F98d1c5' as const;
+const AAVE_AUSDC     = '0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB' as const;
+const COMPOUND_COMET = '0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf' as const; // Compound v3 cUSDCv3 on Base
+const MORPHO_BLUE    = '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb' as const; // Morpho Blue singleton on Base
 
 // CoinRailz vault — populated after testnet deployment, mainnet after launch
 const VAULT_ADDRESS = process.env.YIELD_VAULT_ADDRESS || null;
@@ -159,8 +160,6 @@ async function fetchAaveAPY(): Promise<number> {
 
 async function fetchCompoundAPY(): Promise<number> {
   try {
-    const SECONDS_PER_YEAR = 31_536_000n;
-
     const utilization = await client.readContract({
       address: COMPOUND_COMET,
       abi: COMET_ABI,
@@ -174,8 +173,9 @@ async function fetchCompoundAPY(): Promise<number> {
       args: [utilization],
     }) as bigint;
 
-    // ratePerSecond in 1e18, annualize
-    const aprDecimal = Number(ratePerSecond * SECONDS_PER_YEAR) / 1e18;
+    // ratePerSecond is uint64 scaled by 1e18 (100% = 1e18/sec)
+    // APR = ratePerSecond / 1e18 * secondsPerYear
+    const aprDecimal = (Number(ratePerSecond) / 1e18) * 31_536_000;
     const apy = (Math.exp(aprDecimal) - 1) * 100;
     return Math.round(apy * 100) / 100;
   } catch {

@@ -43,8 +43,12 @@ export default function VaultDeploy() {
     setStep("idle");
 
     try {
-      // 1 — request accounts
-      await eth.request({ method: "eth_requestAccounts" });
+      // 1 — request accounts (capture the result — do NOT discard)
+      const accounts: string[] = await eth.request({ method: "eth_requestAccounts" });
+      if (!accounts || accounts.length === 0 || !accounts[0]) {
+        throw new Error("No wallet accounts found. Please unlock MetaMask and try again.");
+      }
+      const fromAddress: string = accounts[0];
 
       // 2 — switch network
       setStep("switching");
@@ -75,10 +79,9 @@ export default function VaultDeploy() {
       if (!data.success) throw new Error(data.error || "Server failed to build deployment data");
 
       // 4 — send deploy tx via MetaMask
-      const accounts: string[] = await eth.request({ method: "eth_accounts" });
       const hash: string = await eth.request({
         method: "eth_sendTransaction",
-        params: [{ from: accounts[0], data: data.deployHex, gas: data.gasLimit }],
+        params: [{ from: fromAddress, data: data.deployHex, gas: data.gasLimit, value: "0x0" }],
       });
       setTxHash(hash);
 

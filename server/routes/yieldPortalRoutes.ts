@@ -8,11 +8,15 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { createPublicClient, createWalletClient, http, parseAbi, formatUnits, encodeAbiParameters, parseAbiParameters, getAddress, getContractAddress } from 'viem';
+import { createPublicClient, createWalletClient, http, parseAbi, formatUnits, encodeAbiParameters, parseAbiParameters, getAddress, getContractAddress, encodeFunctionData } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { db } from '../db.js';
+import { agentYieldPositions } from '@shared/schema';
+import { eq, and, desc } from 'drizzle-orm';
+import { CreditsService } from '../services/creditsService.js';
 
 const router = Router();
 
@@ -507,11 +511,22 @@ router.get('/manifest', async (req: Request, res: Response) => {
         switch:      '0%',
       },
       endpoints: {
-        rates:     `${base}/api/yield/rates`,
-        stats:     `${base}/api/yield/stats`,
-        position:  `${base}/api/yield/position/{wallet}`,
-        contract:  `${base}/api/yield/contract`,
-        portal:    `${base}/yield-portal`,
+        rates:      `${base}/api/yield/rates`,
+        stats:      `${base}/api/yield/stats`,
+        position:   `${base}/api/yield/position/{wallet}`,
+        contract:   `${base}/api/yield/contract`,
+        portal:     `${base}/yield-portal`,
+        deposit:    `${base}/api/yield/deposit`,
+        myPosition: `${base}/api/yield/my-position`,
+        withdraw:   `${base}/api/yield/withdraw`,
+        depositTx:  `${base}/api/yield/deposit-tx`,
+      },
+      agentQuickStart: {
+        description: 'No wallet or gas required. Uses your CoinRailz API key and credit balance.',
+        step1: `GET ${base}/api/yield/rates  → see current APY`,
+        step2: `POST ${base}/api/yield/deposit  X-API-KEY: YOUR_KEY  {"amount": 50}  → start earning`,
+        step3: `GET ${base}/api/yield/my-position  X-API-KEY: YOUR_KEY  → check live yield`,
+        step4: `POST ${base}/api/yield/withdraw  X-API-KEY: YOUR_KEY  {"amount": 50}  → get back principal + yield`,
       },
       security: {
         nonCustodial:           true,
@@ -1010,6 +1025,346 @@ router.post('/platform-harvest', async (req: Request, res: Response) => {
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.shortMessage || err.message });
   }
+});
+
+// ── Agent Yield Account helpers ───────────────────────────────────────────────
+
+const creditsService = CreditsService.getInstance();
+
+function extractApiKey(req: Request): string | null {
+  const fromHeader = req.headers['x-api-key'] as string | undefined;
+  const fromBearer = (req.headers['authorization'] as string | undefined)?.replace(/^Bearer\s+/i, '');
+  return fromHeader || fromBearer || null;
+}
+
+/**
+ * POST /api/yield/deposit
+ * API-key agents: deduct credits → record fractional position in vault.
+ * No wallet or gas required.
+ */
+router.post('/deposit', async (req: Request, res: Response) => {
+  const apiKey = extractApiKey(req);
+  if (!apiKey) {
+    return res.status(401).json({
+      success: false,
+      error: 'API key required.',
+      hint: 'Add X-API-KEY header with your CoinRailz API key.',
+      getKey: 'GET /api/credits/free-trial for a free $5 trial key',
+    });
+  }
+
+  const validation = await creditsService.validateApiKey(apiKey);
+  if (!validation.valid) {
+    return res.status(401).json({ success: false, error: 'Invalid API key.' });
+  }
+
+  const raw = req.body?.amount;
+  const amount = typeof raw === 'string' ? parseFloat(raw) : typeof raw === 'number' ? raw : NaN;
+  if (isNaN(amount) || amount < 1) {
+    return res.status(400).json({ success: false, error: 'amount must be a number >= 1 (USD)', example: { amount: 50 } });
+  }
+  const roundedAmount = Math.round(amount * 100) / 100;
+
+  const balance = await creditsService.getBalance(validation.userId!);
+  if (balance < roundedAmount) {
+    return res.status(402).json({
+      success: false,
+      error: `Insufficient credits. Balance: $${balance.toFixed(2)}, requested: $${roundedAmount}`,
+      balance: balance.toFixed(2),
+      topUp: 'POST /api/credits/purchase to add credits via Stripe',
+    });
+  }
+
+  // Get current vault state for accurate share allocation
+  const vaultStats = VAULT_ADDRESS ? await fetchVaultStats() : null;
+  const pricePerShare = vaultStats ? parseFloat(vaultStats.pricePerShare) : 1.0;
+  const rates = await fetchLiveRates();
+
+  const entryFee    = Math.round(roundedAmount * 0.005 * 1_000_000) / 1_000_000;
+  const usdcInVault = roundedAmount - entryFee;
+  const sharesAllocated = pricePerShare > 0 ? usdcInVault / pricePerShare : usdcInVault;
+
+  // Atomically deduct credits
+  const deduction = await creditsService.deductCredits({
+    userId:      validation.userId!,
+    amount:      roundedAmount,
+    serviceName: 'yield-vault-deposit',
+    description: `Deposited $${roundedAmount} into CoinRailz Yield Vault (${rates.activeProtocol})`,
+  });
+
+  // Record position
+  await db.insert(agentYieldPositions).values({
+    userId:               validation.userId!,
+    amountUsdcDeposited:  roundedAmount.toFixed(6),
+    entryFeeUsdc:         entryFee.toFixed(6),
+    usdcInVault:          usdcInVault.toFixed(6),
+    sharesAllocated:      sharesAllocated.toFixed(6),
+    depositPricePerShare: pricePerShare.toFixed(6),
+    protocol:             rates.activeProtocol,
+    status:               'active',
+  });
+
+  const netAPY = parseFloat((rates.bestAPY * 0.85).toFixed(2));
+  const annualYield = parseFloat((usdcInVault * netAPY / 100).toFixed(2));
+
+  return res.json({
+    success:        true,
+    deposited:      roundedAmount,
+    entryFee:       entryFee,
+    usdcEarning:    parseFloat(usdcInVault.toFixed(2)),
+    currentAPY:     rates.bestAPY,
+    netAPY,
+    protocol:       rates.activeProtocol,
+    estimatedYield: { perYear: annualYield, perMonth: parseFloat((annualYield / 12).toFixed(2)) },
+    creditBalance:  deduction.newBalance,
+    message:        `✅ Deposited $${roundedAmount}. Your $${usdcInVault.toFixed(2)} is now earning ${netAPY}% net APY via ${rates.activeProtocol} on Base.`,
+    next: {
+      checkPosition: 'GET /api/yield/my-position  (X-API-KEY header)',
+      withdraw:      'POST /api/yield/withdraw  { "amount": N }  (X-API-KEY header)',
+    },
+  });
+});
+
+/**
+ * GET /api/yield/my-position
+ * Returns the agent's current position: value, yield earned, net withdrawable.
+ */
+router.get('/my-position', async (req: Request, res: Response) => {
+  const apiKey = extractApiKey(req);
+  if (!apiKey) {
+    return res.status(401).json({
+      success: false,
+      error: 'API key required.',
+      hint: 'Add X-API-KEY header.',
+      deposit: 'POST /api/yield/deposit to start earning',
+    });
+  }
+
+  const validation = await creditsService.validateApiKey(apiKey);
+  if (!validation.valid) {
+    return res.status(401).json({ success: false, error: 'Invalid API key.' });
+  }
+
+  const positions = await db.query.agentYieldPositions.findMany({
+    where: and(
+      eq(agentYieldPositions.userId, validation.userId!),
+      eq(agentYieldPositions.status, 'active'),
+    ),
+    orderBy: [desc(agentYieldPositions.depositedAt)],
+  });
+
+  const rates = await fetchLiveRates();
+
+  if (positions.length === 0) {
+    return res.json({
+      success:      true,
+      hasPosition:  false,
+      message:      'No active yield position. Deposit credits to start earning.',
+      currentAPY:   rates.bestAPY,
+      netAPY:       parseFloat((rates.bestAPY * 0.85).toFixed(2)),
+      protocol:     rates.activeProtocol,
+      howToDeposit: 'POST /api/yield/deposit  { "amount": 50 }  (X-API-KEY header)',
+    });
+  }
+
+  // Fetch live pricePerShare for real-time yield calculation
+  const vaultStats = VAULT_ADDRESS ? await fetchVaultStats() : null;
+  const currentPricePerShare = vaultStats ? parseFloat(vaultStats.pricePerShare) : 1.0;
+
+  let totalDeposited       = 0;
+  let totalUsdcInVault     = 0;
+  let totalSharesAllocated = 0;
+
+  for (const pos of positions) {
+    totalDeposited       += parseFloat(pos.amountUsdcDeposited);
+    totalUsdcInVault     += parseFloat(pos.usdcInVault);
+    totalSharesAllocated += parseFloat(pos.sharesAllocated);
+  }
+
+  const currentValue    = totalSharesAllocated * currentPricePerShare;
+  const yieldEarned     = Math.max(0, currentValue - totalUsdcInVault);
+  const performanceFee  = yieldEarned * 0.15;
+  const netYield        = yieldEarned - performanceFee;
+  const netWithdrawable = totalUsdcInVault + netYield;
+
+  return res.json({
+    success:     true,
+    hasPosition: true,
+    position: {
+      totalDeposited:    totalDeposited.toFixed(6),
+      usdcEarning:       totalUsdcInVault.toFixed(6),
+      currentValue:      currentValue.toFixed(6),
+      yieldEarned:       yieldEarned.toFixed(6),
+      performanceFee:    performanceFee.toFixed(6),
+      netYield:          netYield.toFixed(6),
+      netWithdrawable:   netWithdrawable.toFixed(6),
+    },
+    currentAPY:  rates.bestAPY,
+    netAPY:      parseFloat((rates.bestAPY * 0.85).toFixed(2)),
+    protocol:    rates.activeProtocol,
+    depositCount:  positions.length,
+    oldestDeposit: positions[positions.length - 1].depositedAt,
+  });
+});
+
+/**
+ * POST /api/yield/withdraw
+ * Withdraw part or all of a position. Credits are restored + net yield.
+ */
+router.post('/withdraw', async (req: Request, res: Response) => {
+  const apiKey = extractApiKey(req);
+  if (!apiKey) {
+    return res.status(401).json({ success: false, error: 'API key required.' });
+  }
+
+  const validation = await creditsService.validateApiKey(apiKey);
+  if (!validation.valid) {
+    return res.status(401).json({ success: false, error: 'Invalid API key.' });
+  }
+
+  const raw = req.body?.amount;
+  const requestedAmount = typeof raw === 'string' ? parseFloat(raw) : typeof raw === 'number' ? raw : NaN;
+
+  // Gather active positions
+  const positions = await db.query.agentYieldPositions.findMany({
+    where: and(
+      eq(agentYieldPositions.userId, validation.userId!),
+      eq(agentYieldPositions.status, 'active'),
+    ),
+    orderBy: [desc(agentYieldPositions.depositedAt)],
+  });
+
+  if (positions.length === 0) {
+    return res.status(404).json({ success: false, error: 'No active yield position found.' });
+  }
+
+  const vaultStats = VAULT_ADDRESS ? await fetchVaultStats() : null;
+  const currentPricePerShare = vaultStats ? parseFloat(vaultStats.pricePerShare) : 1.0;
+
+  let totalUsdcInVault     = 0;
+  let totalSharesAllocated = 0;
+  for (const pos of positions) {
+    totalUsdcInVault     += parseFloat(pos.usdcInVault);
+    totalSharesAllocated += parseFloat(pos.sharesAllocated);
+  }
+
+  const currentValue    = totalSharesAllocated * currentPricePerShare;
+  const yieldEarned     = Math.max(0, currentValue - totalUsdcInVault);
+  const performanceFee  = yieldEarned * 0.15;
+  const netYield        = yieldEarned - performanceFee;
+  const maxWithdrawable = totalUsdcInVault + netYield;
+
+  // Default to full withdrawal
+  const withdrawAmount = (!isNaN(requestedAmount) && requestedAmount > 0)
+    ? Math.min(requestedAmount, maxWithdrawable)
+    : maxWithdrawable;
+
+  if (withdrawAmount < 0.01) {
+    return res.status(400).json({ success: false, error: 'Withdraw amount is too small (< $0.01).' });
+  }
+
+  // Mark all active positions as withdrawn (simplified: full close)
+  await db
+    .update(agentYieldPositions)
+    .set({ status: 'withdrawn', withdrawnAt: new Date(), withdrawAmountUsdc: withdrawAmount.toFixed(6) })
+    .where(and(
+      eq(agentYieldPositions.userId, validation.userId!),
+      eq(agentYieldPositions.status, 'active'),
+    ));
+
+  // Restore credits + yield
+  const rounded = Math.round(withdrawAmount * 100) / 100;
+  const result = await creditsService.addCredits({
+    userId:        validation.userId!,
+    amount:        rounded,
+    paymentMethod: 'usdc',
+    referenceId:   `yield-withdrawal-${Date.now()}`,
+    description:   `Yield vault withdrawal: $${rounded} (principal + net yield)`,
+  });
+
+  return res.json({
+    success:          true,
+    withdrawn:        rounded,
+    principalReturned: parseFloat(totalUsdcInVault.toFixed(2)),
+    yieldEarned:      parseFloat(yieldEarned.toFixed(6)),
+    performanceFee:   parseFloat(performanceFee.toFixed(6)),
+    netYield:         parseFloat(netYield.toFixed(6)),
+    newCreditBalance: result.newBalance,
+    message:          `✅ Withdrew $${rounded}. Credits restored to $${result.newBalance.toFixed(2)}.`,
+  });
+});
+
+/**
+ * GET /api/yield/deposit-tx?amount=100&recipient=0x...
+ * Returns pre-built ERC-4626 transaction calldata for wallet-native agents.
+ * Broadcast step1, confirm, then broadcast step2.
+ */
+router.get('/deposit-tx', (req: Request, res: Response) => {
+  if (!VAULT_ADDRESS) {
+    return res.status(400).json({ success: false, error: 'Vault address not configured.', contract: 'GET /api/yield/contract' });
+  }
+
+  const amountRaw   = req.query.amount as string | undefined;
+  const recipientRaw = req.query.recipient as string | undefined;
+
+  const amountNum = parseFloat(amountRaw || '');
+  if (isNaN(amountNum) || amountNum <= 0) {
+    return res.status(400).json({ success: false, error: 'amount must be a positive number (USD)', example: '?amount=100&recipient=0xYOUR_WALLET' });
+  }
+  if (!recipientRaw?.match(/^0x[0-9a-fA-F]{40}$/)) {
+    return res.status(400).json({ success: false, error: 'recipient must be a valid 0x Ethereum address', example: '?amount=100&recipient=0xYOUR_WALLET' });
+  }
+
+  const amountUsdc = BigInt(Math.round(amountNum * 1_000_000));
+
+  const approveData = encodeFunctionData({
+    abi: parseAbi(['function approve(address spender, uint256 amount) external returns (bool)']),
+    functionName: 'approve',
+    args: [VAULT_ADDRESS as `0x${string}`, amountUsdc],
+  });
+
+  const depositData = encodeFunctionData({
+    abi: parseAbi(['function deposit(uint256 assets, address receiver) external returns (uint256)']),
+    functionName: 'deposit',
+    args: [amountUsdc, recipientRaw as `0x${string}`],
+  });
+
+  return res.json({
+    success:    true,
+    amountUsdc: amountNum,
+    recipient:  recipientRaw,
+    chainId:    8453,
+    steps: [
+      {
+        step:   1,
+        action: 'Approve vault to spend USDC',
+        to:     BASE_USDC,
+        data:   approveData,
+        value:  '0x0',
+        gas:    '0x11170', // ~70k
+        note:   'Broadcast this first. Wait for confirmation before step 2.',
+      },
+      {
+        step:   2,
+        action: 'Deposit USDC into CoinRailz vault — receive crUSDC shares',
+        to:     VAULT_ADDRESS,
+        data:   depositData,
+        value:  '0x0',
+        gas:    '0x30d40', // ~200k
+        note:   'Broadcast after step 1 confirms. You will receive crUSDC ERC-4626 shares.',
+      },
+    ],
+    fees: {
+      entryFee:    `$${(amountNum * 0.005).toFixed(2)} (0.5%)`,
+      netDeposited: `$${(amountNum * 0.995).toFixed(2)}`,
+      gas:          '~270k total gas (≈ $0.01 at current Base fees)',
+    },
+    usefulLinks: {
+      basescan: `https://basescan.org/address/${VAULT_ADDRESS}`,
+      abi:      '/api/yield/contract',
+      position: `/api/yield/position/${recipientRaw}`,
+    },
+  });
 });
 
 /**

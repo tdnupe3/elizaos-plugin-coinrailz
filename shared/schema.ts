@@ -6608,3 +6608,29 @@ export const insertX402CanaryPaymentSchema = createInsertSchema(x402CanaryPaymen
 export type X402CanaryPayment = typeof x402CanaryPayments.$inferSelect;
 export type InsertX402CanaryPayment = z.infer<typeof insertX402CanaryPaymentSchema>;
 
+
+// ── Agent Yield Positions ─────────────────────────────────────────────────────
+// Custodial yield accounts: agents deposit credits, platform tracks their
+// fractional ownership of the vault's total position.
+
+export const agentYieldPositions = pgTable('agent_yield_positions', {
+  id:                   serial('id').primaryKey(),
+  userId:               varchar('user_id', { length: 255 }).notNull(),
+  amountUsdcDeposited:  numeric('amount_usdc_deposited', { precision: 12, scale: 6 }).notNull(),
+  entryFeeUsdc:         numeric('entry_fee_usdc', { precision: 12, scale: 6 }).notNull(),
+  usdcInVault:          numeric('usdc_in_vault', { precision: 12, scale: 6 }).notNull(),
+  sharesAllocated:      numeric('shares_allocated', { precision: 20, scale: 6 }).notNull(),
+  depositPricePerShare: numeric('deposit_price_per_share', { precision: 12, scale: 6 }).notNull().default('1.000000'),
+  protocol:             varchar('protocol', { length: 50 }).notNull().default('Morpho Blue'),
+  status:               varchar('status', { length: 20 }).notNull().default('active'),
+  depositedAt:          timestamp('deposited_at').defaultNow().notNull(),
+  withdrawnAt:          timestamp('withdrawn_at'),
+  withdrawAmountUsdc:   numeric('withdraw_amount_usdc', { precision: 12, scale: 6 }),
+});
+
+export const insertAgentYieldPositionSchema = createInsertSchema(agentYieldPositions).omit({
+  id: true,
+  depositedAt: true,
+});
+export type AgentYieldPosition = typeof agentYieldPositions.$inferSelect;
+export type InsertAgentYieldPosition = z.infer<typeof insertAgentYieldPositionSchema>;

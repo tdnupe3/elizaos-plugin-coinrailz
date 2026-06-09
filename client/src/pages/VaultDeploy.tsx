@@ -23,79 +23,19 @@ const FEE_RECIPIENT = "0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91";
 
 type Step = "idle" | "switching" | "simulating" | "deploying" | "waiting" | "saving" | "done" | "error";
 
-// Decode a standard Error(string) revert reason from ABI-encoded hex data
-function decodeRevertReason(data: string): string | null {
-  try {
-    // 0x08c379a0 = Error(string) selector
-    if (!data.startsWith("0x08c379a0")) return null;
-    const hex = data.slice(10); // strip selector
-    const msgLen = parseInt(hex.slice(64, 128), 16);
-    const msgHex = hex.slice(128, 128 + msgLen * 2);
-    return msgHex.match(/.{2}/g)!.map(h => String.fromCharCode(parseInt(h, 16))).join("");
-  } catch {
-    return null;
-  }
-}
-
-// Call Base RPC directly (bypasses MetaMask) to simulate the deploy
-async function simulateDeploy(rpcUrl: string, fromAddress: string, deployHex: string): Promise<string> {
-  const res = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      method: "eth_estimateGas",
-      params: [{ from: fromAddress, data: deployHex, value: "0x0" }],
-      id: 1,
-    }),
-  });
-  const json = await res.json();
-  if (json.error) {
-    const msg = json.error.message || "simulation failed";
-    const reason = decodeRevertReason(json.error.data || "");
-    if (reason) throw new Error(`Constructor reverted: "${reason}"`);
-    throw new Error(`Deploy simulation failed: ${msg}`);
-  }
-  return json.result as string; // hex gas estimate
-}
-
-// Poll a contract address until it has code (= deployed successfully)
-async function pollForContract(rpcUrl: string, address: string, maxSeconds = 120): Promise<boolean> {
-  const attempts = Math.ceil(maxSeconds / 3);
-  for (let i = 0; i < attempts; i++) {
-    await new Promise(r => setTimeout(r, 3000));
-    try {
-      const res = await fetch(rpcUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          method: "eth_getCode",
-          params: [address, "latest"],
-          id: 1,
-        }),
-      });
-      const json = await res.json();
-      const code = json.result || "0x";
-      if (code !== "0x" && code !== "0x0" && code.length > 4) return true;
-    } catch { /* ignore network hiccups */ }
-  }
-  return false;
-}
-
 export default function VaultDeploy() {
-  const [network, setNetwork]   = useState<"testnet" | "mainnet">("testnet");
-  const [step, setStep]         = useState<Step>("idle");
-  const [txHash, setTxHash]     = useState("");
-  const [address, setAddress]   = useState("");
-  const [saveMsg, setSaveMsg]   = useState("");
-  const [error, setError]       = useState("");
+  const [network, setNetwork]     = useState<"testnet" | "mainnet">("testnet");
+  const [step, setStep]           = useState<Step>("idle");
+  const [txHash, setTxHash]       = useState("");
+  const [address, setAddress]     = useState("");
+  const [saveMsg, setSaveMsg]     = useState("");
+  const [error, setError]         = useState("");
   const [statusMsg, setStatusMsg] = useState("");
 
   async function deploy() {
     const eth = (window as any).ethereum;
     if (!eth) {
-      setError("No browser wallet found. Install MetaMask from metamask.io and refresh this page.");
+      setError("No browser wallet found. Install MetaMask from metamask.io and refresh.");
       setStep("error");
       return;
     }
@@ -116,7 +56,10 @@ export default function VaultDeploy() {
       setStep("switching");
       const net = NETWORKS[network];
       try {
-        await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: net.chainId }] });
+        await eth.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: net.chainId }],
+        });
       } catch (switchErr: any) {
         if (switchErr.code === 4902) {
           await eth.request({
@@ -127,37 +70,45 @@ export default function VaultDeploy() {
               rpcUrls: [net.rpcUrl], blockExplorerUrls: [net.blockExplorer],
             }],
           });
-        } else { throw switchErr; }
+        } else {
+          throw switchErr;
+        }
       }
 
       // ── 3. Fetch deploy data from server ──────────────────────────────────
       setStep("simulating");
-      setStatusMsg("Fetching contract bytecode…");
+      setStatusMsg("Fetching contract bytecode from server…");
       const dataRes = await fetch(`/api/yield/deploy-data?network=${network}`);
       const data = await dataRes.json();
       if (!data.success) throw new Error(data.error || "Server failed to build deployment data");
 
-      const rpcUrl: string = data.rpcUrl;
-
-      // ── 4. Pre-flight simulation (catches constructor reverts before gas is spent) ──
-      setStatusMsg("Simulating deployment (pre-flight check)…");
-      let gasEstimate = "0x3D0900"; // 4M fallback
+      // ── 4. Pre-flight simulation via MetaMask provider ────────────────────
+      // Uses MetaMask's own RPC (Infura/Alchemy) — no CORS / rate-limit issues.
+      // If the constructor would revert, MetaMask throws here BEFORE showing the
+      // confirm popup, so we catch the real reason without spending any gas.
+      setStatusMsg("Running pre-flight gas estimate (MetaMask)…");
+      let gasEstimate = "0x3D0900"; // 4 M fallback
       try {
-        const est = await simulateDeploy(rpcUrl, fromAddress, data.deployHex);
-        // Add 20% safety buffer
+        const est: string = await eth.request({
+          method: "eth_estimateGas",
+          params: [{ from: fromAddress, data: data.deployHex, value: "0x0" }],
+        });
         const buffered = Math.ceil(parseInt(est, 16) * 1.2);
         gasEstimate = "0x" + buffered.toString(16);
-        setStatusMsg(`Simulation passed — estimated gas: ${parseInt(est, 16).toLocaleString()}. Opening MetaMask…`);
-      } catch (simErr: any) {
-        if (simErr.message.includes("reverted") || simErr.message.includes("simulation failed")) {
-          throw simErr; // constructor would revert — stop now
+        setStatusMsg(`Pre-flight passed — gas ~${parseInt(est, 16).toLocaleString()}. Opening MetaMask…`);
+      } catch (estErr: any) {
+        const msg: string = estErr.message || "";
+        // Only abort if this looks like a genuine constructor revert
+        if (msg.toLowerCase().includes("revert") || msg.toLowerCase().includes("execution")) {
+          throw new Error(`Constructor would revert: ${msg}`);
         }
-        // CORS / network error — skip simulation, proceed with fallback gas
-        setStatusMsg("Simulation skipped (network). Opening MetaMask…");
+        // Any other estimate error (provider error, etc.) — proceed with fallback gas
+        setStatusMsg(`Gas estimate unavailable (${msg.slice(0, 60)}). Proceeding with fallback gas…`);
       }
 
-      // ── 5. Get nonce NOW so we can predict the contract address ───────────
-      //      Needed to recover if MetaMask throws its "reading 'length'" bug
+      // ── 5. Capture nonce → compute predicted contract address ─────────────
+      // Must happen BEFORE eth_sendTransaction so we can recover if MetaMask
+      // throws its v12 bug after the tx is already broadcast.
       let predictedAddress = "";
       try {
         const nonceHex: string = await eth.request({
@@ -183,21 +134,35 @@ export default function VaultDeploy() {
         const msg: string = sendErr.message || "";
 
         // ── MetaMask v12 known bug ──────────────────────────────────────────
-        // MetaMask throws "Cannot read properties of undefined (reading 'length')"
-        // when processing a deployment receipt where receipt.to === null.
-        // The transaction may have been broadcast successfully despite this error.
-        // Recovery: poll the predicted CREATE address for deployed bytecode.
+        // MetaMask crashes reading `receipt.to.length` on deployment receipts
+        // (receipt.to === null for CREATE txs). The tx was already broadcast.
+        // Recovery: poll eth_getCode at the predicted address via MetaMask's
+        // own provider — no direct RPC fetch needed.
         if (msg.includes("reading 'length'") && predictedAddress) {
           setStep("waiting");
           setStatusMsg(
-            `MetaMask internal error (known MetaMask v12 bug on contract deployments). ` +
-            `Checking if your transaction was broadcast anyway — please wait up to 2 minutes…`
+            `MetaMask internal error (v12 bug on contract deployments). ` +
+            `Checking on-chain for your contract — please wait…`
           );
-          const found = await pollForContract(rpcUrl, predictedAddress, 120);
+
+          let found = false;
+          for (let i = 0; i < 40 && !found; i++) {
+            await new Promise(r => setTimeout(r, 3000));
+            try {
+              const code: string = await eth.request({
+                method: "eth_getCode",
+                params: [predictedAddress, "latest"],
+              });
+              if (code && code !== "0x" && code !== "0x0" && code.length > 4) {
+                found = true;
+              }
+            } catch { /* ignore individual poll failures */ }
+          }
+
           if (found) {
             setAddress(predictedAddress);
             setError("");
-            setStatusMsg("Contract deployed successfully! MetaMask bug was a false alarm.");
+            setStatusMsg("Contract deployed! MetaMask error was a false alarm — saving address…");
             setStep("saving");
             const saveRes = await fetch("/api/yield/save-vault-address", {
               method: "POST",
@@ -209,30 +174,50 @@ export default function VaultDeploy() {
             setStep("done");
             return;
           }
-          // Contract not found after polling — real failure
+
+          // Not found after 2 min → show actionable message
           throw new Error(
-            `Transaction did not appear on-chain after 2 minutes. ` +
-            `Please check ${net.blockExplorer}/address/${fromAddress} to see if anything was deployed, ` +
-            `then try again.`
+            `Transaction was sent but contract not found at ${predictedAddress} after 2 minutes. ` +
+            `Open ${net.blockExplorer}/address/${fromAddress} in a new tab — ` +
+            `if a contract appears there, copy the address and add it as YIELD_VAULT_ADDRESS in Replit Secrets.`
           );
         }
 
-        // User rejected or other wallet error
+        // User rejected or genuine MetaMask error
+        if (sendErr.code === 4001) {
+          throw new Error("Transaction rejected in MetaMask. Click Deploy to try again.");
+        }
         throw sendErr;
       }
 
       // ── 7. Wait for receipt ───────────────────────────────────────────────
+      // Reached only if eth_sendTransaction returned a hash without throwing.
       setStep("waiting");
-      setStatusMsg("Waiting for block confirmation (~15s)…");
+      setStatusMsg("Transaction broadcast. Waiting for block confirmation (~15s)…");
       let receipt: any = null;
       for (let i = 0; i < 60 && !receipt; i++) {
         await new Promise(r => setTimeout(r, 3000));
-        receipt = await eth.request({ method: "eth_getTransactionReceipt", params: [hash] });
+        try {
+          receipt = await eth.request({
+            method: "eth_getTransactionReceipt",
+            params: [hash],
+          });
+        } catch { /* ignore */ }
       }
-      if (!receipt) throw new Error("Tx sent but receipt not found after 3 minutes. Check Basescan for your tx hash.");
+      if (!receipt) {
+        throw new Error(
+          `Tx sent (${hash}) but receipt not found after 3 minutes. ` +
+          `Check ${net.blockExplorer}/tx/${hash}`
+        );
+      }
 
       const contractAddress: string = receipt.contractAddress;
-      if (!contractAddress) throw new Error("Tx confirmed but no contract address in receipt.");
+      if (!contractAddress) {
+        throw new Error(
+          `Transaction confirmed but no contract address in receipt. ` +
+          `The deployment may have reverted on-chain. Check ${net.blockExplorer}/tx/${hash}`
+        );
+      }
       setAddress(contractAddress);
 
       // ── 8. Save to server env ─────────────────────────────────────────────
@@ -258,9 +243,9 @@ export default function VaultDeploy() {
   const stepLabel: Record<Step, string> = {
     idle:       `🚀 Deploy on ${net.chainName}`,
     switching:  `⏳ Switching to ${net.chainName}…`,
-    simulating: "🔍 Simulating deployment…",
-    deploying:  "⏳ Waiting for MetaMask confirmation…",
-    waiting:    "⛏ Waiting for block confirmation (~15s)…",
+    simulating: "🔍 Running pre-flight check…",
+    deploying:  "⏳ Confirm in MetaMask…",
+    waiting:    "⛏ Waiting for confirmation…",
     saving:     "💾 Saving vault address…",
     done:       "✅ Deployed & live!",
     error:      `🚀 Try Again on ${net.chainName}`,
@@ -273,7 +258,7 @@ export default function VaultDeploy() {
         <div className="mb-8 text-center">
           <div className="text-3xl font-bold mb-2">Deploy Yield Vault</div>
           <div className="text-gray-400 text-sm">
-            Deploys <code className="text-emerald-400">CoinRailzYieldVault</code> directly from your browser wallet. No terminal, no cloning.
+            Deploys <code className="text-emerald-400">CoinRailzYieldVault</code> directly from your browser wallet.
           </div>
         </div>
 
@@ -281,7 +266,7 @@ export default function VaultDeploy() {
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6">
           <div className="text-xs text-gray-500 mb-1">Platform fee wallet (locked into contract on deploy)</div>
           <div className="font-mono text-emerald-400 text-sm break-all">{FEE_RECIPIENT}</div>
-          <div className="text-xs text-gray-500 mt-1">Receives the 0.5% entry fee and 15% performance fee</div>
+          <div className="text-xs text-gray-500 mt-1">Receives 0.5% entry fee + 15% performance fee</div>
         </div>
 
         {/* Network selector */}
@@ -293,16 +278,20 @@ export default function VaultDeploy() {
                 key={n}
                 onClick={() => { if (!isWorking) setNetwork(n); }}
                 className={`text-left p-4 rounded-xl border transition-all ${
-                  network === n ? "border-emerald-500 bg-emerald-950" : "border-gray-800 bg-gray-900 hover:border-gray-600"
+                  network === n
+                    ? "border-emerald-500 bg-emerald-950"
+                    : "border-gray-800 bg-gray-900 hover:border-gray-600"
                 } ${isWorking ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <div className={`w-3 h-3 rounded-full border-2 flex-shrink-0 ${network === n ? "border-emerald-400 bg-emerald-400" : "border-gray-600"}`} />
+                  <div className={`w-3 h-3 rounded-full border-2 flex-shrink-0 ${
+                    network === n ? "border-emerald-400 bg-emerald-400" : "border-gray-600"
+                  }`} />
                   <span className="font-medium text-sm">{NETWORKS[n].label}</span>
                 </div>
                 {n === "testnet" && (
                   <div className="text-xs text-gray-500 ml-5">
-                    Needs free testnet ETH →{" "}
+                    Free testnet ETH →{" "}
                     <a href={NETWORKS.testnet.faucetUrl!} target="_blank" rel="noopener noreferrer"
                        className="text-blue-400 hover:underline" onClick={e => e.stopPropagation()}>
                       alchemy.com/faucets/base-sepolia
@@ -321,12 +310,16 @@ export default function VaultDeploy() {
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6 text-sm">
           <div className="font-medium mb-2 text-gray-300">What happens when you click Deploy:</div>
           <ol className="space-y-1 text-gray-400 list-decimal list-inside">
-            <li>Simulates the deployment locally (catches errors before you spend gas)</li>
-            <li>MetaMask opens — approve switching to <strong className="text-white">{net.chainName}</strong></li>
+            <li>Runs a gas estimate via MetaMask (catches constructor errors before gas is spent)</li>
+            <li>MetaMask opens — confirm switching to <strong className="text-white">{net.chainName}</strong> if needed</li>
             <li>MetaMask shows the deploy transaction — confirm it</li>
-            <li>Wait ~15 seconds for the block to confirm</li>
-            <li>Vault address auto-saved to Replit — portal goes live</li>
+            <li>The page polls on-chain until the contract appears (~15s)</li>
+            <li>Vault address auto-saved — portal goes live</li>
           </ol>
+          <div className="mt-3 p-2 bg-blue-950 border border-blue-900 rounded-lg text-blue-300 text-xs">
+            ℹ️ MetaMask v12 sometimes shows a <em>"Transaction failed"</em> Chrome notification after you confirm — 
+            <strong> ignore it and keep this tab open.</strong> The page detects your deployed contract on-chain automatically.
+          </div>
         </div>
 
         {/* Status message */}
@@ -388,12 +381,6 @@ export default function VaultDeploy() {
           <div className="mt-4 bg-red-950 border border-red-800 rounded-xl p-4 text-red-300 text-sm">
             <div className="font-medium mb-1">Error</div>
             <div className="font-mono text-xs break-all whitespace-pre-wrap">{error}</div>
-            {(error.toLowerCase().includes("metamask") || error.toLowerCase().includes("wallet")) && (
-              <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer"
-                 className="mt-2 inline-block text-blue-400 hover:underline text-xs">
-                Install MetaMask →
-              </a>
-            )}
           </div>
         )}
 

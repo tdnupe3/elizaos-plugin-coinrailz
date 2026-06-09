@@ -260,13 +260,14 @@ router.get('/openapi.json', (req: Request, res: Response) => {
       get: {
         operationId: 'getDepositTx',
         summary: 'Pre-built deposit calldata — standard (2 txs) or permit (1 tx)',
-        description: 'Returns ready-to-sign transactions. Default: 2 txs (USDC approve + ERC-4626 deposit). Add ?mode=permit for 1-tx EIP-2612 permit path (~50% less gas). Add ?preset=100 for $100 amount or ?amount_usdc=150000000 for custom. Requires ?recipient=0xYOUR_WALLET.',
+        description: 'Returns ready-to-sign transactions. Default: 2 txs (USDC approve + ERC-4626 deposit). Use ?mode=permit for 1-tx EIP-2612 permit path (~50% less gas). Use ?preset=100 for a USD preset OR ?amount=150 for a custom dollar amount. Requires ?recipient=0xYOUR_WALLET.',
         security: [],
         tags: ['Yield'],
         parameters: [
-          { name: 'preset', in: 'query', schema: { type: 'integer', enum: [10, 50, 100, 250, 1000] }, description: 'USD preset amount' },
+          { name: 'preset', in: 'query', schema: { type: 'integer', enum: [10, 50, 100, 250, 1000] }, description: 'USD preset amount (pick one: preset OR amount)' },
+          { name: 'amount', in: 'query', schema: { type: 'number' }, description: 'Custom USD amount (pick one: preset OR amount). Example: 150 for $150' },
           { name: 'recipient', in: 'query', required: true, schema: { type: 'string' }, description: 'Recipient wallet address (0x...)' },
-          { name: 'mode', in: 'query', schema: { type: 'string', enum: ['standard', 'permit'] }, description: 'standard = 2 txs (approve+deposit), permit = 1 tx via EIP-2612' },
+          { name: 'mode', in: 'query', schema: { type: 'string', enum: ['standard', 'permit'] }, description: 'standard = 2 txs (USDC approve + ERC-4626 deposit), permit = 1 tx via EIP-2612 (~50% less gas)' },
         ],
         responses: { '200': { description: 'Pre-built transaction steps ready to sign and broadcast' } },
         'x-codeSamples': [

@@ -177,6 +177,7 @@ const PilotCreditsPage = lazy(() => import("@/pages/PilotCreditsPage"));
 const PilotCreditsSuccessPage = lazy(() => import("@/pages/PilotCreditsSuccessPage"));
 const EmergencyConsulting = lazy(() => import("@/pages/EmergencyConsulting"));
 const Whitepaper = lazy(() => import("@/pages/Whitepaper"));
+const YieldPortal = lazy(() => import("@/pages/YieldPortal"));
 const DevelopersPage = lazy(() => import("@/pages/DevelopersPage"));
 const CreditsPage = lazy(() => import("@/pages/CreditsPage"));
 const APIKeysPage = lazy(() => import("@/pages/APIKeysPage"));
@@ -980,6 +981,10 @@ function Router() {
 
       <Route path="/buyer-analysis">
         {() => <LazyLoadWrapper><BuyerAnalysis /></LazyLoadWrapper>}
+      </Route>
+
+      <Route path="/yield-portal">
+        {() => <LazyLoadWrapper><YieldPortal /></LazyLoadWrapper>}
       </Route>
 
       <Route component={NotFound} />

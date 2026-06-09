@@ -3854,6 +3854,11 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   app.use('/api/circle-evidence', circleEvidenceRoutes);
   console.log('✅ Circle Evidence Pack routes registered (pre-static)');
 
+  // 💰 AI Agent Yield Portal — must be pre-static so Vite catch-all doesn't shadow it
+  const yieldPortalRoutesPre = await import('./routes/yieldPortalRoutes.js').then(m => m.default);
+  app.use('/api/yield', yieldPortalRoutesPre);
+  console.log('✅ Yield portal routes registered at /api/yield (pre-static)');
+
   // ============================================================================
   // Backward Compatibility Redirect - MUST be before static serving
   // Old SDK documentation linked to /dashboard/api-keys, redirect to /api-keys

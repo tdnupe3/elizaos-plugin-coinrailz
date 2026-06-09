@@ -2452,7 +2452,8 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       mcpServices: `${baseUrl}/mcp/services`,
       mcpIntegration: `${baseUrl}/.well-known/mcp-integration.json`,
       integrationGuide: `${baseUrl}/mcp-integration-guide`,
-      openapi: `${baseUrl}/openapi.json`
+      openapi: `${baseUrl}/openapi.json`,
+      yieldPortal: `${baseUrl}/api/yield/manifest`,
     },
     
     // Rate limiting metadata (A2A v0.3 optional field)
@@ -4804,10 +4805,28 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     },
     commerce: {
       total_services: getCanonicalServiceCount(),
-      categories: ["discovery", "trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence", "prediction-markets", "traditional-markets", "satellite-data", "ai-inference", "iot"],
+      categories: ["discovery", "trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence", "prediction-markets", "traditional-markets", "satellite-data", "ai-inference", "iot", "yield"],
       platform_commission: 15,
       minimum_payment: 0.10,
       maximum_payment: 10000
+    },
+    yieldVault: {
+      description: "AI Agent Yield Portal — non-custodial USDC yield vault. Auto-routes to highest APY across Aave v3, Compound v3, Morpho Blue on Base. 0.5% entry fee + 15% performance fee.",
+      standard: "ERC-4626",
+      network: "base",
+      asset: "USDC",
+      entryFeePct: 0.5,
+      performanceFeePct: 15,
+      exitFeePct: 0,
+      minHarvestUsd: 5,
+      routes: {
+        rates:    `${baseUrl}/api/yield/rates`,
+        stats:    `${baseUrl}/api/yield/stats`,
+        position: `${baseUrl}/api/yield/position/{wallet}`,
+        contract: `${baseUrl}/api/yield/contract`,
+        manifest: `${baseUrl}/api/yield/manifest`,
+        portal:   `${baseUrl}/yield-portal`,
+      },
     },
     blockchain: {
       supported_chains: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"],

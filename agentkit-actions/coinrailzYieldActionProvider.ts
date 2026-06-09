@@ -83,17 +83,36 @@ const GetRatesSchema = z.object({}).describe(
   "Get live APY rates from Aave v3, Compound v3, and Morpho Blue on Base. Shows the best current option."
 );
 
+// ── AgentKit compatibility (duck-typed) ───────────────────────────────────────
+
+interface AgentKitNetwork { protocolFamily?: string; networkId?: string; }
+interface AgentKitAction  { name: string; description: string; schema: z.ZodSchema; invoke: (args: unknown) => Promise<string>; }
+
+const SUPPORTED_NETWORKS = ["base-mainnet", "base-sepolia"] as const;
+
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 export class CoinRailzYieldActionProvider {
+  // AgentKit ActionProvider duck-typing interface
   readonly name = "coinrailz_yield";
+  readonly actionProviders: CoinRailzYieldActionProvider[] = [];
 
-  getActions() {
+  /** Called by AgentKit.getActions() — gates to Base mainnet/sepolia only. */
+  supportsNetwork(network: AgentKitNetwork): boolean {
+    return (
+      network.protocolFamily === "evm" &&
+      SUPPORTED_NETWORKS.includes(network.networkId as (typeof SUPPORTED_NETWORKS)[number])
+    );
+  }
+
+  /** Returns AgentKit-compatible Action[] with wallet injected via closure. */
+  getActions(walletProvider: EvmWalletProvider): AgentKitAction[] {
     return [
-      { name: "coinrailz_yield_deposit",       fn: this.deposit.bind(this),       schema: DepositSchema },
-      { name: "coinrailz_yield_redeem",         fn: this.redeem.bind(this),         schema: RedeemSchema },
-      { name: "coinrailz_yield_check_position", fn: this.checkPosition.bind(this), schema: CheckPositionSchema },
-      { name: "coinrailz_yield_get_rates",      fn: this.getRates.bind(this),      schema: GetRatesSchema },
+      { name: "coinrailz_yield_deposit",          description: "Deposit USDC (2-tx approve+deposit)",         schema: DepositSchema,       invoke: (args) => this.deposit(walletProvider, args as z.infer<typeof DepositSchema>) },
+      { name: "coinrailz_yield_redeem",            description: "Redeem crUSDC shares for USDC (1-tx)",        schema: RedeemSchema,        invoke: (args) => this.redeem(walletProvider, args as z.infer<typeof RedeemSchema>) },
+      { name: "coinrailz_yield_check_position",    description: "Check live position with protocol exposure",  schema: CheckPositionSchema, invoke: (args) => this.checkPosition(walletProvider, args as z.infer<typeof CheckPositionSchema>) },
+      { name: "coinrailz_yield_get_rates",         description: "Live APY across all 3 protocols",             schema: GetRatesSchema,      invoke: (_) => this.getRates(walletProvider, {}) },
+      { name: "coinrailz_yield_get_contract_info", description: "Vault addresses, audit status, fee structure", schema: z.object({}),       invoke: (_) => this.getContractInfo(walletProvider, {}) },
     ];
   }
 
@@ -256,5 +275,38 @@ export class CoinRailzYieldActionProvider {
     } catch (err) {
       return `Error fetching rates: ${err}`;
     }
+  }
+
+  /**
+   * Return contract verification info — vault addresses, fee structure, audit status.
+   * Helps agents verify non-custodial architecture before depositing.
+   */
+  async getContractInfo(_wallet: EvmWalletProvider, _args: Record<string, never>): Promise<string> {
+    return [
+      `CoinRailz Yield Vault — contract verification:`,
+      ``,
+      `  Vault (ERC-4626):`,
+      `    Address:  ${VAULT_ADDRESS}`,
+      `    Chain:    Base mainnet (chainId ${CHAIN_ID})`,
+      `    Basescan: https://basescan.org/address/${VAULT_ADDRESS}`,
+      `    Standard: ERC-4626 (tokenised vault — fully non-custodial)`,
+      ``,
+      `  PermitAndDeposit helper (EIP-2612 1-tx deposits):`,
+      `    Address:  ${PERMIT_AND_DEPOSIT_ADDRESS}`,
+      `    Basescan: https://basescan.org/address/${PERMIT_AND_DEPOSIT_ADDRESS}`,
+      ``,
+      `  USDC (token deposited):`,
+      `    Address:  0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`,
+      `    Issuer:   Circle (native USDC on Base — not bridged)`,
+      ``,
+      `  Fee structure:`,
+      `    Entry fee:       0.5% of deposit (one-time)`,
+      `    Performance fee: 15% of yield only — never touches principal`,
+      `    Exit fee:        0% — withdraw any time`,
+      `    Max fee caps:    2% entry / 30% performance (hard-coded in bytecode)`,
+      ``,
+      `  Audit status: unaudited (early deployment) — do not deposit more than you can risk`,
+      `  API manifest: ${BASE_URL}/api/yield/manifest`,
+    ].join("\n");
   }
 }

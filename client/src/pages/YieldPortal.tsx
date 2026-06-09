@@ -172,14 +172,20 @@ const agentKit = await AgentKit.from({
 //   "Check my yield position"
 //   "Withdraw my USDC with yield"
 
-// 5 actions registered:
-//   coinrailz_yield_deposit         → approve + deposit (2 txs, works everywhere)
-//   coinrailz_yield_deposit_permit  → EIP-2612 permit deposit (1 tx, no approve needed)
-//   coinrailz_yield_redeem          → redeem shares (1 tx, 0% exit fee)
-//   coinrailz_yield_check_position  → live on-chain position
-//   coinrailz_yield_get_rates       → live APY across Aave v3, Compound v3, Morpho Blue
+// 6 actions registered (v1.1.0):
+//   coinrailz_yield_deposit          → approve + deposit (2 txs, works with any EVM wallet)
+//   coinrailz_yield_deposit_permit   → EIP-2612 permit deposit (1 tx, ~50% less gas)
+//   coinrailz_yield_redeem           → redeem crUSDC shares (1 tx, 0% exit fee)
+//   coinrailz_yield_check_position   → live position + protocol allocation breakdown
+//   coinrailz_yield_get_rates        → live APY across Aave v3, Compound v3, Morpho Blue
+//   coinrailz_yield_get_contract_info→ vault addresses, Basescan links, fee structure
 
-// Permit deposit uses PermitAndDeposit helper on Base:
+// AgentKit compatibility: implements supportsNetwork() + getActions(walletProvider)
+//   — gates to base-mainnet / base-sepolia (EVM protocol family)
+//   — getActions() returns Action[] via closure, compatible with AgentKit.from()
+//   — no reflect-metadata or @CreateAction decorators required
+
+// PermitAndDeposit helper (EIP-2612):
 //   0x8d291ae2f9850c5c2899100f381ab43dc95b82cf
 // basescan.org/address/0x8d291ae2f9850c5c2899100f381ab43dc95b82cf`;
 

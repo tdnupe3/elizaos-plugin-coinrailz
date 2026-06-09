@@ -8,7 +8,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { createPublicClient, http, parseAbi, formatUnits } from 'viem';
+import { createPublicClient, http, parseAbi, formatUnits, encodeAbiParameters, parseAbiParameters, getAddress } from 'viem';
 import { base } from 'viem/chains';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
@@ -490,18 +490,77 @@ router.get('/manifest', async (req: Request, res: Response) => {
   }
 });
 
+const BASE_ADDRS: Record<string, Record<string, string>> = {
+  testnet: {
+    usdc:          '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+    aavePool:      '0x07eA79F68B2B3df564D0A34F8e19D9B1e339814b',
+    aUsdc:         '0x96E32de4B1D6B4BA845c7e8f9F95F5cC0B66b4A4',
+    compoundComet: '0x571621Ce60Cebb0c1D442B5afb38B1663C6Bf017',
+    morpho:        '0x0000000000000000000000000000000000000000',
+  },
+  mainnet: {
+    usdc:          '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    aavePool:      '0xA238Dd80C259a72e81d7e4664a9801593F98d1c5',
+    aUsdc:         '0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB',
+    compoundComet: '0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf',
+    morpho:        '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
+  },
+};
+
+const FEE_RECIPIENT = '0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91';
+
 /**
- * GET /api/yield/artifact
- * Serves the compiled contract bytecode + ABI so the browser deploy page can use it.
+ * GET /api/yield/deploy-data?network=testnet|mainnet
+ * Returns fully-encoded deployment hex that MetaMask can broadcast directly.
+ * All ABI encoding stays server-side — no viem in the browser.
  */
-router.get('/artifact', (_req: Request, res: Response) => {
+router.get('/deploy-data', (req: Request, res: Response) => {
+  const network = (req.query.network as string) || 'testnet';
+  const addrs = BASE_ADDRS[network];
+  if (!addrs) return res.status(400).json({ success: false, error: 'Unknown network. Use testnet or mainnet.' });
+
   const artifactPath = join(process.cwd(), 'contracts', 'CoinRailzYieldVault.json');
   if (!existsSync(artifactPath)) {
-    return res.status(404).json({ success: false, error: 'Compiled artifact not found. Run: solc --optimize --bin --abi -o contracts contracts/CoinRailzYieldVault.sol' });
+    return res.status(404).json({ success: false, error: 'Compiled artifact not found.' });
   }
+
   try {
-    const artifact = JSON.parse(readFileSync(artifactPath, 'utf8'));
-    res.json({ success: true, bytecode: artifact.bytecode, abi: artifact.abi });
+    const { bytecode, abi } = JSON.parse(readFileSync(artifactPath, 'utf8'));
+    const ZERO = getAddress('0x0000000000000000000000000000000000000000');
+
+    // toLowerCase() first so getAddress() can recompute EIP-55 checksum from scratch
+    const norm = (addr: string) => getAddress(addr.toLowerCase() as `0x${string}`);
+    const a = {
+      usdc:    norm(addrs.usdc),
+      fee:     norm(FEE_RECIPIENT),
+      aave:    norm(addrs.aavePool),
+      aUsdc:   norm(addrs.aUsdc),
+      comp:    norm(addrs.compoundComet),
+      morpho:  norm(addrs.morpho),
+    };
+
+    const constructorArgs = encodeAbiParameters(
+      parseAbiParameters(
+        'address,address,address,address,address,address,(address,address,address,address,uint256),uint8'
+      ),
+      [
+        a.usdc, a.fee, a.aave, a.aUsdc, a.comp, a.morpho,
+        [ZERO, ZERO, ZERO, ZERO, 0n],
+        0,
+      ]
+    );
+
+    const deployHex = bytecode + (constructorArgs as string).slice(2);
+
+    res.json({
+      success: true,
+      deployHex,
+      gasLimit: '0x3D0900',
+      network,
+      feeRecipient: FEE_RECIPIENT,
+      addresses: addrs,
+      abi,
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

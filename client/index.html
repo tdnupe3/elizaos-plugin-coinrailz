@@ -148,6 +148,60 @@
         </div>
       </div>
     </div>
+    <script>
+      (function() {
+        var _WS = window.WebSocket;
+        var VITE_HMR = /[?&]token=/;
+        function makeFakeSocket(urlStr, protocols) {
+          var listeners = {};
+          var sock = {
+            readyState: 1,
+            bufferedAmount: 0,
+            protocol: typeof protocols === 'string' ? protocols : (Array.isArray(protocols) ? (protocols[0]||'') : ''),
+            url: urlStr,
+            extensions: '',
+            binaryType: 'blob',
+            CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3,
+            onopen: null, onmessage: null, onclose: null, onerror: null,
+            send: function() {},
+            close: function() {},
+            addEventListener: function(type, cb) {
+              if (!listeners[type]) listeners[type] = [];
+              listeners[type].push(cb);
+            },
+            removeEventListener: function(type, cb) {
+              if (listeners[type]) listeners[type] = listeners[type].filter(function(f){ return f !== cb; });
+            },
+            dispatchEvent: function(e) {
+              var cbs = listeners[e.type] || [];
+              cbs.forEach(function(f) { try { f(e); } catch(ex) {} });
+              return true;
+            }
+          };
+          setTimeout(function() {
+            var openEvt = new Event('open');
+            if (sock.onopen) try { sock.onopen(openEvt); } catch(ex) {}
+            (listeners['open'] || []).forEach(function(f) { try { f(openEvt); } catch(ex) {} });
+            var msgEvt = new MessageEvent('message', { data: '{"type":"connected"}' });
+            if (sock.onmessage) try { sock.onmessage(msgEvt); } catch(ex) {}
+            (listeners['message'] || []).forEach(function(f) { try { f(msgEvt); } catch(ex) {} });
+          }, 0);
+          return sock;
+        }
+        function PatchedWS(url, protocols) {
+          var urlStr = typeof url === 'string' ? url : (url && url.toString ? url.toString() : '');
+          if (VITE_HMR.test(urlStr)) {
+            return makeFakeSocket(urlStr, protocols);
+          }
+          return protocols !== undefined ? new _WS(url, protocols) : new _WS(url);
+        }
+        PatchedWS.CONNECTING = 0;
+        PatchedWS.OPEN = 1;
+        PatchedWS.CLOSING = 2;
+        PatchedWS.CLOSED = 3;
+        window.WebSocket = PatchedWS;
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

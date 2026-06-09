@@ -2,31 +2,36 @@
 pragma solidity ^0.8.20;
 
 /**
- * @title CoinRailzYieldVault
+ * @title CoinRailzYieldVault v2
  * @notice AI Agent Yield Portal — auto-routes USDC to the highest-APY protocol on Base.
  *         Non-custodial: no admin can withdraw depositor principal. Ever.
  *
- * @dev ERC-4626 compliant tokenized vault. Supported protocols: Aave v3, Compound v3, Morpho Blue.
- *      Deploy with constructor args for testnet or mainnet addresses.
+ * @dev ERC-4626-style tokenised vault. Supported protocols: Aave v3, Compound v3, Morpho Blue.
  *
  * Fee structure (all params behind 48h timelock after initial deploy):
- *   - Entry fee:       0.5% (50 bps) on EVERY deposit → feeRecipient immediately
- *   - Performance fee: 15% (1500 bps) of yield → accumulated, harvested when > MIN_HARVEST_USD
+ *   - Entry fee:       0.5% (50 bps) on every deposit → feeRecipient immediately
+ *   - Performance fee: 15% (1500 bps) of yield → captured via continuous share accrual
  *   - Exit fee:        0%  (no friction on withdrawals)
- *   - Switch fee:      0%  (rebalancing is automatic, no agent action needed)
  *
- * Security properties:
- *   - onlyOwner cannot withdraw principal — feeRecipient only receives fees
+ * v2 Changes vs v1:
+ *   - GLOBAL share-mint fee accrual (Yearn-style) replaces per-user cost-basis tracking.
+ *     Fees are now captured on every vault interaction, not only on withdrawal.
+ *   - COOLDOWN GRIEFING fixed: lastRebalance only updated when a real protocol switch occurs.
+ *   - MORPHO APY properly computed via the Adaptive Curve IRM (no longer returns 0).
+ *   - MINIMUM DEPOSIT: $1 USDC (1_000_000 raw) to prevent dust attacks.
+ *   - SafeERC20-style return-value checks on all USDC transfers.
+ *   - External accrueFees() callable by anyone (keeper-friendly).
+ *   - configureMorphoMarket() for owner to enable Morpho post-deploy.
+ *   - RebalanceSkipped event emitted on no-op rebalance calls.
+ *
+ * Security properties (unchanged from v1):
+ *   - onlyOwner cannot withdraw principal — feeRecipient only receives performance fees
  *   - Fee parameters locked behind 48-hour timelock
- *   - Emergency exit always available for depositors regardless of contract state
+ *   - Emergency exit always available regardless of contract state
  *   - ReentrancyGuard on all state-mutating external functions
- *   - All events emitted for full Basescan transparency
- *
- * Compilation: npx hardhat compile  (requires openzeppelin/contracts)
- * Deploy:      npx hardhat run scripts/deploy-yield-vault.ts --network base-sepolia
  */
 
-// ─── Minimal ERC-20 Interface ────────────────────────────────────────────────
+// ─── ERC-20 Interface ─────────────────────────────────────────────────────────
 
 interface IERC20 {
     function totalSupply() external view returns (uint256);
@@ -39,12 +44,11 @@ interface IERC20 {
 
 // ─── Protocol Interfaces ──────────────────────────────────────────────────────
 
-/// @dev Aave v3 Pool — only the functions we use
 interface IAavePool {
     struct ReserveData {
         uint256 configuration;
         uint128 liquidityIndex;
-        uint128 currentLiquidityRate;   // APR in ray (1e27)
+        uint128 currentLiquidityRate; // APR in ray (1e27)
         uint128 variableBorrowIndex;
         uint128 currentVariableBorrowRate;
         uint128 currentStableBorrowRate;
@@ -63,12 +67,10 @@ interface IAavePool {
     function getReserveData(address asset) external view returns (ReserveData memory);
 }
 
-/// @dev Aave v3 aToken — to read vault's balance (accrues interest automatically)
 interface IAToken {
     function balanceOf(address account) external view returns (uint256);
 }
 
-/// @dev Compound v3 Comet — USDC market
 interface IComet {
     function supply(address asset, uint256 amount) external;
     function withdraw(address asset, uint256 amount) external;
@@ -77,13 +79,22 @@ interface IComet {
     function getSupplyRate(uint256 utilization) external view returns (uint64);
 }
 
-/// @dev Morpho Blue — permissionless lending
+// Morpho Blue singleton
 struct MarketParams {
     address loanToken;
     address collateralToken;
     address oracle;
     address irm;
     uint256 lltv;
+}
+
+struct MorphoMarketState {
+    uint128 totalSupplyAssets;
+    uint128 totalSupplyShares;
+    uint128 totalBorrowAssets;
+    uint128 totalBorrowShares;
+    uint128 lastUpdate;
+    uint128 fee; // protocol fee in 1e18 (e.g. 0.1e18 = 10%)
 }
 
 interface IMorpho {
@@ -107,6 +118,16 @@ interface IMorpho {
         MarketParams calldata marketParams,
         address user
     ) external view returns (uint256);
+
+    function market(bytes32 id) external view returns (MorphoMarketState memory);
+}
+
+// Morpho Adaptive Curve IRM
+interface IAdaptiveCurveIrm {
+    function borrowRateView(
+        MarketParams calldata marketParams,
+        MorphoMarketState calldata market
+    ) external view returns (uint256); // borrow rate per second in 1e18
 }
 
 // ─── Main Contract ────────────────────────────────────────────────────────────
@@ -117,7 +138,7 @@ contract CoinRailzYieldVault {
 
     string  public constant name     = "CoinRailz Yield Vault";
     string  public constant symbol   = "crUSDC";
-    uint8   public constant decimals = 6; // matches USDC
+    uint8   public constant decimals = 6;
 
     uint256 public totalSupply;
     mapping(address => uint256) public balanceOf;
@@ -156,8 +177,9 @@ contract CoinRailzYieldVault {
     }
 
     function _mint(address to, uint256 amount) internal {
-        totalSupply      += amount;
-        balanceOf[to]    += amount;
+        if (amount == 0) return;
+        totalSupply   += amount;
+        balanceOf[to] += amount;
         emit Transfer(address(0), to, amount);
     }
 
@@ -170,7 +192,6 @@ contract CoinRailzYieldVault {
 
     // ── State Variables ───────────────────────────────────────────────────────
 
-    // Underlying asset
     IERC20  public immutable asset; // USDC
 
     // Fee configuration
@@ -178,39 +199,40 @@ contract CoinRailzYieldVault {
     uint256 public performanceFeeBps = 1500;  // 15%
     address public feeRecipient;
 
-    // Pending performance fees awaiting harvest (held as USDC in contract)
-    uint256 public pendingFees;
-    uint256 public constant MIN_HARVEST_USD = 5_000_000; // $5.00 (USDC 6 decimals)
+    // v2: Global fee accrual via share-minting checkpoint
+    // Tracks protocol assets as of the last accrual. Yield above this = fee-eligible.
+    uint256 public feeCheckpoint;
 
-    // Per-depositor cost basis for performance fee high-watermark
-    mapping(address => uint256) public costBasisAssets; // net USDC deposited, per wallet
-    mapping(address => uint256) public costBasisShares; // shares at time of deposit, per wallet
+    // Minimum deposit: $1 USDC (6 decimals) — prevents dust attacks
+    uint256 public constant MIN_DEPOSIT = 1_000_000;
 
     // Fee change timelock (48h)
     uint256 public feeChangeProposedAt;
     uint256 public pendingDepositFeeBps;
     uint256 public pendingPerformanceFeeBps;
-    uint256 public constant FEE_TIMELOCK = 48 hours;
-    uint256 public constant MAX_DEPOSIT_FEE_BPS     = 200;   // hard cap 2%
-    uint256 public constant MAX_PERFORMANCE_FEE_BPS = 3000;  // hard cap 30%
+    uint256 public constant FEE_TIMELOCK             = 48 hours;
+    uint256 public constant MAX_DEPOSIT_FEE_BPS      = 200;   // hard cap 2%
+    uint256 public constant MAX_PERFORMANCE_FEE_BPS  = 2000;  // hard cap 20%
 
     // Protocol configuration
     enum Protocol { AAVE, COMPOUND, MORPHO }
     Protocol public activeProtocol;
-    bool     public paused;       // emergency pause for new deposits only
+    bool     public paused;
 
     IAavePool public aavePool;
-    IAToken   public aUsdc;       // Aave's interest-bearing USDC token
+    IAToken   public aUsdc;
     IComet    public compoundComet;
     IMorpho   public morpho;
-    MarketParams public morphoMarket; // Morpho USDC market params
+    MarketParams public morphoMarket;
+    bytes32  public morphoMarketId;    // keccak256(abi.encode(morphoMarket))
+    IAdaptiveCurveIrm public morphoIrm; // Adaptive Curve IRM on Base
 
     // Auto-rebalancing
     uint256 public lastRebalance;
     uint256 public constant REBALANCE_INTERVAL  = 1 days;
-    uint256 public constant MIN_REBALANCE_DELTA = 50; // 50 bps = 0.5% APY improvement required
+    uint256 public constant MIN_REBALANCE_DELTA = 50; // 50 bps improvement required
 
-    // Ownership (two-step for safety)
+    // Ownership (two-step)
     address public owner;
     address public pendingOwner;
 
@@ -222,16 +244,17 @@ contract CoinRailzYieldVault {
     // ── Events ────────────────────────────────────────────────────────────────
 
     event Deposited(address indexed depositor, address indexed receiver, uint256 assets, uint256 entryFee, uint256 shares);
-    event Withdrawn(address indexed owner, address indexed receiver, uint256 assets, uint256 performanceFee, uint256 shares);
+    event Withdrawn(address indexed shareOwner, address indexed receiver, uint256 assets, uint256 shares);
     event Rebalanced(Protocol indexed from, Protocol indexed to, uint256 tvl, uint256 fromAPYBps, uint256 toAPYBps);
-    event Harvested(address indexed recipient, uint256 amount);
-    event HarvestSkipped(uint256 pendingFees, uint256 threshold);
+    event RebalanceSkipped(Protocol indexed current, Protocol indexed best, uint256 currentAPYBps, uint256 bestAPYBps);
+    event FeesAccrued(address indexed recipient, uint256 feeAssets, uint256 feeShares);
     event FeeChangeProposed(uint256 newDepositFeeBps, uint256 newPerformanceFeeBps, uint256 executableAt);
     event FeeChangeExecuted(uint256 newDepositFeeBps, uint256 newPerformanceFeeBps);
     event EmergencyWithdraw(address indexed user, uint256 assets, uint256 shares);
     event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event Paused(bool paused);
+    event MorphoMarketConfigured(address morpho, bytes32 marketId);
 
     // ── Modifiers ─────────────────────────────────────────────────────────────
 
@@ -254,16 +277,6 @@ contract CoinRailzYieldVault {
 
     // ── Constructor ───────────────────────────────────────────────────────────
 
-    /**
-     * @param _asset         USDC token address
-     * @param _feeRecipient  Address that receives entry fees and harvested yield
-     * @param _aavePool      Aave v3 Pool address (address(0) to disable Aave)
-     * @param _aUsdc         Aave interest-bearing USDC (aUSDC) address
-     * @param _compoundComet Compound v3 Comet address (address(0) to disable Compound)
-     * @param _morpho        Morpho Blue address (address(0) to disable Morpho)
-     * @param _morphoMarket  Morpho market params for USDC (ignored if _morpho == address(0))
-     * @param _initialProtocol Which protocol to start with (must be enabled)
-     */
     constructor(
         address _asset,
         address _feeRecipient,
@@ -272,15 +285,15 @@ contract CoinRailzYieldVault {
         address _compoundComet,
         address _morpho,
         MarketParams memory _morphoMarket,
+        address _morphoIrm,
         Protocol _initialProtocol
     ) {
         require(_asset        != address(0), "CRV: zero asset");
         require(_feeRecipient != address(0), "CRV: zero feeRecipient");
 
-        // [M-1] Validate that the chosen initial protocol has a configured address
-        if (_initialProtocol == Protocol.AAVE)     require(_aavePool     != address(0), "CRV: Aave not configured");
+        if (_initialProtocol == Protocol.AAVE)     require(_aavePool      != address(0), "CRV: Aave not configured");
         if (_initialProtocol == Protocol.COMPOUND) require(_compoundComet != address(0), "CRV: Compound not configured");
-        if (_initialProtocol == Protocol.MORPHO)   require(_morpho       != address(0), "CRV: Morpho not configured");
+        if (_initialProtocol == Protocol.MORPHO)   require(_morpho        != address(0), "CRV: Morpho not configured");
 
         asset          = IERC20(_asset);
         feeRecipient   = _feeRecipient;
@@ -295,74 +308,56 @@ contract CoinRailzYieldVault {
             compoundComet = IComet(_compoundComet);
         }
         if (_morpho != address(0)) {
-            morpho       = IMorpho(_morpho);
-            morphoMarket = _morphoMarket;
+            morpho        = IMorpho(_morpho);
+            morphoMarket  = _morphoMarket;
+            morphoMarketId = keccak256(abi.encode(_morphoMarket));
+            morphoIrm     = IAdaptiveCurveIrm(_morphoIrm);
+            emit MorphoMarketConfigured(_morpho, morphoMarketId);
         }
+
+        feeCheckpoint = 0;
     }
 
     // ── ERC-4626 Core ─────────────────────────────────────────────────────────
 
-    /**
-     * @notice Total USDC controlled by the vault in the active yield protocol.
-     *         Does NOT include pendingFees (those are owed to feeRecipient, not depositors).
-     */
+    /// @notice Raw assets in the active protocol (not adjusted for fees).
     function totalAssets() public view returns (uint256) {
-        if (activeProtocol == Protocol.AAVE && address(aUsdc) != address(0)) {
-            uint256 total = aUsdc.balanceOf(address(this));
-            // Subtract pendingFees that are already earmarked but still as aTokens
-            return total > pendingFees ? total - pendingFees : 0;
-        }
-        if (activeProtocol == Protocol.COMPOUND && address(compoundComet) != address(0)) {
-            uint256 total = compoundComet.balanceOf(address(this));
-            return total > pendingFees ? total - pendingFees : 0;
-        }
-        if (activeProtocol == Protocol.MORPHO && address(morpho) != address(0)) {
-            uint256 total = morpho.expectedSupplyAssets(morphoMarket, address(this));
-            return total > pendingFees ? total - pendingFees : 0;
-        }
-        // Fallback: raw USDC balance (shouldn't happen in normal operation)
-        uint256 bal = asset.balanceOf(address(this));
-        return bal > pendingFees ? bal - pendingFees : 0;
+        return _rawProtocolBalance();
     }
 
-    /// @notice Convert assets to shares at the current price (before entry fee deduction)
+    /// @notice Convert assets to shares at current price.
     function convertToShares(uint256 assets) public view returns (uint256) {
         uint256 supply = totalSupply;
         if (supply == 0) return assets;
         uint256 ta = totalAssets();
-        if (ta == 0) return assets; // [M-2] guard: avoid div-by-zero if protocol balance is zero
+        if (ta == 0) return assets;
         return (assets * supply) / ta;
     }
 
-    /// @notice Convert shares to assets at the current price
+    /// @notice Convert shares to assets at current price.
     function convertToAssets(uint256 shares) public view returns (uint256) {
         uint256 supply = totalSupply;
         if (supply == 0) return shares;
         return (shares * totalAssets()) / supply;
     }
 
-    /// @notice Preview how many shares a deposit of `assets` USDC will yield (after entry fee)
-    function previewDeposit(uint256 assets) public view returns (uint256 shares) {
+    /// @notice Preview shares received for a deposit (after entry fee).
+    function previewDeposit(uint256 assets) public view returns (uint256) {
         uint256 fee = (assets * depositFeeBps) / 10_000;
-        uint256 netAssets = assets - fee;
-        return convertToShares(netAssets);
+        return convertToShares(assets - fee);
     }
 
-    /// @notice Preview how many USDC assets withdrawn for `shares` (after performance fee)
+    /// @notice Preview assets received for redeeming shares.
     function previewRedeem(uint256 shares) public view returns (uint256) {
-        return convertToAssets(shares); // Performance fee applied at withdrawal time
+        return convertToAssets(shares);
     }
 
     // ── Deposit ───────────────────────────────────────────────────────────────
 
     /**
      * @notice Deposit USDC, receive crUSDC shares.
-     *         0.5% entry fee charged on EVERY deposit — sent to feeRecipient immediately.
-     *         No exceptions: this fee applies regardless of prior deposit history.
-     *
-     * @param assets   Amount of USDC to deposit (in 6-decimal units)
-     * @param receiver Address to receive the crUSDC shares
-     * @return shares  Number of crUSDC shares minted
+     *         0.5% entry fee on every deposit, sent immediately to feeRecipient.
+     *         Performance fees accrued globally before shares are issued.
      */
     function deposit(uint256 assets, address receiver)
         external
@@ -370,56 +365,48 @@ contract CoinRailzYieldVault {
         whenNotPaused
         returns (uint256 shares)
     {
-        require(assets > 0,                   "CRV: zero deposit");
+        require(assets >= MIN_DEPOSIT,        "CRV: below minimum deposit");
         require(receiver != address(0),       "CRV: zero receiver");
 
-        // Pull USDC from caller
-        asset.transferFrom(msg.sender, address(this), assets);
+        // [1] Capture yield on existing assets before this deposit changes state
+        _accrueFees();
 
-        // Deduct entry fee immediately
+        // [2] Pull USDC from caller
+        _safeTransferFrom(address(asset), msg.sender, address(this), assets);
+
+        // [3] Deduct entry fee immediately
         uint256 entryFee = (assets * depositFeeBps) / 10_000;
         uint256 netAssets = assets - entryFee;
-
-        // Send entry fee to feeRecipient right now — no waiting
         if (entryFee > 0) {
-            asset.transfer(feeRecipient, entryFee);
+            _safeTransfer(address(asset), feeRecipient, entryFee);
         }
 
-        // Calculate shares based on net assets deposited
-        shares = _calculateSharesForDeposit(netAssets);
+        // [4] Calculate shares based on net assets vs current pool
+        shares = _calcShares(netAssets);
 
-        // Record cost basis for performance fee tracking
-        costBasisAssets[receiver] += netAssets;
-        costBasisShares[receiver] += shares;
-
-        // Deploy net assets to the active protocol
+        // [5] Deploy net assets to the active protocol
         _supplyToProtocol(netAssets);
 
-        // Mint share tokens to receiver
+        // [6] Mint share tokens to receiver
         _mint(receiver, shares);
+
+        // [7] Update fee checkpoint to include new principal (so it's never treated as yield)
+        feeCheckpoint = _rawProtocolBalance();
 
         emit Deposited(msg.sender, receiver, assets, entryFee, shares);
     }
 
-    function _calculateSharesForDeposit(uint256 netAssets) internal view returns (uint256) {
+    function _calcShares(uint256 netAssets) internal view returns (uint256) {
         uint256 supply = totalSupply;
-        if (supply == 0 || totalAssets() == 0) {
-            return netAssets; // 1:1 on first deposit
-        }
+        if (supply == 0 || totalAssets() == 0) return netAssets;
         return (netAssets * supply) / totalAssets();
     }
 
-    // ── Withdraw ──────────────────────────────────────────────────────────────
+    // ── Withdraw / Redeem ─────────────────────────────────────────────────────
 
     /**
      * @notice Redeem crUSDC shares for USDC.
-     *         Performance fee (15%) applied to positive yield only.
-     *         No exit fee.
-     *
-     * @param shares   Number of crUSDC shares to redeem
-     * @param receiver Address to receive the USDC
-     * @param shareOwner Address whose shares are redeemed (must be msg.sender or approved)
-     * @return assets  Net USDC received after performance fee
+     *         No exit fee. Performance fees already captured via continuous accrual.
      */
     function redeem(uint256 shares, address receiver, address shareOwner)
         external
@@ -429,7 +416,6 @@ contract CoinRailzYieldVault {
         require(shares > 0,             "CRV: zero shares");
         require(receiver != address(0), "CRV: zero receiver");
 
-        // Allowance check if not self
         if (shareOwner != msg.sender) {
             uint256 allowed = allowance[shareOwner][msg.sender];
             if (allowed != type(uint256).max) {
@@ -437,96 +423,45 @@ contract CoinRailzYieldVault {
                 allowance[shareOwner][msg.sender] = allowed - shares;
             }
         }
-
         require(balanceOf[shareOwner] >= shares, "CRV: insufficient shares");
 
-        // Calculate gross asset value of these shares
-        uint256 grossAssets = convertToAssets(shares);
+        // [1] Accrue fees on outstanding yield before this withdrawal
+        _accrueFees();
 
-        // Calculate performance fee on yield (high-watermark)
-        uint256 performanceFee = _calculatePerformanceFee(shareOwner, shares, grossAssets);
+        // [2] Convert shares → assets at post-accrual price
+        assets = convertToAssets(shares);
 
-        // Accumulate performance fee for harvest
-        if (performanceFee > 0) {
-            pendingFees += performanceFee;
-        }
-
-        // Net to receiver
-        assets = grossAssets - performanceFee;
-
-        // Update cost basis
-        _updateCostBasisOnWithdraw(shareOwner, shares);
-
-        // Burn shares
+        // [3] Burn shares
         _burn(shareOwner, shares);
 
-        // Withdraw from protocol and send to receiver
+        // [4] Withdraw from protocol directly to receiver
         _withdrawFromProtocol(assets, receiver);
 
-        emit Withdrawn(shareOwner, receiver, assets, performanceFee, shares);
+        // [5] Update checkpoint to reflect reduced assets
+        feeCheckpoint = _rawProtocolBalance();
+
+        emit Withdrawn(shareOwner, receiver, assets, shares);
     }
 
-    function _calculatePerformanceFee(
-        address user,
-        uint256 sharesToWithdraw,
-        uint256 grossAssets
-    ) internal view returns (uint256) {
-        uint256 userTotalShares = balanceOf[user] + sharesToWithdraw; // before burn
-        if (userTotalShares == 0 || costBasisShares[user] == 0) return 0;
-
-        // Proportional cost basis for the shares being withdrawn
-        uint256 proportionalCostBasis = (costBasisAssets[user] * sharesToWithdraw) / costBasisShares[user];
-
-        // Only charge performance fee on positive yield
-        if (grossAssets <= proportionalCostBasis) return 0;
-
-        uint256 gain = grossAssets - proportionalCostBasis;
-        return (gain * performanceFeeBps) / 10_000;
-    }
-
-    function _updateCostBasisOnWithdraw(address user, uint256 sharesWithdrawn) internal {
-        uint256 userBasisShares = costBasisShares[user];
-        if (userBasisShares == 0) return;
-
-        // Deduct proportional cost basis
-        uint256 basisToRemove = (costBasisAssets[user] * sharesWithdrawn) / userBasisShares;
-        costBasisAssets[user] = costBasisAssets[user] > basisToRemove
-            ? costBasisAssets[user] - basisToRemove
-            : 0;
-        costBasisShares[user] = costBasisShares[user] > sharesWithdrawn
-            ? costBasisShares[user] - sharesWithdrawn
-            : 0;
-    }
-
-    // ── Harvest ───────────────────────────────────────────────────────────────
+    // ── Harvest / Accrue ──────────────────────────────────────────────────────
 
     /**
-     * @notice Sweep accumulated performance fees to feeRecipient.
-     *         Callable by anyone. Only executes if pendingFees >= MIN_HARVEST_USD ($5).
-     *         This is how CoinRailz collects yield revenue without waiting for withdrawals.
+     * @notice Accrue outstanding performance fees by minting shares to feeRecipient.
+     *         Callable by anyone — designed for keeper bots and automated crons.
+     *         No minimum threshold: accrues any non-zero yield.
      */
-    function harvest() external nonReentrant {
-        if (pendingFees < MIN_HARVEST_USD) {
-            emit HarvestSkipped(pendingFees, MIN_HARVEST_USD);
-            return;
-        }
-
-        uint256 toHarvest = pendingFees;
-        pendingFees = 0;
-
-        // Withdraw harvest amount from active protocol
-        _withdrawFromProtocol(toHarvest, feeRecipient);
-
-        emit Harvested(feeRecipient, toHarvest);
+    function accrueFees() external nonReentrant {
+        _accrueFees();
+        feeCheckpoint = _rawProtocolBalance();
     }
 
     // ── Auto-Rebalancing ──────────────────────────────────────────────────────
 
     /**
-     * @notice Rebalance to the highest-APY protocol.
-     *         Callable by anyone. Enforces 24h cooldown between rebalances.
-     *         Only rebalances if APY improvement >= MIN_REBALANCE_DELTA (50 bps).
-     *         This is the autonomous routing mechanism — no agent action required.
+     * @notice Switch to the highest-APY protocol.
+     *         Callable by anyone. 24h cooldown enforced.
+     *         v2 fix: lastRebalance is ONLY updated when a real switch happens,
+     *         preventing griefing no-op calls from blocking future rebalances.
      */
     function rebalance() external nonReentrant {
         require(
@@ -537,36 +472,36 @@ contract CoinRailzYieldVault {
         (Protocol best, uint256 bestAPY) = getBestProtocol();
         uint256 currentAPY = getProtocolAPYBps(activeProtocol);
 
-        lastRebalance = block.timestamp;
-
-        // Only move if there's meaningful improvement
+        // Emit skip event and return WITHOUT updating lastRebalance — allows retry sooner
         if (best == activeProtocol || bestAPY < currentAPY + MIN_REBALANCE_DELTA) {
-            return; // Already optimal — emit no event, just reset timer
-        }
-
-        uint256 tvl = totalAssets();
-        if (tvl == 0) {
-            activeProtocol = best;
+            emit RebalanceSkipped(activeProtocol, best, currentAPY, bestAPY);
             return;
         }
 
+        // Capture yield before moving funds
+        _accrueFees();
+
+        uint256 tvl = totalAssets();
         Protocol previousProtocol = activeProtocol;
 
-        // Withdraw ALL from current protocol (into this contract as USDC)
-        _withdrawFromProtocol(tvl, address(this));
+        if (tvl > 0) {
+            // Withdraw ALL from current protocol
+            _withdrawFromProtocol(tvl, address(this));
+        }
 
-        // Switch to best protocol
+        // Switch protocol and re-deploy
         activeProtocol = best;
 
-        // Re-deploy to new protocol — deploy ALL raw USDC including pendingFees.
-        // [H-1 FIX] Do NOT subtract pendingFees here. totalAssets() already excludes them
-        // from share price accounting, and harvest() withdraws them from the active protocol.
-        // Leaving pendingFees as raw USDC here would cause harvest() to drain depositor funds
-        // from the new protocol instead of using the raw USDC sitting in the vault.
         uint256 available = asset.balanceOf(address(this));
         if (available > 0) {
             _supplyToProtocol(available);
         }
+
+        // Update lastRebalance ONLY on real switch
+        lastRebalance = block.timestamp;
+
+        // Update fee checkpoint after re-deploy
+        feeCheckpoint = _rawProtocolBalance();
 
         emit Rebalanced(previousProtocol, best, tvl, currentAPY, bestAPY);
     }
@@ -574,42 +509,32 @@ contract CoinRailzYieldVault {
     // ── Emergency Exit ────────────────────────────────────────────────────────
 
     /**
-     * @notice Always-available exit for depositors.
-     *         Performance fee still applies on yield.
-     *         Cannot be blocked by owner or paused state.
-     *         Emits EmergencyWithdraw for transparency.
+     * @notice Always-available exit. Cannot be blocked by owner or paused state.
+     *         No additional fees beyond what accrual already captured.
      */
     function emergencyWithdraw() external nonReentrant {
         uint256 shares = balanceOf[msg.sender];
         require(shares > 0, "CRV: no shares");
 
-        uint256 grossAssets = convertToAssets(shares);
-        uint256 performanceFee = _calculatePerformanceFee(msg.sender, shares, grossAssets);
+        _accrueFees();
 
-        if (performanceFee > 0) {
-            pendingFees += performanceFee;
-        }
-
-        uint256 netAssets = grossAssets - performanceFee;
-
-        _updateCostBasisOnWithdraw(msg.sender, shares);
+        uint256 assets = convertToAssets(shares);
         _burn(msg.sender, shares);
-        _withdrawFromProtocol(netAssets, msg.sender);
+        _withdrawFromProtocol(assets, msg.sender);
+        feeCheckpoint = _rawProtocolBalance();
 
-        emit EmergencyWithdraw(msg.sender, netAssets, shares);
+        emit EmergencyWithdraw(msg.sender, assets, shares);
     }
 
     // ── Protocol APY Reads ────────────────────────────────────────────────────
 
     /**
-     * @notice Returns APY in basis points for a given protocol.
-     *         Reads live on-chain rates — no oracle manipulation possible.
+     * @notice APY in basis points for a given protocol, read from live on-chain rates.
      */
     function getProtocolAPYBps(Protocol p) public view returns (uint256) {
         if (p == Protocol.AAVE && address(aavePool) != address(0)) {
             try aavePool.getReserveData(address(asset)) returns (IAavePool.ReserveData memory data) {
-                // liquidityRate is APR in ray (1e27); convert to bps
-                // APR bps = rate * 10_000 / 1e27
+                // liquidityRate is APR in ray (1e27) → convert to bps
                 return uint256(data.currentLiquidityRate) * 10_000 / 1e27;
             } catch {
                 return 0;
@@ -619,32 +544,47 @@ contract CoinRailzYieldVault {
         if (p == Protocol.COMPOUND && address(compoundComet) != address(0)) {
             try compoundComet.getUtilization() returns (uint256 utilization) {
                 try compoundComet.getSupplyRate(utilization) returns (uint64 ratePerSecond) {
-                    // ratePerSecond in 1e18; annualize to bps
-                    // APR bps = rate * 365 * 24 * 3600 * 10_000 / 1e18
                     return uint256(ratePerSecond) * 365 * 24 * 3600 * 10_000 / 1e18;
-                } catch {
-                    return 0;
-                }
-            } catch {
-                return 0;
-            }
+                } catch { return 0; }
+            } catch { return 0; }
         }
 
         if (p == Protocol.MORPHO && address(morpho) != address(0)) {
-            // Morpho: estimate via expectedSupplyAssets delta (approximation)
-            // For a more accurate rate, query the market's supplyRate from Morpho's IRM
-            // Returning 0 here makes Morpho ineligible until properly integrated
-            return 0;
+            return _morphoSupplyAPYBps();
         }
 
         return 0;
     }
 
     /**
-     * @notice Returns the protocol with the best APY and that APY in bps.
+     * @notice Compute Morpho Blue supply APY via the Adaptive Curve IRM.
+     *         Formula: supplyRate = borrowRate × utilization × (1 − protocolFee)
+     */
+    function _morphoSupplyAPYBps() internal view returns (uint256) {
+        if (address(morpho) == address(0) || address(morphoIrm) == address(0)) return 0;
+        if (morphoMarketId == bytes32(0)) return 0;
+
+        try morpho.market(morphoMarketId) returns (MorphoMarketState memory m) {
+            if (m.totalSupplyAssets == 0) return 0;
+
+            try morphoIrm.borrowRateView(morphoMarket, m) returns (uint256 borrowRatePerSec) {
+                // utilization in 1e18
+                uint256 util = uint256(m.totalBorrowAssets) * 1e18 / uint256(m.totalSupplyAssets);
+                // gross supply rate per second (1e18)
+                uint256 grossRatePerSec = borrowRatePerSec * util / 1e18;
+                // deduct Morpho protocol fee (m.fee is in 1e18)
+                uint256 netRatePerSec = grossRatePerSec * (1e18 - uint256(m.fee)) / 1e18;
+                // annualise and convert to bps
+                return netRatePerSec * 365 * 24 * 3600 * 10_000 / 1e18;
+            } catch { return 0; }
+        } catch { return 0; }
+    }
+
+    /**
+     * @notice Returns the protocol with the highest live APY.
      */
     function getBestProtocol() public view returns (Protocol best, uint256 bestAPY) {
-        best    = Protocol.AAVE;
+        best    = activeProtocol; // default: stay put
         bestAPY = 0;
 
         Protocol[3] memory protocols = [Protocol.AAVE, Protocol.COMPOUND, Protocol.MORPHO];
@@ -658,7 +598,7 @@ contract CoinRailzYieldVault {
     }
 
     /**
-     * @notice Returns APYs for all three protocols (Aave, Compound, Morpho) in bps.
+     * @notice APYs for all three protocols in bps.
      */
     function getAllAPYs() external view returns (
         uint256 aaveAPYBps,
@@ -672,11 +612,6 @@ contract CoinRailzYieldVault {
 
     // ── Fee Management (48h Timelock) ─────────────────────────────────────────
 
-    /**
-     * @notice Propose a fee change. Executable only after FEE_TIMELOCK (48h).
-     *         Hard caps enforced: deposit fee ≤ 2%, performance fee ≤ 30%.
-     *         Change is fully transparent on-chain from the moment of proposal.
-     */
     function proposeFeeChange(uint256 newDepositFeeBps, uint256 newPerformanceFeeBps)
         external onlyOwner
     {
@@ -690,42 +625,53 @@ contract CoinRailzYieldVault {
         emit FeeChangeProposed(newDepositFeeBps, newPerformanceFeeBps, block.timestamp + FEE_TIMELOCK);
     }
 
-    /// @notice Execute a previously proposed fee change after the 48h timelock.
     function executeFeeChange() external onlyOwner {
-        require(feeChangeProposedAt != 0,                                  "CRV: no proposal");
-        require(block.timestamp >= feeChangeProposedAt + FEE_TIMELOCK,     "CRV: timelock active");
-
+        require(feeChangeProposedAt != 0,                              "CRV: no proposal");
+        require(block.timestamp >= feeChangeProposedAt + FEE_TIMELOCK, "CRV: timelock active");
         depositFeeBps     = pendingDepositFeeBps;
         performanceFeeBps = pendingPerformanceFeeBps;
         feeChangeProposedAt = 0;
-
         emit FeeChangeExecuted(depositFeeBps, performanceFeeBps);
     }
 
     // ── Owner Controls ────────────────────────────────────────────────────────
 
-    /// @notice Update feeRecipient address. Immediate (not timelocked).
     function setFeeRecipient(address newRecipient) external onlyOwner {
         require(newRecipient != address(0), "CRV: zero address");
         feeRecipient = newRecipient;
     }
 
-    /**
-     * @notice Pause/unpause new deposits. Existing depositors can always withdraw.
-     *         Use in emergencies (e.g., underlying protocol issue detected).
-     */
     function setPaused(bool _paused) external onlyOwner {
         paused = _paused;
         emit Paused(_paused);
     }
 
-    /// @notice Two-step ownership transfer — initiate.
+    /**
+     * @notice Configure Morpho Blue market post-deployment.
+     *         Use this to enable Morpho after verifying market params on-chain.
+     *         The owner sets the market; the contract reads live rates autonomously.
+     */
+    function configureMorphoMarket(
+        address _morpho,
+        MarketParams calldata _morphoMarket,
+        address _morphoIrm
+    ) external onlyOwner {
+        require(_morpho    != address(0), "CRV: zero morpho");
+        require(_morphoIrm != address(0), "CRV: zero irm");
+
+        morpho         = IMorpho(_morpho);
+        morphoMarket   = _morphoMarket;
+        morphoMarketId = keccak256(abi.encode(_morphoMarket));
+        morphoIrm      = IAdaptiveCurveIrm(_morphoIrm);
+
+        emit MorphoMarketConfigured(_morpho, morphoMarketId);
+    }
+
     function transferOwnership(address newOwner) external onlyOwner {
         pendingOwner = newOwner;
         emit OwnershipTransferStarted(owner, newOwner);
     }
 
-    /// @notice Two-step ownership transfer — accept (called by new owner).
     function acceptOwnership() external {
         require(msg.sender == pendingOwner, "CRV: not pending owner");
         emit OwnershipTransferred(owner, pendingOwner);
@@ -733,86 +679,156 @@ contract CoinRailzYieldVault {
         pendingOwner = address(0);
     }
 
-    // ── Internal Protocol Helpers ─────────────────────────────────────────────
-
-    function _supplyToProtocol(uint256 amount) internal {
-        // [L-3] Reset allowance to 0 before setting — required by USDT and good practice for USDC
-        if (activeProtocol == Protocol.AAVE && address(aavePool) != address(0)) {
-            asset.approve(address(aavePool), 0);
-            asset.approve(address(aavePool), amount);
-            aavePool.supply(address(asset), amount, address(this), 0);
-        } else if (activeProtocol == Protocol.COMPOUND && address(compoundComet) != address(0)) {
-            asset.approve(address(compoundComet), 0);
-            asset.approve(address(compoundComet), amount);
-            compoundComet.supply(address(asset), amount);
-        } else if (activeProtocol == Protocol.MORPHO && address(morpho) != address(0)) {
-            asset.approve(address(morpho), 0);
-            asset.approve(address(morpho), amount);
-            morpho.supply(morphoMarket, amount, 0, address(this), "");
-        }
-        // If no protocol configured: USDC stays in contract (safe fallback, no yield)
-    }
-
-    function _withdrawFromProtocol(uint256 amount, address recipient) internal {
-        if (activeProtocol == Protocol.AAVE && address(aavePool) != address(0)) {
-            aavePool.withdraw(address(asset), amount, recipient);
-        } else if (activeProtocol == Protocol.COMPOUND && address(compoundComet) != address(0)) {
-            if (recipient == address(this)) {
-                compoundComet.withdraw(address(asset), amount);
-            } else {
-                compoundComet.withdraw(address(asset), amount);
-                asset.transfer(recipient, amount);
-            }
-        } else if (activeProtocol == Protocol.MORPHO && address(morpho) != address(0)) {
-            morpho.withdraw(morphoMarket, amount, 0, address(this), recipient);
-        } else {
-            // Fallback: send from raw USDC balance
-            if (recipient != address(this)) {
-                asset.transfer(recipient, amount);
-            }
-        }
-    }
-
     // ── View Helpers ──────────────────────────────────────────────────────────
 
-    /// @notice User's current position: shares held, current asset value, estimated yield
-    function userPosition(address user) external view returns (
-        uint256 shares,
-        uint256 currentValue,
-        uint256 estimatedYield,
-        uint256 estimatedPerformanceFee
-    ) {
-        shares       = balanceOf[user];
-        currentValue = convertToAssets(shares);
-
-        uint256 costBasis = (costBasisShares[user] > 0)
-            ? (costBasisAssets[user] * shares) / costBasisShares[user]
-            : 0;
-
-        if (currentValue > costBasis) {
-            estimatedYield = currentValue - costBasis;
-            estimatedPerformanceFee = (estimatedYield * performanceFeeBps) / 10_000;
-        }
-    }
-
-    /// @notice Current share price in USDC (6 decimals)
+    /// @notice Current share price in USDC (6 decimals). 1e6 = $1.00
     function pricePerShare() external view returns (uint256) {
-        if (totalSupply == 0) return 1e6; // 1:1 initially
+        if (totalSupply == 0) return 1e6;
         return (totalAssets() * 1e6) / totalSupply;
     }
 
-    /// @notice How long until next rebalance is allowed
+    /// @notice Seconds until next rebalance is allowed.
     function nextRebalanceIn() external view returns (uint256) {
         uint256 nextTime = lastRebalance + REBALANCE_INTERVAL;
         if (block.timestamp >= nextTime) return 0;
         return nextTime - block.timestamp;
     }
 
-    /// @notice Protocol name string for the active protocol
+    /// @notice Protocol name for the currently active protocol.
     function activeProtocolName() external view returns (string memory) {
         if (activeProtocol == Protocol.AAVE)     return "Aave v3";
         if (activeProtocol == Protocol.COMPOUND)  return "Compound v3";
         if (activeProtocol == Protocol.MORPHO)    return "Morpho Blue";
         return "Unknown";
+    }
+
+    /// @notice Current position for a user.
+    function userPosition(address user) external view returns (
+        uint256 shares,
+        uint256 currentValue,
+        uint256 estimatedYield
+    ) {
+        shares       = balanceOf[user];
+        currentValue = convertToAssets(shares);
+        // Yield estimate: current value minus pro-rata feeCheckpoint
+        uint256 ts = totalSupply;
+        if (ts > 0 && feeCheckpoint > 0) {
+            uint256 userCheckpoint = (feeCheckpoint * shares) / ts;
+            estimatedYield = currentValue > userCheckpoint ? currentValue - userCheckpoint : 0;
+        }
+    }
+
+    /// @notice Yield currently eligible for fee accrual (not yet accrued).
+    function pendingFeeAccrual() external view returns (uint256 gainAssets, uint256 feeAssets) {
+        uint256 raw = _rawProtocolBalance();
+        if (raw > feeCheckpoint) {
+            gainAssets = raw - feeCheckpoint;
+            feeAssets  = (gainAssets * performanceFeeBps) / 10_000;
+        }
+    }
+
+    // ── Internal: Fee Accrual (v2 Global Share-Mint Model) ───────────────────
+
+    /**
+     * @dev Mint performance-fee shares to feeRecipient proportional to yield earned
+     *      since the last feeCheckpoint. Does NOT update feeCheckpoint — callers must
+     *      call `feeCheckpoint = _rawProtocolBalance()` after all state mutations.
+     */
+    function _accrueFees() internal {
+        if (totalSupply == 0) return;
+        uint256 raw = _rawProtocolBalance();
+        if (raw <= feeCheckpoint) return;
+
+        uint256 gain      = raw - feeCheckpoint;
+        uint256 feeAssets = (gain * performanceFeeBps) / 10_000;
+        if (feeAssets == 0) return;
+
+        // Shares to mint: feeAssets / pricePerShare (using pre-mint supply)
+        // feeShares = feeAssets * totalSupply / (raw - feeAssets)
+        // This gives feeRecipient exactly feeAssets worth of the vault
+        uint256 feeShares = (feeAssets * totalSupply) / (raw - feeAssets);
+        if (feeShares == 0) return;
+
+        _mint(feeRecipient, feeShares);
+        emit FeesAccrued(feeRecipient, feeAssets, feeShares);
+    }
+
+    // ── Internal: Protocol Helpers ────────────────────────────────────────────
+
+    function _rawProtocolBalance() internal view returns (uint256) {
+        if (activeProtocol == Protocol.AAVE && address(aUsdc) != address(0)) {
+            try aUsdc.balanceOf(address(this)) returns (uint256 b) { return b; }
+            catch { return 0; }
+        }
+        if (activeProtocol == Protocol.COMPOUND && address(compoundComet) != address(0)) {
+            try compoundComet.balanceOf(address(this)) returns (uint256 b) { return b; }
+            catch { return 0; }
+        }
+        if (activeProtocol == Protocol.MORPHO && address(morpho) != address(0)) {
+            try morpho.expectedSupplyAssets(morphoMarket, address(this)) returns (uint256 b) { return b; }
+            catch { return 0; }
+        }
+        // Fallback: raw USDC in contract (no yield protocol active)
+        return asset.balanceOf(address(this));
+    }
+
+    function _supplyToProtocol(uint256 amount) internal {
+        if (amount == 0) return;
+        if (activeProtocol == Protocol.AAVE && address(aavePool) != address(0)) {
+            _safeApprove(address(asset), address(aavePool), amount);
+            aavePool.supply(address(asset), amount, address(this), 0);
+        } else if (activeProtocol == Protocol.COMPOUND && address(compoundComet) != address(0)) {
+            _safeApprove(address(asset), address(compoundComet), amount);
+            compoundComet.supply(address(asset), amount);
+        } else if (activeProtocol == Protocol.MORPHO && address(morpho) != address(0)) {
+            _safeApprove(address(asset), address(morpho), amount);
+            morpho.supply(morphoMarket, amount, 0, address(this), "");
+        }
+        // If no protocol: USDC stays in contract (no yield, safe fallback)
+    }
+
+    function _withdrawFromProtocol(uint256 amount, address recipient) internal {
+        if (amount == 0) return;
+        if (activeProtocol == Protocol.AAVE && address(aavePool) != address(0)) {
+            aavePool.withdraw(address(asset), amount, recipient);
+        } else if (activeProtocol == Protocol.COMPOUND && address(compoundComet) != address(0)) {
+            // Compound withdraw sends to address(this) — then forward if needed
+            compoundComet.withdraw(address(asset), amount);
+            if (recipient != address(this)) {
+                _safeTransfer(address(asset), recipient, amount);
+            }
+        } else if (activeProtocol == Protocol.MORPHO && address(morpho) != address(0)) {
+            morpho.withdraw(morphoMarket, amount, 0, address(this), recipient);
+        } else {
+            if (recipient != address(this)) {
+                _safeTransfer(address(asset), recipient, amount);
+            }
+        }
+    }
+
+    // ── Internal: SafeERC20 Helpers ───────────────────────────────────────────
+
+    function _safeTransfer(address token, address to, uint256 amount) internal {
+        (bool ok, bytes memory data) = token.call(
+            abi.encodeWithSelector(IERC20.transfer.selector, to, amount)
+        );
+        require(ok && (data.length == 0 || abi.decode(data, (bool))), "CRV: transfer failed");
+    }
+
+    function _safeTransferFrom(address token, address from, address to, uint256 amount) internal {
+        (bool ok, bytes memory data) = token.call(
+            abi.encodeWithSelector(IERC20.transferFrom.selector, from, to, amount)
+        );
+        require(ok && (data.length == 0 || abi.decode(data, (bool))), "CRV: transferFrom failed");
+    }
+
+    function _safeApprove(address token, address spender, uint256 amount) internal {
+        // Reset to 0 first (required by some ERC-20s, good practice for all)
+        (bool ok1,) = token.call(abi.encodeWithSelector(IERC20.approve.selector, spender, 0));
+        require(ok1, "CRV: approve(0) failed");
+        (bool ok2, bytes memory data) = token.call(
+            abi.encodeWithSelector(IERC20.approve.selector, spender, amount)
+        );
+        require(ok2 && (data.length == 0 || abi.decode(data, (bool))), "CRV: approve failed");
     }
 }

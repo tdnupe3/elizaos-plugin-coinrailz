@@ -62,10 +62,10 @@ const VAULT_ABI = parseAbi([
   'function activeProtocolName() external view returns (string)',
   'function getBestProtocol() external view returns (uint8 best, uint256 bestAPY)',
   'function nextRebalanceIn() external view returns (uint256)',
-  'function pendingFees() external view returns (uint256)',
+  'function pendingFeeAccrual() external view returns (uint256 gainAssets, uint256 feeAssets)',
   'function depositFeeBps() external view returns (uint256)',
   'function performanceFeeBps() external view returns (uint256)',
-  'function userPosition(address user) external view returns (uint256 shares, uint256 currentValue, uint256 estimatedYield, uint256 estimatedPerformanceFee)',
+  'function userPosition(address user) external view returns (uint256 shares, uint256 currentValue, uint256 estimatedYield)',
 ]);
 
 // ── Rate Cache (60 second TTL) ────────────────────────────────────────────────
@@ -190,22 +190,24 @@ async function fetchVaultStats() {
   if (!VAULT_ADDRESS) return null;
 
   try {
-    const [totalAssets, totalSupply, pricePerShare, pendingFees, depositFeeBps, performanceFeeBps, nextRebalanceIn] =
+    const [totalAssets, totalSupply, pricePerShare, pendingAccrual, depositFeeBps, performanceFeeBps, nextRebalanceIn] =
       await Promise.all([
         client.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: VAULT_ABI, functionName: 'totalAssets' }),
         client.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: VAULT_ABI, functionName: 'totalSupply' }),
         client.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: VAULT_ABI, functionName: 'pricePerShare' }),
-        client.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: VAULT_ABI, functionName: 'pendingFees' }),
+        client.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: VAULT_ABI, functionName: 'pendingFeeAccrual' }),
         client.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: VAULT_ABI, functionName: 'depositFeeBps' }),
         client.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: VAULT_ABI, functionName: 'performanceFeeBps' }),
         client.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: VAULT_ABI, functionName: 'nextRebalanceIn' }),
       ]);
 
+    const [, feeAssets] = pendingAccrual as [bigint, bigint];
+
     return {
       tvlUsdc:           formatUnits(totalAssets as bigint, 6),
       totalSharesUsdc:   formatUnits(totalSupply as bigint, 6),
       pricePerShare:     formatUnits(pricePerShare as bigint, 6),
-      pendingFeesUsdc:   formatUnits(pendingFees as bigint, 6),
+      pendingFeesUsdc:   formatUnits(feeAssets, 6),
       depositFeePct:     Number(depositFeeBps as bigint) / 100,
       performanceFeePct: Number(performanceFeeBps as bigint) / 100,
       nextRebalanceInSec: Number(nextRebalanceIn as bigint),
@@ -408,7 +410,7 @@ router.get('/contract', async (_req: Request, res: Response) => {
       deposit:          'deposit(uint256 assets, address receiver) → uint256 shares',
       redeem:           'redeem(uint256 shares, address receiver, address owner) → uint256 assets',
       emergencyWithdraw:'emergencyWithdraw() — always works, cannot be blocked',
-      harvest:          'harvest() — anyone can call, sweeps fees when >$5 pending',
+      accrueFees:       'accrueFees() — anyone can call; mints performance-fee shares to feeRecipient on any yield gain',
       rebalance:        'rebalance() — anyone can call, 24h cooldown, auto-routes to best APY',
       userPosition:     'userPosition(address) → (shares, value, yield, perfFee)',
       pricePerShare:    'pricePerShare() → current USDC value per 1 crUSDC share',
@@ -615,7 +617,7 @@ router.get('/server-wallet', async (req: Request, res: Response) => {
     const network = (req.query.network as string) || 'testnet';
     const chain   = network === 'mainnet' ? base : baseSepolia;
     const rpcUrl  = network === 'mainnet'
-      ? 'https://mainnet.base.org'
+      ? 'https://base-rpc.publicnode.com'
       : 'https://base-sepolia-rpc.publicnode.com';
 
     const pubClient = createPublicClient({ chain, transport: http(rpcUrl) });
@@ -667,7 +669,7 @@ router.post('/server-deploy', async (req: Request, res: Response) => {
 
     const chain    = network === 'mainnet' ? base : baseSepolia;
     const rpcUrl   = network === 'mainnet'
-      ? 'https://mainnet.base.org'
+      ? 'https://base-rpc.publicnode.com'
       : 'https://base-sepolia-rpc.publicnode.com';
 
     const walletClient = createWalletClient({ account, chain, transport: http(rpcUrl) });
@@ -697,8 +699,9 @@ router.post('/server-deploy', async (req: Request, res: Response) => {
         norm(addrs.aavePool),
         norm(addrs.aUsdc),
         norm(addrs.compoundComet),
-        ZERO,                          // morpho = address(0) for testnet
+        ZERO,                          // morpho = address(0) — configure post-deploy via configureMorphoMarket()
         [ZERO, ZERO, ZERO, ZERO, 0n],  // morphoMarket = all zeros
+        ZERO,                          // morphoIrm = address(0) — configure post-deploy
         0,                             // Protocol.AAVE
       ],
     });
@@ -756,8 +759,9 @@ const EXTENDED_VAULT_ABI = parseAbi([
   'function balanceOf(address) view returns (uint256)',
   'function pricePerShare() view returns (uint256)',
   'function rebalance()',
-  'function harvest()',
+  'function accrueFees()',
   'function activeProtocolName() view returns (string)',
+  'function pendingFeeAccrual() view returns (uint256 gainAssets, uint256 feeAssets)',
 ]);
 
 const ERC20_ABI = parseAbi([
@@ -966,7 +970,7 @@ router.post('/platform-harvest', async (req: Request, res: Response) => {
   try {
     const { walletClient, pubClient } = getServerWallet();
     const vault = VAULT_ADDRESS as `0x${string}`;
-    const tx    = await walletClient.writeContract({ address: vault, abi: EXTENDED_VAULT_ABI, functionName: 'harvest' });
+    const tx    = await walletClient.writeContract({ address: vault, abi: EXTENDED_VAULT_ABI, functionName: 'accrueFees' });
     const rx    = await pubClient.waitForTransactionReceipt({ hash: tx, timeout: 60_000 });
     res.json({ success: true, txHash: tx, blockNumber: Number(rx.blockNumber), basescanUrl: `https://basescan.org/tx/${tx}` });
   } catch (err: any) {

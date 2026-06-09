@@ -4103,6 +4103,15 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
         console.warn('⚠️ x402 canary job failed to start (non-fatal):', canaryErr.message);
       }
 
+      // Start yield vault keeper (rebalance + fee accrual every 6h)
+      try {
+        const { startYieldVaultKeeper } = await import('./jobs/yieldVaultKeeper');
+        startYieldVaultKeeper();
+        console.log('🏦 yield vault keeper registered');
+      } catch (keeperErr: any) {
+        console.warn('⚠️ yield vault keeper failed to start (non-fatal):', keeperErr.message);
+      }
+
       // Initialize MPP ecosystem monitor (non-blocking)
       // Polls npm weekly for mppx version changes; tracks mpp-registry crawlers
       try {

@@ -31,7 +31,7 @@ const VAULT_ADDRESS = process.env.YIELD_VAULT_ADDRESS || null;
 
 const RPC_URL = process.env.ALCHEMY_API_KEY
   ? `https://base-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`
-  : 'https://mainnet.base.org';
+  : 'https://base-rpc.publicnode.com'; // publicnode handles concurrent calls without rate-limiting
 
 const client = createPublicClient({
   chain: base,
@@ -741,6 +741,234 @@ router.post('/server-deploy', async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── Platform Integration (admin-only, server-wallet operated) ─────────────────
+
+const EXTENDED_VAULT_ABI = parseAbi([
+  'function deposit(uint256 assets, address receiver) returns (uint256 shares)',
+  'function redeem(uint256 shares, address receiver, address owner) returns (uint256 assets)',
+  'function totalAssets() view returns (uint256)',
+  'function totalSupply() view returns (uint256)',
+  'function balanceOf(address) view returns (uint256)',
+  'function pricePerShare() view returns (uint256)',
+  'function rebalance()',
+  'function harvest()',
+  'function activeProtocolName() view returns (string)',
+]);
+
+const ERC20_ABI = parseAbi([
+  'function balanceOf(address) view returns (uint256)',
+  'function approve(address spender, uint256 amount) returns (bool)',
+  'function allowance(address owner, address spender) view returns (uint256)',
+]);
+
+function adminAuth(req: Request, res: Response): boolean {
+  const key = req.headers['x-admin-key'] as string | undefined;
+  if (!key || key !== process.env.ADMIN_KEY) {
+    res.status(401).json({ success: false, error: 'Unauthorized. Provide x-admin-key header.' });
+    return false;
+  }
+  return true;
+}
+
+function getServerWallet() {
+  const rawKey = process.env.EVM_PRIVATE_KEY;
+  if (!rawKey) throw new Error('EVM_PRIVATE_KEY not configured');
+  const key = (rawKey.startsWith('0x') ? rawKey : `0x${rawKey}`) as `0x${string}`;
+  const account = privateKeyToAccount(key);
+  const walletClient = createWalletClient({ account, chain: base, transport: http(RPC_URL) });
+  const pubClient    = createPublicClient({ chain: base, transport: http(RPC_URL) });
+  return { account, walletClient, pubClient };
+}
+
+/**
+ * GET /api/yield/platform-balance
+ * Returns server wallet's USDC balance and vault shares.
+ */
+router.get('/platform-balance', async (req: Request, res: Response) => {
+  if (!adminAuth(req, res)) return;
+  if (!VAULT_ADDRESS) return res.status(400).json({ success: false, error: 'Vault not deployed' });
+
+  try {
+    const { account, pubClient } = getServerWallet();
+    const [usdcBal, vaultShares, totalAssets, pricePerShare, protocolName] = await Promise.all([
+      pubClient.readContract({ address: BASE_USDC, abi: ERC20_ABI, functionName: 'balanceOf', args: [account.address] }),
+      pubClient.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: EXTENDED_VAULT_ABI, functionName: 'balanceOf', args: [account.address] }),
+      pubClient.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: EXTENDED_VAULT_ABI, functionName: 'totalAssets' }),
+      pubClient.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: EXTENDED_VAULT_ABI, functionName: 'pricePerShare' }),
+      pubClient.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: EXTENDED_VAULT_ABI, functionName: 'activeProtocolName' }),
+    ]);
+
+    res.json({
+      success: true,
+      wallet:  account.address,
+      vault:   VAULT_ADDRESS,
+      balances: {
+        usdcAvailable:  formatUnits(usdcBal as bigint, 6),
+        vaultShares:    formatUnits(vaultShares as bigint, 6),
+        vaultValueUsdc: formatUnits((vaultShares as bigint) * (pricePerShare as bigint) / 1_000_000n, 6),
+      },
+      vault_stats: {
+        tvlUsdc:        formatUnits(totalAssets as bigint, 6),
+        pricePerShare:  formatUnits(pricePerShare as bigint, 6),
+        activeProtocol: protocolName,
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/yield/platform-deposit
+ * Server wallet deposits USDC into the vault. Used for revenue sweeps.
+ * Body: { amountUsdc: "10.00" }
+ */
+router.post('/platform-deposit', async (req: Request, res: Response) => {
+  if (!adminAuth(req, res)) return;
+  if (!VAULT_ADDRESS) return res.status(400).json({ success: false, error: 'Vault not deployed' });
+
+  const { amountUsdc } = req.body as { amountUsdc: string };
+  if (!amountUsdc || isNaN(parseFloat(amountUsdc)) || parseFloat(amountUsdc) <= 0) {
+    return res.status(400).json({ success: false, error: 'Invalid amountUsdc. Provide a positive number as string, e.g. "10.00"' });
+  }
+
+  try {
+    const { account, walletClient, pubClient } = getServerWallet();
+    const amount = BigInt(Math.round(parseFloat(amountUsdc) * 1_000_000));
+    const vault  = VAULT_ADDRESS as `0x${string}`;
+
+    // Check USDC balance
+    const usdcBal = await pubClient.readContract({ address: BASE_USDC, abi: ERC20_ABI, functionName: 'balanceOf', args: [account.address] }) as bigint;
+    if (usdcBal < amount) {
+      return res.status(400).json({
+        success: false,
+        error: `Insufficient USDC. Have: ${formatUnits(usdcBal, 6)}, Need: ${amountUsdc}`,
+      });
+    }
+
+    // Approve with MaxUint256 if allowance is insufficient
+    // Uses unlimited approval to avoid race conditions on load-balanced RPC nodes
+    const MaxUint256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
+    const allowance  = await pubClient.readContract({ address: BASE_USDC, abi: ERC20_ABI, functionName: 'allowance', args: [account.address, vault] }) as bigint;
+    if (allowance < amount) {
+      const approveTx = await walletClient.writeContract({ address: BASE_USDC, abi: ERC20_ABI, functionName: 'approve', args: [vault, MaxUint256] });
+      await pubClient.waitForTransactionReceipt({ hash: approveTx, timeout: 60_000 });
+      // Small settle delay so every RPC node in the pool indexes the approval before deposit simulation
+      await new Promise(r => setTimeout(r, 2_000));
+    }
+
+    // Deposit
+    const depositTx = await walletClient.writeContract({ address: vault, abi: EXTENDED_VAULT_ABI, functionName: 'deposit', args: [amount, account.address] });
+    const receipt   = await pubClient.waitForTransactionReceipt({ hash: depositTx, timeout: 60_000 });
+
+    // Read updated balances
+    const [newUsdcBal, newShares] = await Promise.all([
+      pubClient.readContract({ address: BASE_USDC, abi: ERC20_ABI, functionName: 'balanceOf', args: [account.address] }) as Promise<bigint>,
+      pubClient.readContract({ address: vault, abi: EXTENDED_VAULT_ABI, functionName: 'balanceOf', args: [account.address] }) as Promise<bigint>,
+    ]);
+
+    res.json({
+      success:      true,
+      txHash:       depositTx,
+      blockNumber:  Number(receipt.blockNumber),
+      deposited:    amountUsdc,
+      sharesReceived: formatUnits(newShares - (allowance < amount ? 0n : 0n), 6),
+      newUsdcBalance: formatUnits(newUsdcBal, 6),
+      newShares:    formatUnits(newShares, 6),
+      basescanUrl:  `https://basescan.org/tx/${depositTx}`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.shortMessage || err.message });
+  }
+});
+
+/**
+ * POST /api/yield/platform-withdraw
+ * Server wallet redeems vault shares for USDC.
+ * Body: { shares: "9.95" }  (in crUSDC units, 6 decimals)
+ */
+router.post('/platform-withdraw', async (req: Request, res: Response) => {
+  if (!adminAuth(req, res)) return;
+  if (!VAULT_ADDRESS) return res.status(400).json({ success: false, error: 'Vault not deployed' });
+
+  const { shares } = req.body as { shares: string };
+  if (!shares || isNaN(parseFloat(shares)) || parseFloat(shares) <= 0) {
+    return res.status(400).json({ success: false, error: 'Invalid shares. Provide a positive number as string.' });
+  }
+
+  try {
+    const { account, walletClient, pubClient } = getServerWallet();
+    const shareAmount = BigInt(Math.round(parseFloat(shares) * 1_000_000));
+    const vault = VAULT_ADDRESS as `0x${string}`;
+
+    const currentShares = await pubClient.readContract({ address: vault, abi: EXTENDED_VAULT_ABI, functionName: 'balanceOf', args: [account.address] }) as bigint;
+    if (currentShares < shareAmount) {
+      return res.status(400).json({
+        success: false,
+        error: `Insufficient shares. Have: ${formatUnits(currentShares, 6)}, Requested: ${shares}`,
+      });
+    }
+
+    const redeemTx = await walletClient.writeContract({ address: vault, abi: EXTENDED_VAULT_ABI, functionName: 'redeem', args: [shareAmount, account.address, account.address] });
+    const receipt  = await pubClient.waitForTransactionReceipt({ hash: redeemTx, timeout: 60_000 });
+
+    const [newUsdcBal, newShares] = await Promise.all([
+      pubClient.readContract({ address: BASE_USDC, abi: ERC20_ABI, functionName: 'balanceOf', args: [account.address] }) as Promise<bigint>,
+      pubClient.readContract({ address: vault, abi: EXTENDED_VAULT_ABI, functionName: 'balanceOf', args: [account.address] }) as Promise<bigint>,
+    ]);
+
+    res.json({
+      success:        true,
+      txHash:         redeemTx,
+      blockNumber:    Number(receipt.blockNumber),
+      sharesRedeemed: shares,
+      newUsdcBalance: formatUnits(newUsdcBal, 6),
+      newShares:      formatUnits(newShares, 6),
+      basescanUrl:    `https://basescan.org/tx/${redeemTx}`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.shortMessage || err.message });
+  }
+});
+
+/**
+ * POST /api/yield/platform-rebalance
+ * Calls vault.rebalance() — auto-routes to best APY protocol.
+ */
+router.post('/platform-rebalance', async (req: Request, res: Response) => {
+  if (!adminAuth(req, res)) return;
+  if (!VAULT_ADDRESS) return res.status(400).json({ success: false, error: 'Vault not deployed' });
+
+  try {
+    const { walletClient, pubClient } = getServerWallet();
+    const vault = VAULT_ADDRESS as `0x${string}`;
+    const tx    = await walletClient.writeContract({ address: vault, abi: EXTENDED_VAULT_ABI, functionName: 'rebalance' });
+    const rx    = await pubClient.waitForTransactionReceipt({ hash: tx, timeout: 60_000 });
+    res.json({ success: true, txHash: tx, blockNumber: Number(rx.blockNumber), basescanUrl: `https://basescan.org/tx/${tx}` });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.shortMessage || err.message });
+  }
+});
+
+/**
+ * POST /api/yield/platform-harvest
+ * Calls vault.harvest() — sweeps pending performance fees to feeRecipient when > $5.
+ */
+router.post('/platform-harvest', async (req: Request, res: Response) => {
+  if (!adminAuth(req, res)) return;
+  if (!VAULT_ADDRESS) return res.status(400).json({ success: false, error: 'Vault not deployed' });
+
+  try {
+    const { walletClient, pubClient } = getServerWallet();
+    const vault = VAULT_ADDRESS as `0x${string}`;
+    const tx    = await walletClient.writeContract({ address: vault, abi: EXTENDED_VAULT_ABI, functionName: 'harvest' });
+    const rx    = await pubClient.waitForTransactionReceipt({ hash: tx, timeout: 60_000 });
+    res.json({ success: true, txHash: tx, blockNumber: Number(rx.blockNumber), basescanUrl: `https://basescan.org/tx/${tx}` });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.shortMessage || err.message });
   }
 });
 

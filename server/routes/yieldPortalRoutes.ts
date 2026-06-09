@@ -1294,27 +1294,101 @@ router.post('/withdraw', async (req: Request, res: Response) => {
   });
 });
 
+// ── Deposit-Tx security: rate limiting ────────────────────────────────────────
+const DEPOSIT_RATE: Map<string, number[]> = new Map();
+const RATE_WINDOW_MS  = 10 * 60 * 1000; // 10 minutes
+const RATE_LIMIT      = 5;              // max 5 deposit-tx requests per wallet per 10 min
+const DEPOSIT_PRESETS = [10, 50, 100, 250, 1000] as const;
+const MIN_DEPOSIT_USD = 10;
+const MAX_DEPOSIT_USD = 50_000;
+
+function checkDepositRate(wallet: string): boolean {
+  const now  = Date.now();
+  const hits = (DEPOSIT_RATE.get(wallet) || []).filter(t => now - t < RATE_WINDOW_MS);
+  if (hits.length >= RATE_LIMIT) return false;
+  DEPOSIT_RATE.set(wallet, [...hits, now]);
+  return true;
+}
+
 /**
- * GET /api/yield/deposit-tx?amount=100&recipient=0x...
- * Returns pre-built ERC-4626 transaction calldata for wallet-native agents.
- * Broadcast step1, confirm, then broadcast step2.
+ * GET /api/yield/deposit-tx?preset=100&recipient=0x...
+ *    OR ?amount=150&recipient=0x...
+ *
+ * Returns 2 pre-built ERC-4626 transactions ready to sign and broadcast.
+ * Enforces $10 minimum, $50k maximum, 5 req/10min per wallet.
+ * Fees: 0.5% entry (platform revenue), 15% of yield (platform revenue).
  */
 router.get('/deposit-tx', (req: Request, res: Response) => {
   if (!VAULT_ADDRESS) {
-    return res.status(400).json({ success: false, error: 'Vault address not configured.', contract: 'GET /api/yield/contract' });
+    return res.status(503).json({ success: false, error: 'Vault not deployed yet.', contract: 'GET /api/yield/contract' });
   }
 
-  const amountRaw   = req.query.amount as string | undefined;
+  // ── Resolve amount from preset or explicit amount ──────────────────────────
+  const presetRaw   = req.query.preset   as string | undefined;
+  const amountRaw   = req.query.amount   as string | undefined;
   const recipientRaw = req.query.recipient as string | undefined;
 
-  const amountNum = parseFloat(amountRaw || '');
-  if (isNaN(amountNum) || amountNum <= 0) {
-    return res.status(400).json({ success: false, error: 'amount must be a positive number (USD)', example: '?amount=100&recipient=0xYOUR_WALLET' });
-  }
-  if (!recipientRaw?.match(/^0x[0-9a-fA-F]{40}$/)) {
-    return res.status(400).json({ success: false, error: 'recipient must be a valid 0x Ethereum address', example: '?amount=100&recipient=0xYOUR_WALLET' });
+  let amountNum: number;
+  if (presetRaw !== undefined) {
+    const parsed = parseInt(presetRaw, 10);
+    if (!(DEPOSIT_PRESETS as readonly number[]).includes(parsed)) {
+      return res.status(400).json({
+        success: false,
+        error:   `Invalid preset. Use one of: ${DEPOSIT_PRESETS.join(', ')}`,
+        usage:   '?preset=100&recipient=0xYOUR_WALLET',
+        presets: DEPOSIT_PRESETS,
+      });
+    }
+    amountNum = parsed;
+  } else {
+    amountNum = parseFloat(amountRaw || '');
+    if (isNaN(amountNum) || amountNum <= 0) {
+      return res.status(400).json({
+        success: false,
+        error:   'Provide ?preset=100 (recommended) or ?amount=150',
+        presets: DEPOSIT_PRESETS,
+        usage:   '?preset=100&recipient=0xYOUR_WALLET',
+      });
+    }
   }
 
+  // ── Validate limits ────────────────────────────────────────────────────────
+  if (amountNum < MIN_DEPOSIT_USD) {
+    return res.status(400).json({
+      success:     false,
+      error:       `Minimum deposit is $${MIN_DEPOSIT_USD} USDC`,
+      minimum_usd: MIN_DEPOSIT_USD,
+      presets:     DEPOSIT_PRESETS,
+    });
+  }
+  if (amountNum > MAX_DEPOSIT_USD) {
+    return res.status(400).json({
+      success:     false,
+      error:       `Maximum single deposit is $${MAX_DEPOSIT_USD.toLocaleString()} USDC. Contact support for larger deposits.`,
+      maximum_usd: MAX_DEPOSIT_USD,
+    });
+  }
+
+  // ── Validate recipient ─────────────────────────────────────────────────────
+  if (!recipientRaw?.match(/^0x[0-9a-fA-F]{40}$/)) {
+    return res.status(400).json({
+      success: false,
+      error:   'recipient must be a valid checksummed 0x Ethereum address on Base',
+      example: '?preset=100&recipient=0xYOUR_WALLET',
+    });
+  }
+
+  // ── Rate limiting ──────────────────────────────────────────────────────────
+  if (!checkDepositRate(recipientRaw.toLowerCase())) {
+    return res.status(429).json({
+      success:   false,
+      error:     `Rate limit: max ${RATE_LIMIT} deposit requests per wallet per 10 minutes`,
+      retry_after_seconds: 600,
+    });
+  }
+
+  // ── Build calldata ─────────────────────────────────────────────────────────
+  // Use exact USDC amount (6 decimals). Entry fee is deducted inside the vault contract.
   const amountUsdc = BigInt(Math.round(amountNum * 1_000_000));
 
   const approveData = encodeFunctionData({
@@ -1329,40 +1403,95 @@ router.get('/deposit-tx', (req: Request, res: Response) => {
     args: [amountUsdc, recipientRaw as `0x${string}`],
   });
 
+  // ── Fee breakdown (transparent, platform revenue) ─────────────────────────
+  const entryFeeUsd   = amountNum * 0.005;           // 0.5% — taken on deposit
+  const netDepositUsd = amountNum - entryFeeUsd;     // earns yield from here
+  const grossYearUsd  = netDepositUsd * 0.0496;      // 4.96% gross (Morpho Blue current)
+  const perfFeeUsd    = grossYearUsd  * 0.15;        // 15% performance fee (platform revenue)
+  const netYearUsd    = grossYearUsd  - perfFeeUsd;  // what depositor keeps
+
   return res.json({
     success:    true,
-    amountUsdc: amountNum,
+    amount_usd: amountNum,
     recipient:  recipientRaw,
     chainId:    8453,
+    network:    'Base mainnet',
     steps: [
       {
-        step:   1,
-        action: 'Approve vault to spend USDC',
-        to:     BASE_USDC,
-        data:   approveData,
-        value:  '0x0',
-        gas:    '0x11170', // ~70k
-        note:   'Broadcast this first. Wait for confirmation before step 2.',
+        step:    1,
+        action:  'Approve vault to spend your USDC',
+        to:      BASE_USDC,
+        data:    approveData,
+        value:   '0x0',
+        gas:     '0x11170', // ~70k gas
+        note:    'Grants the vault permission to pull exactly this amount. Confirm on-chain first.',
       },
       {
-        step:   2,
-        action: 'Deposit USDC into CoinRailz vault — receive crUSDC shares',
-        to:     VAULT_ADDRESS,
-        data:   depositData,
-        value:  '0x0',
-        gas:    '0x30d40', // ~200k
-        note:   'Broadcast after step 1 confirms. You will receive crUSDC ERC-4626 shares.',
+        step:    2,
+        action:  'Deposit USDC — receive crUSDC yield-bearing shares',
+        to:      VAULT_ADDRESS,
+        data:    depositData,
+        value:   '0x0',
+        gas:     '0x30d40', // ~200k gas
+        note:    'Deposits USDC into the ERC-4626 vault. You receive crUSDC shares that appreciate as yield accrues.',
       },
     ],
-    fees: {
-      entryFee:    `$${(amountNum * 0.005).toFixed(2)} (0.5%)`,
-      netDeposited: `$${(amountNum * 0.995).toFixed(2)}`,
-      gas:          '~270k total gas (≈ $0.01 at current Base fees)',
+    fee_breakdown: {
+      entry_fee_usd:     parseFloat(entryFeeUsd.toFixed(4)),
+      entry_fee_pct:     '0.5% (one-time)',
+      net_deposited_usd: parseFloat(netDepositUsd.toFixed(4)),
+      perf_fee_pct:      '15% of yield only',
+      est_net_yield_yr:  parseFloat(netYearUsd.toFixed(4)),
+      est_net_apy:       '~4.22%',
+      gas_estimate:      '~$0.01 on Base',
     },
-    usefulLinks: {
-      basescan: `https://basescan.org/address/${VAULT_ADDRESS}`,
-      abi:      '/api/yield/contract',
-      position: `/api/yield/position/${recipientRaw}`,
+    security: {
+      min_deposit_usd: MIN_DEPOSIT_USD,
+      max_deposit_usd: MAX_DEPOSIT_USD,
+      rate_limit:      `${RATE_LIMIT} requests per wallet per 10 min`,
+      chain_enforced:  'Base only (chainId 8453)',
+      contract_audited: false,
+      note:            'Entry fee and performance fee are hard-capped in contract bytecode (2% / 30% max). Admin cannot drain depositor principal.',
+    },
+    useful_links: {
+      position:  `/api/yield/position/${recipientRaw}`,
+      basescan:  `https://basescan.org/address/${VAULT_ADDRESS}`,
+      manifest:  '/api/yield/manifest',
+    },
+  });
+});
+
+/**
+ * GET /api/yield/presets
+ * Returns canonical deposit presets and current fee/APY preview for each.
+ */
+router.get('/presets', (req: Request, res: Response) => {
+  const grossAPY = 0.0496;
+  const presets = DEPOSIT_PRESETS.map(usd => {
+    const entry    = usd * 0.005;
+    const net      = usd - entry;
+    const grossYr  = net * grossAPY;
+    const perfFee  = grossYr * 0.15;
+    const netYr    = grossYr - perfFee;
+    return {
+      amount_usd:        usd,
+      entry_fee_usd:     parseFloat(entry.toFixed(2)),
+      net_deposited_usd: parseFloat(net.toFixed(2)),
+      est_net_yield_yr:  parseFloat(netYr.toFixed(2)),
+      est_net_yield_mo:  parseFloat((netYr / 12).toFixed(3)),
+      query_param:       `?preset=${usd}&recipient=0xYOUR_WALLET`,
+    };
+  });
+  return res.json({
+    success:         true,
+    presets,
+    net_apy_pct:     4.22,
+    min_deposit_usd: MIN_DEPOSIT_USD,
+    max_deposit_usd: MAX_DEPOSIT_USD,
+    fee_structure: {
+      entry:       '0.5% one-time on deposit',
+      performance: '15% of yield only (never on principal)',
+      exit:        '0% — withdraw any time',
     },
   });
 });

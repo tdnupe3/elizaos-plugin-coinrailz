@@ -641,6 +641,8 @@ router.get('/server-wallet', async (req: Request, res: Response) => {
  * No MetaMask required. Returns { success, address, txHash, deployer }.
  */
 router.post('/server-deploy', async (req: Request, res: Response) => {
+  if (!adminAuth(req, res)) return;
+
   const rawKey = process.env.EVM_PRIVATE_KEY;
   if (!rawKey) {
     return res.status(500).json({ success: false, error: 'EVM_PRIVATE_KEY not configured on this server.' });

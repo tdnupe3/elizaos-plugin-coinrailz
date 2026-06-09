@@ -2349,23 +2349,33 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
           basescan:   "https://basescan.org/address/0x86e2508ca0de34530dc847645f60f0d46d95176a"
         },
         endpoints: {
-          rates:    `${baseUrl}/api/yield/rates`,
-          stats:    `${baseUrl}/api/yield/stats`,
-          position: `${baseUrl}/api/yield/position/{wallet}`,
-          contract: `${baseUrl}/api/yield/contract`,
-          manifest: `${baseUrl}/api/yield/manifest`,
-          portal:   `${baseUrl}/yield-portal`
+          rates:     `${baseUrl}/api/yield/rates`,
+          stats:     `${baseUrl}/api/yield/stats`,
+          depositTx: `${baseUrl}/api/yield/deposit-tx?preset=100&recipient={wallet}`,
+          permitTx:  `${baseUrl}/api/yield/deposit-tx?mode=permit&preset=100&recipient={wallet}`,
+          redeemTx:  `${baseUrl}/api/yield/redeem-tx?wallet={wallet}`,
+          position:  `${baseUrl}/api/yield/position/{wallet}`,
+          contract:  `${baseUrl}/api/yield/contract`,
+          manifest:  `${baseUrl}/api/yield/manifest`,
+          portal:    `${baseUrl}/yield-portal`
+        },
+        agentkit: {
+          package: "coinrailz-agentkit",
+          install: "npm install coinrailz-agentkit",
+          usage:   "new CoinRailzYieldActionProvider() — drop into AgentKit.from({ actionProviders: [...] })",
+          actions: ["coinrailz_yield_deposit","coinrailz_yield_deposit_permit","coinrailz_yield_redeem","coinrailz_yield_check_position","coinrailz_yield_get_rates","coinrailz_yield_get_contract_info"],
+          npmUrl:  "https://www.npmjs.com/package/coinrailz-agentkit"
         },
         howToDeposit: [
-          "1. GET /api/yield/rates — see current APY",
-          "2. GET /api/yield/contract — get vault ABI and address",
-          "3. USDC.approve(vaultAddress, amount)",
-          "4. vault.deposit(amount, yourAddress) — receive crUSDC shares",
-          "5. GET /api/yield/position/{yourAddress} — check position"
+          "PATH A — Coinbase AgentKit (recommended, 0 blockchain code): npm install coinrailz-agentkit → add new CoinRailzYieldActionProvider() to AgentKit.from(). Your agent can now deposit, redeem, and check positions via natural language. 6 actions available.",
+          "PATH B — REST pre-built calldata (any HTTP agent): 1. GET /api/yield/deposit-tx?preset=100&recipient=0xYOUR_WALLET (returns 2 ready-to-sign transactions). 2. Broadcast tx[0] (USDC approve). 3. Wait confirmed. 4. Broadcast tx[1] (ERC-4626 deposit). Receive crUSDC yield-bearing shares.",
+          "PATH C — Permit 1-tx (saves ~50% gas, needs signTypedData): GET /api/yield/deposit-tx?mode=permit&preset=100&recipient=0xYOUR_WALLET → sign EIP-712 typed data → call depositWithPermit in 1 on-chain tx.",
+          "WITHDRAW (1 tx, 0% exit fee): GET /api/yield/redeem-tx?wallet=0xYOUR_WALLET → broadcast the single step tx. Receive USDC principal + accrued yield.",
+          "CHECK: GET /api/yield/position/0xYOUR_WALLET → live shares, USD value, net yield earned, protocol allocation breakdown."
         ],
         inputModes: ["application/json"],
         outputModes: ["application/json"],
-        pricing: { amount: 0, currency: "USD", note: "Free to query. Entry fee 0.5% on deposit, 15% performance fee on yield only." },
+        pricing: { amount: 0, currency: "USD", note: "Free to query. Entry fee 0.5% on deposit, 15% performance fee on yield only. No API key required." },
         category: "yield"
       }
     ],
@@ -3542,11 +3552,47 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       // Base USDC Yield Vault
       {
         id: "base-usdc-yield-vault",
-        name: "USDC Yield Vault (Base)",
-        description: "Deposit USDC and earn auto-optimized yield on Base. ERC-4626 vault routes to highest APY across Aave v3, Compound v3, and Morpho Blue. 0.5% entry fee, 15% performance fee on yield, 0% exit fee. Rebalances every 24h. Non-custodial, emergencyWithdraw always works.",
-        tags: ["yield", "usdc", "defi", "base", "erc4626", "aave", "morpho", "compound", "vault"],
+        name: "USDC Yield Vault (Base) — ERC-4626 Auto-Routing Yield",
+        description: "Deposit USDC and earn auto-optimized yield on Base. ERC-4626 vault auto-routes to highest APY across Aave v3, Compound v3, and Morpho Blue. 0.5% entry, 15% performance fee on yield only, 0% exit fee. Rebalances every 24h. Non-custodial, emergencyWithdraw() always works.",
+        tags: ["yield", "usdc", "defi", "base", "erc4626", "aave", "morpho", "compound", "vault", "interest"],
+        vault: {
+          address:    "0x86e2508ca0de34530dc847645f60f0d46d95176a",
+          standard:   "ERC-4626",
+          shareToken: "crUSDC",
+          chainId:    8453,
+          asset:      "USDC",
+          assetAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          basescan:   "https://basescan.org/address/0x86e2508ca0de34530dc847645f60f0d46d95176a"
+        },
+        agentkit: {
+          recommended: true,
+          package: "coinrailz-agentkit",
+          install: "npm install coinrailz-agentkit",
+          usage:   "new CoinRailzYieldActionProvider() — add to AgentKit.from({ actionProviders: [...] })",
+          npmUrl:  "https://www.npmjs.com/package/coinrailz-agentkit",
+          actions: ["coinrailz_yield_deposit","coinrailz_yield_deposit_permit","coinrailz_yield_redeem","coinrailz_yield_check_position","coinrailz_yield_get_rates","coinrailz_yield_get_contract_info"]
+        },
+        howToDeposit: [
+          "PATH A — AgentKit (recommended, 0 blockchain code): npm install coinrailz-agentkit → new CoinRailzYieldActionProvider() → AgentKit.from(). 6 actions available, natural language.",
+          "PATH B — REST pre-built calldata: GET /api/yield/deposit-tx?preset=100&recipient=0xWALLET → broadcast tx[0] (USDC approve) → broadcast tx[1] (ERC-4626 deposit). No ABI needed.",
+          "PATH C — Permit 1-tx: GET /api/yield/deposit-tx?mode=permit&preset=100&recipient=0xWALLET → sign EIP-712 typed data → 1 on-chain tx via depositWithPermit (~50% less gas).",
+          "WITHDRAW: GET /api/yield/redeem-tx?wallet=0xWALLET → broadcast 1 tx, 0% exit fee, receive USDC.",
+          "TRACK: GET /api/yield/position/0xWALLET → live shares, USD value, yield earned, protocol allocation."
+        ],
+        endpoints: {
+          rates:     `${baseUrl}/api/yield/rates`,
+          stats:     `${baseUrl}/api/yield/stats`,
+          depositTx: `${baseUrl}/api/yield/deposit-tx?preset=100&recipient={wallet}`,
+          permitTx:  `${baseUrl}/api/yield/deposit-tx?mode=permit&preset=100&recipient={wallet}`,
+          redeemTx:  `${baseUrl}/api/yield/redeem-tx?wallet={wallet}`,
+          position:  `${baseUrl}/api/yield/position/{wallet}`,
+          contract:  `${baseUrl}/api/yield/contract`,
+          manifest:  `${baseUrl}/api/yield/manifest`,
+          portal:    `${baseUrl}/yield-portal`
+        },
         inputModes: ["application/json"],
         outputModes: ["application/json"],
+        pricing: { amount: 0, currency: "USD", note: "Free to query. Entry fee 0.5% on deposit, 15% performance fee on yield only. No API key required." },
         examples: [{
           name: "Check current APY",
           description: "Get live rates from all three protocols and current net APY",
@@ -4823,7 +4869,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         price_usd: 0,
         auth: "none",
         name: "USDC Yield Vault — Auto-Routing Yield on Base",
-        description: "Non-custodial ERC-4626 USDC yield vault that auto-routes to highest APY across Aave v3, Compound v3, and Morpho Blue on Base. Standard deposit/withdraw interface. 0.5% entry, 15% performance fee on yield only, 0% exit fee. Rebalances every 24h. emergencyWithdraw() always works.",
+        description: "Non-custodial ERC-4626 USDC yield vault that auto-routes to highest APY across Aave v3, Compound v3, and Morpho Blue on Base. 0.5% entry, 15% performance fee on yield only, 0% exit fee. Rebalances every 24h. emergencyWithdraw() always works. Asset: USDC. Share token: crUSDC.",
         status: "healthy",
         category: "yield",
         vault: {
@@ -4831,15 +4877,34 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
           standard:   "ERC-4626",
           shareToken: "crUSDC",
           chainId:    8453,
+          asset:      "USDC",
+          assetAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
           basescan:   "https://basescan.org/address/0x86e2508ca0de34530dc847645f60f0d46d95176a"
         },
+        agentkit: {
+          recommended: true,
+          install:     "npm install coinrailz-agentkit",
+          usage:       "new CoinRailzYieldActionProvider() — add to AgentKit.from({ actionProviders: [...] })",
+          npmUrl:      "https://www.npmjs.com/package/coinrailz-agentkit",
+          actions:     ["coinrailz_yield_deposit","coinrailz_yield_deposit_permit","coinrailz_yield_redeem","coinrailz_yield_check_position","coinrailz_yield_get_rates","coinrailz_yield_get_contract_info"]
+        },
+        howToDeposit: [
+          "PATH A — AgentKit (recommended): npm install coinrailz-agentkit → new CoinRailzYieldActionProvider() → AgentKit.from(). 6 actions, natural language. Zero blockchain code.",
+          "PATH B — REST pre-built calldata: GET /api/yield/deposit-tx?preset=100&recipient=0xWALLET → broadcast tx[0] (approve), wait, broadcast tx[1] (deposit).",
+          "PATH C — Permit 1-tx: GET /api/yield/deposit-tx?mode=permit&preset=100&recipient=0xWALLET → sign EIP-712 → call depositWithPermit (single on-chain tx, ~50% less gas).",
+          "WITHDRAW: GET /api/yield/redeem-tx?wallet=0xWALLET → broadcast 1 tx, 0% exit fee.",
+          "TRACK: GET /api/yield/position/0xWALLET → shares, USD value, yield, protocol allocation."
+        ],
         discovery: {
-          rates:    `${baseUrl}/api/yield/rates`,
-          stats:    `${baseUrl}/api/yield/stats`,
-          position: `${baseUrl}/api/yield/position/{wallet}`,
-          contract: `${baseUrl}/api/yield/contract`,
-          manifest: `${baseUrl}/api/yield/manifest`,
-          portal:   `${baseUrl}/yield-portal`
+          rates:     `${baseUrl}/api/yield/rates`,
+          stats:     `${baseUrl}/api/yield/stats`,
+          depositTx: `${baseUrl}/api/yield/deposit-tx?preset=100&recipient={wallet}`,
+          permitTx:  `${baseUrl}/api/yield/deposit-tx?mode=permit&preset=100&recipient={wallet}`,
+          redeemTx:  `${baseUrl}/api/yield/redeem-tx?wallet={wallet}`,
+          position:  `${baseUrl}/api/yield/position/{wallet}`,
+          contract:  `${baseUrl}/api/yield/contract`,
+          manifest:  `${baseUrl}/api/yield/manifest`,
+          portal:    `${baseUrl}/yield-portal`
         },
         input_schema: { type: "object", properties: {} }
       }
@@ -4888,21 +4953,32 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       maximum_payment: 10000
     },
     yieldVault: {
-      description: "AI Agent Yield Portal — non-custodial USDC yield vault. Auto-routes to highest APY across Aave v3, Compound v3, Morpho Blue on Base. 0.5% entry fee + 15% performance fee.",
+      description: "AI Agent Yield Portal — non-custodial USDC yield vault. Auto-routes to highest APY across Aave v3, Compound v3, Morpho Blue on Base. 0.5% entry fee + 15% performance fee on yield only. 0% exit fee.",
       standard: "ERC-4626",
+      vault: "0x86e2508ca0de34530dc847645f60f0d46d95176a",
       network: "base",
+      chainId: 8453,
       asset: "USDC",
+      shareToken: "crUSDC",
       entryFeePct: 0.5,
       performanceFeePct: 15,
       exitFeePct: 0,
       minHarvestUsd: 5,
+      agentkit: {
+        package: "coinrailz-agentkit",
+        install: "npm install coinrailz-agentkit",
+        npmUrl:  "https://www.npmjs.com/package/coinrailz-agentkit"
+      },
       routes: {
-        rates:    `${baseUrl}/api/yield/rates`,
-        stats:    `${baseUrl}/api/yield/stats`,
-        position: `${baseUrl}/api/yield/position/{wallet}`,
-        contract: `${baseUrl}/api/yield/contract`,
-        manifest: `${baseUrl}/api/yield/manifest`,
-        portal:   `${baseUrl}/yield-portal`,
+        rates:     `${baseUrl}/api/yield/rates`,
+        stats:     `${baseUrl}/api/yield/stats`,
+        depositTx: `${baseUrl}/api/yield/deposit-tx?preset=100&recipient={wallet}`,
+        permitTx:  `${baseUrl}/api/yield/deposit-tx?mode=permit&preset=100&recipient={wallet}`,
+        redeemTx:  `${baseUrl}/api/yield/redeem-tx?wallet={wallet}`,
+        position:  `${baseUrl}/api/yield/position/{wallet}`,
+        contract:  `${baseUrl}/api/yield/contract`,
+        manifest:  `${baseUrl}/api/yield/manifest`,
+        portal:    `${baseUrl}/yield-portal`,
       },
     },
     blockchain: {

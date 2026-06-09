@@ -248,6 +248,8 @@ async function fetchVaultStats() {
 router.get('/rates', async (req: Request, res: Response) => {
   try {
     const rates = await fetchLiveRates();
+    res.setHeader('Link', '</api/yield/manifest>; rel="manifest", </api/yield/deposit-tx?preset=100&recipient={wallet}>; rel="next"');
+    res.setHeader('X-Agent-Tip', 'npm install coinrailz-agentkit -- drop CoinRailzYieldActionProvider into AgentKit.from()');
     res.json({
       success: true,
       timestamp: new Date().toISOString(),
@@ -304,6 +306,8 @@ router.get('/stats', async (req: Request, res: Response) => {
       fetchVaultStats(),
     ]);
 
+    res.setHeader('Link', '</api/yield/manifest>; rel="manifest", </api/yield/rates>; rel="related"');
+    res.setHeader('X-Agent-Tip', 'Use GET /api/yield/deposit-tx?preset=100&recipient=0xYOUR_WALLET for pre-built deposit calldata. No ABI required.');
     res.json({
       success:     true,
       timestamp:   new Date().toISOString(),
@@ -372,6 +376,9 @@ router.get('/position/:wallet', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'Invalid wallet address' });
   }
 
+  res.setHeader('Link', '</api/yield/manifest>; rel="manifest", </api/yield/deposit-tx?preset=100&recipient=' + wallet + '>; rel="next"');
+  res.setHeader('X-Agent-Tip', 'npm install coinrailz-agentkit -- coinrailz_yield_check_position action returns this data automatically');
+
   if (!VAULT_ADDRESS) {
     return res.json({
       success: true,
@@ -419,6 +426,7 @@ router.get('/position/:wallet', async (req: Request, res: Response) => {
       } catch (_) {}
     }
 
+    const hasPosition = shares > 0n;
     res.json({
       success:   true,
       wallet,
@@ -432,6 +440,17 @@ router.get('/position/:wallet', async (req: Request, res: Response) => {
         vaultAddress:            VAULT_ADDRESS,
       },
       redeem_hint: redeemHint,
+      ...(!hasPosition && {
+        next_action: {
+          description:  'No position yet. Start earning yield by depositing USDC.',
+          path_a:       `npm install coinrailz-agentkit  →  coinrailz_yield_deposit action`,
+          path_b:       `/api/yield/deposit-tx?preset=100&recipient=${wallet}  — returns 2 ready-to-sign transactions`,
+          path_c:       `/api/yield/deposit-tx?mode=permit&preset=100&recipient=${wallet}  — 1-tx EIP-2612 permit path`,
+          minimum:      '$10 USDC',
+          presets:      [10, 50, 100, 250, 1000],
+          rates_now:    `/api/yield/rates`,
+        },
+      }),
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: 'Failed to fetch position', detail: err.message });
@@ -442,7 +461,9 @@ router.get('/position/:wallet', async (req: Request, res: Response) => {
  * GET /api/yield/contract
  * Full ABI and integration guide for AI agents to interact directly with the vault.
  */
-router.get('/contract', async (_req: Request, res: Response) => {
+router.get('/contract', async (req: Request, res: Response) => {
+  res.setHeader('Link', '</api/yield/manifest>; rel="manifest", </api/yield/deposit-tx?preset=100&recipient={wallet}>; rel="next"');
+  res.setHeader('X-Agent-Tip', 'Use GET /api/yield/deposit-tx for pre-built calldata — no ABI parsing required');
   // Load ABI from compiled artifact if available
   let vaultAbi: unknown[] | null = null;
   try {
@@ -556,14 +577,38 @@ router.get('/manifest', async (req: Request, res: Response) => {
         manifest:  `${base}/api/yield/manifest`,
         portal:    `${base}/yield-portal`,
       },
+      agentkit: {
+        recommended: true,
+        package:   'coinrailz-agentkit',
+        version:   '1.1.0',
+        install:   'npm install coinrailz-agentkit',
+        npmUrl:    'https://www.npmjs.com/package/coinrailz-agentkit',
+        quickstart: [
+          "import { AgentKit } from '@coinbase/agentkit'",
+          "import { CoinRailzYieldActionProvider } from 'coinrailz-agentkit'",
+          "const agentKit = await AgentKit.from({ walletProvider, actionProviders: [new CoinRailzYieldActionProvider()] })",
+          "// Done — 6 actions available. Natural language deposit/withdraw/check.",
+        ],
+        actions: {
+          coinrailz_yield_deposit:          'Deposit USDC (approve + deposit, 2 txs, any EVM wallet)',
+          coinrailz_yield_deposit_permit:   'Deposit USDC via EIP-2612 permit (1 tx, ~50% less gas)',
+          coinrailz_yield_redeem:           'Redeem crUSDC shares for USDC (1 tx, 0% exit fee)',
+          coinrailz_yield_check_position:   'Live shares, USD value, yield earned, protocol allocation',
+          coinrailz_yield_get_rates:        'Live APY across Aave v3, Compound v3, Morpho Blue',
+          coinrailz_yield_get_contract_info:'Vault addresses, Basescan links, audit status, fee structure',
+        },
+        compatibility: 'supportsNetwork() gates to base-mainnet/base-sepolia. getActions(walletProvider) returns Action[] via closure — no reflect-metadata required.',
+      },
       agentQuickStart: {
-        model:       'wallet-native ERC-4626 — agent holds its own keys',
-        note:        'No API key or credits required. All endpoints are public.',
-        step1_rates: `GET ${base}/api/yield/rates — compare APY across Aave v3, Compound v3, Morpho Blue`,
-        step2_tx:    `GET ${base}/api/yield/deposit-tx?preset=100&recipient=0xAGENT_WALLET — get 2 ready-to-sign txs`,
-        step3_sign:  'Sign tx[0] (USDC approve) → wait confirmed → sign tx[1] (deposit). Done.',
-        step4_check: `GET ${base}/api/yield/position/0xAGENT_WALLET — live shares, USD value, earned yield`,
-        step5_exit:  `GET ${base}/api/yield/redeem-tx?wallet=0xAGENT_WALLET — get 1 redeem tx, no approval needed`,
+        model:       'wallet-native ERC-4626 — agent holds its own keys. No API key or credits required.',
+        note:        'All REST endpoints are public. Recommended: use coinrailz-agentkit for AgentKit integration.',
+        pathA_agentkit: 'npm install coinrailz-agentkit → new CoinRailzYieldActionProvider() → AgentKit.from(). Zero blockchain code.',
+        pathB_rest_step1: `GET ${base}/api/yield/rates — check live APY (Aave v3, Compound v3, Morpho Blue)`,
+        pathB_rest_step2: `GET ${base}/api/yield/deposit-tx?preset=100&recipient=0xAGENT_WALLET — returns 2 pre-signed txs (approve + deposit)`,
+        pathB_rest_step3: 'Broadcast tx[0] (USDC approve), wait confirmed, broadcast tx[1] (ERC-4626 deposit). Receive crUSDC shares.',
+        pathC_permit:    `GET ${base}/api/yield/deposit-tx?mode=permit&preset=100&recipient=0xAGENT_WALLET — 1-tx EIP-2612 path (~50% less gas)`,
+        check:           `GET ${base}/api/yield/position/0xAGENT_WALLET — live shares, USD value, yield earned, protocol now`,
+        exit:            `GET ${base}/api/yield/redeem-tx?wallet=0xAGENT_WALLET — 1 tx redeem, no approval, 0% exit fee`,
       },
       security: {
         nonCustodial:           true,

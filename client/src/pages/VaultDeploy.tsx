@@ -162,7 +162,7 @@ export default function VaultDeploy() {
       try {
         const nonceHex: string = await eth.request({
           method: "eth_getTransactionCount",
-          params: [fromAddress, "pending"],
+          params: [fromAddress, "latest"],
         });
         const nonce = parseInt(nonceHex, 16);
         const predRes = await fetch(`/api/yield/predict-address?from=${fromAddress}&nonce=${nonce}`);

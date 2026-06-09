@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import {
   Shield, Zap, RefreshCw, Code, Copy, CheckCircle,
   ExternalLink, AlertCircle, Activity, Lock, BarChart3,
-  ArrowRight, ChevronRight, TrendingUp
+  ArrowRight, ChevronRight, TrendingUp, LogOut
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -56,6 +56,130 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
       className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-400 hover:text-white hover:bg-white/10 transition-all">
       {ok ? <><CheckCircle className="w-3 h-3 text-green-400" />{label ? " Copied" : ""}</> : <><Copy className="w-3 h-3" />{label ? ` ${label}` : ""}</>}
     </button>
+  );
+}
+
+const PYTHON_CODE = `from web3 import Web3
+from eth_account import Account
+import requests
+
+w3   = Web3(Web3.HTTPProvider('https://mainnet.base.org'))
+acct = Account.from_key(MY_PRIVATE_KEY)
+
+# 1. Get deposit calldata — no ABI, no wallet-connect
+r = requests.get('https://coinrailz.com/api/yield/deposit-tx',
+    params={'preset': 100, 'recipient': acct.address}).json()
+# r['steps'][0] = USDC approve  |  r['steps'][1] = ERC-4626 deposit
+
+# 2. Sign & broadcast in order
+for step in r['steps']:
+    tx = {
+        'to': step['to'], 'data': step['data'], 'value': 0,
+        'chainId': 8453, 'type': 2,
+        'nonce': w3.eth.get_transaction_count(acct.address),
+        'maxFeePerGas': w3.eth.gas_price,
+        'maxPriorityFeePerGas': w3.to_wei(0.001, 'gwei'),
+        'gas': int(step['gas'], 16),
+    }
+    h = w3.eth.send_raw_transaction(acct.sign_transaction(tx).raw_transaction)
+    w3.eth.wait_for_transaction_receipt(h)
+
+# 3. Check live position (also returns redeem_hint with ready-to-sign withdraw tx)
+pos = requests.get(f'https://coinrailz.com/api/yield/position/{acct.address}').json()
+print(f"Value: \${pos['position']['currentValueUsdc']} USDC")
+
+# 4. Withdraw whenever ready — 1 tx only, no approval needed, 0% exit fee
+redeem = requests.get('https://coinrailz.com/api/yield/redeem-tx',
+    params={'wallet': acct.address}).json()
+step = redeem['step']
+tx = {'to': step['to'], 'data': step['data'], 'value': 0,
+      'chainId': 8453, 'type': 2,
+      'nonce': w3.eth.get_transaction_count(acct.address),
+      'maxFeePerGas': w3.eth.gas_price, 'maxPriorityFeePerGas': w3.to_wei(0.001, 'gwei'),
+      'gas': int(step['gas'], 16)}
+w3.eth.wait_for_transaction_receipt(
+    w3.eth.send_raw_transaction(acct.sign_transaction(tx).raw_transaction))`;
+
+const TS_CODE = `import { createWalletClient, createPublicClient, http } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
+import { base } from 'viem/chains'
+
+const account = privateKeyToAccount(MY_PRIVATE_KEY as \`0x\${string}\`)
+const wallet  = createWalletClient({ account, chain: base, transport: http() })
+const pub     = createPublicClient({ chain: base, transport: http() })
+
+// 1. Deposit — get calldata from API (no ABI loading required)
+const r = await fetch(
+  'https://coinrailz.com/api/yield/deposit-tx?preset=100&recipient=' + account.address
+).then(r => r.json())
+
+for (const step of r.steps) {
+  const hash = await wallet.sendTransaction({ to: step.to, data: step.data })
+  await pub.waitForTransactionReceipt({ hash })
+}
+
+// 2. Check position — response includes redeem_hint with ready-to-sign tx
+const pos = await fetch(
+  'https://coinrailz.com/api/yield/position/' + account.address
+).then(r => r.json())
+console.log('Value: $' + pos.position.currentValueUsdc + ' USDC')
+
+// 3. Withdraw — 1 tx, no approval, 0% exit fee
+const redeem = await fetch(
+  'https://coinrailz.com/api/yield/redeem-tx?wallet=' + account.address
+).then(r => r.json())
+const hash = await wallet.sendTransaction({ to: redeem.step.to, data: redeem.step.data })
+await pub.waitForTransactionReceipt({ hash })`;
+
+const AGENTKIT_CODE = `// 1. Copy agentkit-actions/coinrailzYieldActionProvider.ts to your project
+// 2. Add to your AgentKit setup:
+
+import { AgentKit } from '@coinbase/agentkit'
+import { CoinRailzYieldActionProvider } from './coinrailzYieldActionProvider'
+
+const agentKit = await AgentKit.from({
+  walletProvider,
+  actionProviders: [
+    new CoinRailzYieldActionProvider(),
+    // ...other providers
+  ],
+})
+
+// Your agent now understands natural language like:
+//   "Deposit $100 USDC into yield"
+//   "What APY am I earning?"
+//   "Check my yield position"
+//   "Withdraw my USDC with yield"
+
+// Actions registered:
+//   coinrailz_yield_deposit       → approve + deposit (2 txs)
+//   coinrailz_yield_redeem        → redeem shares (1 tx)
+//   coinrailz_yield_check_position → live on-chain position
+//   coinrailz_yield_get_rates     → APY across all 3 protocols`;
+
+function AgentCodeTabs() {
+  const [lang, setLang] = useState<'python' | 'ts' | 'agentkit'>('python');
+  const tabs = [
+    { id: 'python',   label: 'Python (web3.py)', code: PYTHON_CODE },
+    { id: 'ts',       label: 'TypeScript (viem)', code: TS_CODE },
+    { id: 'agentkit', label: 'AgentKit',          code: AGENTKIT_CODE },
+  ] as const;
+  const active = tabs.find(t => t.id === lang)!;
+  return (
+    <div className="rounded-xl border border-white/10 bg-[#0d1117] overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/8 bg-white/[0.02]">
+        <div className="flex gap-1">
+          {tabs.map(t => (
+            <button key={t.id} onClick={() => setLang(t.id as typeof lang)}
+              className={`px-3 py-1 rounded text-xs font-mono transition-all ${lang === t.id ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <CopyBtn text={active.code} label="Copy" />
+      </div>
+      <pre className="p-4 text-xs text-slate-300 font-mono overflow-x-auto leading-relaxed">{active.code}</pre>
+    </div>
   );
 }
 
@@ -437,51 +561,61 @@ export default function YieldPortal() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {/* 4-step flow */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             {[
-              { step: '1', title: 'Discover', color: 'blue', detail: 'GET /api/yield/presets → see all amounts, APY, and fee breakdown. No auth required.' },
-              { step: '2', title: 'Get Transactions', color: 'emerald', detail: 'GET /api/yield/deposit-tx?preset=100&recipient=0xYOUR_WALLET → 2 ready-to-sign transactions.' },
-              { step: '3', title: 'Sign & Earn', color: 'purple', detail: 'Broadcast tx1 (approve), wait for confirm, broadcast tx2 (deposit). Position live immediately.' },
-            ].map(({ step, title, color, detail }) => (
+              { step: '1', title: 'Discover', icon: <BarChart3 className="w-3.5 h-3.5" />, color: 'blue',    detail: 'GET /api/yield/presets — see all amounts, current APY, and fee breakdown. No auth.' },
+              { step: '2', title: 'Deposit',  icon: <ArrowRight className="w-3.5 h-3.5" />, color: 'emerald', detail: 'GET /api/yield/deposit-tx?preset=100&recipient=0x… → 2 ready-to-sign txs.' },
+              { step: '3', title: 'Monitor',  icon: <Activity className="w-3.5 h-3.5" />,  color: 'purple',  detail: 'GET /api/yield/position/{wallet} — live shares, USD value, yield earned.' },
+              { step: '4', title: 'Withdraw', icon: <LogOut className="w-3.5 h-3.5" />,    color: 'amber',   detail: 'GET /api/yield/redeem-tx?wallet=0x… → 1 tx, no approval, 0% exit fee.' },
+            ].map(({ step, title, icon, color, detail }) => (
               <div key={step} className={`rounded-xl border p-4 bg-${color}-500/5 border-${color}-500/20`}>
-                <div className={`text-xs font-bold text-${color}-400 uppercase tracking-wider mb-1`}>Step {step}</div>
+                <div className={`flex items-center gap-1.5 text-xs font-bold text-${color}-400 uppercase tracking-wider mb-1.5`}>
+                  {icon} Step {step}
+                </div>
                 <div className="text-sm font-semibold text-white mb-1">{title}</div>
                 <div className="text-xs text-slate-400 leading-relaxed">{detail}</div>
               </div>
             ))}
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-[#0d1117] overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/8 bg-white/[0.02]">
-              <span className="text-xs text-slate-400 font-mono">python — complete agent flow</span>
-              <CopyBtn text={`import requests\n\n# 1. Pick a preset and build transactions\nr = requests.get('https://coinrailz.com/api/yield/deposit-tx',\n    params={'preset': 100, 'recipient': MY_WALLET}).json()\n\n# 2. Sign and broadcast step 1 (USDC approve)\n# step 2 (ERC-4626 deposit) — broadcast after step 1 confirms\nfor step in r['steps']:\n    tx = build_and_sign_tx(step['to'], step['data'], MY_PRIVATE_KEY)\n    broadcast_and_wait(tx)\n\n# 3. Your position is now live\npos = requests.get(f'https://coinrailz.com/api/yield/position/{MY_WALLET}').json()\nprint(f"Earning: \${pos['position']['currentValueUsdc']} USDC")`} label="Copy" />
+          {/* Language tabs + code */}
+          <AgentCodeTabs />
+
+          {/* vs direct Morpho comparison */}
+          <div className="mt-5 rounded-xl border border-white/8 bg-white/[0.02] overflow-hidden">
+            <div className="px-4 py-3 border-b border-white/8 text-xs font-semibold text-white">Why CoinRailz vs direct protocol call</div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    <th className="px-4 py-2.5 text-left text-slate-500 font-medium">Feature</th>
+                    <th className="px-4 py-2.5 text-center text-emerald-400 font-semibold">CoinRailz</th>
+                    <th className="px-4 py-2.5 text-center text-slate-400 font-medium">Direct Morpho</th>
+                    <th className="px-4 py-2.5 text-center text-slate-400 font-medium">Direct Aave</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {[
+                    ['Pre-built calldata API',       '✅ No ABI needed',      '❌ Load ABI yourself',   '❌ Load ABI yourself'],
+                    ['Preset amounts',               '✅ $10 / $50 / $100…',  '❌ Agent decides',       '❌ Agent decides'],
+                    ['Auto-routes to best APY',      '✅ Across 3 protocols', '❌ Single protocol',     '❌ Single protocol'],
+                    ['Withdrawal API',               '✅ /redeem-tx',         '❌ Build calldata',      '❌ Build calldata'],
+                    ['Agent discovery manifest',     '✅ /api/yield/manifest','❌',                     '❌'],
+                    ['AgentKit action provider',     '✅ See agentkit-actions/','✅ Built-in',          '✅ Built-in'],
+                    ['Entry fee',                    '0.5%',                  '0%',                    '0%'],
+                    ['Performance fee',              '15% of yield',          '0%',                    '0%'],
+                  ].map(([feat, us, morpho, aave]) => (
+                    <tr key={feat} className="hover:bg-white/[0.02]">
+                      <td className="px-4 py-2.5 text-slate-300">{feat}</td>
+                      <td className="px-4 py-2.5 text-center text-emerald-300">{us}</td>
+                      <td className="px-4 py-2.5 text-center text-slate-400">{morpho}</td>
+                      <td className="px-4 py-2.5 text-center text-slate-400">{aave}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <pre className="p-4 text-xs text-slate-300 font-mono overflow-x-auto leading-relaxed">{`import requests
-
-# 1. Pick a preset and build transactions (no auth, no wallet-connect)
-r = requests.get('https://coinrailz.com/api/yield/deposit-tx',
-    params={'preset': 100, 'recipient': MY_WALLET}).json()
-
-# r['steps'][0] = USDC approve calldata
-# r['steps'][1] = ERC-4626 deposit calldata
-# r['fee_breakdown'] = { entry_fee_usd: 0.5, net_deposited_usd: 99.5, est_net_yield_yr: 4.19 }
-
-# 2. Sign and broadcast in order (web3.py / CDP AgentKit / viem / cast — anything works)
-for step in r['steps']:
-    tx = {
-        'to': step['to'], 'data': step['data'],
-        'value': 0, 'chainId': 8453,
-        'nonce': w3.eth.get_transaction_count(MY_WALLET),
-        'maxFeePerGas': w3.eth.gas_price,
-    }
-    receipt = w3.eth.wait_for_transaction_receipt(
-        w3.eth.send_raw_transaction(account.sign_transaction(tx).raw_transaction)
-    )
-
-# 3. Position is live — check any time
-pos = requests.get(f'https://coinrailz.com/api/yield/position/{MY_WALLET}').json()
-print(f"Deposited. Current value: ${'{'}pos['position']['currentValueUsdc']{'}'} USDC")`}
-            </pre>
           </div>
 
           {/* API endpoint table */}
@@ -489,12 +623,13 @@ print(f"Deposited. Current value: ${'{'}pos['position']['currentValueUsdc']{'}'}
             <div className="px-4 py-3 border-b border-white/8 text-xs font-semibold text-white">API Reference — all public, no auth</div>
             <div className="divide-y divide-white/5">
               {[
-                { method: 'GET', path: '/api/yield/presets',            desc: 'All presets with APY preview and fee breakdown for each amount.' },
-                { method: 'GET', path: '/api/yield/deposit-tx',         desc: '?preset=100&recipient=0x… → 2 ready-to-sign transactions + fee breakdown.' },
-                { method: 'GET', path: '/api/yield/position/{wallet}',  desc: 'Live position: shares, current USDC value, yield earned.' },
-                { method: 'GET', path: '/api/yield/rates',              desc: 'Live APY from Aave v3, Compound v3, Morpho Blue. Cached 60s.' },
-                { method: 'GET', path: '/api/yield/manifest',           desc: 'Machine-readable vault manifest for agent discovery.' },
-                { method: 'GET', path: '/api/yield/contract',           desc: 'Full ABI (76 entries) + Basescan link.' },
+                { method: 'GET', path: '/api/yield/presets',           desc: 'All presets with APY preview and fee breakdown for each amount.' },
+                { method: 'GET', path: '/api/yield/deposit-tx',        desc: '?preset=100&recipient=0x… → 2 ready-to-sign transactions + fee breakdown.' },
+                { method: 'GET', path: '/api/yield/redeem-tx',         desc: '?wallet=0x… → 1 ready-to-sign redeem tx + expected USDC back. No approval needed.' },
+                { method: 'GET', path: '/api/yield/position/{wallet}', desc: 'Live position: shares, current USDC value, yield earned, + redeem hint.' },
+                { method: 'GET', path: '/api/yield/rates',             desc: 'Live APY from Aave v3, Compound v3, Morpho Blue. Cached 60s.' },
+                { method: 'GET', path: '/api/yield/manifest',          desc: 'Machine-readable vault manifest for agent discovery.' },
+                { method: 'GET', path: '/api/yield/contract',          desc: 'Full ABI (76 entries) + Basescan link.' },
               ].map(({ method, path, desc }) => (
                 <div key={path} className="px-4 py-3 flex items-start gap-3">
                   <Badge className="text-[10px] shrink-0 mt-0.5 bg-blue-500/20 text-blue-300">{method}</Badge>

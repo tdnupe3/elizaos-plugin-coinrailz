@@ -70,6 +70,8 @@ const VAULT_ABI = parseAbi([
   'function depositFeeBps() external view returns (uint256)',
   'function performanceFeeBps() external view returns (uint256)',
   'function userPosition(address user) external view returns (uint256 shares, uint256 currentValue, uint256 estimatedYield)',
+  'function previewRedeem(uint256 shares) external view returns (uint256)',
+  'function balanceOf(address account) external view returns (uint256)',
 ]);
 
 // ── Rate Cache (60 second TTL) ────────────────────────────────────────────────
@@ -385,6 +387,30 @@ router.get('/position/:wallet', async (req: Request, res: Response) => {
     const estimatedPerformanceFee = estimatedYield * 1500n / 10000n;
     const netYield = estimatedYield - estimatedPerformanceFee;
 
+    let redeemHint: object | null = null;
+    if (shares > 0n) {
+      try {
+        const expectedUsdc = await client.readContract({
+          address: VAULT_ADDRESS as `0x${string}`,
+          abi: VAULT_ABI,
+          functionName: 'previewRedeem',
+          args: [shares],
+        }) as bigint;
+        const redeemData = encodeFunctionData({
+          abi: parseAbi(['function redeem(uint256 shares, address receiver, address shareOwner) external returns (uint256)']),
+          functionName: 'redeem',
+          args: [shares, wallet as `0x${string}`, wallet as `0x${string}`],
+        });
+        redeemHint = {
+          description: '1 transaction. No approval needed. Burns crUSDC shares, returns USDC.',
+          shares: shares.toString(),
+          expected_usdc_back: formatUnits(expectedUsdc, 6),
+          step: { to: VAULT_ADDRESS, data: redeemData, value: '0x0', gas: '0x30d40', chainId: 8453 },
+          full_endpoint: `/api/yield/redeem-tx?wallet=${wallet}`,
+        };
+      } catch (_) {}
+    }
+
     res.json({
       success:   true,
       wallet,
@@ -397,6 +423,7 @@ router.get('/position/:wallet', async (req: Request, res: Response) => {
         shareToken:              'crUSDC',
         vaultAddress:            VAULT_ADDRESS,
       },
+      redeem_hint: redeemHint,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: 'Failed to fetch position', detail: err.message });
@@ -511,22 +538,24 @@ router.get('/manifest', async (req: Request, res: Response) => {
         switch:      '0%',
       },
       endpoints: {
-        rates:      `${base}/api/yield/rates`,
-        stats:      `${base}/api/yield/stats`,
-        position:   `${base}/api/yield/position/{wallet}`,
-        contract:   `${base}/api/yield/contract`,
-        portal:     `${base}/yield-portal`,
-        deposit:    `${base}/api/yield/deposit`,
-        myPosition: `${base}/api/yield/my-position`,
-        withdraw:   `${base}/api/yield/withdraw`,
-        depositTx:  `${base}/api/yield/deposit-tx`,
+        rates:     `${base}/api/yield/rates`,
+        stats:     `${base}/api/yield/stats`,
+        presets:   `${base}/api/yield/presets`,
+        depositTx: `${base}/api/yield/deposit-tx?preset=100&recipient={wallet}`,
+        redeemTx:  `${base}/api/yield/redeem-tx?wallet={wallet}`,
+        position:  `${base}/api/yield/position/{wallet}`,
+        contract:  `${base}/api/yield/contract`,
+        manifest:  `${base}/api/yield/manifest`,
+        portal:    `${base}/yield-portal`,
       },
       agentQuickStart: {
-        description: 'No wallet or gas required. Uses your CoinRailz API key and credit balance.',
-        step1: `GET ${base}/api/yield/rates  → see current APY`,
-        step2: `POST ${base}/api/yield/deposit  X-API-KEY: YOUR_KEY  {"amount": 50}  → start earning`,
-        step3: `GET ${base}/api/yield/my-position  X-API-KEY: YOUR_KEY  → check live yield`,
-        step4: `POST ${base}/api/yield/withdraw  X-API-KEY: YOUR_KEY  {"amount": 50}  → get back principal + yield`,
+        model:       'wallet-native ERC-4626 — agent holds its own keys',
+        note:        'No API key or credits required. All endpoints are public.',
+        step1_rates: `GET ${base}/api/yield/rates — compare APY across Aave v3, Compound v3, Morpho Blue`,
+        step2_tx:    `GET ${base}/api/yield/deposit-tx?preset=100&recipient=0xAGENT_WALLET — get 2 ready-to-sign txs`,
+        step3_sign:  'Sign tx[0] (USDC approve) → wait confirmed → sign tx[1] (deposit). Done.',
+        step4_check: `GET ${base}/api/yield/position/0xAGENT_WALLET — live shares, USD value, earned yield`,
+        step5_exit:  `GET ${base}/api/yield/redeem-tx?wallet=0xAGENT_WALLET — get 1 redeem tx, no approval needed`,
       },
       security: {
         nonCustodial:           true,
@@ -1228,6 +1257,114 @@ router.get('/deposit-tx', (req: Request, res: Response) => {
       manifest:  '/api/yield/manifest',
     },
   });
+});
+
+/**
+ * GET /api/yield/redeem-tx?wallet=0xADDRESS
+ *   OR ?shares=N&receiver=0x&owner=0x
+ *
+ * Symmetric to /deposit-tx — returns pre-built redeem calldata.
+ * wallet= shorthand: auto-fetches current share balance on-chain.
+ * Only 1 transaction needed — no approval required for ERC-4626 redeem.
+ */
+router.get('/redeem-tx', async (req: Request, res: Response) => {
+  if (!VAULT_ADDRESS) {
+    return res.status(503).json({ success: false, error: 'Vault not deployed.', deploy: 'GET /api/yield/stats' });
+  }
+
+  const walletRaw   = req.query.wallet   as string | undefined;
+  const sharesRaw   = req.query.shares   as string | undefined;
+  const receiverRaw = req.query.receiver as string | undefined;
+  const ownerRaw    = req.query.owner    as string | undefined;
+
+  let sharesBI: bigint;
+  let receiver: string;
+  let owner: string;
+
+  if (walletRaw) {
+    if (!walletRaw.match(/^0x[0-9a-fA-F]{40}$/)) {
+      return res.status(400).json({ success: false, error: 'wallet must be a valid 0x Ethereum address' });
+    }
+    try {
+      const result = await client.readContract({
+        address: VAULT_ADDRESS as `0x${string}`,
+        abi: VAULT_ABI,
+        functionName: 'userPosition',
+        args: [walletRaw as `0x${string}`],
+      }) as [bigint, bigint, bigint];
+      sharesBI = result[0];
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: 'Failed to fetch position on-chain', detail: err.message });
+    }
+    if (sharesBI === 0n) {
+      return res.status(404).json({
+        success: false,
+        error: 'No position found for this wallet.',
+        wallet: walletRaw,
+        note: 'Deposit first: GET /api/yield/deposit-tx?preset=100&recipient=' + walletRaw,
+      });
+    }
+    receiver = walletRaw;
+    owner    = walletRaw;
+  } else {
+    if (!sharesRaw || BigInt(sharesRaw || '0') <= 0n) {
+      return res.status(400).json({
+        success: false,
+        error:   'Provide ?wallet=0xYOUR_WALLET (recommended) or ?shares=N&receiver=0x&owner=0x',
+        example: '?wallet=0xYOUR_WALLET',
+      });
+    }
+    if (!receiverRaw?.match(/^0x[0-9a-fA-F]{40}$/) || !ownerRaw?.match(/^0x[0-9a-fA-F]{40}$/)) {
+      return res.status(400).json({ success: false, error: 'receiver and owner must be valid 0x addresses' });
+    }
+    try { sharesBI = BigInt(sharesRaw); } catch {
+      return res.status(400).json({ success: false, error: 'shares must be a valid integer (atomic units)' });
+    }
+    receiver = receiverRaw;
+    owner    = ownerRaw;
+  }
+
+  try {
+    const expectedUsdc = await client.readContract({
+      address: VAULT_ADDRESS as `0x${string}`,
+      abi: VAULT_ABI,
+      functionName: 'previewRedeem',
+      args: [sharesBI],
+    }) as bigint;
+
+    const redeemData = encodeFunctionData({
+      abi: parseAbi(['function redeem(uint256 shares, address receiver, address shareOwner) external returns (uint256)']),
+      functionName: 'redeem',
+      args: [sharesBI, receiver as `0x${string}`, owner as `0x${string}`],
+    });
+
+    return res.json({
+      success:            true,
+      shares:             sharesBI.toString(),
+      shares_human:       formatUnits(sharesBI, 6),
+      receiver,
+      owner,
+      chainId:            8453,
+      network:            'Base mainnet',
+      expected_usdc_back: formatUnits(expectedUsdc, 6),
+      step: {
+        action:  'Redeem crUSDC shares — receive USDC',
+        to:      VAULT_ADDRESS,
+        data:    redeemData,
+        value:   '0x0',
+        gas:     '0x30d40',
+        note:    'Single transaction. No approval needed. Burns your crUSDC shares and sends USDC to receiver.',
+      },
+      fee_note:    '0% exit fee. 15% performance fee already accrued on yield.',
+      useful_links: {
+        position: `/api/yield/position/${receiver}`,
+        deposit:  `/api/yield/deposit-tx?preset=100&recipient=${receiver}`,
+        basescan: `https://basescan.org/address/${VAULT_ADDRESS}`,
+      },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: 'Failed to build redeem transaction', detail: err.message });
+  }
 });
 
 /**

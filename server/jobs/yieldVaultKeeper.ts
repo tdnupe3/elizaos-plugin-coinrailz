@@ -84,8 +84,7 @@ async function runKeeperCycle(vaultAddress: string): Promise<void> {
       return;
     }
 
-    const [bestProtocolRaw, bestAPYRaw, activeProtocolRaw] = await Promise.all([
-      publicClient.readContract({ ...vault, functionName: 'getBestProtocol' }),
+    const [bestProtocolRaw, activeProtocolRaw] = await Promise.all([
       publicClient.readContract({ ...vault, functionName: 'getBestProtocol' }),
       publicClient.readContract({ ...vault, functionName: 'activeProtocol' }),
     ]);

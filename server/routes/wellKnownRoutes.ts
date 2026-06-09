@@ -2332,6 +2332,41 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
         },
         pricing: { amount: 0.05, currency: "USD" },
         category: "utilities"
+      },
+      // USDC Yield Vault — non-custodial ERC-4626, auto-routes to highest APY on Base
+      {
+        id: "base-usdc-yield-vault",
+        name: "USDC Yield Vault (Base) — ERC-4626",
+        description: "Deposit USDC and earn auto-optimized yield on Base. ERC-4626 vault auto-routes to the highest APY protocol (currently Morpho Blue ~4.96% gross). 0.5% entry fee, 15% performance fee on yield gains, 0% exit fee. Rebalances every 24h. Non-custodial — emergencyWithdraw() always works regardless of vault state.",
+        tags: ["yield", "usdc", "defi", "base", "erc4626", "aave", "morpho", "compound", "vault", "interest"],
+        vault: {
+          address:    "0x86e2508ca0de34530dc847645f60f0d46d95176a",
+          standard:   "ERC-4626",
+          shareToken: "crUSDC",
+          chainId:    8453,
+          asset:      "USDC",
+          assetAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          basescan:   "https://basescan.org/address/0x86e2508ca0de34530dc847645f60f0d46d95176a"
+        },
+        endpoints: {
+          rates:    `${baseUrl}/api/yield/rates`,
+          stats:    `${baseUrl}/api/yield/stats`,
+          position: `${baseUrl}/api/yield/position/{wallet}`,
+          contract: `${baseUrl}/api/yield/contract`,
+          manifest: `${baseUrl}/api/yield/manifest`,
+          portal:   `${baseUrl}/yield-portal`
+        },
+        howToDeposit: [
+          "1. GET /api/yield/rates — see current APY",
+          "2. GET /api/yield/contract — get vault ABI and address",
+          "3. USDC.approve(vaultAddress, amount)",
+          "4. vault.deposit(amount, yourAddress) — receive crUSDC shares",
+          "5. GET /api/yield/position/{yourAddress} — check position"
+        ],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        pricing: { amount: 0, currency: "USD", note: "Free to query. Entry fee 0.5% on deposit, 15% performance fee on yield only." },
+        category: "yield"
       }
     ],
     
@@ -3503,6 +3538,21 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         tags: ["ai", "inference", "llm", "gpt", "openai", "x402"],
         inputModes: ["application/json"],
         outputModes: ["application/json"]
+      },
+      // Base USDC Yield Vault
+      {
+        id: "base-usdc-yield-vault",
+        name: "USDC Yield Vault (Base)",
+        description: "Deposit USDC and earn auto-optimized yield on Base. ERC-4626 vault routes to highest APY across Aave v3, Compound v3, and Morpho Blue. 0.5% entry fee, 15% performance fee on yield, 0% exit fee. Rebalances every 24h. Non-custodial, emergencyWithdraw always works.",
+        tags: ["yield", "usdc", "defi", "base", "erc4626", "aave", "morpho", "compound", "vault"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: [{
+          name: "Check current APY",
+          description: "Get live rates from all three protocols and current net APY",
+          input: {},
+          output: { bestProtocol: "Morpho Blue", bestAPY: 4.96, netAPY: 4.22 }
+        }]
       },
       // Solana
       {
@@ -4765,6 +4815,33 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
           },
           required: ["prompt"]
         }
+      },
+      // USDC Yield Vault — ERC-4626 auto-routing yield on Base
+      {
+        path: "/api/yield/manifest",
+        methods: ["GET"],
+        price_usd: 0,
+        auth: "none",
+        name: "USDC Yield Vault — Auto-Routing Yield on Base",
+        description: "Non-custodial ERC-4626 USDC yield vault that auto-routes to highest APY across Aave v3, Compound v3, and Morpho Blue on Base. Standard deposit/withdraw interface. 0.5% entry, 15% performance fee on yield only, 0% exit fee. Rebalances every 24h. emergencyWithdraw() always works.",
+        status: "healthy",
+        category: "yield",
+        vault: {
+          address:    "0x86e2508ca0de34530dc847645f60f0d46d95176a",
+          standard:   "ERC-4626",
+          shareToken: "crUSDC",
+          chainId:    8453,
+          basescan:   "https://basescan.org/address/0x86e2508ca0de34530dc847645f60f0d46d95176a"
+        },
+        discovery: {
+          rates:    `${baseUrl}/api/yield/rates`,
+          stats:    `${baseUrl}/api/yield/stats`,
+          position: `${baseUrl}/api/yield/position/{wallet}`,
+          contract: `${baseUrl}/api/yield/contract`,
+          manifest: `${baseUrl}/api/yield/manifest`,
+          portal:   `${baseUrl}/yield-portal`
+        },
+        input_schema: { type: "object", properties: {} }
       }
     ],
     x402: {

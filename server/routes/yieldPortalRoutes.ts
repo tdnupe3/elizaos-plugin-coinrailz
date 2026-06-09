@@ -71,12 +71,13 @@ const VAULT_ABI = parseAbi([
 // ── Rate Cache (60 second TTL) ────────────────────────────────────────────────
 
 interface RateCache {
-  aaveAPY:     number;
-  compoundAPY: number;
-  morphoAPY:   number;
-  bestAPY:     number;
-  bestProtocol: string;
-  cachedAt:    number;
+  aaveAPY:        number;
+  compoundAPY:    number;
+  morphoAPY:      number;
+  bestAPY:        number;
+  bestProtocol:   string;
+  activeProtocol: string;
+  cachedAt:       number;
 }
 
 let rateCache: RateCache | null = null;
@@ -104,15 +105,15 @@ async function fetchLiveRates(): Promise<RateCache> {
       ]);
 
       const [aaveBps, compoundBps, morphoBps] = apys as [bigint, bigint, bigint];
-      const aaveAPY    = Number(aaveBps)    / 100;
+      const aaveAPY     = Number(aaveBps)    / 100;
       const compoundAPY = Number(compoundBps) / 100;
-      const morphoAPY  = Number(morphoBps)  / 100;
-      const bestAPY    = Math.max(aaveAPY, compoundAPY, morphoAPY);
-      // Derive best protocol name from APYs (not from active protocol, which may lag during cooldown)
+      const morphoAPY   = Number(morphoBps)  / 100;
+      const bestAPY     = Math.max(aaveAPY, compoundAPY, morphoAPY);
       const bestProtocol = bestAPY === morphoAPY && morphoAPY > 0 ? 'Morpho Blue'
         : bestAPY === aaveAPY ? 'Aave v3' : 'Compound v3';
+      const activeProtocol = protocolName as string;
 
-      rateCache = { aaveAPY, compoundAPY, morphoAPY, bestAPY, bestProtocol, cachedAt: Date.now() };
+      rateCache = { aaveAPY, compoundAPY, morphoAPY, bestAPY, bestProtocol, activeProtocol, cachedAt: Date.now() };
       return rateCache;
     } catch (_) {
       // fall through to direct protocol reads
@@ -137,9 +138,10 @@ async function fetchLiveRates(): Promise<RateCache> {
     aaveAPY,
     compoundAPY,
     morphoAPY,
-    bestAPY:     best.apy,
-    bestProtocol: best.name,
-    cachedAt:    Date.now(),
+    bestAPY:        best.apy,
+    bestProtocol:   best.name,
+    activeProtocol: best.name,  // before vault is deployed, best == active
+    cachedAt:       Date.now(),
   };
   return rateCache;
 }
@@ -193,7 +195,7 @@ async function fetchVaultStats() {
   if (!VAULT_ADDRESS) return null;
 
   try {
-    const [totalAssets, totalSupply, pricePerShare, pendingAccrual, depositFeeBps, performanceFeeBps, nextRebalanceIn] =
+    const [totalAssets, totalSupply, pricePerShare, pendingAccrual, depositFeeBps, performanceFeeBps, nextRebalanceIn, activeProtocolName] =
       await Promise.all([
         client.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: VAULT_ABI, functionName: 'totalAssets' }),
         client.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: VAULT_ABI, functionName: 'totalSupply' }),
@@ -202,18 +204,20 @@ async function fetchVaultStats() {
         client.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: VAULT_ABI, functionName: 'depositFeeBps' }),
         client.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: VAULT_ABI, functionName: 'performanceFeeBps' }),
         client.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: VAULT_ABI, functionName: 'nextRebalanceIn' }),
+        client.readContract({ address: VAULT_ADDRESS as `0x${string}`, abi: VAULT_ABI, functionName: 'activeProtocolName' }),
       ]);
 
     const [, feeAssets] = pendingAccrual as [bigint, bigint];
 
     return {
-      tvlUsdc:           formatUnits(totalAssets as bigint, 6),
-      totalSharesUsdc:   formatUnits(totalSupply as bigint, 6),
-      pricePerShare:     formatUnits(pricePerShare as bigint, 6),
-      pendingFeesUsdc:   formatUnits(feeAssets, 6),
-      depositFeePct:     Number(depositFeeBps as bigint) / 100,
-      performanceFeePct: Number(performanceFeeBps as bigint) / 100,
+      tvlUsdc:            formatUnits(totalAssets as bigint, 6),
+      totalSharesUsdc:    formatUnits(totalSupply as bigint, 6),
+      pricePerShare:      formatUnits(pricePerShare as bigint, 6),
+      pendingFeesUsdc:    formatUnits(feeAssets, 6),
+      depositFeePct:      Number(depositFeeBps as bigint) / 100,
+      performanceFeePct:  Number(performanceFeeBps as bigint) / 100,
       nextRebalanceInSec: Number(nextRebalanceIn as bigint),
+      activeProtocolName: activeProtocolName as string,
     };
   } catch {
     return null;
@@ -257,9 +261,11 @@ router.get('/rates', async (req: Request, res: Response) => {
         protocol:   rates.bestProtocol,
         apyPercent: rates.bestAPY,
       },
+      activeProtocol: rates.activeProtocol,
       netAPY: {
-        description:   'Net APY to depositor after CoinRailz 15% performance fee',
-        exampleAt5Pct: `${(rates.bestAPY * 0.85).toFixed(2)}%`,
+        description:        'Net APY to depositor after CoinRailz 15% performance fee on yield gains',
+        currentNetApyPercent: parseFloat((rates.bestAPY * 0.85).toFixed(2)),
+        breakdown:           `${rates.bestAPY.toFixed(2)}% gross (${rates.bestProtocol}) → ${(rates.bestAPY * 0.85).toFixed(2)}% net`,
       },
       fees: {
         entryFeePct:       0.5,
@@ -304,8 +310,15 @@ router.get('/stats', async (req: Request, res: Response) => {
       routing: {
         strategy:          'auto',
         description:       'Automatically routes to the highest-APY protocol. Rebalances once per 24h.',
-        currentProtocol:   rates.bestProtocol,
-        currentAPY:        rates.bestAPY,
+        currentProtocol:   vaultStats?.activeProtocolName ?? rates.bestProtocol,
+        currentAPY:        (() => {
+          const active = vaultStats?.activeProtocolName ?? rates.bestProtocol;
+          return active === 'Morpho Blue' ? rates.morphoAPY
+               : active === 'Aave v3'     ? rates.aaveAPY
+               : rates.compoundAPY;
+        })(),
+        bestAvailableProtocol: rates.bestProtocol,
+        bestAvailableAPY:      rates.bestAPY,
         rebalanceInterval: '24h',
         minImprovementBps: 50,
         protocols:         ['Aave v3', 'Compound v3', 'Morpho Blue'],
@@ -360,9 +373,13 @@ router.get('/position/:wallet', async (req: Request, res: Response) => {
       abi: VAULT_ABI,
       functionName: 'userPosition',
       args: [wallet as `0x${string}`],
-    }) as [bigint, bigint, bigint, bigint];
+    }) as [bigint, bigint, bigint];
 
-    const [shares, currentValue, estimatedYield, estimatedPerformanceFee] = result;
+    const [shares, currentValue, estimatedYield] = result;
+    // Performance fee is 15% (1500 bps) of yield — computed server-side since
+    // the contract's userPosition() returns 3 values (shares, value, yield)
+    const estimatedPerformanceFee = estimatedYield * 1500n / 10000n;
+    const netYield = estimatedYield - estimatedPerformanceFee;
 
     res.json({
       success:   true,
@@ -372,7 +389,7 @@ router.get('/position/:wallet', async (req: Request, res: Response) => {
         currentValueUsdc:        formatUnits(currentValue, 6),
         estimatedYieldUsdc:      formatUnits(estimatedYield, 6),
         estimatedPerformanceFee: formatUnits(estimatedPerformanceFee, 6),
-        netYieldUsdc:            formatUnits(estimatedYield - estimatedPerformanceFee, 6),
+        netYieldUsdc:            formatUnits(netYield, 6),
         shareToken:              'crUSDC',
         vaultAddress:            VAULT_ADDRESS,
       },
@@ -387,16 +404,27 @@ router.get('/position/:wallet', async (req: Request, res: Response) => {
  * Full ABI and integration guide for AI agents to interact directly with the vault.
  */
 router.get('/contract', async (_req: Request, res: Response) => {
+  // Load ABI from compiled artifact if available
+  let vaultAbi: unknown[] | null = null;
+  try {
+    const artifactPath = join(process.cwd(), 'contracts', 'CoinRailzYieldVault.json');
+    if (existsSync(artifactPath)) {
+      vaultAbi = JSON.parse(readFileSync(artifactPath, 'utf8')).abi;
+    }
+  } catch { /* non-fatal */ }
+
   res.json({
     success: true,
     vault: {
-      address:    VAULT_ADDRESS || 'deploying-soon',
-      network:    'Base',
-      chainId:    8453,
-      asset:      'USDC',
+      address:      VAULT_ADDRESS || 'deploying-soon',
+      network:      'Base',
+      chainId:      8453,
+      asset:        'USDC',
       assetAddress: BASE_USDC,
-      standard:   'ERC-4626',
-      shareToken: 'crUSDC',
+      standard:     'ERC-4626',
+      shareToken:   'crUSDC',
+      basescan:     VAULT_ADDRESS ? `https://basescan.org/address/${VAULT_ADDRESS}` : null,
+      abi:          vaultAbi,
     },
     howToDeposit: [
       '1. Approve the vault to spend your USDC: USDC.approve(vaultAddress, amount)',
@@ -415,7 +443,7 @@ router.get('/contract', async (_req: Request, res: Response) => {
       emergencyWithdraw:'emergencyWithdraw() — always works, cannot be blocked',
       accrueFees:       'accrueFees() — anyone can call; mints performance-fee shares to feeRecipient on any yield gain',
       rebalance:        'rebalance() — anyone can call, 24h cooldown, auto-routes to best APY',
-      userPosition:     'userPosition(address) → (shares, value, yield, perfFee)',
+      userPosition:     'userPosition(address) → (shares, currentValue, estimatedYield)',
       pricePerShare:    'pricePerShare() → current USDC value per 1 crUSDC share',
       getAllAPYs:        'getAllAPYs() → (aaveAPYBps, compoundAPYBps, morphoAPYBps)',
     },
@@ -452,8 +480,11 @@ const shares = await walletClient.writeContract({
  * Machine-readable manifest — AI agents discover this via .well-known/x402.json
  */
 router.get('/manifest', async (req: Request, res: Response) => {
-  const host = req.get('host') || 'coinrailz.com';
-  const base  = `https://${host}`;
+  // Prefer x-forwarded-host (set by Replit's reverse proxy in production)
+  const forwardedHost = req.get('x-forwarded-host');
+  const host  = forwardedHost || req.get('host') || 'coinrailz.com';
+  const proto = (process.env.REPLIT_DEPLOYMENT === '1' || forwardedHost) ? 'https' : 'http';
+  const base  = `${proto}://${host}`;
 
   try {
     const rates = await fetchLiveRates();

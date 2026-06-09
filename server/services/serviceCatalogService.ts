@@ -758,6 +758,18 @@ export class ServiceCatalogService {
         x402Compatible: true,
         stripeCompatible: true
       },
+      {
+        id: 'satellite-earthdata',
+        slug: 'satellite-earthdata',
+        name: 'NASA Earthdata Intelligence Gateway',
+        description: 'Unified NASA Earthdata gateway. Single /x402/satellite-earthdata endpoint for all 5 products: precipitation (GPM IMERG), granule search, SST (MUR), soil moisture (SMAP), and ocean color (MODIS). Pass product= field to select. $0.25/call.',
+        endpoint: '/x402/satellite-earthdata',
+        network: 'eip155:8453',
+        category: 'satellite-data',
+        capabilities: ['precipitation', 'granules', 'sst', 'soil-moisture', 'ocean-color', 'nasa-earthdata', 'bundled'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
       // IoT/DePIN SERVICES - Device Data Monetization - 5 services
       {
         id: 'fleet-telematics',

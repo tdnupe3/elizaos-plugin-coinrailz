@@ -282,14 +282,14 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
         }
       },
       {
-        id: "earthdata-ocean-temp",
+        id: "earthdata-sst",
         name: "MUR Sea Surface Temperature",
-        description: "Multi-scale Ultra-high Resolution (MUR) Sea Surface Temperature (SST) at 1km daily resolution. Part of the NASA Earthdata Intelligence suite. Also available at /api/satellite/earthdata/sst.",
+        description: "Multi-scale Ultra-high Resolution (MUR) Sea Surface Temperature (SST) at 1km daily resolution. Part of the NASA Earthdata Intelligence suite. Endpoint: /x402/earthdata-sst.",
         price: "$0.25 USDC",
         amountMicroUSDC: 250000,
         chainsAccepted: ["eip155:8453"],
         category: "satellite-intelligence",
-        tags: ["NASA", "Earthdata", "Ocean", "Temperature", "SST"],
+        tags: ["NASA", "Earthdata", "Ocean", "Temperature", "SST", "x402"],
         inputSchema: {
           type: "object",
           properties: {
@@ -318,14 +318,14 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
         }
       },
       {
-        id: "earthdata-water-quality",
+        id: "earthdata-ocean-color",
         name: "Ocean Color & Water Quality",
-        description: "MODIS Ocean Color / Chlorophyll-a (MODISA_L3m_CHL) data. Part of the NASA Earthdata Intelligence suite. Also available at /api/satellite/earthdata/ocean-color.",
+        description: "MODIS Ocean Color / Chlorophyll-a (MODISA_L3m_CHL) data. Part of the NASA Earthdata Intelligence suite. Endpoint: /x402/earthdata-ocean-color.",
         price: "$0.25 USDC",
         amountMicroUSDC: 250000,
         chainsAccepted: ["eip155:8453"],
         category: "satellite-intelligence",
-        tags: ["NASA", "Earthdata", "Ocean", "Chlorophyll", "Water Quality"],
+        tags: ["NASA", "Earthdata", "Ocean", "Chlorophyll", "Water Quality", "x402"],
         inputSchema: {
           type: "object",
           properties: {
@@ -3074,10 +3074,10 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         }]
       },
       {
-        id: "earthdata-ocean-temp",
+        id: "earthdata-sst",
         name: "MUR Sea Surface Temperature",
-        description: "Multi-scale Ultra-high Resolution (MUR) Sea Surface Temperature at 1km daily resolution. Maritime logistics risk assessment, aquaculture monitoring, carbon credit verification. Also available at /api/satellite/earthdata/sst. $0.25 per request.",
-        tags: ["NASA", "Earthdata", "SST", "ocean", "temperature", "maritime", "supply-chain", "RWA", "carbon-credits", "aquaculture", "satellite-intelligence"],
+        description: "Multi-scale Ultra-high Resolution (MUR) Sea Surface Temperature at 1km daily resolution. Maritime logistics risk assessment, aquaculture monitoring, carbon credit verification. Endpoint: /x402/earthdata-sst. $0.25 per request.",
+        tags: ["NASA", "Earthdata", "SST", "ocean", "temperature", "maritime", "supply-chain", "RWA", "carbon-credits", "aquaculture", "satellite-intelligence", "x402"],
         inputModes: ["application/json"],
         outputModes: ["application/json"],
         examples: [{
@@ -3090,8 +3090,8 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       {
         id: "earthdata-soil-moisture",
         name: "SMAP Soil Moisture",
-        description: "NASA SMAP L3 soil moisture granule discovery. Agricultural yield verification, drought monitoring, and supply chain transparency for commodity markets. $0.25 per request. Endpoint: /api/satellite/earthdata/soil-moisture",
-        tags: ["NASA", "Earthdata", "SMAP", "soil", "moisture", "agriculture", "ESG", "drought", "commodity", "RWA", "satellite-intelligence"],
+        description: "NASA SMAP L3 soil moisture granule discovery. Agricultural yield verification, drought monitoring, and supply chain transparency for commodity markets. $0.25 per request. Endpoint: /x402/earthdata-soil-moisture",
+        tags: ["NASA", "Earthdata", "SMAP", "soil", "moisture", "agriculture", "ESG", "drought", "commodity", "RWA", "satellite-intelligence", "x402"],
         inputModes: ["application/json"],
         outputModes: ["application/json"],
         examples: [{
@@ -3102,10 +3102,10 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         }]
       },
       {
-        id: "earthdata-water-quality",
+        id: "earthdata-ocean-color",
         name: "Ocean Color & Water Quality",
-        description: "MODIS Ocean Color / Chlorophyll-a (MODISA_L3m_CHL) data. Carbon credit verification, marine ecosystem health monitoring, and ESG reporting for coastal industries. Also available at /api/satellite/earthdata/ocean-color. $0.25 per request.",
-        tags: ["NASA", "Earthdata", "ocean", "chlorophyll", "water-quality", "ESG", "carbon-credits", "marine", "RWA", "coastal", "satellite-intelligence"],
+        description: "MODIS Ocean Color / Chlorophyll-a (MODISA_L3m_CHL) data. Carbon credit verification, marine ecosystem health monitoring, and ESG reporting for coastal industries. Endpoint: /x402/earthdata-ocean-color. $0.25 per request.",
+        tags: ["NASA", "Earthdata", "ocean", "chlorophyll", "water-quality", "ESG", "carbon-credits", "marine", "RWA", "coastal", "satellite-intelligence", "x402"],
         inputModes: ["application/json"],
         outputModes: ["application/json"],
         examples: [{
@@ -3113,6 +3113,20 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
           description: "Measure ocean chlorophyll concentration for carbon credit verification",
           input: { lat: 36.5, lon: -122.0, date: "2026-03-01" },
           output: { chlorophyll_mgl: 2.14, source: "MODIS-Aqua L3m", quality_flag: "good" }
+        }]
+      },
+      {
+        id: "satellite-earthdata",
+        name: "NASA Earthdata Intelligence Gateway",
+        description: "Unified NASA Earthdata bundled gateway. Single endpoint for all 5 products: precipitation (GPM IMERG), granule search, SST (MUR), soil moisture (SMAP), and ocean color (MODIS). Pass product= field to select. Endpoint: /x402/satellite-earthdata. $0.25 per request.",
+        tags: ["NASA", "Earthdata", "satellite", "precipitation", "SST", "soil-moisture", "ocean-color", "granules", "bundled", "satellite-intelligence", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: [{
+          name: "Bundled precipitation query",
+          description: "Get precipitation data using the unified gateway with product field",
+          input: { product: "precipitation", lat: 40.0, lon: -74.0 },
+          output: { product: "precipitation", data: { precipitation_mm_hr: 2.4 }, source: "GPM IMERG" }
         }]
       },
       // Trading Intelligence Services ($0.10-$0.75)
@@ -3750,7 +3764,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       verifiedPayments: true,           // Real x402 payments processed and verified
       repeatAgentsObserved: true,       // Returning agents making multiple payments
       paymentRails: ["x402-USDC", "stripe", "sdk-payments", "agentic-wallet"],  // Available payment methods
-      totalServicesAvailable: 47,       // Current service count in catalog (44 x402 + 2 SDK + satellite)
+      totalServicesAvailable: getCanonicalServiceCount(),
       agenticWalletCompatible: true,    // Native Coinbase Agentic Wallet support
       networksSupported: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"],   // Primary blockchain networks (CAIP-2 format)
       networkSupported: "eip155:8453",   // Primary blockchain network (CAIP-2 format) - kept for backwards compatibility

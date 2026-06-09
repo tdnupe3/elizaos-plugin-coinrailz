@@ -223,6 +223,94 @@ router.get('/openapi.json', (req: Request, res: Response) => {
         responses: { '200': { description: 'Integration guide' } },
       },
     },
+    '/api/yield/manifest': {
+      get: {
+        operationId: 'getYieldManifest',
+        summary: 'USDC Yield Vault manifest — ERC-4626 auto-routing yield on Base',
+        description: 'Full agent integration guide for the non-custodial USDC yield vault. Returns current APY, agentkit quickstart, REST paths (deposit-tx, redeem-tx, position), fees, and security properties. No auth required.',
+        security: [],
+        tags: ['Yield'],
+        responses: { '200': { description: 'Vault manifest with agentkit quickstart and REST integration paths' } },
+        'x-codeSamples': [
+          { lang: 'Shell', label: 'curl', source: `curl ${baseUrl}/api/yield/manifest` },
+        ],
+      },
+    },
+    '/api/yield/rates': {
+      get: {
+        operationId: 'getYieldRates',
+        summary: 'Live APY from Aave v3, Compound v3, and Morpho Blue on Base',
+        description: 'Returns current gross APY and net APY for all three protocols. Cached 60s. Response includes Link header pointing to manifest and X-Agent-Tip for agentkit integration.',
+        security: [],
+        tags: ['Yield'],
+        responses: { '200': { description: 'Live rates per protocol and current best APY' } },
+      },
+    },
+    '/api/yield/stats': {
+      get: {
+        operationId: 'getYieldStats',
+        summary: 'Vault TVL, active protocol, rebalance status, and fee structure',
+        description: 'Returns vault address, TVL in USDC, price-per-share (crUSDC), fee structure, and time until next rebalance.',
+        security: [],
+        tags: ['Yield'],
+        responses: { '200': { description: 'Vault statistics and routing status' } },
+      },
+    },
+    '/api/yield/deposit-tx': {
+      get: {
+        operationId: 'getDepositTx',
+        summary: 'Pre-built deposit calldata — standard (2 txs) or permit (1 tx)',
+        description: 'Returns ready-to-sign transactions. Default: 2 txs (USDC approve + ERC-4626 deposit). Add ?mode=permit for 1-tx EIP-2612 permit path (~50% less gas). Add ?preset=100 for $100 amount or ?amount_usdc=150000000 for custom. Requires ?recipient=0xYOUR_WALLET.',
+        security: [],
+        tags: ['Yield'],
+        parameters: [
+          { name: 'preset', in: 'query', schema: { type: 'integer', enum: [10, 50, 100, 250, 1000] }, description: 'USD preset amount' },
+          { name: 'recipient', in: 'query', required: true, schema: { type: 'string' }, description: 'Recipient wallet address (0x...)' },
+          { name: 'mode', in: 'query', schema: { type: 'string', enum: ['standard', 'permit'] }, description: 'standard = 2 txs (approve+deposit), permit = 1 tx via EIP-2612' },
+        ],
+        responses: { '200': { description: 'Pre-built transaction steps ready to sign and broadcast' } },
+        'x-codeSamples': [
+          { lang: 'Shell', label: 'curl', source: `curl "${baseUrl}/api/yield/deposit-tx?preset=100&recipient=0xYOUR_WALLET"` },
+        ],
+      },
+    },
+    '/api/yield/redeem-tx': {
+      get: {
+        operationId: 'getRedeemTx',
+        summary: 'Pre-built redeem calldata — burns crUSDC shares, returns USDC (1 tx, 0% exit fee)',
+        description: 'Returns a single ready-to-sign transaction to redeem all crUSDC shares. No approval needed. 0% exit fee. Requires ?wallet=0xYOUR_WALLET.',
+        security: [],
+        tags: ['Yield'],
+        parameters: [
+          { name: 'wallet', in: 'query', required: true, schema: { type: 'string' }, description: 'Wallet holding crUSDC shares' },
+        ],
+        responses: { '200': { description: 'Single redeem transaction step' } },
+      },
+    },
+    '/api/yield/position/{wallet}': {
+      get: {
+        operationId: 'getYieldPosition',
+        summary: 'Live position for a wallet — shares, USD value, yield earned',
+        description: 'Returns crUSDC shares held, current USD value, estimated yield, net yield (after performance fee), and redeem_hint (ready-to-sign withdraw tx). If position is zero, includes next_action hints.',
+        security: [],
+        tags: ['Yield'],
+        parameters: [{ name: 'wallet', in: 'path', required: true, schema: { type: 'string' }, description: 'EVM wallet address (0x...)' }],
+        responses: { '200': { description: 'Position data with optional next_action hints when no position exists' } },
+        'x-codeSamples': [
+          { lang: 'Shell', label: 'curl', source: `curl "${baseUrl}/api/yield/position/0xYOUR_WALLET"` },
+        ],
+      },
+    },
+    '/api/yield/contract': {
+      get: {
+        operationId: 'getYieldContract',
+        summary: 'Vault ABI, addresses, audit status, and integration guide',
+        description: 'Returns vault and USDC contract addresses, full ERC-4626 ABI, permit helper contract, fee structure, and integration guide. Use deposit-tx endpoint instead of calling the ABI directly — it pre-builds the calldata.',
+        security: [],
+        tags: ['Yield'],
+        responses: { '200': { description: 'Contract info, ABI, and agent integration guide' } },
+      },
+    },
   };
 
   const mergedPaths = {
@@ -233,6 +321,7 @@ router.get('/openapi.json', (req: Request, res: Response) => {
   const mergedTags = [
     { name: 'Onboarding', description: 'Get an API key or checkout session — no wallet required' },
     { name: 'MPP', description: 'MPP (Machine Payments Protocol) endpoints — pathUSD via Tempo. See /.well-known/mpp.json' },
+    { name: 'Yield', description: 'Non-custodial USDC yield vault — ERC-4626 auto-routing across Aave v3, Compound v3, and Morpho Blue on Base. No lockup, 0% exit fee.' },
     ...(catalog.tags || []),
   ];
 

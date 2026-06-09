@@ -1,19 +1,20 @@
 /**
- * CoinRailz Yield Vault — Coinbase AgentKit Action Provider
+ * CoinRailz Yield Vault — Coinbase AgentKit Action Provider (copy-paste version)
+ *
+ * PREFERRED: npm install coinrailz-agentkit  (same code, maintained package)
  *
  * Drop this file into any AgentKit project and add CoinRailzYieldActionProvider
  * to your actionProviders array. Your agent will immediately understand:
- *   - "Deposit $100 USDC to earn yield"
- *   - "What APY am I earning?"
- *   - "Check my yield position"
- *   - "Withdraw my USDC"
+ *   - "Deposit $100 USDC to earn yield"               → coinrailz_yield_deposit (2 txs)
+ *   - "Deposit $100 in a single transaction"          → coinrailz_yield_deposit_permit (1 tx)
+ *   - "What APY am I earning?"                        → coinrailz_yield_get_rates
+ *   - "Check my yield position"                       → coinrailz_yield_check_position
+ *   - "Withdraw my USDC"                              → coinrailz_yield_redeem
  *
  * Requires: @coinbase/agentkit (peer dependency, not bundled here)
  * Vault:    https://basescan.org/address/0x86e2508ca0de34530dc847645f60f0d46d95176a
+ * Permit:   https://basescan.org/address/0x8d291ae2f9850c5c2899100f381ab43dc95b82cf
  * API docs: https://coinrailz.com/api/yield/manifest
- *
- * Pattern mirrors Coinbase's MorphoActionProvider — same interface,
- * same decorator pattern, same error handling convention.
  */
 
 import { z } from "zod";

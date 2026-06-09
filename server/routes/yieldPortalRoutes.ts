@@ -31,6 +31,14 @@ const MORPHO_BLUE    = '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb' as const; //
 // CoinRailz vault — populated after testnet deployment, mainnet after launch
 const VAULT_ADDRESS = process.env.YIELD_VAULT_ADDRESS || null;
 
+// PermitAndDeposit helper — enables single-tx deposits via EIP-2612 permit
+// Deployed: https://basescan.org/address/0x8d291ae2f9850c5c2899100f381ab43dc95b82cf
+const PERMIT_AND_DEPOSIT = '0x8d291ae2f9850c5c2899100f381ab43dc95b82cf' as const;
+
+const USDC_ABI = parseAbi([
+  'function nonces(address owner) external view returns (uint256)',
+]);
+
 // ── Viem Client ───────────────────────────────────────────────────────────────
 
 const RPC_URL = process.env.ALCHEMY_API_KEY
@@ -1092,6 +1100,170 @@ router.post('/withdraw', (_req: Request, res: Response) => {
   });
 });
 
+// ── Permit deposit handler (1-tx via EIP-2612) ────────────────────────────────
+
+async function handlePermitDepositTx(req: Request, res: Response) {
+  const presetRaw    = req.query.preset    as string | undefined;
+  const amountRaw    = req.query.amount    as string | undefined;
+  const recipientRaw = req.query.recipient as string | undefined;
+  const depositorRaw = req.query.depositor as string | undefined; // signer (who holds USDC)
+
+  // ── Validate depositor ────────────────────────────────────────────────────
+  const depositor = depositorRaw || recipientRaw;
+  if (!depositor?.match(/^0x[0-9a-fA-F]{40}$/)) {
+    return res.status(400).json({
+      success: false,
+      error:   'depositor or recipient must be a valid 0x address (the wallet signing the permit)',
+      example: '?mode=permit&preset=100&recipient=0xYOUR_WALLET',
+    });
+  }
+  const recipient = recipientRaw || depositor;
+  if (!recipient.match(/^0x[0-9a-fA-F]{40}$/)) {
+    return res.status(400).json({ success: false, error: 'recipient must be a valid 0x address' });
+  }
+
+  // ── Resolve amount ────────────────────────────────────────────────────────
+  let amountNum: number;
+  if (presetRaw !== undefined) {
+    const parsed = parseInt(presetRaw, 10);
+    if (!(DEPOSIT_PRESETS as readonly number[]).includes(parsed)) {
+      return res.status(400).json({ success: false, error: `Invalid preset. Use one of: ${DEPOSIT_PRESETS.join(', ')}` });
+    }
+    amountNum = parsed;
+  } else {
+    const parsed = parseFloat(amountRaw || '');
+    if (isNaN(parsed)) {
+      return res.status(400).json({ success: false, error: 'Provide ?preset=100 or ?amount=150', presets: DEPOSIT_PRESETS });
+    }
+    amountNum = parsed;
+  }
+  if (amountNum < MIN_DEPOSIT_USD) {
+    return res.status(400).json({ success: false, error: `Minimum deposit is $${MIN_DEPOSIT_USD} USDC` });
+  }
+  if (amountNum > MAX_DEPOSIT_USD) {
+    return res.status(400).json({ success: false, error: `Maximum single deposit is $${MAX_DEPOSIT_USD.toLocaleString()} USDC` });
+  }
+
+  // ── Rate limit ────────────────────────────────────────────────────────────
+  if (!checkDepositRate(depositor)) {
+    return res.status(429).json({ success: false, error: `Rate limit: max ${RATE_LIMIT} requests per wallet per 10 min` });
+  }
+
+  // ── Fetch nonce on-chain ──────────────────────────────────────────────────
+  let nonce: bigint;
+  try {
+    nonce = await client.readContract({
+      address:      BASE_USDC,
+      abi:          USDC_ABI,
+      functionName: 'nonces',
+      args:         [depositor as `0x${string}`],
+    }) as bigint;
+  } catch (err) {
+    return res.status(502).json({
+      success: false,
+      error:   `Failed to fetch USDC nonce on-chain: ${err}`,
+      note:    'Ensure your wallet address is correct and Base mainnet is reachable.',
+    });
+  }
+
+  // ── Build EIP-712 permit data ─────────────────────────────────────────────
+  const amountUsdc = BigInt(Math.round(amountNum * 1_000_000)); // 6 decimals
+  const deadline   = BigInt(Math.floor(Date.now() / 1000) + 3600); // 1 hour
+
+  const permitTypedData = {
+    domain: {
+      name:              'USD Coin',
+      version:           '2',
+      chainId:           8453,
+      verifyingContract: BASE_USDC,
+    },
+    types: {
+      Permit: [
+        { name: 'owner',    type: 'address' },
+        { name: 'spender',  type: 'address' },
+        { name: 'value',    type: 'uint256' },
+        { name: 'nonce',    type: 'uint256' },
+        { name: 'deadline', type: 'uint256' },
+      ],
+    },
+    primaryType: 'Permit',
+    message: {
+      owner:    depositor,
+      spender:  PERMIT_AND_DEPOSIT,
+      value:    amountUsdc.toString(),
+      nonce:    nonce.toString(),
+      deadline: deadline.toString(),
+    },
+  };
+
+  // ── Build depositWithPermit calldata template ─────────────────────────────
+  // The caller signs the permit, then assembles v/r/s into this calldata
+  const depositCalldata = '(sign permit first — call /api/yield/deposit-tx?mode=permit with v,r,s params)';
+
+  const entryFeeUsd    = amountNum * 0.005;
+  const netDepositUsd  = amountNum - entryFeeUsd;
+
+  return res.json({
+    success:       true,
+    mode:          'permit',
+    amount_usd:    amountNum,
+    amount_usdc:   amountUsdc.toString(),
+    depositor,
+    recipient,
+    chainId:       8453,
+    network:       'Base mainnet',
+    transactions:  1,
+    description:   'Sign the EIP-2612 permit off-chain, then call depositWithPermit in a single on-chain transaction.',
+    steps: [
+      {
+        step:    1,
+        action:  'Sign EIP-712 permit (off-chain, no gas)',
+        method:  'eth_signTypedData_v4',
+        payload: permitTypedData,
+        note:    'Sign this typed data with your wallet. This authorises PermitAndDeposit to pull USDC on your behalf.',
+      },
+      {
+        step:    2,
+        action:  'Call depositWithPermit (1 on-chain tx)',
+        to:      PERMIT_AND_DEPOSIT,
+        abi_signature: 'depositWithPermit(uint256 amount, address receiver, uint256 deadline, uint8 v, bytes32 r, bytes32 s)',
+        args:    {
+          amount:   amountUsdc.toString(),
+          receiver: recipient,
+          deadline: deadline.toString(),
+          v:        '(from permit signature)',
+          r:        '(from permit signature)',
+          s:        '(from permit signature)',
+        },
+        gas:   '0x3D090', // ~250k gas (covers permit relay + vault deposit)
+        value: '0x0',
+        note:  'Split signature bytes from step 1: v = sig[-2:], r = sig[2:66], s = sig[66:130].',
+      },
+    ],
+    permit_typed_data: permitTypedData,
+    helper_contract: {
+      address:  PERMIT_AND_DEPOSIT,
+      basescan: `https://basescan.org/address/${PERMIT_AND_DEPOSIT}`,
+      function: 'depositWithPermit(uint256,address,uint256,uint8,bytes32,bytes32)',
+      note:     'Pre-approved vault for type(uint256).max USDC in constructor. Immutable.',
+    },
+    fee_breakdown: {
+      entry_fee_usd:     parseFloat(entryFeeUsd.toFixed(4)),
+      entry_fee_pct:     '0.5% (one-time)',
+      net_deposited_usd: parseFloat(netDepositUsd.toFixed(4)),
+      perf_fee_pct:      '15% of yield only',
+      gas_estimate:      '~$0.01 on Base (1 tx vs 2 tx standard mode)',
+    },
+    useful_links: {
+      position:         `/api/yield/position/${recipient}`,
+      permit_contract:  `https://basescan.org/address/${PERMIT_AND_DEPOSIT}`,
+      standard_mode:    `/api/yield/deposit-tx?preset=${amountNum}&recipient=${recipient}`,
+      manifest:         '/api/yield/manifest',
+    },
+    agentkit_tip: 'npm install coinrailz-agentkit — the depositPermit action handles all of this automatically.',
+  });
+}
+
 // ── Deposit-Tx security: rate limiting ────────────────────────────────────────
 const DEPOSIT_RATE: Map<string, number[]> = new Map();
 const RATE_WINDOW_MS  = 10 * 60 * 1000; // 10 minutes
@@ -1116,9 +1288,15 @@ function checkDepositRate(wallet: string): boolean {
  * Enforces $10 minimum, $50k maximum, 5 req/10min per wallet.
  * Fees: 0.5% entry (platform revenue), 15% of yield (platform revenue).
  */
-router.get('/deposit-tx', (req: Request, res: Response) => {
+router.get('/deposit-tx', async (req: Request, res: Response) => {
   if (!VAULT_ADDRESS) {
     return res.status(503).json({ success: false, error: 'Vault not deployed yet.', contract: 'GET /api/yield/contract' });
+  }
+
+  // ── Permit mode: single-tx deposit via EIP-2612 ────────────────────────────
+  const mode = req.query.mode as string | undefined;
+  if (mode === 'permit') {
+    return handlePermitDepositTx(req, res);
   }
 
   // ── Resolve amount from preset or explicit amount ──────────────────────────

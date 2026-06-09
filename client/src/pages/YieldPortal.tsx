@@ -100,7 +100,7 @@ tx = {'to': step['to'], 'data': step['data'], 'value': 0,
 w3.eth.wait_for_transaction_receipt(
     w3.eth.send_raw_transaction(acct.sign_transaction(tx).raw_transaction))`;
 
-const TS_CODE = `import { createWalletClient, createPublicClient, http } from 'viem'
+const TS_CODE = `import { createWalletClient, createPublicClient, http, hexToBytes } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { base } from 'viem/chains'
 
@@ -108,7 +108,7 @@ const account = privateKeyToAccount(MY_PRIVATE_KEY as \`0x\${string}\`)
 const wallet  = createWalletClient({ account, chain: base, transport: http() })
 const pub     = createPublicClient({ chain: base, transport: http() })
 
-// 1. Deposit — get calldata from API (no ABI loading required)
+// ─── Option A: Standard deposit (2 txs: approve + deposit) ───────────────────
 const r = await fetch(
   'https://coinrailz.com/api/yield/deposit-tx?preset=100&recipient=' + account.address
 ).then(r => r.json())
@@ -118,24 +118,44 @@ for (const step of r.steps) {
   await pub.waitForTransactionReceipt({ hash })
 }
 
-// 2. Check position — response includes redeem_hint with ready-to-sign tx
+// ─── Option B: Permit deposit (1 tx via EIP-2612) ────────────────────────────
+const pd = await fetch(
+  'https://coinrailz.com/api/yield/deposit-tx?mode=permit&preset=100&recipient=' + account.address
+).then(r => r.json())
+
+// Step 1: sign permit off-chain (no gas)
+const sig = await wallet.signTypedData(pd.permit_typed_data)
+const v = parseInt(sig.slice(-2), 16)
+const r_ = sig.slice(0, 66)   as \`0x\${string}\`
+const s  = (\`0x\` + sig.slice(66, 130)) as \`0x\${string}\`
+
+// Step 2: single on-chain tx (permit + deposit atomically)
+import { encodeFunctionData, parseAbi } from 'viem'
+const data = encodeFunctionData({
+  abi: parseAbi(['function depositWithPermit(uint256,address,uint256,uint8,bytes32,bytes32) returns (uint256)']),
+  functionName: 'depositWithPermit',
+  args: [BigInt(pd.amount_usdc), account.address, BigInt(pd.permit_typed_data.message.deadline), v, r_, s],
+})
+const hash = await wallet.sendTransaction({ to: pd.helper_contract.address, data })
+await pub.waitForTransactionReceipt({ hash })
+
+// ─── Check position & withdraw ────────────────────────────────────────────────
 const pos = await fetch(
   'https://coinrailz.com/api/yield/position/' + account.address
 ).then(r => r.json())
 console.log('Value: $' + pos.position.currentValueUsdc + ' USDC')
 
-// 3. Withdraw — 1 tx, no approval, 0% exit fee
 const redeem = await fetch(
   'https://coinrailz.com/api/yield/redeem-tx?wallet=' + account.address
 ).then(r => r.json())
-const hash = await wallet.sendTransaction({ to: redeem.step.to, data: redeem.step.data })
-await pub.waitForTransactionReceipt({ hash })`;
+const h2 = await wallet.sendTransaction({ to: redeem.step.to, data: redeem.step.data })
+await pub.waitForTransactionReceipt({ hash: h2 })`;
 
-const AGENTKIT_CODE = `// 1. Copy agentkit-actions/coinrailzYieldActionProvider.ts to your project
-// 2. Add to your AgentKit setup:
+const AGENTKIT_CODE = `// Install the published npm package:
+//   npm install coinrailz-agentkit
 
 import { AgentKit } from '@coinbase/agentkit'
-import { CoinRailzYieldActionProvider } from './coinrailzYieldActionProvider'
+import { CoinRailzYieldActionProvider } from 'coinrailz-agentkit'
 
 const agentKit = await AgentKit.from({
   walletProvider,
@@ -147,15 +167,21 @@ const agentKit = await AgentKit.from({
 
 // Your agent now understands natural language like:
 //   "Deposit $100 USDC into yield"
+//   "Deposit $100 USDC in a single transaction"   ← uses EIP-2612 permit
 //   "What APY am I earning?"
 //   "Check my yield position"
 //   "Withdraw my USDC with yield"
 
-// Actions registered:
-//   coinrailz_yield_deposit       → approve + deposit (2 txs)
-//   coinrailz_yield_redeem        → redeem shares (1 tx)
-//   coinrailz_yield_check_position → live on-chain position
-//   coinrailz_yield_get_rates     → APY across all 3 protocols`;
+// 5 actions registered:
+//   coinrailz_yield_deposit         → approve + deposit (2 txs, works everywhere)
+//   coinrailz_yield_deposit_permit  → EIP-2612 permit deposit (1 tx, no approve needed)
+//   coinrailz_yield_redeem          → redeem shares (1 tx, 0% exit fee)
+//   coinrailz_yield_check_position  → live on-chain position
+//   coinrailz_yield_get_rates       → live APY across Aave v3, Compound v3, Morpho Blue
+
+// Permit deposit uses PermitAndDeposit helper on Base:
+//   0x8d291ae2f9850c5c2899100f381ab43dc95b82cf
+// basescan.org/address/0x8d291ae2f9850c5c2899100f381ab43dc95b82cf`;
 
 function AgentCodeTabs() {
   const [lang, setLang] = useState<'python' | 'ts' | 'agentkit'>('python');

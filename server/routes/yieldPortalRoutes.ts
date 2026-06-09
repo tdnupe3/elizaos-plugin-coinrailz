@@ -108,8 +108,11 @@ async function fetchLiveRates(): Promise<RateCache> {
       const compoundAPY = Number(compoundBps) / 100;
       const morphoAPY  = Number(morphoBps)  / 100;
       const bestAPY    = Math.max(aaveAPY, compoundAPY, morphoAPY);
+      // Derive best protocol name from APYs (not from active protocol, which may lag during cooldown)
+      const bestProtocol = bestAPY === morphoAPY && morphoAPY > 0 ? 'Morpho Blue'
+        : bestAPY === aaveAPY ? 'Aave v3' : 'Compound v3';
 
-      rateCache = { aaveAPY, compoundAPY, morphoAPY, bestAPY, bestProtocol: protocolName as string, cachedAt: Date.now() };
+      rateCache = { aaveAPY, compoundAPY, morphoAPY, bestAPY, bestProtocol, cachedAt: Date.now() };
       return rateCache;
     } catch (_) {
       // fall through to direct protocol reads

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 /**
- * @title CoinRailzYieldVault v2
+ * @title CoinRailzYieldVault v2.1
  * @notice AI Agent Yield Portal — auto-routes USDC to the highest-APY protocol on Base.
  *         Non-custodial: no admin can withdraw depositor principal. Ever.
  *
@@ -114,12 +114,13 @@ interface IMorpho {
         address receiver
     ) external returns (uint256 assetsWithdrawn, uint256 sharesWithdrawn);
 
-    function expectedSupplyAssets(
-        MarketParams calldata marketParams,
-        address user
-    ) external view returns (uint256);
-
     function market(bytes32 id) external view returns (MorphoMarketState memory);
+
+    function position(bytes32 id, address user) external view returns (
+        uint256 supplyShares,
+        uint128 borrowShares,
+        uint128 collateral
+    );
 }
 
 // Morpho Adaptive Curve IRM
@@ -526,6 +527,23 @@ contract CoinRailzYieldVault {
         emit EmergencyWithdraw(msg.sender, assets, shares);
     }
 
+    /**
+     * @notice Owner-only escape hatch that withdraws ALL supply shares from Morpho Blue
+     *         by shares (not assets), bypassing the totalAssets() path.
+     *         Use only if a future balance-read bug causes emergencyWithdraw to under-report TVL.
+     */
+    function ownerRescueMorpho(address recipient) external onlyOwner nonReentrant {
+        require(address(morpho) != address(0), "CRV: morpho not set");
+        require(morphoMarketId != bytes32(0),  "CRV: market not set");
+        require(recipient != address(0),       "CRV: zero recipient");
+        (uint256 supplyShares,,) = morpho.position(morphoMarketId, address(this));
+        require(supplyShares > 0, "CRV: no Morpho position");
+        // Withdraw by shares (assets=0) to guarantee full recovery regardless of rounding
+        morpho.withdraw(morphoMarket, 0, supplyShares, address(this), recipient);
+        // Sync fee checkpoint; totalAssets() will now read from the next active protocol
+        feeCheckpoint = _rawProtocolBalance();
+    }
+
     // ── Protocol APY Reads ────────────────────────────────────────────────────
 
     /**
@@ -764,9 +782,16 @@ contract CoinRailzYieldVault {
             try compoundComet.balanceOf(address(this)) returns (uint256 b) { return b; }
             catch { return 0; }
         }
-        if (activeProtocol == Protocol.MORPHO && address(morpho) != address(0)) {
-            try morpho.expectedSupplyAssets(morphoMarket, address(this)) returns (uint256 b) { return b; }
-            catch { return 0; }
+        if (activeProtocol == Protocol.MORPHO && address(morpho) != address(0) && morphoMarketId != bytes32(0)) {
+            // Morpho Blue singleton has no expectedSupplyAssets() — compute from shares math.
+            // Formula: shares * (totalSupplyAssets + VIRTUAL_ASSETS) / (totalSupplyShares + VIRTUAL_SHARES)
+            // where VIRTUAL_ASSETS=1, VIRTUAL_SHARES=1e6 per Morpho Blue spec.
+            try morpho.market(morphoMarketId) returns (MorphoMarketState memory m) {
+                (uint256 supplyShares,,) = morpho.position(morphoMarketId, address(this));
+                if (supplyShares == 0 || m.totalSupplyShares == 0) return 0;
+                return supplyShares * (uint256(m.totalSupplyAssets) + 1)
+                    / (uint256(m.totalSupplyShares) + 1_000_000);
+            } catch { return 0; }
         }
         // Fallback: raw USDC in contract (no yield protocol active)
         return asset.balanceOf(address(this));

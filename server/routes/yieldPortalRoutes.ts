@@ -8,8 +8,9 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { createPublicClient, http, parseAbi, formatUnits, encodeAbiParameters, parseAbiParameters, getAddress, getContractAddress } from 'viem';
-import { base } from 'viem/chains';
+import { createPublicClient, createWalletClient, http, parseAbi, formatUnits, encodeAbiParameters, parseAbiParameters, getAddress, getContractAddress } from 'viem';
+import { base, baseSepolia } from 'viem/chains';
+import { privateKeyToAccount } from 'viem/accounts';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -591,6 +592,153 @@ router.get('/predict-address', (req: Request, res: Response) => {
       nonce: BigInt(nonceNum),
     });
     res.json({ success: true, contractAddress, nonce: nonceNum });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/yield/server-wallet?network=testnet|mainnet
+ * Returns the server wallet address (from EVM_PRIVATE_KEY) and its ETH balance
+ * on the target network. Used by the deploy UI to show whether deployment is possible.
+ */
+router.get('/server-wallet', async (req: Request, res: Response) => {
+  const rawKey = process.env.EVM_PRIVATE_KEY;
+  if (!rawKey) {
+    return res.status(500).json({ success: false, error: 'EVM_PRIVATE_KEY not configured on this server.' });
+  }
+
+  try {
+    const key = (rawKey.startsWith('0x') ? rawKey : `0x${rawKey}`) as `0x${string}`;
+    const account = privateKeyToAccount(key);
+
+    const network = (req.query.network as string) || 'testnet';
+    const chain   = network === 'mainnet' ? base : baseSepolia;
+    const rpcUrl  = network === 'mainnet'
+      ? 'https://mainnet.base.org'
+      : 'https://base-sepolia-rpc.publicnode.com';
+
+    const pubClient = createPublicClient({ chain, transport: http(rpcUrl) });
+    const balance   = await pubClient.getBalance({ address: account.address });
+    const balEth    = Number(formatUnits(balance, 18));
+
+    res.json({
+      success:    true,
+      address:    account.address,
+      balance:    balEth.toFixed(6),
+      balanceWei: balance.toString(),
+      hasEnough:  balance > 1_000_000_000_000_000n, // > 0.001 ETH
+      network,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/yield/server-deploy
+ * Deploys CoinRailzYieldVault using the server's EVM_PRIVATE_KEY wallet.
+ * No MetaMask required. Returns { success, address, txHash, deployer }.
+ */
+router.post('/server-deploy', async (req: Request, res: Response) => {
+  const rawKey = process.env.EVM_PRIVATE_KEY;
+  if (!rawKey) {
+    return res.status(500).json({ success: false, error: 'EVM_PRIVATE_KEY not configured on this server.' });
+  }
+
+  const network = (req.body?.network as string) || 'testnet';
+  const addrs   = BASE_ADDRS[network];
+  if (!addrs) {
+    return res.status(400).json({ success: false, error: 'Unknown network. Use testnet or mainnet.' });
+  }
+
+  const artifactPath = join(process.cwd(), 'contracts', 'CoinRailzYieldVault.json');
+  if (!existsSync(artifactPath)) {
+    return res.status(404).json({ success: false, error: 'Compiled artifact (contracts/CoinRailzYieldVault.json) not found.' });
+  }
+
+  try {
+    const { bytecode, abi } = JSON.parse(readFileSync(artifactPath, 'utf8'));
+
+    const key     = (rawKey.startsWith('0x') ? rawKey : `0x${rawKey}`) as `0x${string}`;
+    const account = privateKeyToAccount(key);
+
+    const chain    = network === 'mainnet' ? base : baseSepolia;
+    const rpcUrl   = network === 'mainnet'
+      ? 'https://mainnet.base.org'
+      : 'https://base-sepolia-rpc.publicnode.com';
+
+    const walletClient = createWalletClient({ account, chain, transport: http(rpcUrl) });
+    const pubClient    = createPublicClient({ chain, transport: http(rpcUrl) });
+
+    // Check balance first
+    const balance = await pubClient.getBalance({ address: account.address });
+    if (balance < 1_000_000_000_000_000n) {
+      return res.status(400).json({
+        success:       false,
+        error:         `Server wallet has insufficient ETH (${formatUnits(balance, 18)} ETH). Fund the address below first.`,
+        serverAddress: account.address,
+        faucetUrl:     network === 'testnet' ? 'https://www.alchemy.com/faucets/base-sepolia' : null,
+      });
+    }
+
+    const ZERO = getAddress('0x0000000000000000000000000000000000000000');
+    const norm  = (addr: string) => getAddress(addr.toLowerCase() as `0x${string}`);
+
+    // Deploy the contract — viem properly handles CREATE transactions (no `to` field)
+    const txHash = await walletClient.deployContract({
+      abi,
+      bytecode: bytecode as `0x${string}`,
+      args: [
+        norm(addrs.usdc),
+        norm(FEE_RECIPIENT),
+        norm(addrs.aavePool),
+        norm(addrs.aUsdc),
+        norm(addrs.compoundComet),
+        ZERO,                          // morpho = address(0) for testnet
+        [ZERO, ZERO, ZERO, ZERO, 0n],  // morphoMarket = all zeros
+        0,                             // Protocol.AAVE
+      ],
+    });
+
+    // Wait for receipt (up to 2 minutes)
+    const receipt = await pubClient.waitForTransactionReceipt({ hash: txHash, timeout: 120_000 });
+
+    if (!receipt.contractAddress) {
+      return res.status(500).json({
+        success: false,
+        error:   'Transaction confirmed but no contract address in receipt. The constructor may have reverted.',
+        txHash,
+      });
+    }
+
+    // Activate immediately in this process
+    process.env.YIELD_VAULT_ADDRESS = receipt.contractAddress;
+
+    // Write a deployments record
+    try {
+      const { mkdirSync, writeFileSync } = await import('fs');
+      const deploymentsDir = join(process.cwd(), 'deployments');
+      mkdirSync(deploymentsDir, { recursive: true });
+      writeFileSync(
+        join(deploymentsDir, `${network}-yield-vault.json`),
+        JSON.stringify({
+          address:    receipt.contractAddress,
+          txHash,
+          deployer:   account.address,
+          network,
+          deployedAt: new Date().toISOString(),
+        }, null, 2)
+      );
+    } catch { /* non-fatal */ }
+
+    res.json({
+      success:  true,
+      address:  receipt.contractAddress,
+      txHash,
+      deployer: account.address,
+      network,
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

@@ -10,6 +10,8 @@
 import { Router, Request, Response } from 'express';
 import { createPublicClient, http, parseAbi, formatUnits } from 'viem';
 import { base } from 'viem/chains';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 const router = Router();
 
@@ -486,6 +488,65 @@ router.get('/manifest', async (req: Request, res: Response) => {
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+/**
+ * GET /api/yield/artifact
+ * Serves the compiled contract bytecode + ABI so the browser deploy page can use it.
+ */
+router.get('/artifact', (_req: Request, res: Response) => {
+  const artifactPath = join(process.cwd(), 'contracts', 'CoinRailzYieldVault.json');
+  if (!existsSync(artifactPath)) {
+    return res.status(404).json({ success: false, error: 'Compiled artifact not found. Run: solc --optimize --bin --abi -o contracts contracts/CoinRailzYieldVault.sol' });
+  }
+  try {
+    const artifact = JSON.parse(readFileSync(artifactPath, 'utf8'));
+    res.json({ success: true, bytecode: artifact.bytecode, abi: artifact.abi });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/yield/save-vault-address
+ * Called by the browser deploy page after successful deployment.
+ * Writes the vault address into the runtime environment so /api/yield/* routes
+ * immediately start reading from the live contract (until next restart).
+ * The user still needs to manually add YIELD_VAULT_ADDRESS to Replit Secrets
+ * for it to persist across restarts — we return clear instructions.
+ */
+router.post('/save-vault-address', async (req: Request, res: Response) => {
+  const { address, network: deployNetwork } = req.body as { address: string; network: string };
+
+  if (!address?.match(/^0x[0-9a-fA-F]{40}$/)) {
+    return res.status(400).json({ success: false, error: 'Invalid address format' });
+  }
+
+  // Activate in the current process immediately (survives until next restart)
+  process.env.YIELD_VAULT_ADDRESS = address;
+
+  // Also write a local deployments record
+  try {
+    const deploymentsDir = join(process.cwd(), 'deployments');
+    const { mkdirSync, writeFileSync } = await import('fs');
+    mkdirSync(deploymentsDir, { recursive: true });
+    writeFileSync(
+      join(deploymentsDir, `${deployNetwork}-yield-vault.json`),
+      JSON.stringify({ address, network: deployNetwork, deployedAt: new Date().toISOString() }, null, 2)
+    );
+  } catch { /* non-fatal */ }
+
+  res.json({
+    success: true,
+    address,
+    message: `✅ Vault address saved for this session. To persist across restarts: add YIELD_VAULT_ADDRESS=${address} to Replit Secrets (lock icon in sidebar).`,
+    persistInstructions: {
+      step1: 'Click the lock icon (Secrets) in the left sidebar of Replit',
+      step2: 'Add new secret — Key: YIELD_VAULT_ADDRESS',
+      step3: `Value: ${address}`,
+      step4: 'Restart the workflow — done!',
+    },
+  });
 });
 
 export default router;

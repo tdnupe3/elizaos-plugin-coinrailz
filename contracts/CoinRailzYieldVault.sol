@@ -22,7 +22,7 @@ pragma solidity ^0.8.20;
  *   - ReentrancyGuard on all state-mutating external functions
  *   - All events emitted for full Basescan transparency
  *
- * Compilation: npx hardhat compile  (requires @openzeppelin/contracts)
+ * Compilation: npx hardhat compile  (requires openzeppelin/contracts)
  * Deploy:      npx hardhat run scripts/deploy-yield-vault.ts --network base-sepolia
  */
 

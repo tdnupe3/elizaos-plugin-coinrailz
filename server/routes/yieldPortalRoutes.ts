@@ -1043,11 +1043,18 @@ function extractApiKey(req: Request): string | null {
  * No wallet or gas required.
  */
 router.post('/deposit', async (req: Request, res: Response) => {
+  // Deprecation notice — credits path is superseded by wallet-native ERC-4626 path
+  res.set('Deprecation', 'true');
+  res.set('Sunset', 'Sat, 01 Nov 2025 00:00:00 GMT');
+  res.set('Link', '</api/yield/deposit-tx>; rel="successor-version"');
+
   const apiKey = extractApiKey(req);
   if (!apiKey) {
     return res.status(401).json({
       success: false,
       error: 'API key required.',
+      deprecated: true,
+      migration: 'This endpoint uses the credits (custodial) path. Use GET /api/yield/deposit-tx?preset=100&recipient=0xYOUR_WALLET for the wallet-native ERC-4626 path instead.',
       hint: 'Add X-API-KEY header with your CoinRailz API key.',
       getKey: 'GET /api/credits/free-trial for a free $5 trial key',
     });
@@ -1084,7 +1091,7 @@ router.post('/deposit', async (req: Request, res: Response) => {
   const usdcInVault = roundedAmount - entryFee;
   const sharesAllocated = pricePerShare > 0 ? usdcInVault / pricePerShare : usdcInVault;
 
-  // Atomically deduct credits
+  // Deduct credits first, then insert position. If insert fails, restore credits.
   const deduction = await creditsService.deductCredits({
     userId:      validation.userId!,
     amount:      roundedAmount,
@@ -1092,17 +1099,32 @@ router.post('/deposit', async (req: Request, res: Response) => {
     description: `Deposited $${roundedAmount} into CoinRailz Yield Vault (${rates.activeProtocol})`,
   });
 
-  // Record position
-  await db.insert(agentYieldPositions).values({
-    userId:               validation.userId!,
-    amountUsdcDeposited:  roundedAmount.toFixed(6),
-    entryFeeUsdc:         entryFee.toFixed(6),
-    usdcInVault:          usdcInVault.toFixed(6),
-    sharesAllocated:      sharesAllocated.toFixed(6),
-    depositPricePerShare: pricePerShare.toFixed(6),
-    protocol:             rates.activeProtocol,
-    status:               'active',
-  });
+  try {
+    await db.insert(agentYieldPositions).values({
+      userId:               validation.userId!,
+      amountUsdcDeposited:  roundedAmount.toFixed(6),
+      entryFeeUsdc:         entryFee.toFixed(6),
+      usdcInVault:          usdcInVault.toFixed(6),
+      sharesAllocated:      sharesAllocated.toFixed(6),
+      depositPricePerShare: pricePerShare.toFixed(6),
+      protocol:             rates.activeProtocol,
+      status:               'active',
+    });
+  } catch (insertErr: any) {
+    // Rollback: restore credits so user is not charged without a position
+    await creditsService.addCredits({
+      userId:        validation.userId!,
+      amount:        roundedAmount,
+      paymentMethod: 'usdc',
+      referenceId:   `yield-deposit-rollback-${Date.now()}`,
+      description:   `Auto-rollback: position insert failed after deduct`,
+    });
+    return res.status(500).json({
+      success: false,
+      error:   'Failed to record position. Credits have been fully restored.',
+      detail:  insertErr.message,
+    });
+  }
 
   const netAPY = parseFloat((rates.bestAPY * 0.85).toFixed(2));
   const annualYield = parseFloat((usdcInVault * netAPY / 100).toFixed(2));
@@ -1130,11 +1152,17 @@ router.post('/deposit', async (req: Request, res: Response) => {
  * Returns the agent's current position: value, yield earned, net withdrawable.
  */
 router.get('/my-position', async (req: Request, res: Response) => {
+  res.set('Deprecation', 'true');
+  res.set('Sunset', 'Sat, 01 Nov 2025 00:00:00 GMT');
+  res.set('Link', '</api/yield/position/:wallet>; rel="successor-version"');
+
   const apiKey = extractApiKey(req);
   if (!apiKey) {
     return res.status(401).json({
       success: false,
       error: 'API key required.',
+      deprecated: true,
+      migration: 'Use GET /api/yield/position/0xYOUR_WALLET for on-chain position (no API key required).',
       hint: 'Add X-API-KEY header.',
       deposit: 'POST /api/yield/deposit to start earning',
     });
@@ -1212,9 +1240,18 @@ router.get('/my-position', async (req: Request, res: Response) => {
  * Withdraw part or all of a position. Credits are restored + net yield.
  */
 router.post('/withdraw', async (req: Request, res: Response) => {
+  res.set('Deprecation', 'true');
+  res.set('Sunset', 'Sat, 01 Nov 2025 00:00:00 GMT');
+  res.set('Link', '</api/yield/position/:wallet>; rel="successor-version"');
+
   const apiKey = extractApiKey(req);
   if (!apiKey) {
-    return res.status(401).json({ success: false, error: 'API key required.' });
+    return res.status(401).json({
+      success: false,
+      error: 'API key required.',
+      deprecated: true,
+      migration: 'This is the credits (custodial) withdraw path. For wallet-native withdrawals, call redeem(shares, receiver, owner) directly on the vault contract.',
+    });
   }
 
   const validation = await creditsService.validateApiKey(apiKey);
@@ -1263,7 +1300,28 @@ router.post('/withdraw', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'Withdraw amount is too small (< $0.01).' });
   }
 
-  // Mark all active positions as withdrawn (simplified: full close)
+  const rounded = Math.round(withdrawAmount * 100) / 100;
+
+  // Restore credits FIRST — if this fails, positions remain active (safe for user).
+  // Only mark positions withdrawn AFTER credits are confirmed restored.
+  let result: { newBalance: number };
+  try {
+    result = await creditsService.addCredits({
+      userId:        validation.userId!,
+      amount:        rounded,
+      paymentMethod: 'usdc',
+      referenceId:   `yield-withdrawal-${Date.now()}`,
+      description:   `Yield vault withdrawal: $${rounded} (principal + net yield)`,
+    });
+  } catch (creditsErr: any) {
+    return res.status(500).json({
+      success: false,
+      error:   'Failed to restore credits. Your position is still active — no changes were made. Contact support.',
+      detail:  creditsErr.message,
+    });
+  }
+
+  // Credits confirmed restored — now safe to mark positions withdrawn
   await db
     .update(agentYieldPositions)
     .set({ status: 'withdrawn', withdrawnAt: new Date(), withdrawAmountUsdc: withdrawAmount.toFixed(6) })
@@ -1272,25 +1330,15 @@ router.post('/withdraw', async (req: Request, res: Response) => {
       eq(agentYieldPositions.status, 'active'),
     ));
 
-  // Restore credits + yield
-  const rounded = Math.round(withdrawAmount * 100) / 100;
-  const result = await creditsService.addCredits({
-    userId:        validation.userId!,
-    amount:        rounded,
-    paymentMethod: 'usdc',
-    referenceId:   `yield-withdrawal-${Date.now()}`,
-    description:   `Yield vault withdrawal: $${rounded} (principal + net yield)`,
-  });
-
   return res.json({
-    success:          true,
-    withdrawn:        rounded,
+    success:           true,
+    withdrawn:         rounded,
     principalReturned: parseFloat(totalUsdcInVault.toFixed(2)),
-    yieldEarned:      parseFloat(yieldEarned.toFixed(6)),
-    performanceFee:   parseFloat(performanceFee.toFixed(6)),
-    netYield:         parseFloat(netYield.toFixed(6)),
-    newCreditBalance: result.newBalance,
-    message:          `✅ Withdrew $${rounded}. Credits restored to $${result.newBalance.toFixed(2)}.`,
+    yieldEarned:       parseFloat(yieldEarned.toFixed(6)),
+    performanceFee:    parseFloat(performanceFee.toFixed(6)),
+    netYield:          parseFloat(netYield.toFixed(6)),
+    newCreditBalance:  result.newBalance,
+    message:           `✅ Withdrew $${rounded}. Credits restored to $${result.newBalance.toFixed(2)}.`,
   });
 });
 

@@ -8,7 +8,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { createPublicClient, http, parseAbi, formatUnits, encodeAbiParameters, parseAbiParameters, getAddress } from 'viem';
+import { createPublicClient, http, parseAbi, formatUnits, encodeAbiParameters, parseAbiParameters, getAddress, getContractAddress } from 'viem';
 import { base } from 'viem/chains';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
@@ -552,15 +552,45 @@ router.get('/deploy-data', (req: Request, res: Response) => {
 
     const deployHex = bytecode + (constructorArgs as string).slice(2);
 
+    const rpcUrl = network === 'mainnet'
+      ? 'https://mainnet.base.org'
+      : 'https://sepolia.base.org';
+
     res.json({
       success: true,
       deployHex,
-      gasLimit: '0x3D0900',
+      rpcUrl,
       network,
       feeRecipient: FEE_RECIPIENT,
       addresses: addrs,
       abi,
     });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/yield/predict-address?from=0x...&nonce=5
+ * Computes the deterministic CREATE address (keccak256(RLP([from, nonce])))
+ * Used by the browser to detect a successful deployment even if MetaMask throws
+ * its internal "reading 'length'" bug when processing deployment receipts.
+ */
+router.get('/predict-address', (req: Request, res: Response) => {
+  const { from, nonce } = req.query as { from: string; nonce: string };
+  if (!from?.match(/^0x[0-9a-fA-F]{40}$/)) {
+    return res.status(400).json({ success: false, error: 'Invalid from address' });
+  }
+  const nonceNum = parseInt(nonce || '0', 10);
+  if (isNaN(nonceNum) || nonceNum < 0) {
+    return res.status(400).json({ success: false, error: 'Invalid nonce' });
+  }
+  try {
+    const contractAddress = getContractAddress({
+      from: from as `0x${string}`,
+      nonce: BigInt(nonceNum),
+    });
+    res.json({ success: true, contractAddress, nonce: nonceNum });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

@@ -187,6 +187,20 @@ class AutonomousDiscoveryService {
         '/api/satellite/earthdata/ocean-temp',
         '/api/satellite/earthdata/soil-moisture',
         '/api/satellite/earthdata/water-quality',
+        // NASA Earthdata x402 direct routes (Jun 2026)
+        '/x402/satellite-earthdata',
+        '/x402/earthdata-sst',
+        '/x402/earthdata-ocean-color',
+        '/x402/earthdata-granules',
+        '/x402/earthdata-precipitation',
+        '/x402/earthdata-soil-moisture',
+        // USDC Yield Vault (ERC-4626 on Base) (Jun 2026)
+        '/api/yield/manifest',
+        '/api/yield/rates',
+        '/api/yield/stats',
+        '/api/yield/deposit-tx',
+        '/api/yield/redeem-tx',
+        '/yield-portal',
         // Machine-to-machine discovery endpoints
         '/api/auth/capabilities',
         '/openapi.json',

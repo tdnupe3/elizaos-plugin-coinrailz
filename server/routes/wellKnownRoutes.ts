@@ -6244,7 +6244,7 @@ router.get('/.well-known/webmcp.json', (req: Request, res: Response) => {
     schema: "https://webmcp.dev/schema/manifest.json",
     schemaVersion: "1.0",
     name: "Coin Railz x402 Payment Infrastructure",
-    description: "Production-grade multi-chain payment infrastructure for AI agents and MCP servers. 65 services across 8 blockchains. Pay-per-call via USDC/x402 or prepaid API-key credits. No account required for trial.",
+    description: "Production-grade multi-chain payment infrastructure for AI agents and MCP servers. 65 services across 8 blockchains. Pay-per-call via USDC/x402 or prepaid API-key credits. Includes USDC Yield Vault (ERC-4626 on Base, auto-routing across Aave v3/Compound v3/Morpho Blue), NASA Earthdata Intelligence, AI Inference, IoT/DePIN, Prediction Markets, and more. No account required for trial.",
     version: "1.0.0",
     provider: {
       name: "Coin Railz",
@@ -6315,7 +6315,7 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
     id: "coinrailz-x402-infrastructure",
     name: "Coin Railz",
     canonicalUrl: baseUrl,
-    description: "Universal payment rail for the AI agent economy. 65 pay-per-call services across 8 blockchains (7 EVM + Solana): financial data, satellite intelligence, AI inference, DeFi analytics, IoT/DePIN data, prediction markets, and more. Settles in USDC. API-key credits path requires no crypto wallet.",
+    description: "Universal payment rail for the AI agent economy. 65 pay-per-call services across 8 blockchains (7 EVM + Solana): financial data, satellite intelligence (NASA Earthdata), AI inference, DeFi analytics, IoT/DePIN, prediction markets, and more. Includes USDC Yield Vault (ERC-4626 on Base, auto-routing across Aave v3/Compound v3/Morpho Blue) — earn yield on idle USDC with no lockup. Settles in USDC. API-key credits path requires no crypto wallet.",
     version_platform: "2.3.0",
     protocols: ["x402", "WebMCP", "A2A", "MPP", "OpenAPI"],
     capabilities: [
@@ -6381,6 +6381,17 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
         description: "Real-time gas prices across 6 EVM chains.",
         endpoint: `${baseUrl}/x402/gas-price-oracle`,
         price: "$0.10 USDC",
+      },
+      {
+        id: "base-usdc-yield-vault",
+        name: "USDC Yield Vault (Base) — ERC-4626 Auto-Routing Yield",
+        description: "Non-custodial USDC yield vault on Base. Auto-routes to highest APY across Aave v3, Compound v3, and Morpho Blue. No lockup. 0.5% entry, 15% performance fee on yield only, 0% exit fee. AgentKit: npm install coinrailz-agentkit. Deposit endpoint: /api/yield/deposit-tx",
+        endpoint: `${baseUrl}/api/yield/manifest`,
+        price: "0.5% entry fee",
+        vaultAddress: "0x86e2508ca0de34530dc847645f60f0d46d95176a",
+        shareToken: "crUSDC",
+        standard: "ERC-4626",
+        chainId: 8453,
       },
       {
         id: "catalog",

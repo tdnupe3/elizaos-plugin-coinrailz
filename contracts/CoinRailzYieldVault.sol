@@ -277,6 +277,11 @@ contract CoinRailzYieldVault {
         require(_asset        != address(0), "CRV: zero asset");
         require(_feeRecipient != address(0), "CRV: zero feeRecipient");
 
+        // [M-1] Validate that the chosen initial protocol has a configured address
+        if (_initialProtocol == Protocol.AAVE)     require(_aavePool     != address(0), "CRV: Aave not configured");
+        if (_initialProtocol == Protocol.COMPOUND) require(_compoundComet != address(0), "CRV: Compound not configured");
+        if (_initialProtocol == Protocol.MORPHO)   require(_morpho       != address(0), "CRV: Morpho not configured");
+
         asset          = IERC20(_asset);
         feeRecipient   = _feeRecipient;
         owner          = msg.sender;
@@ -324,7 +329,9 @@ contract CoinRailzYieldVault {
     function convertToShares(uint256 assets) public view returns (uint256) {
         uint256 supply = totalSupply;
         if (supply == 0) return assets;
-        return (assets * supply) / totalAssets();
+        uint256 ta = totalAssets();
+        if (ta == 0) return assets; // [M-2] guard: avoid div-by-zero if protocol balance is zero
+        return (assets * supply) / ta;
     }
 
     /// @notice Convert shares to assets at the current price
@@ -551,8 +558,12 @@ contract CoinRailzYieldVault {
         // Switch to best protocol
         activeProtocol = best;
 
-        // Re-deploy to new protocol
-        uint256 available = asset.balanceOf(address(this)) - pendingFees;
+        // Re-deploy to new protocol — deploy ALL raw USDC including pendingFees.
+        // [H-1 FIX] Do NOT subtract pendingFees here. totalAssets() already excludes them
+        // from share price accounting, and harvest() withdraws them from the active protocol.
+        // Leaving pendingFees as raw USDC here would cause harvest() to drain depositor funds
+        // from the new protocol instead of using the raw USDC sitting in the vault.
+        uint256 available = asset.balanceOf(address(this));
         if (available > 0) {
             _supplyToProtocol(available);
         }
@@ -725,13 +736,17 @@ contract CoinRailzYieldVault {
     // ── Internal Protocol Helpers ─────────────────────────────────────────────
 
     function _supplyToProtocol(uint256 amount) internal {
+        // [L-3] Reset allowance to 0 before setting — required by USDT and good practice for USDC
         if (activeProtocol == Protocol.AAVE && address(aavePool) != address(0)) {
+            asset.approve(address(aavePool), 0);
             asset.approve(address(aavePool), amount);
             aavePool.supply(address(asset), amount, address(this), 0);
         } else if (activeProtocol == Protocol.COMPOUND && address(compoundComet) != address(0)) {
+            asset.approve(address(compoundComet), 0);
             asset.approve(address(compoundComet), amount);
             compoundComet.supply(address(asset), amount);
         } else if (activeProtocol == Protocol.MORPHO && address(morpho) != address(0)) {
+            asset.approve(address(morpho), 0);
             asset.approve(address(morpho), amount);
             morpho.supply(morphoMarket, amount, 0, address(this), "");
         }

@@ -482,10 +482,10 @@ export default function YieldPortal() {
           </div>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-3 text-white">USDC Yield Vault</h1>
+              <h1 className="text-4xl md:text-5xl font-bold mb-3 text-white">Put your agent's USDC to work.</h1>
               <p className="text-slate-400 text-lg max-w-lg">
-                Deposit USDC on Base. Earn yield. Withdraw USDC + yield any time.
-                Auto-routed to the highest-APY protocol. Standard ERC-4626.
+                3 lines of code to integrate. Zero custody. Auto-routed to the
+                highest APY across Aave v3, Compound v3, and Morpho Blue on Base.
               </p>
             </div>
             {/* Live stat strip */}

@@ -357,7 +357,7 @@ router.get('/stats', async (req: Request, res: Response) => {
         emergencyExitAlways: true,
         feeChangeTimelock:   '48h',
         sourceCode:          'https://github.com/coinrailz/yield-vault',
-        auditStatus:         'pending-external-audit',
+        auditStatus:         'internal-security-review',
       },
     });
   } catch (err: any) {
@@ -595,7 +595,7 @@ router.get('/manifest', async (req: Request, res: Response) => {
           coinrailz_yield_redeem:           'Redeem crUSDC shares for USDC (1 tx, 0% exit fee)',
           coinrailz_yield_check_position:   'Live shares, USD value, yield earned, protocol allocation',
           coinrailz_yield_get_rates:        'Live APY across Aave v3, Compound v3, Morpho Blue',
-          coinrailz_yield_get_contract_info:'Vault addresses, Basescan links, audit status, fee structure',
+          coinrailz_yield_get_contract_info:'Vault addresses, Basescan links, security review status, fee structure',
         },
         compatibility: 'supportsNetwork() gates to base-mainnet/base-sepolia. getActions(walletProvider) returns Action[] via closure — no reflect-metadata required.',
       },

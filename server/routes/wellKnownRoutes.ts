@@ -3623,6 +3623,14 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         inputModes: ["application/json"],
         outputModes: ["application/json"]
       },
+      {
+        id: "solana-usdc-yield-portal",
+        name: "Solana USDC Yield Portal (Kamino)",
+        description: "Non-custodial USDC yield on Solana via Kamino Lending. Build unsigned VersionedTx deposit/withdraw, read live APY, and check position value. Free position reads. $0.05 rates, $0.10 deposit-tx.",
+        tags: ["solana", "yield", "kamino", "usdc", "non-custodial", "defi"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
       // Satellite & weather data services
       {
         id: "fire-alerts",
@@ -4708,6 +4716,46 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         status: "healthy",
         category: "trader-focused",
         input_schema: { type: "object", properties: { token: { type: "string", description: "Token symbol (SOL, USDC)" }, minApy: { type: "number", description: "Minimum APY filter (optional)" } } }
+      },
+      {
+        path: "/api/solana-yield/rates",
+        methods: ["GET"],
+        price_usd: 0.05,
+        auth: "open",
+        name: "Solana USDC Yield Rates (Kamino)",
+        description: "Live APY for USDC on Kamino Lending. Returns current yield rate, TVL, utilization, and comparison with Base/Aave. Free endpoint.",
+        status: "healthy",
+        category: "solana-yield",
+        input_schema: { type: "object", properties: {} }
+      },
+      {
+        path: "/api/solana-yield/deposit-tx",
+        methods: ["POST"],
+        price_usd: 0.10,
+        auth: "open",
+        name: "Solana USDC Deposit Transaction Builder",
+        description: "Build an unsigned Solana VersionedTransaction to deposit USDC into Kamino Lending. Non-custodial — agent signs and submits. Min $5 USDC.",
+        status: "healthy",
+        category: "solana-yield",
+        input_schema: {
+          type: "object",
+          required: ["wallet", "amount"],
+          properties: {
+            wallet: { type: "string", description: "Agent's Solana wallet public key" },
+            amount: { type: "integer", description: "USDC amount in lamports (6 decimals). Min 5000000 = $5 USDC" }
+          }
+        }
+      },
+      {
+        path: "/api/solana-yield/position/{wallet}",
+        methods: ["GET"],
+        price_usd: 0,
+        auth: "open",
+        name: "Solana Yield Position Reader",
+        description: "Read an agent's current USDC position in Kamino Lending. Returns collateral balance, current USDC value, and yield earned. Free.",
+        status: "healthy",
+        category: "solana-yield",
+        input_schema: { type: "object", properties: { wallet: { type: "string", description: "Solana public key" } } }
       },
       {
         path: "/x402/sdk-payments-evm",

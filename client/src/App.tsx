@@ -178,6 +178,7 @@ const PilotCreditsSuccessPage = lazy(() => import("@/pages/PilotCreditsSuccessPa
 const EmergencyConsulting = lazy(() => import("@/pages/EmergencyConsulting"));
 const Whitepaper = lazy(() => import("@/pages/Whitepaper"));
 const YieldPortal = lazy(() => import("@/pages/YieldPortal"));
+const SolanaYieldPortal = lazy(() => import("@/pages/SolanaYieldPortal"));
 const VaultDeploy = lazy(() => import("@/pages/VaultDeploy"));
 const DevelopersPage = lazy(() => import("@/pages/DevelopersPage"));
 const CreditsPage = lazy(() => import("@/pages/CreditsPage"));
@@ -986,6 +987,10 @@ function Router() {
 
       <Route path="/yield-portal">
         {() => <LazyLoadWrapper><YieldPortal /></LazyLoadWrapper>}
+      </Route>
+
+      <Route path="/solana-yield">
+        {() => <LazyLoadWrapper><SolanaYieldPortal /></LazyLoadWrapper>}
       </Route>
 
       <Route path="/vault-deploy">

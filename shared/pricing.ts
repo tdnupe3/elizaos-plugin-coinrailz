@@ -91,7 +91,10 @@ export type ServiceName =
   | "iot-device-stream"
   | "iot-bulk-data"
   // AI Inference Services
-  | "ai-inference";
+  | "ai-inference"
+  // Solana USDC Yield Portal (Kamino)
+  | "solana-yield-rates"
+  | "solana-yield-deposit";
 
 /**
  * Type guard to check if a string is a valid ServiceName
@@ -186,6 +189,9 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   
   // VERTICAL EXPANSION - Solana DeFi Services (Dialect integration)
   "solana-yield-finder": 50000,        // $0.05 - Real-time Solana lending/yield rates via Dialect
+  // Solana USDC Yield Portal (Kamino Lending v1)
+  "solana-yield-rates":   50000,       // $0.05 - Live Kamino APY + reserve health
+  "solana-yield-deposit": 100000,      // $0.10 - Build unsigned deposit VersionedTx
   
   // SATELLITE DATA SERVICES (NASA Earthdata + ESA Copernicus)
   "fire-alerts": 50000,                // $0.05 - NASA FIRMS active fire detection
@@ -286,6 +292,9 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   
   // Solana DeFi vertical (Dialect integration)
   "solana-yield-finder": 0.05,
+  // Solana USDC Yield Portal (Kamino)
+  "solana-yield-rates":   0.05,
+  "solana-yield-deposit": 0.10,
   
   // Satellite Data Services (NASA Earthdata + ESA Copernicus)
   "fire-alerts": 0.05,

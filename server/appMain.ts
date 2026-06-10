@@ -3868,6 +3868,15 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   app.use('/api/yield', yieldPortalRoutesPre);
   console.log('✅ Yield portal routes registered at /api/yield (pre-static)');
 
+  // 🌊 Solana USDC Yield Portal — ISOLATED from Base vault, own try/catch
+  try {
+    const solanaYieldRoutes = await import('./routes/solanaYieldPortalRoutes.js').then(m => m.default);
+    app.use('/api/solana-yield', solanaYieldRoutes);
+    console.log('✅ Solana yield portal routes registered at /api/solana-yield (pre-static)');
+  } catch (solYieldErr: any) {
+    console.warn('⚠️ Solana yield portal failed to load (non-fatal, Base vault unaffected):', solYieldErr.message);
+  }
+
   // ============================================================================
   // Backward Compatibility Redirect - MUST be before static serving
   // Old SDK documentation linked to /dashboard/api-keys, redirect to /api-keys
@@ -4119,6 +4128,14 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
         console.log('🏦 yield vault keeper registered');
       } catch (keeperErr: any) {
         console.warn('⚠️ yield vault keeper failed to start (non-fatal):', keeperErr.message);
+      }
+
+      // Start Solana yield keeper — ISOLATED, own try/catch, gated by SOLANA_YIELD_ENABLED
+      try {
+        const { startSolanaYieldKeeper } = await import('./jobs/solanaYieldKeeper');
+        startSolanaYieldKeeper();
+      } catch (solKeeperErr: any) {
+        console.warn('⚠️ Solana yield keeper failed to start (non-fatal):', solKeeperErr.message);
       }
 
       // Initialize MPP ecosystem monitor (non-blocking)

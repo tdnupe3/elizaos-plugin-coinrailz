@@ -1,0 +1,1782 @@
+/* eslint-disable max-classes-per-file */
+import {
+  Address,
+  Instruction,
+  Slot,
+  TransactionSigner,
+  Rpc,
+  GetMinimumBalanceForRentExemptionApi,
+  Option,
+  none,
+  some,
+  isSome,
+  GetProgramAccountsApi,
+  GetAccountInfoApi,
+  GetMultipleAccountsApi,
+  SolanaRpcApiMainnet,
+  Base58EncodedBytes,
+} from '@solana/kit';
+import Decimal from 'decimal.js';
+import {
+  AllOracleAccounts,
+  DEFAULT_PUBLIC_KEY,
+  FixedRateReserveKind,
+  FloatRateReserveKind,
+  getTokenOracleData,
+  globalConfigPda,
+  INITIAL_COLLATERAL_RATE,
+  lendingMarketAuthPda,
+  MarketWithAddress,
+  MaturityTimestampReserveKind,
+  MIN_INITIAL_DEPOSIT,
+  ONE_HUNDRED_PCT_IN_BPS,
+  reservePdas,
+  ReserveKind,
+  SLOTS_PER_SECOND,
+  SLOTS_PER_YEAR,
+  TokenOracleData,
+  U64_MAX,
+} from '../utils';
+import { FeeCalculation, Fees, ReserveDataType, ReserveFarmInfo, ReserveRewardYield, ReserveStatus } from './shared';
+import { Reserve, ReserveFields, WithdrawTicket } from '../@codegen/klend/accounts';
+import { PROGRAM_ID } from '../@codegen/klend/programId';
+import {
+  CurvePointFields,
+  ReserveConfig,
+  ReserveStatus as ReserveStatusEnum,
+  UpdateConfigMode,
+  UpdateConfigModeKind,
+  WithdrawalCaps,
+} from '../@codegen/klend/types';
+import {
+  calculateAPYFromAPR,
+  getBorrowRate,
+  lamportsToNumberDecimal,
+  parseTokenSymbol,
+  positiveOrZero,
+  toBuffer,
+} from './utils';
+import { CompositeConfigItem, ConfigUpdater, PriorityOrderedConfigUpdater } from './configItems';
+import { bfToDecimal, Fraction } from './fraction';
+import { ActionType } from './action';
+import { BorrowCapsAndCounters, ElevationGroupDescription, KaminoMarket } from './market';
+import {
+  initReserve,
+  InitReserveAccounts,
+  updateReserveConfig,
+  UpdateReserveConfigAccounts,
+  UpdateReserveConfigArgs,
+} from '../lib';
+import { aprToApy, KaminoPrices } from '@kamino-finance/kliquidity-sdk';
+import { FarmAndKey, FarmState, RewardInfo } from '@kamino-finance/farms-sdk';
+import { TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
+import { maxBigInt } from '../utils/bigint';
+import { getCreateAccountInstruction, SYSTEM_PROGRAM_ADDRESS } from '@solana-program/system';
+import { SYSVAR_RENT_ADDRESS } from '@solana/sysvars';
+import { noopSigner } from '../utils/signer';
+import { getRewardPerTimeUnitSecond } from './farm_utils';
+import { Scope, ScopeEntryMetadata } from '@kamino-finance/scope-sdk';
+import { kaminoCdn, KaminoCdnData } from './cdnClient';
+
+export type KaminoReserveRpcApi = GetProgramAccountsApi & GetAccountInfoApi & GetMultipleAccountsApi;
+
+export const DEFAULT_RECENT_SLOT_DURATION_MS = 400;
+
+export class KaminoReserve {
+  state: Reserve;
+  address: Address;
+  symbol: string;
+
+  tokenOraclePrice: TokenOracleData;
+  stats: ReserveDataType;
+  private farmData: ReserveFarmInfo = { fetched: false, farms: [] };
+
+  private rpc: Rpc<KaminoReserveRpcApi>;
+  private readonly recentSlotDurationMs: number;
+
+  private metadata?: ScopeEntryMetadata[];
+  private reserveKind: ReserveKind;
+  private scaledUiAmountMultiplier: Decimal;
+
+  constructor(
+    state: Reserve,
+    address: Address,
+    tokenOraclePrice: TokenOracleData,
+    connection: Rpc<KaminoReserveRpcApi>,
+    recentSlotDurationMs: number,
+    scaledUiAmountMultiplier: Decimal = new Decimal(1)
+  ) {
+    this.state = state;
+    this.address = address;
+    this.tokenOraclePrice = tokenOraclePrice;
+    this.stats = {} as ReserveDataType;
+    this.rpc = connection;
+    this.symbol = parseTokenSymbol(state.config.tokenInfo.name);
+    this.recentSlotDurationMs = recentSlotDurationMs;
+    this.reserveKind = KaminoReserve.createReserveKind(state);
+    this.scaledUiAmountMultiplier = scaledUiAmountMultiplier;
+  }
+
+  static initialize(
+    address: Address,
+    state: Reserve,
+    tokenOraclePrice: TokenOracleData,
+    rpc: Rpc<KaminoReserveRpcApi>,
+    recentSlotDurationMs: number,
+    cdnResourcesData?: KaminoCdnData,
+    scaledUiAmountMultiplier?: Decimal
+  ): KaminoReserve {
+    const reserve = new KaminoReserve(
+      state,
+      address,
+      tokenOraclePrice,
+      rpc,
+      recentSlotDurationMs,
+      scaledUiAmountMultiplier
+    );
+    reserve.stats = reserve.formatReserveData(state, cdnResourcesData?.deprecatedAssets ?? []);
+    return reserve;
+  }
+
+  /**
+   * Construct a KaminoReserve from raw on-chain account data.
+   * Use this when you have raw bytes from a WebSocket notification and
+   * an existing oracle price (e.g. from a cached price query).
+   *
+   * Throws if the data does not match the Reserve discriminator.
+   */
+  static fromAccountData(
+    reserveAddress: Address,
+    data: Buffer | Uint8Array,
+    tokenOraclePrice: TokenOracleData,
+    rpc: Rpc<KaminoReserveRpcApi>,
+    recentSlotDurationMs: number,
+    cdnResourcesData?: KaminoCdnData
+  ): KaminoReserve {
+    const state = Reserve.decode(toBuffer(data));
+    return KaminoReserve.initialize(
+      reserveAddress,
+      state,
+      tokenOraclePrice,
+      rpc,
+      recentSlotDurationMs,
+      cdnResourcesData
+    );
+  }
+
+  static async initializeFromAddress(
+    address: Address,
+    rpc: Rpc<KaminoReserveRpcApi>,
+    recentSlotDurationMs: number,
+    reserveState?: Reserve,
+    oracleAccounts?: AllOracleAccounts,
+    scaledUiAmountMultiplier?: Decimal
+  ) {
+    const reserve = reserveState ?? (await Reserve.fetch(rpc, address));
+    if (reserve === null) {
+      throw new Error(`Reserve account ${address} does not exist`);
+    }
+
+    const tokenOracleDataWithReserve = await getTokenOracleData(
+      rpc,
+      [{ address: address, state: reserve }],
+      oracleAccounts
+    );
+    if (!tokenOracleDataWithReserve[0]) {
+      throw new Error('Token oracle data not found');
+    }
+    const tokenOracleData = tokenOracleDataWithReserve[0]![1]!;
+    return new KaminoReserve(reserve, address, tokenOracleData, rpc, recentSlotDurationMs, scaledUiAmountMultiplier);
+  }
+
+  static createReserveKind(state: Reserve): ReserveKind {
+    const { debtTermSeconds, debtMaturityTimestamp } = state.config;
+    if (debtTermSeconds.eqn(0) && debtMaturityTimestamp.eqn(0)) {
+      return new FloatRateReserveKind();
+    } else if (!debtTermSeconds.eqn(0)) {
+      const borrowRateBps = state.config.borrowRateCurve.points[0]?.borrowRateBps || 0;
+      return new FixedRateReserveKind(debtTermSeconds, borrowRateBps);
+    } else {
+      return new MaturityTimestampReserveKind(debtMaturityTimestamp);
+    }
+  }
+
+  /// GETTERS
+
+  /**
+   * @returns the scaledUiAmount multiplier for this reserve's liquidity mint.
+   * Returns 1 for mints without the ScaledUiAmountConfig extension.
+   */
+  getScaledUiAmountMultiplier(): Decimal {
+    return this.scaledUiAmountMultiplier;
+  }
+
+  /**
+   * @returns the parsed token symbol of the reserve
+   */
+  getTokenSymbol(): string {
+    return parseTokenSymbol(this.state.config.tokenInfo.name);
+  }
+
+  /**
+   * @returns list of logo names and human readable oracle descriptions
+   */
+  async getOracleMetadata(): Promise<[string, string][]> {
+    if (!this.metadata) {
+      const scope = new Scope('mainnet-beta', this.rpc as Rpc<SolanaRpcApiMainnet>);
+      const { priceFeed, priceChain } = this.state.config.tokenInfo.scopeConfiguration;
+      this.metadata = await scope.getChainMetadata({ prices: priceFeed }, priceChain);
+    }
+
+    return this.metadata.map((m) => [m.provider, m.name]);
+  }
+
+  /**
+   * @returns the total borrowed amount of the reserve in lamports
+   */
+  getBorrowedAmount(): Decimal {
+    return new Fraction(this.state.liquidity.borrowedAmountSf).toDecimal();
+  }
+
+  /**
+   * @returns the available liquidity amount of the reserve in lamports
+   */
+  getLiquidityAvailableAmount(): Decimal {
+    return new Decimal(this.state.liquidity.totalAvailableAmount.toString());
+  }
+
+  /** @returns the total amount of ctokens queued for withdrawal */
+  getQueuedCTokens(): Decimal {
+    return new Decimal(this.state.withdrawQueue.queuedCollateralAmount.toString());
+  }
+
+  /** @returns the total amount of liquidity queued for withdrawal */
+  getQueuedLiquidityAmount(slot: Slot): Decimal {
+    const queuedCTokens = this.getQueuedCTokens();
+    const exchangeRate = this.getEstimatedCollateralExchangeRate(slot, 0);
+    return KaminoReserve.cTokensToLiquidity(queuedCTokens, exchangeRate);
+  }
+
+  /** @returns the the part of reserve liquidity available for *non-priority* purposes (e.g. borrowing, regular withdrawals) */
+  getFreelyAvailableLiquidityAmount(slot: Slot): Decimal {
+    const liquidityForQueuedCollateral = this.getQueuedLiquidityAmount(slot);
+    return Decimal.max(this.getLiquidityAvailableAmount().sub(liquidityForQueuedCollateral), new Decimal(0));
+  }
+
+  /**
+   *
+   * @returns the last cached price stored in the reserve in USD
+   */
+  getReserveMarketPrice(): Decimal {
+    return new Fraction(this.state.liquidity.marketPriceSf).toDecimal();
+  }
+
+  /**
+   * @returns the current market price of the reserve in USD
+   */
+  getOracleMarketPrice(): Decimal {
+    return this.tokenOraclePrice.price;
+  }
+
+  /**
+   * @returns the total accumulated protocol fees of the reserve
+   */
+  getAccumulatedProtocolFees(): Decimal {
+    return new Fraction(this.state.liquidity.accumulatedProtocolFeesSf).toDecimal();
+  }
+
+  /**
+   * @returns the total accumulated referrer fees of the reserve
+   */
+  getAccumulatedReferrerFees(): Decimal {
+    return new Fraction(this.state.liquidity.accumulatedReferrerFeesSf).toDecimal();
+  }
+
+  /**
+   * @returns the total pending referrer fees of the reserve
+   */
+  getPendingReferrerFees(): Decimal {
+    return new Fraction(this.state.liquidity.pendingReferrerFeesSf).toDecimal();
+  }
+
+  // --- Scaled UI amount getters ---
+  // These apply the Token-2022 ScaledUiAmountConfig multiplier for display purposes.
+  // Use these for user-facing amounts; use the raw getters above for calculations.
+
+  getScaledBorrowedAmount(): Decimal {
+    return this.getBorrowedAmount().mul(this.scaledUiAmountMultiplier);
+  }
+
+  getScaledLiquidityAvailableAmount(): Decimal {
+    return this.getLiquidityAvailableAmount().mul(this.scaledUiAmountMultiplier);
+  }
+
+  getScaledTotalSupply(): Decimal {
+    return this.getTotalSupply().mul(this.scaledUiAmountMultiplier);
+  }
+
+  getScaledAccumulatedProtocolFees(): Decimal {
+    return this.getAccumulatedProtocolFees().mul(this.scaledUiAmountMultiplier);
+  }
+
+  getScaledAccumulatedReferrerFees(): Decimal {
+    return this.getAccumulatedReferrerFees().mul(this.scaledUiAmountMultiplier);
+  }
+
+  getScaledPendingReferrerFees(): Decimal {
+    return this.getPendingReferrerFees().mul(this.scaledUiAmountMultiplier);
+  }
+
+  /**
+   *
+   * @returns the flash loan fee percentage of the reserve
+   */
+  getFlashLoanFee = (): Decimal => {
+    if (this.state.config.fees.flashLoanFeeSf.toString() === U64_MAX) {
+      return new Decimal('0');
+    }
+    return new Fraction(this.state.config.fees.flashLoanFeeSf).toDecimal();
+  };
+
+  /**
+   *
+   * @returns the origination fee percentage of the reserve
+   */
+  getBorrowFee = (): Decimal => {
+    return new Fraction(this.state.config.fees.originationFeeSf).toDecimal();
+  };
+
+  /**
+   *
+   * @returns the fixed interest rate allocated to the host
+   */
+  getFixedHostInterestRate = (): Decimal => {
+    return new Decimal(this.state.config.hostFixedInterestRateBps).div(ONE_HUNDRED_PCT_IN_BPS);
+  };
+
+  /**
+   * Use getEstimatedTotalSupply() for the most accurate value
+   * @returns the stale total liquidity supply of the reserve from the last refresh
+   */
+  getTotalSupply(): Decimal {
+    return this.getLiquidityAvailableAmount()
+      .add(this.getBorrowedAmount())
+      .sub(this.getAccumulatedProtocolFees())
+      .sub(this.getAccumulatedReferrerFees())
+      .sub(this.getPendingReferrerFees());
+  }
+
+  /**
+   * Calculates the total liquidity supply of the reserve
+   */
+  getEstimatedTotalSupply(slot: Slot, referralFeeBps: number): Decimal {
+    const { totalSupply } = this.getEstimatedDebtAndSupply(slot, referralFeeBps);
+    return totalSupply;
+  }
+
+  /**
+   * Use getEstimatedCumulativeBorrowRate() for the most accurate value
+   * @returns the stale cumulative borrow rate of the reserve from the last refresh
+   */
+  getCumulativeBorrowRate(): Decimal {
+    return bfToDecimal(this.state.liquidity.cumulativeBorrowRateBsf);
+  }
+
+  /**
+   * @Returns estimated cumulative borrow rate of the reserve
+   */
+  getEstimatedCumulativeBorrowRate(currentSlot: Slot, referralFeeBps: number): Decimal {
+    const currentBorrowRate = new Decimal(this.calculateBorrowAPR(currentSlot, referralFeeBps));
+    const slotsElapsed = maxBigInt(currentSlot - BigInt(this.state.lastUpdate.slot.toString()), 0n);
+
+    const compoundInterestRate = this.approximateCompoundedInterest(currentBorrowRate, slotsElapsed);
+
+    const previousCumulativeBorrowRate = this.getCumulativeBorrowRate();
+
+    return previousCumulativeBorrowRate.mul(compoundInterestRate);
+  }
+
+  /**
+   * Mirrors on-chain `Reserve::calculate_future_cumulative_borrow_rate`.
+   * Projects the cumulative borrow rate to a future slot.
+   */
+  calculateFutureCumulativeBorrowRate(futureSlot: Slot): Decimal {
+    const currentSlot = BigInt(this.state.lastUpdate.slot.toString()) as Slot;
+    const slotsElapsed = maxBigInt(futureSlot - currentSlot, 0n);
+    const hostFixedInterestRate = this.getFixedHostInterestRate();
+    const currentUtilization = this.calculateUtilizationRatio();
+    const curve = truncateBorrowCurve(this.state.config.borrowRateCurve.points);
+    const baseBorrowRate = new Decimal(getBorrowRate(currentUtilization, curve));
+    const currentBorrowRate = baseBorrowRate.add(hostFixedInterestRate);
+    const compoundedInterestRate = this.approximateCompoundedInterest(currentBorrowRate, slotsElapsed);
+    const previousCumulativeBorrowRate = this.getCumulativeBorrowRate();
+
+    return previousCumulativeBorrowRate.mul(compoundedInterestRate);
+  }
+
+  /**
+   * Use getEstimatedCollateralExchangeRate() for the most accurate value
+   * @returns the stale exchange rate between the collateral tokens and the liquidity - this is a decimal number scaled by 1e18
+   */
+  getCollateralExchangeRate(): Decimal {
+    const totalSupply = this.getTotalSupply();
+    const mintTotalSupply = this.state.collateral.mintTotalSupply;
+    if (mintTotalSupply.isZero() || totalSupply.isZero()) {
+      return INITIAL_COLLATERAL_RATE;
+    } else {
+      return new Decimal(mintTotalSupply.toString()).dividedBy(totalSupply.toString());
+    }
+  }
+
+  /**
+   *
+   * @returns the estimated exchange rate between the collateral tokens and the liquidity - this is a decimal number scaled by 1e18
+   */
+  getEstimatedCollateralExchangeRate(slot: Slot, referralFeeBps: number): Decimal {
+    const totalSupply = this.getEstimatedTotalSupply(slot, referralFeeBps);
+    const mintTotalSupply = this.state.collateral.mintTotalSupply;
+    if (mintTotalSupply.isZero() || totalSupply.isZero()) {
+      return INITIAL_COLLATERAL_RATE;
+    } else {
+      return new Decimal(mintTotalSupply.toString()).dividedBy(totalSupply.toString());
+    }
+  }
+
+  /**
+   * Computes the amount of liquidity tokens that corresponds to a given amount of cTokens
+   * @param cTokens - the amount of cTokens to convert to liquidity tokens
+   * @param exchangeRate - the exchange rate to use. If not provided, the estimated exchange rate will be used
+   * @param slot - the slot to use to estimate exchange rate. If exchangeRate is provided, this parameter is ignored, if exchangeRate is not provided this parameter is required
+   * @param referralFeeBps - the referral fee percentage to use for the estimated exchange rate. Defaults to 0. If exchangeRate is provided, this parameter is ignored.
+   * @returns the amount of liquidity tokens that corresponds to the given amount of cTokens
+   */
+  cTokensToLiquidity(cTokens: Decimal, slot: Slot, exchangeRate?: Decimal, referralFeeBps: number = 0): Decimal {
+    if (exchangeRate === undefined) {
+      exchangeRate = this.getEstimatedCollateralExchangeRate(slot, referralFeeBps);
+    }
+    return KaminoReserve.cTokensToLiquidity(cTokens, exchangeRate);
+  }
+
+  /**
+   * Computes the amount of liquidity tokens that corresponds to a given amount of cTokens
+   * @param cTokens - the amount of cTokens to convert to liquidity tokens
+   * @param exchangeRate - the exchange rate to use
+   * @returns the amount of liquidity tokens that corresponds to the given amount of cTokens
+   */
+  static cTokensToLiquidity(cTokens: Decimal, exchangeRate: Decimal): Decimal {
+    return cTokens.div(exchangeRate);
+  }
+
+  /**
+   * Computes the amount of cTokens that corresponds to a given amount of liquidity
+   * @param liquidity - the amount of liquidity to convert to cTokens
+   * @param exchangeRate - the exchange rate to use. If not provided, the estimated exchange rate will be used
+   * @param slot - the slot to use to estimate exchange rate. If exchangeRate is provided, this parameter is ignored, if exchangeRate is not provided this parameter is required
+   * @param referralFeeBps - the referral fee percentage to use for the estimated exchange rate. Defaults to 0. If exchangeRate is provided, this parameter is ignored.
+   * @returns the amount of cTokens that corresponds to the given amount of liquidity
+   */
+  liquidityToCTokens(liquidity: Decimal, slot: Slot, exchangeRate?: Decimal, referralFeeBps: number = 0): Decimal {
+    if (exchangeRate === undefined) {
+      exchangeRate = this.getEstimatedCollateralExchangeRate(slot, referralFeeBps);
+    }
+    return KaminoReserve.liquidityToCTokens(liquidity, exchangeRate);
+  }
+
+  /**
+   * Computes the amount of cTokens that corresponds to a given amount of liquidity
+   * @param liquidity - the amount of liquidity to convert to cTokens
+   * @param exchangeRate - the exchange rate to use
+   * @returns the amount of cTokens that corresponds to the given amount of liquidity
+   */
+  static liquidityToCTokens(liquidity: Decimal, exchangeRate: Decimal): Decimal {
+    return liquidity.mul(exchangeRate);
+  }
+
+  /**
+   *
+   * @returns the total USD value of the existing collateral in the reserve
+   */
+  getDepositTvl = (): Decimal => {
+    return new Decimal(this.getTotalSupply().toString()).mul(this.getOracleMarketPrice()).div(this.getMintFactor());
+  };
+
+  /**
+   *
+   * Get the total USD value of the borrowed assets from the reserve
+   */
+  getBorrowTvl = (): Decimal => {
+    return this.getBorrowedAmount().mul(this.getOracleMarketPrice()).div(this.getMintFactor());
+  };
+
+  /**
+   * @returns 10^mint_decimals
+   */
+  getMintFactor(): Decimal {
+    return new Decimal(10).pow(this.getMintDecimals());
+  }
+
+  /**
+   * @returns mint_decimals of the liquidity token
+   */
+  getMintDecimals(): number {
+    return this.state.liquidity.mintDecimals.toNumber();
+  }
+
+  /**
+   * @returns the collateral farm address if it is set, otherwise none
+   */
+  getCollateralFarmAddress(): Option<Address> {
+    if (this.state.farmCollateral === DEFAULT_PUBLIC_KEY) {
+      return none();
+    }
+    return some(this.state.farmCollateral);
+  }
+
+  /**
+   * @returns the debt farm address if it is set, otherwise none
+   */
+  getDebtFarmAddress(): Option<Address> {
+    if (this.state.farmDebt === DEFAULT_PUBLIC_KEY) {
+      return none();
+    }
+    return some(this.state.farmDebt);
+  }
+
+  /**
+   * @Returns true if the total liquidity supply of the reserve is greater than the deposit limit
+   */
+  depositLimitCrossed(): boolean {
+    return this.getTotalSupply().gt(new Decimal(this.state.config.depositLimit.toString()));
+  }
+
+  /**
+   * @Returns true if the total borrowed amount of the reserve is greater than the borrow limit
+   */
+  borrowLimitCrossed(): boolean {
+    return this.getBorrowedAmount().gt(new Decimal(this.state.config.borrowLimit.toString()));
+  }
+
+  /**
+   *
+   * @returns the max capacity of the deposit withdrawal cap
+   */
+  getDepositWithdrawalCapCapacity(): Decimal {
+    return new Decimal(this.state.config.depositWithdrawalCap.configCapacity.toString());
+  }
+
+  /**
+   *
+   * @returns the current capacity of the deposit withdrawal cap
+   */
+  getDepositWithdrawalCapCurrent(currentUnixTimestamp: number): Decimal {
+    return this.getWithdrawalCapCurrent(this.state.config.depositWithdrawalCap, currentUnixTimestamp);
+  }
+
+  /**
+   *
+   * @returns the max capacity of the debt withdrawal cap
+   */
+  getDebtWithdrawalCapCapacity(): Decimal {
+    return new Decimal(this.state.config.debtWithdrawalCap.configCapacity.toString());
+  }
+
+  /**
+   *
+   * @returns the borrow limit of the reserve outside the elevation group
+   */
+  getBorrowLimitOutsideElevationGroup(): Decimal {
+    return new Decimal(this.state.config.borrowLimitOutsideElevationGroup.toString());
+  }
+
+  /**
+   *
+   * @returns the borrowed amount of the reserve outside the elevation group
+   */
+  getBorrowedAmountOutsideElevationGroup(): Decimal {
+    return new Decimal(this.state.borrowedAmountOutsideElevationGroup.toString());
+  }
+
+  /**
+   *
+   * @returns the borrow limit against the collateral reserve in the elevation group
+   */
+  getBorrowLimitAgainstCollateralInElevationGroup(elevationGroupIndex: number): Decimal {
+    return new Decimal(
+      this.state.config.borrowLimitAgainstThisCollateralInElevationGroup[elevationGroupIndex].toString()
+    );
+  }
+
+  /**
+   *
+   * @returns the borrowed amount against the collateral reserve in the elevation group
+   */
+  getBorrowedAmountAgainstCollateralInElevationGroup(elevationGroupIndex: number): Decimal {
+    return new Decimal(this.state.borrowedAmountsAgainstThisReserveInElevationGroups[elevationGroupIndex].toString());
+  }
+
+  private getWithdrawalCapCurrent(caps: WithdrawalCaps, currentUnixTimestamp: number): Decimal {
+    const intervalLength = Number(caps.configIntervalLengthSeconds.toString());
+    if (intervalLength === 0) {
+      return new Decimal(0);
+    }
+    const elapsed = currentUnixTimestamp - Number(caps.lastIntervalStartTimestamp.toString());
+    if (elapsed >= intervalLength) {
+      return new Decimal(0);
+    }
+    return new Decimal(caps.currentTotal.toString());
+  }
+
+  /**
+   *
+   * @returns the current capacity of the debt withdrawal cap
+   */
+  getDebtWithdrawalCapCurrent(currentUnixTimestamp: number): Decimal {
+    return this.getWithdrawalCapCurrent(this.state.config.debtWithdrawalCap, currentUnixTimestamp);
+  }
+
+  getBorrowFactor(): Decimal {
+    return new Decimal(this.state.config.borrowFactorPct.toString()).div(100);
+  }
+
+  calculateSupplyAPR(slot: Slot, referralFeeBps: number) {
+    const currentUtilization = this.calculateUtilizationRatio();
+
+    const borrowRate = this.calculateEstimatedBorrowRate(slot, referralFeeBps);
+    const protocolTakeRatePct = 1 - this.state.config.protocolTakeRatePct / 100;
+    return currentUtilization * borrowRate * protocolTakeRatePct;
+  }
+
+  getEstimatedDebtAndSupply(slot: Slot, referralFeeBps: number): { totalBorrow: Decimal; totalSupply: Decimal } {
+    const slotsElapsed = maxBigInt(slot - BigInt(this.state.lastUpdate.slot.toNumber()), 0n);
+    let totalBorrow: Decimal;
+    let totalSupply: Decimal;
+    if (slotsElapsed === 0n) {
+      totalBorrow = this.getBorrowedAmount();
+      totalSupply = this.getTotalSupply();
+    } else {
+      const { newDebt, newAccProtocolFees, pendingReferralFees } = this.compoundInterest(slotsElapsed, referralFeeBps);
+      const newTotalSupply = this.getLiquidityAvailableAmount()
+        .add(newDebt)
+        .sub(newAccProtocolFees)
+        .sub(this.getAccumulatedReferrerFees())
+        .sub(pendingReferralFees);
+      totalBorrow = newDebt;
+      totalSupply = newTotalSupply;
+    }
+    return { totalBorrow, totalSupply };
+  }
+
+  getEstimatedAccumulatedProtocolFees(
+    slot: Slot,
+    referralFeeBps: number
+  ): { accumulatedProtocolFees: Decimal; compoundedVariableProtocolFee: Decimal; compoundedFixedHostFee: Decimal } {
+    const slotsElapsed = maxBigInt(slot - BigInt(this.state.lastUpdate.slot.toString()), 0n);
+    let accumulatedProtocolFees: Decimal;
+    let compoundedVariableProtocolFee: Decimal;
+    let compoundedFixedHostFee: Decimal;
+    if (slotsElapsed === 0n) {
+      accumulatedProtocolFees = this.getAccumulatedProtocolFees();
+      compoundedVariableProtocolFee = new Decimal(0);
+      compoundedFixedHostFee = new Decimal(0);
+    } else {
+      const { newAccProtocolFees, variableProtocolFee, fixedHostFee } = this.compoundInterest(
+        slotsElapsed,
+        referralFeeBps
+      );
+      accumulatedProtocolFees = newAccProtocolFees;
+      compoundedVariableProtocolFee = variableProtocolFee;
+      compoundedFixedHostFee = fixedHostFee;
+    }
+    return { accumulatedProtocolFees, compoundedVariableProtocolFee, compoundedFixedHostFee };
+  }
+
+  calculateUtilizationRatio(): number {
+    const totalBorrows = this.getBorrowedAmount();
+    const totalSupply = this.getTotalSupply();
+    if (totalSupply.eq(0)) {
+      return 0;
+    }
+    return totalBorrows.dividedBy(totalSupply).toNumber();
+  }
+
+  getEstimatedUtilizationRatio(slot: Slot, referralFeeBps: number): number {
+    const { totalBorrow: estimatedTotalBorrowed, totalSupply: estimatedTotalSupply } = this.getEstimatedDebtAndSupply(
+      slot,
+      referralFeeBps
+    );
+    if (estimatedTotalSupply.eq(0)) {
+      return 0;
+    }
+
+    return estimatedTotalBorrowed.dividedBy(estimatedTotalSupply).toNumber();
+  }
+
+  calcSimulatedUtilizationRatio(
+    amount: Decimal,
+    action: ActionType,
+    slot: Slot,
+    referralFeeBps: number,
+    outflowAmount?: Decimal
+  ): number {
+    const { totalBorrow: previousTotalBorrowed, totalSupply: previousTotalSupply } = this.getEstimatedDebtAndSupply(
+      slot,
+      referralFeeBps
+    );
+
+    switch (action) {
+      case 'deposit': {
+        const newTotalSupply = previousTotalSupply.add(amount);
+        return previousTotalBorrowed.dividedBy(newTotalSupply).toNumber();
+      }
+      case 'withdraw': {
+        const newTotalSupply = previousTotalSupply.sub(amount);
+        if (newTotalSupply.eq(0)) {
+          return 0;
+        } else {
+          return previousTotalBorrowed.dividedBy(newTotalSupply).toNumber();
+        }
+      }
+      case 'borrow': {
+        const newTotalBorrowed = previousTotalBorrowed.add(amount);
+        return newTotalBorrowed.dividedBy(previousTotalSupply).toNumber();
+      }
+      case 'repay': {
+        const newTotalBorrowed = previousTotalBorrowed.sub(amount);
+        return newTotalBorrowed.dividedBy(previousTotalSupply).toNumber();
+      }
+      case 'depositAndBorrow': {
+        const newTotalSupply = previousTotalSupply.add(amount);
+        const newTotalBorrowed = previousTotalBorrowed.add(outflowAmount!);
+        return newTotalBorrowed.dividedBy(newTotalSupply).toNumber();
+      }
+      case 'repayAndWithdraw': {
+        const newTotalBorrowed = previousTotalBorrowed.sub(amount);
+        const newTotalSupply = previousTotalSupply.sub(outflowAmount!);
+        if (newTotalSupply.eq(0)) {
+          return 0;
+        }
+        return newTotalBorrowed.dividedBy(newTotalSupply).toNumber();
+      }
+      case 'mint': {
+        const newTotalSupply = previousTotalSupply.add(amount);
+        return previousTotalBorrowed.dividedBy(newTotalSupply).toNumber();
+      }
+      case 'redeem': {
+        const newTotalSupply = previousTotalSupply.sub(amount);
+        return previousTotalBorrowed.dividedBy(newTotalSupply).toNumber();
+      }
+      default:
+        throw Error(`Invalid action type ${action} for simulatedUtilizationRatio`);
+    }
+  }
+
+  getMaxBorrowAmountWithCollReserve(market: KaminoMarket, collReserve: KaminoReserve): Decimal {
+    const groups = market.state.elevationGroups;
+    const commonElevationGroups = market.getCommonElevationGroupsForPair(collReserve, this);
+
+    let eModeGroup = 0;
+
+    if (commonElevationGroups.length !== 0) {
+      const eModeGroupWithMaxLtvAndDebtReserve = commonElevationGroups.reduce((prev, curr) => {
+        const prevGroup = groups.find((group) => group.id === prev);
+        const currGroup = groups.find((group) => group.id === curr);
+        return prevGroup!.ltvPct > currGroup!.ltvPct ? prev : curr;
+      });
+
+      eModeGroup = groups.find((group) => group.id === eModeGroupWithMaxLtvAndDebtReserve)!.id;
+    }
+
+    const elevationGroupActivated = this.state.config.elevationGroups.includes(eModeGroup) && eModeGroup !== 0;
+
+    const reserveAvailableAmount = this.getLiquidityAvailableAmount();
+    const reserveBorrowCapRemained = this.stats.reserveBorrowLimit.sub(this.getBorrowedAmount());
+
+    let maxBorrowAmount = Decimal.min(reserveAvailableAmount, reserveBorrowCapRemained);
+
+    const currentUnixTimestamp = Math.floor(Date.now() / 1000);
+    const debtWithdrawalCap = this.getDebtWithdrawalCapCapacity().sub(
+      this.getDebtWithdrawalCapCurrent(currentUnixTimestamp)
+    );
+    maxBorrowAmount = this.getDebtWithdrawalCapCapacity().gt(0)
+      ? Decimal.min(maxBorrowAmount, debtWithdrawalCap)
+      : maxBorrowAmount;
+
+    let originationFeeRate = this.getBorrowFee();
+
+    // Inclusive fee rate
+    originationFeeRate = originationFeeRate.div(originationFeeRate.add(new Decimal(1)));
+    const borrowFee = maxBorrowAmount.mul(originationFeeRate);
+
+    maxBorrowAmount = maxBorrowAmount.sub(borrowFee);
+
+    const utilizationRatioLimit = this.state.config.utilizationLimitBlockBorrowingAbovePct / 100;
+    const currentUtilizationRatio = this.calculateUtilizationRatio();
+
+    if (utilizationRatioLimit > 0 && currentUtilizationRatio > utilizationRatioLimit) {
+      return new Decimal(0);
+    } else if (utilizationRatioLimit > 0 && currentUtilizationRatio < utilizationRatioLimit) {
+      const maxBorrowBasedOnUtilization = new Decimal(utilizationRatioLimit - currentUtilizationRatio).mul(
+        this.getTotalSupply()
+      );
+      maxBorrowAmount = Decimal.min(maxBorrowAmount, maxBorrowBasedOnUtilization);
+    }
+
+    let borrowLimitDependentOnElevationGroup = new Decimal(U64_MAX);
+
+    if (!elevationGroupActivated) {
+      borrowLimitDependentOnElevationGroup = this.getBorrowLimitOutsideElevationGroup().sub(
+        this.getBorrowedAmountOutsideElevationGroup()
+      );
+    } else {
+      let maxDebtTakenAgainstCollaterals = new Decimal(U64_MAX);
+      const maxDebtAllowedAgainstCollateral = collReserve
+        .getBorrowLimitAgainstCollateralInElevationGroup(eModeGroup - 1)
+        .sub(collReserve.getBorrowedAmountAgainstCollateralInElevationGroup(eModeGroup - 1));
+
+      maxDebtTakenAgainstCollaterals = Decimal.max(
+        new Decimal(0),
+        Decimal.min(maxDebtAllowedAgainstCollateral, maxDebtTakenAgainstCollaterals)
+      );
+      borrowLimitDependentOnElevationGroup = maxDebtTakenAgainstCollaterals;
+    }
+
+    maxBorrowAmount = Decimal.min(maxBorrowAmount, borrowLimitDependentOnElevationGroup);
+
+    return Decimal.max(new Decimal(0), maxBorrowAmount);
+  }
+
+  calcSimulatedBorrowRate(
+    amount: Decimal,
+    action: ActionType,
+    slot: Slot,
+    referralFeeBps: number,
+    outflowAmount?: Decimal
+  ) {
+    const slotAdjustmentFactor = this.slotAdjustmentFactor();
+    const newUtilization = this.calcSimulatedUtilizationRatio(amount, action, slot, referralFeeBps, outflowAmount);
+    const curve = truncateBorrowCurve(this.state.config.borrowRateCurve.points);
+    return getBorrowRate(newUtilization, curve) * slotAdjustmentFactor;
+  }
+
+  calcSimulatedBorrowAPR(
+    amount: Decimal,
+    action: ActionType,
+    slot: Slot,
+    referralFeeBps: number,
+    outflowAmount?: Decimal
+  ) {
+    return (
+      this.calcSimulatedBorrowRate(amount, action, slot, referralFeeBps, outflowAmount) +
+      this.getFixedHostInterestRate().toNumber() * this.slotAdjustmentFactor()
+    );
+  }
+
+  calcSimulatedSupplyAPR(
+    amount: Decimal,
+    action: ActionType,
+    slot: Slot,
+    referralFeeBps: number,
+    outflowAmount?: Decimal
+  ) {
+    const newUtilization = this.calcSimulatedUtilizationRatio(amount, action, slot, referralFeeBps, outflowAmount);
+    const simulatedBorrowAPR = this.calcSimulatedBorrowRate(amount, action, slot, referralFeeBps, outflowAmount);
+    const protocolTakeRatePct = 1 - this.state.config.protocolTakeRatePct / 100;
+
+    return newUtilization * simulatedBorrowAPR * protocolTakeRatePct;
+  }
+
+  slotAdjustmentFactor(): number {
+    return 1000 / SLOTS_PER_SECOND / this.recentSlotDurationMs;
+  }
+
+  calculateBorrowRate() {
+    const slotAdjustmentFactor = this.slotAdjustmentFactor();
+    const currentUtilization = this.calculateUtilizationRatio();
+    const curve = truncateBorrowCurve(this.state.config.borrowRateCurve.points);
+
+    return getBorrowRate(currentUtilization, curve) * slotAdjustmentFactor;
+  }
+
+  calculateEstimatedBorrowRate(slot: Slot, referralFeeBps: number) {
+    const slotAdjustmentFactor = this.slotAdjustmentFactor();
+    const estimatedCurrentUtilization = this.getEstimatedUtilizationRatio(slot, referralFeeBps);
+    const curve = truncateBorrowCurve(this.state.config.borrowRateCurve.points);
+    return getBorrowRate(estimatedCurrentUtilization, curve) * slotAdjustmentFactor;
+  }
+
+  calculateBorrowAPR(slot: Slot, referralFeeBps: number) {
+    const slotAdjustmentFactor = this.slotAdjustmentFactor();
+    const borrowRate = this.calculateEstimatedBorrowRate(slot, referralFeeBps);
+    return borrowRate + this.getFixedHostInterestRate().toNumber() * slotAdjustmentFactor;
+  }
+
+  calculateBorrowAPRFixedRate() {
+    if (!this.reserveKind.isFixedRate()) {
+      throw new Error(
+        'calculateBorrowAPRFixedRate should only be called for fixed rate reserves; for float rate reserves, see calculateBorrowAPR'
+      );
+    }
+    const slotAdjustmentFactor = this.slotAdjustmentFactor();
+    const borrowRate =
+      (this.reserveKind as FixedRateReserveKind).borrowRateBps / ONE_HUNDRED_PCT_IN_BPS +
+      this.getFixedHostInterestRate().toNumber();
+    return borrowRate * slotAdjustmentFactor;
+  }
+
+  /**
+   * @returns the mint of the reserve liquidity token
+   */
+  getLiquidityMint(): Address {
+    return this.state.liquidity.mintPubkey;
+  }
+
+  /**
+   * @returns the token program of the reserve liquidity mint
+   */
+  getLiquidityTokenProgram(): Address {
+    return this.state.liquidity.tokenProgram;
+  }
+
+  /**
+   * @returns the mint of the reserve collateral token , i.e. the cToken minted for depositing the liquidity token
+   */
+  getCTokenMint(): Address {
+    return this.state.collateral.mintPubkey;
+  }
+
+  /**
+   * Returns the reserve kind (FloatRateReserveKind or FixedRateReserveKind) for this reserve.
+   *
+   * @returns The reserve kind instance
+   */
+  getKind(): ReserveKind {
+    return this.reserveKind;
+  }
+
+  calculateFees(
+    amountLamports: Decimal,
+    borrowFeeRate: Decimal,
+    feeCalculation: FeeCalculation,
+    referralFeeBps: number,
+    hasReferrer: boolean
+  ): Fees {
+    const referralFeeRate = new Decimal(referralFeeBps).div(ONE_HUNDRED_PCT_IN_BPS);
+    if (borrowFeeRate.gt('0') && amountLamports.gt('0')) {
+      const needToAssessReferralFee = referralFeeRate.gt('0') && hasReferrer;
+      const minimumFee = new Decimal('1'); // 1 token to market owner, nothing to referrer
+
+      let borrowFeeAmount: Decimal;
+      if (feeCalculation === FeeCalculation.Exclusive) {
+        borrowFeeAmount = amountLamports.mul(borrowFeeRate);
+      } else {
+        const borrowFeeFactor = borrowFeeRate.div(borrowFeeRate.add('1'));
+        borrowFeeAmount = amountLamports.mul(borrowFeeFactor);
+      }
+      const borrowFee = Decimal.max(borrowFeeAmount, minimumFee);
+      if (borrowFee.gte(amountLamports)) {
+        throw Error('Borrow amount is too small to receive liquidity after fees');
+      }
+      const referralFee = needToAssessReferralFee
+        ? referralFeeRate.eq(1)
+          ? borrowFee
+          : borrowFee.mul(referralFeeRate).floor()
+        : new Decimal(0);
+
+      const protocolFee = borrowFee.sub(referralFee);
+
+      return { protocolFees: protocolFee, referrerFees: referralFee };
+    } else {
+      return { protocolFees: new Decimal(0), referrerFees: new Decimal(0) };
+    }
+  }
+
+  calculateFlashLoanFees(flashLoanAmountLamports: Decimal, referralFeeBps: number, hasReferrer: boolean): Fees {
+    return this.calculateFees(
+      flashLoanAmountLamports,
+      this.getFlashLoanFee(),
+      FeeCalculation.Exclusive,
+      referralFeeBps,
+      hasReferrer
+    );
+  }
+
+  async load(tokenOraclePrice: TokenOracleData) {
+    await this.reloadState();
+    this.tokenOraclePrice = tokenOraclePrice;
+  }
+
+  async reloadState() {
+    const [parsedData, cdnResourcesData] = await Promise.all([
+      Reserve.fetch(this.rpc, this.address),
+      kaminoCdn.getData(),
+    ]);
+    if (!parsedData) {
+      throw Error(`Unable to parse data of reserve ${this.symbol}`);
+    }
+    this.state = parsedData;
+    this.stats = this.formatReserveData(parsedData, cdnResourcesData?.deprecatedAssets ?? []);
+  }
+
+  totalSupplyAPY(currentSlot: Slot) {
+    const { stats } = this;
+    if (!stats) {
+      throw Error('KaminoMarket must call loadRewards.');
+    }
+
+    return calculateAPYFromAPR(this.calculateSupplyAPR(currentSlot, 0));
+  }
+
+  totalBorrowAPY(currentSlot: Slot) {
+    const { stats } = this;
+    if (!stats) {
+      throw Error('KaminoMarket must call loadRewards.');
+    }
+
+    return calculateAPYFromAPR(this.calculateBorrowAPR(currentSlot, 0));
+  }
+
+  totalBorrowAPYFixedRate() {
+    const { stats } = this;
+    if (!stats) {
+      throw Error('KaminoMarket must call loadRewards.');
+    }
+
+    return calculateAPYFromAPR(this.calculateBorrowAPRFixedRate());
+  }
+
+  async loadFarmStates(farmsProgramId?: Address) {
+    if (!this.farmData.fetched) {
+      const farmStates: FarmAndKey[] = [];
+      const debtFarmAddress = this.getDebtFarmAddress();
+      if (isSome(debtFarmAddress)) {
+        const farmState = await FarmState.fetch(this.rpc, debtFarmAddress.value, farmsProgramId);
+        if (farmState !== null) {
+          farmStates.push({ farmState, key: debtFarmAddress.value });
+        }
+      }
+      const collateralFarmAddress = this.getCollateralFarmAddress();
+      if (isSome(collateralFarmAddress)) {
+        const farmState = await FarmState.fetch(this.rpc, collateralFarmAddress.value, farmsProgramId);
+        if (farmState !== null) {
+          farmStates.push({ farmState, key: collateralFarmAddress.value });
+        }
+      }
+      this.farmData.farms = farmStates;
+      this.farmData.fetched = true;
+    }
+  }
+
+  async getRewardYields(prices: KaminoPrices, farmsProgramId?: Address): Promise<ReserveRewardYield[]> {
+    const { stats } = this;
+    if (!stats) {
+      throw Error('KaminoMarket must call loadReserves.');
+    }
+
+    await this.loadFarmStates(farmsProgramId);
+    const yields: ReserveRewardYield[] = [];
+    for (const farmAndKey of this.farmData.farms) {
+      const isDebtReward = this.state.farmDebt === farmAndKey.key;
+      for (const rewardInfo of farmAndKey.farmState.rewardInfos.filter(
+        (x) => x.token.mint !== DEFAULT_PUBLIC_KEY && !x.rewardsAvailable.isZero()
+      )) {
+        const { apy, apr } = this.calculateRewardYield(
+          prices,
+          rewardInfo,
+          isDebtReward,
+          new Decimal(farmAndKey.farmState.totalActiveStakeScaled.toString())
+        );
+        if (apy.isZero() && apr.isZero()) {
+          continue;
+        }
+        yields.push({ apy, apr, rewardInfo });
+      }
+    }
+    return yields;
+  }
+
+  calculateRewardYield(
+    prices: KaminoPrices,
+    rewardInfo: RewardInfo,
+    isDebtReward: boolean,
+    farmTotalStakeLamports: Decimal
+  ) {
+    const mintAddress = this.getLiquidityMint();
+    const rewardPerTimeUnitSecond = getRewardPerTimeUnitSecond(rewardInfo, farmTotalStakeLamports);
+    const reserveToken = prices.spot[mintAddress.toString()];
+    const rewardToken = prices.spot[rewardInfo.token.mint.toString()];
+
+    if (rewardPerTimeUnitSecond.isZero() || reserveToken === undefined || rewardToken === undefined) {
+      return { apy: new Decimal(0), apr: new Decimal(0) };
+    }
+    const { decimals } = this.stats;
+    const totalBorrows = this.getBorrowedAmount();
+    const totalSupply = this.getTotalSupply();
+
+    const totalAmount = isDebtReward
+      ? lamportsToNumberDecimal(totalBorrows, decimals)
+      : lamportsToNumberDecimal(totalSupply, decimals);
+    const totalValue = totalAmount.mul(reserveToken.price);
+    const rewardsInYear = rewardPerTimeUnitSecond.mul(60 * 60 * 24 * 365);
+    const rewardsInYearValue = rewardsInYear.mul(rewardToken.price);
+    const apr = rewardsInYearValue.div(totalValue);
+    return { apy: aprToApy(apr, 365), apr };
+  }
+
+  private formatReserveData(parsedData: ReserveFields, deprecatedAssets: string[]): ReserveDataType {
+    const mintTotalSupply = new Decimal(parsedData.collateral.mintTotalSupply.toString()).div(this.getMintFactor());
+    let reserveStatus = ReserveStatus.Active;
+    switch (parsedData.config.status) {
+      case 0:
+        reserveStatus = ReserveStatus.Active;
+        break;
+      case 1:
+        reserveStatus = ReserveStatus.Obsolete;
+        break;
+      case 2:
+        reserveStatus = ReserveStatus.Hidden;
+        break;
+    }
+    const reserveIsUIDeprecated =
+      deprecatedAssets.length > 0 ? deprecatedAssets.includes(this.address.toString()) : undefined;
+    return {
+      // Reserve config
+
+      status: reserveStatus,
+      mintAddress: parsedData.liquidity.mintPubkey,
+      borrowCurve: truncateBorrowCurve(parsedData.config.borrowRateCurve.points),
+      loanToValue: parsedData.config.loanToValuePct / 100,
+      maxLiquidationBonus: parsedData.config.maxLiquidationBonusBps / 10000,
+      minLiquidationBonus: parsedData.config.minLiquidationBonusBps / 10000,
+      liquidationThreshold: parsedData.config.liquidationThresholdPct / 100,
+      protocolTakeRate: parsedData.config.protocolTakeRatePct / 100,
+      reserveDepositLimit: new Decimal(parsedData.config.depositLimit.toString()),
+      reserveBorrowLimit: new Decimal(parsedData.config.borrowLimit.toString()),
+
+      // Reserve info
+      symbol: parseTokenSymbol(parsedData.config.tokenInfo.name),
+      decimals: this.getMintDecimals(),
+      accumulatedProtocolFees: this.getAccumulatedProtocolFees().div(this.getMintFactor()),
+      mintTotalSupply,
+      depositLimitCrossedTimestamp: parsedData.liquidity.depositLimitCrossedTimestamp.toNumber(),
+      borrowLimitCrossedTimestamp: parsedData.liquidity.borrowLimitCrossedTimestamp.toNumber(),
+      borrowFactor: parsedData.config.borrowFactorPct.toNumber(),
+      isUIDeprecated: reserveIsUIDeprecated,
+    };
+  }
+
+  /**
+   * Compound current borrow rate over elapsed slots
+   *
+   * This also calculates protocol fees, which are taken for all obligations that have borrowed from current reserve.
+   *
+   * This also calculates referral fees, which are taken into pendingReferralFees.
+   *
+   * https://github.com/Kamino-Finance/klend/blob/release/1.3.0/programs/klend/src/state/reserve.rs#L517
+   *
+   * @param slotsElapsed
+   * @param referralFeeBps
+   */
+  private compoundInterest(
+    slotsElapsed: bigint,
+    referralFeeBps: number
+  ): {
+    newDebt: Decimal;
+    netNewDebt: Decimal;
+    variableProtocolFee: Decimal;
+    fixedHostFee: Decimal;
+    absoluteReferralFee: Decimal;
+    maxReferralFees: Decimal;
+    newAccProtocolFees: Decimal;
+    pendingReferralFees: Decimal;
+  } {
+    const currentBorrowRate = this.calculateBorrowRate();
+    const protocolTakeRate = new Decimal(this.state.config.protocolTakeRatePct).div(100);
+    const referralRate = new Decimal(referralFeeBps).div(10_000);
+    const fixedHostInterestRate = this.getFixedHostInterestRate();
+
+    const compoundedInterestRate = this.approximateCompoundedInterest(
+      new Decimal(currentBorrowRate).plus(fixedHostInterestRate),
+      slotsElapsed
+    );
+    const compoundedFixedRate = this.approximateCompoundedInterest(fixedHostInterestRate, slotsElapsed);
+
+    const previousDebt = this.getBorrowedAmount();
+    const newDebt = previousDebt.mul(compoundedInterestRate);
+    const fixedHostFee = previousDebt.mul(compoundedFixedRate).sub(previousDebt);
+
+    const netNewDebt = newDebt.sub(previousDebt).sub(fixedHostFee);
+
+    const variableProtocolFee = netNewDebt.mul(protocolTakeRate);
+    const absoluteReferralFee = protocolTakeRate.mul(referralRate);
+    const maxReferralFees = netNewDebt.mul(absoluteReferralFee);
+
+    const newAccProtocolFees = variableProtocolFee
+      .add(fixedHostFee)
+      .sub(maxReferralFees)
+      .add(this.getAccumulatedProtocolFees());
+
+    const pendingReferralFees = this.getPendingReferrerFees().add(maxReferralFees);
+
+    return {
+      newDebt,
+      netNewDebt,
+      variableProtocolFee,
+      fixedHostFee,
+      absoluteReferralFee,
+      maxReferralFees,
+      newAccProtocolFees,
+      pendingReferralFees,
+    };
+  }
+
+  /**
+   * Approximation to match the smart contract calculation
+   * https://github.com/Kamino-Finance/klend/blob/release/1.3.0/programs/klend/src/state/reserve.rs#L1026
+   * @param rate
+   * @param elapsedSlots
+   */
+  private approximateCompoundedInterest(rate: Decimal, elapsedSlots: bigint): Decimal {
+    const base = rate.div(SLOTS_PER_YEAR);
+    switch (elapsedSlots) {
+      case 0n:
+        return new Decimal(1);
+      case 1n:
+        return base.add(1);
+      case 2n:
+        return base.add(1).mul(base.add(1));
+      case 3n:
+        return base.add(1).mul(base.add(1)).mul(base.add(1));
+      case 4n: {
+        const pow2 = base.add(1).mul(base.add(1));
+        return pow2.mul(pow2);
+      }
+    }
+    const exp = elapsedSlots;
+    const expMinus1 = exp - 1n;
+    const expMinus2 = exp - 2n;
+
+    const firstTerm = base.mul(exp.toString());
+    const secondTerm = firstTerm.mul(base).mul(expMinus1.toString()).div(2);
+    const thirdTerm = secondTerm.mul(base).mul(expMinus2.toString()).div(3);
+
+    return new Decimal(1).add(firstTerm).add(secondTerm).add(thirdTerm);
+  }
+
+  getBorrowCapForReserve(market: KaminoMarket): BorrowCapsAndCounters {
+    // Utilization cap
+    const utilizationCap = this.state.config.utilizationLimitBlockBorrowingAbovePct;
+    const utilizationCurrentValue = this.calculateUtilizationRatio();
+
+    // Daily borrow cap
+    const withdrawalCap = this.state.config.debtWithdrawalCap;
+
+    // Debt against collaterals in elevation groups
+    const debtAgainstCollateralReserveCaps: {
+      collateralReserve: Address;
+      elevationGroup: number;
+      maxDebt: Decimal;
+      currentValue: Decimal;
+    }[] = market
+      .getMarketElevationGroupDescriptions()
+      .filter((x) => x.debtReserve === this.address)
+      .map((elevationGroupDescription: ElevationGroupDescription) =>
+        [...elevationGroupDescription.collateralReserves].map((collateralReserveAddress) => {
+          const collRes = market.reserves.get(collateralReserveAddress)!;
+
+          const debtLimitAgainstThisCollInGroup =
+            collRes.state.config.borrowLimitAgainstThisCollateralInElevationGroup[
+              elevationGroupDescription.elevationGroup - 1
+            ].toString();
+
+          const debtCounterAgainstThisCollInGroup =
+            collRes.state.borrowedAmountsAgainstThisReserveInElevationGroups[
+              elevationGroupDescription.elevationGroup - 1
+            ].toString();
+
+          return {
+            collateralReserve: collRes.address,
+            elevationGroup: elevationGroupDescription.elevationGroup,
+            maxDebt: new Decimal(debtLimitAgainstThisCollInGroup),
+            currentValue: new Decimal(debtCounterAgainstThisCollInGroup),
+          };
+        })
+      )
+      .flat();
+
+    const caps: BorrowCapsAndCounters = {
+      // Utilization cap
+      utilizationCap: new Decimal(utilizationCap > 0 ? utilizationCap / 100 : 1),
+      utilizationCurrentValue: new Decimal(utilizationCurrentValue),
+
+      // Daily borrow cap
+      netWithdrawalCap: new Decimal(withdrawalCap.configCapacity.toString()),
+      netWithdrawalCurrentValue: new Decimal(withdrawalCap.currentTotal.toString()),
+      netWithdrawalLastUpdateTs: new Decimal(withdrawalCap.lastIntervalStartTimestamp.toString()),
+      netWithdrawalIntervalDurationSeconds: new Decimal(withdrawalCap.configIntervalLengthSeconds.toString()),
+
+      // Global cap
+      globalDebtCap: new Decimal(this.state.config.borrowLimit.toString()),
+      globalTotalBorrowed: this.getBorrowedAmount(),
+
+      // Debt outside emode cap
+      debtOutsideEmodeCap: new Decimal(this.state.config.borrowLimitOutsideElevationGroup.toString()),
+      borrowedOutsideEmode: this.getBorrowedAmountOutsideElevationGroup(),
+
+      debtAgainstCollateralReserveCaps: debtAgainstCollateralReserveCaps,
+    };
+
+    return caps;
+  }
+
+  /* This takes into account all the caps */
+  getLiquidityAvailableForDebtReserveGivenCaps(
+    market: KaminoMarket,
+    elevationGroups: number[],
+    collateralReserves: Address[] = []
+  ): Decimal[] {
+    const caps = this.getBorrowCapForReserve(market);
+
+    const liquidityAvailable = this.getLiquidityAvailableAmount();
+
+    // Cap this to utilization cap first
+    const utilizationRatioLimit = caps.utilizationCap;
+    const currentUtilizationRatio = this.calculateUtilizationRatio();
+
+    const liquidityGivenUtilizationCap = this.getTotalSupply().mul(
+      utilizationRatioLimit.minus(currentUtilizationRatio)
+    );
+
+    const remainingDailyCap = caps.netWithdrawalIntervalDurationSeconds.eq(new Decimal(0))
+      ? new Decimal(U64_MAX)
+      : caps.netWithdrawalCap.minus(caps.netWithdrawalCurrentValue);
+
+    const remainingGlobalCap = caps.globalDebtCap.minus(caps.globalTotalBorrowed);
+    const remainingOutsideEmodeCap = caps.debtOutsideEmodeCap.minus(caps.borrowedOutsideEmode);
+
+    const available = elevationGroups.map((elevationGroup) => {
+      if (elevationGroup === 0) {
+        const availableInCrossMode = Decimal.min(
+          positiveOrZero(liquidityAvailable),
+          positiveOrZero(remainingOutsideEmodeCap),
+          positiveOrZero(remainingDailyCap),
+          positiveOrZero(remainingGlobalCap),
+          positiveOrZero(liquidityGivenUtilizationCap)
+        );
+        return availableInCrossMode;
+      } else {
+        let remainingInsideEmodeCaps = new Decimal(0);
+        const capsGivenEgroup = caps.debtAgainstCollateralReserveCaps.filter(
+          (x) => x.elevationGroup === elevationGroup
+        );
+        if (capsGivenEgroup.length > 0) {
+          remainingInsideEmodeCaps = Decimal.min(
+            ...capsGivenEgroup.map((x) => {
+              // check reserve is part of collReserves array
+              if (collateralReserves.find((collateralReserve) => collateralReserve === x.collateralReserve)) {
+                return x.maxDebt.minus(x.currentValue);
+              } else {
+                return new Decimal(U64_MAX);
+              }
+            })
+          );
+        }
+        return Decimal.min(
+          positiveOrZero(liquidityAvailable),
+          positiveOrZero(remainingInsideEmodeCaps),
+          positiveOrZero(remainingDailyCap),
+          positiveOrZero(remainingGlobalCap),
+          positiveOrZero(liquidityGivenUtilizationCap)
+        );
+      }
+    });
+
+    return available;
+  }
+
+  /**
+   * Fetches all withdraw tickets for this reserve (across all users).
+   *
+   * Useful for computing "queued before you" by comparing ticket sequence numbers.
+   *
+   * @param programId - The lending program ID (defaults to PROGRAM_ID)
+   * @returns Array of all withdraw tickets for this reserve
+   */
+  async getAllWithdrawTickets(programId: Address = PROGRAM_ID): Promise<WithdrawTicket[]> {
+    const tickets = await this.rpc
+      .getProgramAccounts(programId, {
+        filters: [
+          {
+            dataSize: BigInt(WithdrawTicket.layout.span + 8),
+          },
+          {
+            memcmp: {
+              offset: 48n, // reserve field offset (8 disc + 8 sequence + 32 owner)
+              bytes: this.address.toString() as Base58EncodedBytes,
+              encoding: 'base58',
+            },
+          },
+        ],
+        encoding: 'base64',
+      })
+      .send();
+
+    return tickets.map((ticket) => {
+      if (ticket.account === null) {
+        throw new Error(`WithdrawTicket account ${ticket.pubkey} does not exist`);
+      }
+      return WithdrawTicket.decode(Buffer.from(ticket.account.data[0], 'base64'));
+    });
+  }
+
+  /**
+   * Fetches all withdraw tickets for this reserve owned by the given user.
+   *
+   * @param userWallet - The user's wallet address
+   * @param programId - The lending program ID (defaults to PROGRAM_ID)
+   * @returns Array of withdraw tickets for the user on this reserve
+   */
+  async getWithdrawTicketsForUser(userWallet: Address, programId: Address = PROGRAM_ID): Promise<WithdrawTicket[]> {
+    const tickets = await this.rpc
+      .getProgramAccounts(programId, {
+        filters: [
+          {
+            dataSize: BigInt(WithdrawTicket.layout.span + 8),
+          },
+          {
+            memcmp: {
+              offset: 16n, // owner field offset (8 bytes discriminator + 8 bytes sequenceNumber)
+              bytes: userWallet.toString() as Base58EncodedBytes,
+              encoding: 'base58',
+            },
+          },
+          {
+            memcmp: {
+              offset: 48n, // reserve field offset (8 + 8 + 32)
+              bytes: this.address.toString() as Base58EncodedBytes,
+              encoding: 'base58',
+            },
+          },
+        ],
+        encoding: 'base64',
+      })
+      .send();
+
+    return tickets.map((ticket) => {
+      if (ticket.account === null) {
+        throw new Error(`WithdrawTicket account ${ticket.pubkey} does not exist`);
+      }
+      return WithdrawTicket.decode(Buffer.from(ticket.account.data[0], 'base64'));
+    });
+  }
+}
+
+const truncateBorrowCurve = (points: CurvePointFields[]): [number, number][] => {
+  const curve: [number, number][] = [];
+  for (const { utilizationRateBps, borrowRateBps } of points) {
+    curve.push([utilizationRateBps / ONE_HUNDRED_PCT_IN_BPS, borrowRateBps / ONE_HUNDRED_PCT_IN_BPS]);
+
+    if (utilizationRateBps === ONE_HUNDRED_PCT_IN_BPS) {
+      break;
+    }
+  }
+  return curve;
+};
+
+export async function createReserveIxs(
+  rpc: Rpc<GetMinimumBalanceForRentExemptionApi>,
+  owner: TransactionSigner,
+  ownerLiquiditySource: Address,
+  lendingMarket: Address,
+  liquidityMint: Address,
+  liquidityMintTokenProgram: Address,
+  reserveAddress: TransactionSigner,
+  programId: Address
+): Promise<Instruction[]> {
+  const size = BigInt(Reserve.layout.span + 8);
+  const createReserveIx = getCreateAccountInstruction({
+    payer: owner,
+    space: size,
+    lamports: await rpc.getMinimumBalanceForRentExemption(size).send(),
+    programAddress: programId,
+    newAccount: reserveAddress,
+  });
+
+  const { liquiditySupplyVault, collateralMint, collateralSupplyVault, feeVault } = await reservePdas(
+    programId,
+    reserveAddress.address
+  );
+  const [lendingMarketAuthority] = await lendingMarketAuthPda(lendingMarket, programId);
+
+  const accounts: InitReserveAccounts = {
+    signer: owner,
+    lendingMarket: lendingMarket,
+    lendingMarketAuthority: lendingMarketAuthority,
+    reserve: reserveAddress.address,
+    reserveLiquidityMint: liquidityMint,
+    reserveLiquiditySupply: liquiditySupplyVault,
+    feeReceiver: feeVault,
+    reserveCollateralMint: collateralMint,
+    reserveCollateralSupply: collateralSupplyVault,
+    initialLiquiditySource: ownerLiquiditySource,
+    liquidityTokenProgram: liquidityMintTokenProgram,
+    collateralTokenProgram: TOKEN_PROGRAM_ADDRESS,
+    systemProgram: SYSTEM_PROGRAM_ADDRESS,
+    rent: SYSVAR_RENT_ADDRESS,
+  };
+
+  const initReserveIx = initReserve(accounts, undefined, programId);
+
+  return [createReserveIx, initReserveIx];
+}
+
+export async function updateReserveConfigIx(
+  signer: TransactionSigner,
+  marketAddress: Address,
+  reserveAddress: Address,
+  mode: UpdateConfigModeKind,
+  value: Uint8Array,
+  programId: Address,
+  skipConfigIntegrityValidation: boolean = false
+): Promise<Instruction> {
+  const args: UpdateReserveConfigArgs = {
+    mode,
+    value,
+    skipConfigIntegrityValidation,
+  };
+
+  const globalConfig = await globalConfigPda(programId);
+  const accounts: UpdateReserveConfigAccounts = {
+    signer,
+    lendingMarket: marketAddress,
+    reserve: reserveAddress,
+    globalConfig,
+  };
+
+  return updateReserveConfig(args, accounts, undefined, programId);
+}
+
+export const RESERVE_CONFIG_UPDATER = new ConfigUpdater(UpdateConfigMode.fromDecoded, ReserveConfig, (config) => ({
+  [UpdateConfigMode.UpdateLoanToValuePct.kind]: config.loanToValuePct,
+  [UpdateConfigMode.UpdateMaxLiquidationBonusBps.kind]: config.maxLiquidationBonusBps,
+  [UpdateConfigMode.UpdateLiquidationThresholdPct.kind]: config.liquidationThresholdPct,
+  [UpdateConfigMode.UpdateProtocolLiquidationFee.kind]: config.protocolLiquidationFeePct,
+  [UpdateConfigMode.UpdateProtocolTakeRate.kind]: config.protocolTakeRatePct,
+  [UpdateConfigMode.UpdateFeesOriginationFee.kind]: config.fees.originationFeeSf,
+  [UpdateConfigMode.UpdateFeesFlashLoanFee.kind]: config.fees.flashLoanFeeSf,
+  [UpdateConfigMode.DeprecatedUpdateFeesReferralFeeBps.kind]: [], // deprecated
+  [UpdateConfigMode.UpdateDepositLimit.kind]: config.depositLimit,
+  [UpdateConfigMode.UpdateBorrowLimit.kind]: config.borrowLimit,
+  [UpdateConfigMode.UpdateTokenInfoLowerHeuristic.kind]: config.tokenInfo.heuristic.lower,
+  [UpdateConfigMode.UpdateTokenInfoUpperHeuristic.kind]: config.tokenInfo.heuristic.upper,
+  [UpdateConfigMode.UpdateTokenInfoExpHeuristic.kind]: config.tokenInfo.heuristic.exp,
+  [UpdateConfigMode.UpdateTokenInfoTwapDivergence.kind]: config.tokenInfo.maxTwapDivergenceBps,
+  [UpdateConfigMode.UpdateTokenInfoScopeTwap.kind]: config.tokenInfo.scopeConfiguration.twapChain,
+  [UpdateConfigMode.UpdateTokenInfoScopeChain.kind]: config.tokenInfo.scopeConfiguration.priceChain,
+  [UpdateConfigMode.UpdateTokenInfoName.kind]: config.tokenInfo.name,
+  [UpdateConfigMode.UpdateTokenInfoPriceMaxAge.kind]: config.tokenInfo.maxAgePriceSeconds,
+  [UpdateConfigMode.UpdateTokenInfoTwapMaxAge.kind]: config.tokenInfo.maxAgeTwapSeconds,
+  [UpdateConfigMode.UpdateScopePriceFeed.kind]: config.tokenInfo.scopeConfiguration.priceFeed,
+  [UpdateConfigMode.UpdatePythPrice.kind]: config.tokenInfo.pythConfiguration.price,
+  [UpdateConfigMode.UpdateSwitchboardFeed.kind]: config.tokenInfo.switchboardConfiguration.priceAggregator,
+  [UpdateConfigMode.UpdateSwitchboardTwapFeed.kind]: config.tokenInfo.switchboardConfiguration.twapAggregator,
+  [UpdateConfigMode.UpdateBorrowRateCurve.kind]: config.borrowRateCurve,
+  [UpdateConfigMode.DeprecatedUpdateEntireReserveConfig.kind]: [], // technically `config` would be a valid thing here, but we actually do NOT want entire config update among ixs produced for field-by-field updates
+  [UpdateConfigMode.UpdateDebtWithdrawalCap.kind]: new CompositeConfigItem(
+    config.debtWithdrawalCap.configCapacity,
+    config.debtWithdrawalCap.configIntervalLengthSeconds
+  ),
+  [UpdateConfigMode.UpdateDepositWithdrawalCap.kind]: new CompositeConfigItem(
+    config.depositWithdrawalCap.configCapacity,
+    config.depositWithdrawalCap.configIntervalLengthSeconds
+  ),
+  [UpdateConfigMode.DeprecatedUpdateDebtWithdrawalCapCurrentTotal.kind]: [], // deprecated
+  [UpdateConfigMode.DeprecatedUpdateDepositWithdrawalCapCurrentTotal.kind]: [], // deprecated
+  [UpdateConfigMode.UpdateBadDebtLiquidationBonusBps.kind]: config.badDebtLiquidationBonusBps,
+  [UpdateConfigMode.UpdateMinLiquidationBonusBps.kind]: config.minLiquidationBonusBps,
+  [UpdateConfigMode.UpdateDeleveragingMarginCallPeriod.kind]: config.deleveragingMarginCallPeriodSecs,
+  [UpdateConfigMode.UpdateBorrowFactor.kind]: config.borrowFactorPct,
+  [UpdateConfigMode.DeprecatedUpdateAssetTier.kind]: [],
+  [UpdateConfigMode.UpdateElevationGroup.kind]: config.elevationGroups,
+  [UpdateConfigMode.UpdateDeleveragingThresholdDecreaseBpsPerDay.kind]: config.deleveragingThresholdDecreaseBpsPerDay,
+  [UpdateConfigMode.DeprecatedUpdateMultiplierSideBoost.kind]: [], // deprecated
+  [UpdateConfigMode.DeprecatedUpdateMultiplierTagBoost.kind]: [], // deprecated
+  [UpdateConfigMode.UpdateReserveStatus.kind]: config.status,
+  [UpdateConfigMode.UpdateFarmCollateral.kind]: [], // the farm fields live on the `Reserve` level...
+  [UpdateConfigMode.UpdateFarmDebt.kind]: [], // ...so we are not concerned with them in the `ReserveConfig`'s field-by-field update tx
+  [UpdateConfigMode.UpdateDisableUsageAsCollateralOutsideEmode.kind]: config.disableUsageAsCollOutsideEmode,
+  [UpdateConfigMode.UpdateBlockBorrowingAboveUtilizationPct.kind]: config.utilizationLimitBlockBorrowingAbovePct,
+  [UpdateConfigMode.UpdateBlockPriceUsage.kind]: config.tokenInfo.blockPriceUsage,
+  [UpdateConfigMode.UpdateBorrowLimitOutsideElevationGroup.kind]: config.borrowLimitOutsideElevationGroup,
+  [UpdateConfigMode.UpdateBorrowLimitsInElevationGroupAgainstThisReserve.kind]:
+    config.borrowLimitAgainstThisCollateralInElevationGroup,
+  [UpdateConfigMode.UpdateHostFixedInterestRateBps.kind]: config.hostFixedInterestRateBps,
+  [UpdateConfigMode.UpdateAutodeleverageEnabled.kind]: config.autodeleverageEnabled,
+  [UpdateConfigMode.UpdateDeleveragingBonusIncreaseBpsPerDay.kind]: config.deleveragingBonusIncreaseBpsPerDay,
+  [UpdateConfigMode.UpdateProtocolOrderExecutionFee.kind]: config.protocolOrderExecutionFeePct,
+  [UpdateConfigMode.UpdateProposerAuthorityLock.kind]: config.proposerAuthorityLocked,
+  [UpdateConfigMode.UpdateMinDeleveragingBonusBps.kind]: config.minDeleveragingBonusBps,
+  [UpdateConfigMode.UpdateBlockCTokenUsage.kind]: config.blockCtokenUsage,
+  [UpdateConfigMode.UpdateDebtMaturityTimestamp.kind]: config.debtMaturityTimestamp,
+  [UpdateConfigMode.UpdateDebtTermSeconds.kind]: config.debtTermSeconds,
+  [UpdateConfigMode.UpdateEarlyRepayRemainingInterestPct.kind]: config.earlyRepayRemainingInterestPct,
+  [UpdateConfigMode.UpdateReserveEmergencyMode.kind]: config.emergencyMode,
+  [UpdateConfigMode.UpdateRewardsAmountPerSlot.kind]: config.rewardsAmountPerSlot,
+}));
+
+export const ENTIRE_RESERVE_CONFIG_UPDATER = new PriorityOrderedConfigUpdater(RESERVE_CONFIG_UPDATER);
+
+export const GLOBAL_ADMIN_ONLY_MODES = new Set<number>([
+  UpdateConfigMode.UpdateProtocolTakeRate.discriminator,
+  UpdateConfigMode.UpdateProtocolLiquidationFee.discriminator,
+  UpdateConfigMode.UpdateHostFixedInterestRateBps.discriminator,
+  UpdateConfigMode.UpdateProtocolOrderExecutionFee.discriminator,
+  UpdateConfigMode.UpdateFeesOriginationFee.discriminator,
+  UpdateConfigMode.UpdateFeesFlashLoanFee.discriminator,
+  UpdateConfigMode.UpdateBlockCTokenUsage.discriminator,
+]);
+
+export function isGlobalAdminOnly(mode: UpdateConfigModeKind): boolean {
+  return GLOBAL_ADMIN_ONLY_MODES.has(mode.discriminator);
+}
+
+export type ReserveConfigUpdateIx = {
+  ix: Instruction;
+  requiresGlobalAdmin: boolean;
+};
+
+export function parseForChangesReserveConfigAndGetIxs(
+  marketWithAddress: MarketWithAddress,
+  reserve: Reserve | undefined,
+  reserveAddress: Address,
+  reserveConfig: ReserveConfig,
+  programId: Address,
+  lendingMarketOwner: TransactionSigner = noopSigner(marketWithAddress.state.lendingMarketOwner),
+  globalAdminSigner?: TransactionSigner
+): Promise<ReserveConfigUpdateIx[]> {
+  const currentConfig = reserve?.config ?? defaultReserveConfig();
+  const encodedConfigUpdates = ENTIRE_RESERVE_CONFIG_UPDATER.encodeAllUpdates(
+    currentConfig,
+    reserveConfig,
+    buildReserveConfigPriority(currentConfig, reserveConfig)
+  );
+
+  return Promise.all(
+    encodedConfigUpdates.map(async (encodedConfigUpdate) => {
+      const requiresGlobalAdmin = isGlobalAdminOnly(encodedConfigUpdate.mode);
+      if (requiresGlobalAdmin && !globalAdminSigner) {
+        throw new Error(
+          `Global admin signer is required for update mode ${encodedConfigUpdate.mode.kind} (${encodedConfigUpdate.mode.discriminator})`
+        );
+      }
+      const signer = requiresGlobalAdmin ? globalAdminSigner! : lendingMarketOwner;
+      const ix = await updateReserveConfigIx(
+        signer,
+        marketWithAddress.address,
+        reserveAddress,
+        encodedConfigUpdate.mode,
+        encodedConfigUpdate.value,
+        programId,
+        shouldSkipValidation(encodedConfigUpdate.mode, reserve)
+      );
+      return { ix, requiresGlobalAdmin };
+    })
+  );
+}
+
+export type ReserveWithAddress = {
+  address: Address;
+  state: Reserve;
+};
+
+// Updating the deposit/borrow limit will automatically unblock usage and force validation inside the smart contract
+const VALIDATED_DISCRIMINATORS = [
+  UpdateConfigMode.UpdateDepositLimit.discriminator,
+  UpdateConfigMode.UpdateBorrowLimit.discriminator,
+];
+
+export function shouldSkipValidation(mode: UpdateConfigModeKind, reserve: Reserve | undefined): boolean {
+  if (VALIDATED_DISCRIMINATORS.includes(mode.discriminator)) {
+    return false;
+  }
+
+  if (reserve == undefined) {
+    return true;
+  }
+
+  const isUsed =
+    reserve.liquidity.totalAvailableAmount.gtn(MIN_INITIAL_DEPOSIT) ||
+    reserve.liquidity.borrowedAmountSf.gtn(0) ||
+    reserve.collateral.mintTotalSupply.gtn(MIN_INITIAL_DEPOSIT);
+  const isUsageBlocked = reserve.config.depositLimit.isZero() && reserve.config.borrowLimit.isZero();
+  return isUsageBlocked && !isUsed;
+}
+
+/**
+ * Returns a ReserveConfig matching the on-chain defaults after init_reserve
+ * (status = Hidden, everything else zeroed).
+ * Used as the baseline for diffing when no existing reserve config is available
+ * (reserve does not exist on-chain yet)
+ */
+function defaultReserveConfig(): ReserveConfig {
+  const layout = ReserveConfig.layout();
+  const zeroed = ReserveConfig.fromDecoded(layout.decode(Buffer.alloc(layout.span)));
+  return new ReserveConfig({ ...zeroed, status: ReserveStatusEnum.Hidden.discriminator });
+}
+
+export function buildReserveConfigPriority(previous: ReserveConfig | undefined, changed: ReserveConfig) {
+  const currentLiquidationThreshold = previous?.liquidationThresholdPct ?? 0;
+  const liquidationThresholdIncreasing = changed.liquidationThresholdPct > currentLiquidationThreshold;
+  const autodeleverageDisabling = (previous?.autodeleverageEnabled ?? 0) !== 0 && changed.autodeleverageEnabled === 0;
+  return (mode: UpdateConfigModeKind) => priorityOf(mode, liquidationThresholdIncreasing, autodeleverageDisabling);
+}
+
+// Lowest priority gets updated first
+export function priorityOf(
+  mode: UpdateConfigModeKind,
+  liquidationThresholdIncreasing: boolean = false,
+  autodeleverageDisabling: boolean = false
+): number {
+  switch (mode.discriminator) {
+    case UpdateConfigMode.UpdateScopePriceFeed.discriminator:
+    case UpdateConfigMode.UpdatePythPrice.discriminator:
+    case UpdateConfigMode.UpdateSwitchboardFeed.discriminator:
+    case UpdateConfigMode.UpdateTokenInfoScopeChain.discriminator:
+    case UpdateConfigMode.UpdateTokenInfoScopeTwap.discriminator:
+    case UpdateConfigMode.UpdateSwitchboardTwapFeed.discriminator:
+    case UpdateConfigMode.UpdateTokenInfoLowerHeuristic.discriminator:
+    case UpdateConfigMode.UpdateTokenInfoUpperHeuristic.discriminator:
+    case UpdateConfigMode.UpdateTokenInfoExpHeuristic.discriminator:
+    case UpdateConfigMode.UpdateTokenInfoTwapDivergence.discriminator:
+    case UpdateConfigMode.UpdateTokenInfoName.discriminator:
+    case UpdateConfigMode.UpdateTokenInfoPriceMaxAge.discriminator:
+    case UpdateConfigMode.UpdateTokenInfoTwapMaxAge.discriminator:
+      return 0;
+    // When disabling autodeleverage, it must be disabled before params can be zeroed out;
+    // when enabling, params must be set first (non-zero) before autodeleverage can be enabled
+    case UpdateConfigMode.UpdateDeleveragingBonusIncreaseBpsPerDay.discriminator:
+    case UpdateConfigMode.UpdateDeleveragingMarginCallPeriod.discriminator:
+    case UpdateConfigMode.UpdateDeleveragingThresholdDecreaseBpsPerDay.discriminator:
+      return priorityOf(new UpdateConfigMode.UpdateAutodeleverageEnabled()) + (autodeleverageDisabling ? 1 : -1);
+    case UpdateConfigMode.UpdateAutodeleverageEnabled.discriminator:
+      return 4;
+    case UpdateConfigMode.UpdateLoanToValuePct.discriminator:
+      return 8;
+    // LiquidationThreshold >= LTV must always hold
+    // If liquidation threshold is increasing, update it first
+    // All other cases, we update LTV first
+    case UpdateConfigMode.UpdateLiquidationThresholdPct.discriminator:
+      return priorityOf(new UpdateConfigMode.UpdateLoanToValuePct()) + (liquidationThresholdIncreasing ? -1 : 1);
+    // Always update last bc we cannot skip validation
+    case UpdateConfigMode.UpdateElevationGroup.discriminator:
+    case UpdateConfigMode.UpdateBorrowLimitsInElevationGroupAgainstThisReserve.discriminator:
+    case UpdateConfigMode.UpdateMinLiquidationBonusBps.discriminator:
+      return 62;
+    case UpdateConfigMode.UpdateDepositLimit.discriminator:
+    case UpdateConfigMode.UpdateMaxLiquidationBonusBps.discriminator:
+      return 63;
+    case UpdateConfigMode.UpdateBorrowLimit.discriminator:
+      return 63;
+    default:
+      return 10;
+  }
+}

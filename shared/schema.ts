@@ -6634,3 +6634,84 @@ export const insertAgentYieldPositionSchema = createInsertSchema(agentYieldPosit
 });
 export type AgentYieldPosition = typeof agentYieldPositions.$inferSelect;
 export type InsertAgentYieldPosition = z.infer<typeof insertAgentYieldPositionSchema>;
+
+// ── Solana USDC Yield Portal ──────────────────────────────────────────────────
+// ISOLATED from Base/EVM vault — separate tables, separate keeper, no shared code.
+// Non-custodial: platform builds unsigned VersionedTx, agent signs + submits.
+// Protocol v1: Kamino Lending (mainnet). No rebalancing in v1.
+
+export const solanaYieldPositions = pgTable('solana_yield_positions', {
+  id:                    serial('id').primaryKey(),
+  wallet:                varchar('wallet', { length: 64 }).notNull(),
+  market:                varchar('market', { length: 64 }).notNull(),
+  reserveAddress:        varchar('reserve_address', { length: 64 }).notNull(),
+  collateralMint:        varchar('collateral_mint', { length: 64 }).notNull(),
+  collateralBalanceRaw:  varchar('collateral_balance_raw', { length: 40 }).notNull().default('0'),
+  depositedUsdcRaw:      varchar('deposited_usdc_raw', { length: 40 }).notNull().default('0'),
+  lastValuationUsdc:     numeric('last_valuation_usdc', { precision: 18, scale: 6 }),
+  txSignatureDeposit:    varchar('tx_signature_deposit', { length: 128 }),
+  txSignatureWithdraw:   varchar('tx_signature_withdraw', { length: 128 }),
+  status:                varchar('status', { length: 20 }).notNull().default('active'),
+  openedAt:              timestamp('opened_at').defaultNow().notNull(),
+  closedAt:              timestamp('closed_at'),
+  updatedAt:             timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  index('IDX_sol_yield_pos_wallet').on(t.wallet),
+  index('IDX_sol_yield_pos_status').on(t.status),
+  index('IDX_sol_yield_pos_opened').on(t.openedAt),
+]);
+
+export const insertSolanaYieldPositionSchema = createInsertSchema(solanaYieldPositions).omit({
+  id: true,
+  openedAt: true,
+  updatedAt: true,
+});
+export type SolanaYieldPosition = typeof solanaYieldPositions.$inferSelect;
+export type InsertSolanaYieldPosition = z.infer<typeof insertSolanaYieldPositionSchema>;
+
+export const solanaYieldEvents = pgTable('solana_yield_events', {
+  id:            serial('id').primaryKey(),
+  wallet:        varchar('wallet', { length: 64 }).notNull(),
+  eventType:     varchar('event_type', { length: 30 }).notNull(), // deposit_intent | deposit_confirmed | withdraw_intent | withdraw_confirmed
+  amountUsdcRaw: varchar('amount_usdc_raw', { length: 40 }),
+  txSignature:   varchar('tx_signature', { length: 128 }),
+  slot:          bigint('slot', { mode: 'number' }),
+  feeUsdcRaw:    varchar('fee_usdc_raw', { length: 40 }),
+  status:        varchar('status', { length: 20 }).notNull().default('pending'),
+  errorMessage:  text('error_message'),
+  createdAt:     timestamp('created_at').defaultNow().notNull(),
+}, (t) => [
+  index('IDX_sol_yield_evt_wallet').on(t.wallet),
+  index('IDX_sol_yield_evt_type').on(t.eventType),
+  index('IDX_sol_yield_evt_created').on(t.createdAt),
+]);
+
+export const insertSolanaYieldEventSchema = createInsertSchema(solanaYieldEvents).omit({
+  id: true,
+  createdAt: true,
+});
+export type SolanaYieldEvent = typeof solanaYieldEvents.$inferSelect;
+export type InsertSolanaYieldEvent = z.infer<typeof insertSolanaYieldEventSchema>;
+
+export const solanaYieldRateSnapshots = pgTable('solana_yield_rate_snapshots', {
+  id:            serial('id').primaryKey(),
+  market:        varchar('market', { length: 64 }).notNull(),
+  reserveAddress: varchar('reserve_address', { length: 64 }).notNull(),
+  apyBps:        integer('apy_bps').notNull(),
+  supplyApyBps:  integer('supply_apy_bps'),
+  borrowApyBps:  integer('borrow_apy_bps'),
+  liquidityUsdc: numeric('liquidity_usdc', { precision: 18, scale: 2 }),
+  utilizationPct: numeric('utilization_pct', { precision: 5, scale: 2 }),
+  source:        varchar('source', { length: 50 }).notNull().default('dialect'),
+  capturedAt:    timestamp('captured_at').defaultNow().notNull(),
+}, (t) => [
+  index('IDX_sol_yield_snap_market').on(t.market),
+  index('IDX_sol_yield_snap_captured').on(t.capturedAt),
+]);
+
+export const insertSolanaYieldRateSnapshotSchema = createInsertSchema(solanaYieldRateSnapshots).omit({
+  id: true,
+  capturedAt: true,
+});
+export type SolanaYieldRateSnapshot = typeof solanaYieldRateSnapshots.$inferSelect;
+export type InsertSolanaYieldRateSnapshot = z.infer<typeof insertSolanaYieldRateSnapshotSchema>;

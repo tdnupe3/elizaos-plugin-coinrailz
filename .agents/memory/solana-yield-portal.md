@@ -12,7 +12,32 @@ description: Kamino Lending v1 non-custodial yield portal — architecture, fee 
 - DB: 3 isolated tables — solana_yield_positions, solana_yield_events, solana_yield_rate_snapshots
 - Frontend: client/src/pages/SolanaYieldPortal.tsx at /solana-yield (registered in App.tsx)
 - SDK: @kamino-finance/klend-sdk@5.10.25 (web3.js v1 compatible — v8+ has irreconcilable peer dep conflict)
-- Default market: 7u3HeL2w6R5n41F89LGa5bCXJxmMTMGSFjcP6A9WDvNR
+
+## Correct Kamino Market + Reserve Addresses (verified on-chain June 2026)
+- **Main market**: `7u3HeHxYDLhnCoErrtycNokbQYbWGzLs6JSDqGAv5PfF`
+  Source: `node_modules/@kamino-finance/klend-sdk/src/client.ts` → `MAINNET_LENDING_MARKET`
+  The original address `7u3HeL2w6R5n41F89LGa5bCXJxmMTMGSFjcP6A9WDvNR` does NOT exist on-chain.
+- **USDC reserve**: `D6q6wuQSrifJKZYpR1M8R4YawnLDtDsMmWM1NbBmgJ59`
+  Found via `market.getReserveByMint(USDC_MINT)` after loading 55 reserves.
+
+## Critical SDK Loading Pattern
+```typescript
+// CORRECT — setupLocalTest=true skips Scope price-oracle init; withReserves=false avoids
+// a DecimalError that occurs because one of the 55 reserves has an undefined oracle config.
+const market = await KaminoMarket.load(conn, marketAddr, slotDuration, PROG, true, false);
+await market.reloadSingleReserve(new PublicKey(USDC_RESERVE_ADDRESS));
+// Now market.getReserveByMint(USDC_MINT) returns the reserve correctly.
+```
+**Why:** `withReserves=true` loads all 55 reserves; at least one has an undefined Scope oracle
+config field that causes `[DecimalError] Invalid argument: undefined` inside `buildDepositTxns`.
+Loading only the USDC reserve via `reloadSingleReserve` avoids the bad reserve entirely.
+
+## Correct Reserve Methods (klend-sdk v5.10.25)
+- `reserve.getTotalSupply()` — total deposited supply (raw units, 6 decimals). Use instead of `getDepositTvl()` which returns near-zero without price feeds.
+- `reserve.getLiquidityAvailableAmount()` — unborrowed liquidity
+- `reserve.calculateSupplyAPR()` — supply APR as Decimal. Wrap in try/catch (not always available).
+- `reserve.calculateSupplyAPY` — **does NOT exist** in v5.10.25; use `calculateSupplyAPR`
+- `reserve.getEstimatedCollateralExchangeRate()` — **throws** DecimalError; use `getCollateralExchangeRate()` instead
 
 ## Fee Structure (matches Base vault)
 - Deposit: 0.50% (DEPOSIT_FEE_BPS: 50)
@@ -31,8 +56,7 @@ description: Kamino Lending v1 non-custodial yield portal — architecture, fee 
 - `SOLANA_YIELD_ENABLED=true` ✅ — set in shared env vars
 - `HELIUS_API_KEY` ✅ — already configured; kaminoClient uses it automatically
 - `SOLANA_PRIVATE_KEY` ✅ — already configured; used as fee wallet derivation source
-- Keeper: RUNNING in dev (starts on boot, handles on-chain failures gracefully as non-fatal)
-- KaminoMarket.load() — succeeds with Helius in dev for deposit-tx; may need prod RPC tuning
+- deposit-tx verified returning 2 real transactions in dev
 
 ## Known Gaps (v2 backlog)
 - Performance fee (15%) is declared in config/UI/manifest but NOT collected anywhere

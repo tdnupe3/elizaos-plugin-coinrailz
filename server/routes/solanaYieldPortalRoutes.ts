@@ -69,7 +69,7 @@ router.get('/rates', async (req: Request, res: Response) => {
           market:          market.address.toString(),
           reserve:         reserve.address.toString(),
           collateralMint:  reserve.state.collateral.mintPubkey.toString(),
-          depositTvlUsdc:  Number(reserve.getDepositTvl().toString()),
+          depositTvlUsdc:  Number(reserve.getTotalSupply().toString()),
           liquidityUsdc:   Number(reserve.getLiquidityAvailableAmount().toString()),
         };
       }

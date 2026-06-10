@@ -60,7 +60,7 @@ async function runKeeperCycle(): Promise<void> {
       const reserve = market.getReserveByMint(SOLANA_YIELD_CONFIG.USDC_MINT);
       if (reserve) {
         reserveAddr    = reserve.address.toString();
-        tvlUsdc        = Number(reserve.getDepositTvl().toString());
+        tvlUsdc        = Number(reserve.getTotalSupply().toString());
         liquidityUsdc  = Number(reserve.getLiquidityAvailableAmount().toString());
         const total    = tvlUsdc > 0 ? tvlUsdc : 1;
         utilizationPct = Math.max(0, Math.min(100, ((total - liquidityUsdc) / total) * 100));

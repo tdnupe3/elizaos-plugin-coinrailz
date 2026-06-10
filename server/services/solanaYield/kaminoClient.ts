@@ -2,6 +2,13 @@
  * Kamino Lending Client — Coin Railz Solana Yield Portal
  * ISOLATED: No shared code with Base/EVM yield vault.
  * Uses @kamino-finance/klend-sdk v5.10.25 (web3.js v1 compatible)
+ *
+ * Market loading strategy:
+ *  - KaminoMarket.load() arg5 = setupLocalTest (true = skip Scope price oracle init)
+ *  - KaminoMarket.load() arg6 = withReserves   (false = skip bulk loading all 55 reserves)
+ *  - After load, call reloadSingleReserve(USDC_RESERVE) to load only the USDC reserve.
+ *  - Loading all 55 reserves with prices causes a DecimalError in buildDepositTxns
+ *    because one or more reserves has an undefined oracle config field.
  */
 
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
@@ -21,7 +28,10 @@ export const SOLANA_YIELD_CONFIG = {
   WITHDRAW_FEE_BPS:    50,         // 0.50% — matches Base vault
   PERF_FEE_BPS:        1500,       // 15% of yield — matches Base vault
   PROGRAM_ID:          KAMINO_PROGRAM_ID,
-  DEFAULT_MARKET:      '7u3HeL2w6R5n41F89LGa5bCXJxmMTMGSFjcP6A9WDvNR',
+  // Kamino main market on Solana mainnet (from @kamino-finance/klend-sdk src/client.ts MAINNET_LENDING_MARKET)
+  DEFAULT_MARKET:      '7u3HeHxYDLhnCoErrtycNokbQYbWGzLs6JSDqGAv5PfF',
+  // USDC reserve within the main market (verified on-chain June 2026)
+  DEFAULT_USDC_RESERVE: 'D6q6wuQSrifJKZYpR1M8R4YawnLDtDsMmWM1NbBmgJ59',
 };
 
 // ── Platform Wallet ───────────────────────────────────────────────────────────
@@ -82,22 +92,30 @@ export async function getKaminoMarket(forceRefresh = false): Promise<KaminoMarke
   const paused = process.env.SOLANA_YIELD_PAUSED === 'true';
   if (paused) throw new Error('Solana yield portal is currently paused');
 
-  const marketAddr = process.env.SOLANA_YIELD_KAMINO_MARKET || SOLANA_YIELD_CONFIG.DEFAULT_MARKET;
-  const connection = getSolanaYieldConnection();
+  const marketAddr  = process.env.SOLANA_YIELD_KAMINO_MARKET  || SOLANA_YIELD_CONFIG.DEFAULT_MARKET;
+  const reserveAddr = process.env.SOLANA_YIELD_USDC_RESERVE   || SOLANA_YIELD_CONFIG.DEFAULT_USDC_RESERVE;
+  const connection  = getSolanaYieldConnection();
 
+  // setupLocalTest=true  → skips Scope price-oracle initialisation (not needed for tx building)
+  // withReserves=false   → skips bulk-loading all 55 market reserves; we load only USDC below
+  // Loading all reserves with withReserves=true causes a DecimalError in buildDepositTxns
+  // because at least one reserve in the 55-reserve set has an undefined oracle config field.
   const market = await KaminoMarket.load(
     connection,
     new PublicKey(marketAddr),
     DEFAULT_RECENT_SLOT_DURATION_MS,
     KAMINO_PROGRAM_ID,
-    false,
-    true,
+    true,   // setupLocalTest — skips Scope init
+    false,  // withReserves  — we load only the USDC reserve below
   );
 
   if (!market) throw new Error(`Failed to load Kamino market: ${marketAddr}`);
 
-  _cachedMarket  = market;
-  _cacheExpiry   = Date.now() + CACHE_TTL_MS;
+  // Load only the USDC reserve — verified to work with buildDepositTxns
+  await market.reloadSingleReserve(new PublicKey(reserveAddr));
+
+  _cachedMarket = market;
+  _cacheExpiry  = Date.now() + CACHE_TTL_MS;
   return market;
 }
 
@@ -115,24 +133,34 @@ export interface ReserveStats {
   depositTvlUsdc: number;
   availableLiquidityUsdc: number;
   utilizationPct: number;
+  supplyApr: number;
 }
 
 export async function getUsdcReserveStats(): Promise<ReserveStats> {
   const market  = await getKaminoMarket();
-  const reserve = market.getReserveByMint(USDC_MINT);
+  const reserveAddr = process.env.SOLANA_YIELD_USDC_RESERVE || SOLANA_YIELD_CONFIG.DEFAULT_USDC_RESERVE;
+  const reserve = market.getReserveByMint(USDC_MINT) || market.getReserveByAddress(new PublicKey(reserveAddr));
   if (!reserve) throw new Error('USDC reserve not found in Kamino market');
 
-  const depositTvl     = Number(reserve.getDepositTvl().toString());
-  const available      = Number(reserve.getLiquidityAvailableAmount().toString());
-  const total          = depositTvl > 0 ? depositTvl : 1;
-  const utilizationPct = ((total - available) / total) * 100;
+  // getTotalSupply() is the reliable total supply (doesn't need prices)
+  // getLiquidityAvailableAmount() is available un-borrowed liquidity
+  const supply    = Number(reserve.getTotalSupply().toString());
+  const available = Number(reserve.getLiquidityAvailableAmount().toString());
+  const utilizationPct = supply > 0 ? ((supply - available) / supply) * 100 : 0;
+
+  // calculateSupplyAPR is the correct method in klend-sdk v5.10.25
+  let supplyApr = 0;
+  try {
+    supplyApr = Number(reserve.calculateSupplyAPR().toString());
+  } catch { /* non-fatal — APR not critical for tx building */ }
 
   return {
     market:                  market.address.toString(),
     reserve:                 reserve.address.toString(),
     collateralMint:          reserve.state.collateral.mintPubkey.toString(),
-    depositTvlUsdc:          depositTvl,
+    depositTvlUsdc:          supply,
     availableLiquidityUsdc:  available,
     utilizationPct:          Math.max(0, Math.min(100, utilizationPct)),
+    supplyApr,
   };
 }

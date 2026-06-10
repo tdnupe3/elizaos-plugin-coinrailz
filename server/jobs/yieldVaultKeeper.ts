@@ -101,6 +101,9 @@ async function runKeeperCycle(vaultAddress: string): Promise<void> {
     const currentAPYBps = Number(currentAPY);
     const improvement  = bestAPYBps - currentAPYBps;
 
+    // Cache current gross APY in-process so deposit-tx fee breakdown stays accurate
+    (global as any).__yieldKeeperGrossApyBps = currentAPYBps;
+
     console.log(`[YieldKeeper] Current: ${PROTOCOL_NAMES[activeProtocol]} @ ${(currentAPYBps/100).toFixed(2)}%`);
     console.log(`[YieldKeeper] Best:    ${PROTOCOL_NAMES[best]} @ ${(bestAPYBps/100).toFixed(2)}% (improvement: ${(improvement/100).toFixed(2)}%)`);
 

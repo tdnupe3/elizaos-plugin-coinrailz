@@ -1492,12 +1492,18 @@ router.get('/deposit-tx', async (req: Request, res: Response) => {
     args: [amountUsdc, recipientRaw as `0x${string}`],
   });
 
-  // ── Fee breakdown (transparent, platform revenue) ─────────────────────────
-  const entryFeeUsd   = amountNum * 0.005;           // 0.5% — taken on deposit
-  const netDepositUsd = amountNum - entryFeeUsd;     // earns yield from here
-  const grossYearUsd  = netDepositUsd * 0.0496;      // 4.96% gross (Morpho Blue current)
-  const perfFeeUsd    = grossYearUsd  * 0.15;        // 15% performance fee (platform revenue)
-  const netYearUsd    = grossYearUsd  - perfFeeUsd;  // what depositor keeps
+  // ── Fee breakdown — uses live gross APY from keeper cache ────────────────
+  // Keeper writes (global as any).__yieldKeeperGrossApyBps after each cycle.
+  // Falls back to 318 bps (3.18% Aave v3) if keeper hasn't run yet.
+  const grossApyBps   = (global as any).__yieldKeeperGrossApyBps ?? 318;
+  const liveGrossApy  = grossApyBps / 10000;
+
+  const entryFeeUsd   = amountNum * 0.005;
+  const netDepositUsd = amountNum - entryFeeUsd;
+  const grossYearUsd  = netDepositUsd * liveGrossApy;
+  const perfFeeUsd    = grossYearUsd  * 0.15;
+  const netYearUsd    = grossYearUsd  - perfFeeUsd;
+  const netApyPct     = (netYearUsd / netDepositUsd * 100).toFixed(2);
 
   return res.json({
     success:    true,
@@ -1531,7 +1537,8 @@ router.get('/deposit-tx', async (req: Request, res: Response) => {
       net_deposited_usd: parseFloat(netDepositUsd.toFixed(4)),
       perf_fee_pct:      '15% of yield only',
       est_net_yield_yr:  parseFloat(netYearUsd.toFixed(4)),
-      est_net_apy:       '~4.22%',
+      est_net_apy:       `~${netApyPct}%`,
+      gross_apy:         `~${(liveGrossApy * 100).toFixed(2)}%`,
       gas_estimate:      '~$0.01 on Base',
     },
     security: {

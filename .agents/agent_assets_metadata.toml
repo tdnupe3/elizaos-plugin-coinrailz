@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "rBbQQloFCNhm9gcsQCz85"
+uri = "file://contracts/basescan-standard-input.json"
+type = "unspecified"
+title = "Basescan Standard JSON Input"

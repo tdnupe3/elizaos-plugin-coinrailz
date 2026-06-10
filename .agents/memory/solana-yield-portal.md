@@ -1,6 +1,6 @@
 ---
 name: Solana USDC Yield Portal
-description: Kamino Lending v1 non-custodial yield portal — architecture, fee structure, activation state, and production gaps.
+description: Kamino Lending v1 non-custodial yield portal — architecture, fee structure, activation state, agent UX gaps, and production fixes.
 ---
 
 # Solana USDC Yield Portal
@@ -35,9 +35,16 @@ Loading only the USDC reserve via `reloadSingleReserve` avoids the bad reserve e
 ## Correct Reserve Methods (klend-sdk v5.10.25)
 - `reserve.getTotalSupply()` — total deposited supply (raw units, 6 decimals). Use instead of `getDepositTvl()` which returns near-zero without price feeds.
 - `reserve.getLiquidityAvailableAmount()` — unborrowed liquidity
-- `reserve.calculateSupplyAPR()` — supply APR as Decimal. Wrap in try/catch (not always available).
+- `reserve.calculateSupplyAPR()` — supply APR as Decimal. Wrap in try/catch; returns 0 when setupLocalTest=true skips oracle init.
 - `reserve.calculateSupplyAPY` — **does NOT exist** in v5.10.25; use `calculateSupplyAPR`
 - `reserve.getEstimatedCollateralExchangeRate()` — **throws** DecimalError; use `getCollateralExchangeRate()` instead
+
+## APY Data Sources (priority order)
+1. **Dialect Markets** — `DIALECT_MARKETS_FE_KEY` / `DIALECT_BE_KEY` both set (len=27) but return 401. These appear to be blinks/frontend keys, NOT the markets data API key. `DIALECT_MARKETS_KEY` (missing secret) is the correct backend markets key.
+2. **DeFiLlama chart endpoint** (active fallback) — `GET https://yields.llama.fi/chart/d2141a59-c199-4be7-8d4b-c8223954836b` — no key needed, ~KB response, fast. Pool ID = Kamino main market USDC on Solana mainnet. Returns latest APY as `data[last].apy`. Currently showing ~3.44%.
+3. On-chain `calculateSupplyAPR()` — always returns 0 due to setupLocalTest=true; not useful as APY source.
+
+**Why DeFiLlama targeted chart not `/pools`:** The full `/pools` endpoint is ~3MB+ and times out server-side. The chart endpoint for a specific pool ID is kilobytes and fast.
 
 ## Fee Structure (matches Base vault)
 - Deposit: 0.50% (DEPOSIT_FEE_BPS: 50)
@@ -52,11 +59,35 @@ Loading only the USDC reserve via `reloadSingleReserve` avoids the bad reserve e
   2. `createTransferInstruction` — transfers feeRaw USDC lamports to platform ATA
 - Deposit fee ix is prepended to preLendingTxn; withdrawal fee ix is appended to postLendingTxn
 
+## Amount Input Handling (as of 2026-06-10 fixes)
+All three fields are accepted in deposit-tx and withdraw-tx:
+- `amount_usdc: 10` — preferred (dollar float, e.g. 10 = $10 USDC) → auto-multiplied by 1e6
+- `amount_raw: 10000000` — raw lamports explicitly
+- `amount: 10` — auto-detected: if < 10000 treated as dollars; if >= 10000 treated as raw lamports
+**Why:** Agents naturally try `amount: 10` meaning $10 and got a confusing raw-lamports error.
+
+## TVL Display (as of 2026-06-10 fix)
+`depositTvlUsdc` and `liquidityUsdc` in `/rates` and `/stats` responses are divided by 1e6.
+Raw values from klend-sdk are in 6-decimal USDC lamports — never display them directly.
+
 ## Current Activation State (as of 2026-06-10)
 - `SOLANA_YIELD_ENABLED=true` ✅ — set in shared env vars
 - `HELIUS_API_KEY` ✅ — already configured; kaminoClient uses it automatically
 - `SOLANA_PRIVATE_KEY` ✅ — already configured; used as fee wallet derivation source
 - deposit-tx verified returning 2 real transactions in dev
+- APY: 3.44% via DeFiLlama fallback (live, verified)
+
+## Remaining Agent UX Gaps (v2 backlog, not fixed)
+- **Two-tx flow, no retry/idempotency** — if tx1 (fee) confirms but tx2 (deposit) fails, fee is lost; no recovery path
+- **`/confirm` trusts self-reporting** — stores tx signature without on-chain verification; keeper reconciles eventually
+- **Cross-chain barrier** — EVM-native agents (ElizaOS, Base agents) need Solana keypair + bridged USDC; no bridge path built
+- **No x402 gate** — portal endpoints are free; no per-call monetization for the rate/manifest reads
+
+## Fixed Agent UX Gaps (2026-06-10)
+- ✅ APY null → DeFiLlama chart fallback (3.44% live)
+- ✅ Amount units trap → accept amount_usdc (dollars), amount_raw (lamports), or amount (auto-detect)
+- ✅ TVL raw units → divided by 1e6 in all API responses
+- ✅ Manifest signing guide → step-by-step instructions + 9-line JS code snippet in manifest
 
 ## Known Gaps (v2 backlog)
 - Performance fee (15%) is declared in config/UI/manifest but NOT collected anywhere

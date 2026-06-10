@@ -12,6 +12,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import axios from 'axios';
 import { dialectMarketsService } from '../services/dialectMarketsService.js';
 import { getKaminoMarket, SOLANA_YIELD_CONFIG } from '../services/solanaYield/kaminoClient.js';
 import { buildDepositTxBundle, buildWithdrawTxBundle } from '../services/solanaYield/txBuilder.js';
@@ -50,7 +51,7 @@ router.get('/rates', async (req: Request, res: Response) => {
       return res.status(503).json({ success: false, error: 'Solana yield portal is temporarily paused' });
     }
 
-    // Use Dialect for rate data (already proven, 10-min cache)
+    // Source 1: Dialect Markets (10-min cache)
     const dialectData = await dialectMarketsService.getTopYields({
       token:    'USDC',
       protocol: 'kamino',
@@ -58,30 +59,52 @@ router.get('/rates', async (req: Request, res: Response) => {
       limit:    5,
     }).catch(() => null);
 
-    // Supplement with on-chain reserve data where possible
-    let onChainApy: number | null = null;
-    let reserveStats: any         = null;
+    const kaminoRate = dialectData?.topYields?.find(
+      (y: any) => y.protocol?.toLowerCase().includes('kamino') || y.name?.toLowerCase().includes('kamino'),
+    ) ?? dialectData?.topYields?.[0];
+    const dialectApy: number | null = kaminoRate?.apy ?? null;
+
+    // Source 2: DeFiLlama targeted chart endpoint (free, no key — ~KB response, fast fallback)
+    // Pool ID: Kamino main market USDC on Solana (stable — use /pools to refresh if ever stale)
+    const KAMINO_USDC_LLAMA_POOL = 'd2141a59-c199-4be7-8d4b-c8223954836b';
+    let llamaApy: number | null = null;
+    if (dialectApy == null) {
+      try {
+        const { data } = await axios.get(
+          `https://yields.llama.fi/chart/${KAMINO_USDC_LLAMA_POOL}`,
+          { timeout: 6000 },
+        );
+        const pts: any[] = data?.data ?? [];
+        const latest = pts[pts.length - 1];
+        if (latest?.apy != null && latest.apy > 0) {
+          llamaApy = latest.apy;
+        }
+      } catch (e: any) {
+        console.log('[SolanaYield] DeFiLlama fetch error:', e?.message ?? e);
+      }
+    }
+
+    // Source 3: on-chain reserve TVL stats (always available)
+    let reserveStats: any = null;
     try {
       const market  = await getKaminoMarket();
       const reserve = market.getReserveByMint(SOLANA_YIELD_CONFIG.USDC_MINT);
       if (reserve) {
+        const totalSupplyRaw = Number(reserve.getTotalSupply().toString());
+        const availableRaw   = Number(reserve.getLiquidityAvailableAmount().toString());
         reserveStats = {
-          market:          market.address.toString(),
-          reserve:         reserve.address.toString(),
-          collateralMint:  reserve.state.collateral.mintPubkey.toString(),
-          depositTvlUsdc:  Number(reserve.getTotalSupply().toString()),
-          liquidityUsdc:   Number(reserve.getLiquidityAvailableAmount().toString()),
+          market:         market.address.toString(),
+          reserve:        reserve.address.toString(),
+          collateralMint: reserve.state.collateral.mintPubkey.toString(),
+          depositTvlUsdc: totalSupplyRaw / 1e6,
+          liquidityUsdc:  availableRaw   / 1e6,
         };
       }
-    } catch { /* non-fatal — dialect data is the primary source */ }
+    } catch { /* non-fatal */ }
 
-    // Best Kamino USDC rate from Dialect
-    const kaminoRate = dialectData?.topYields?.find(
-      (y: any) => y.protocol?.toLowerCase().includes('kamino') || y.name?.toLowerCase().includes('kamino'),
-    ) ?? dialectData?.topYields?.[0];
-
-    const apyPct     = kaminoRate?.apy ?? onChainApy ?? null;
-    const apyBps     = apyPct != null ? Math.round(apyPct * 100) : null;
+    const apyPct = dialectApy ?? llamaApy ?? null;
+    const apyBps = apyPct != null ? Math.round(apyPct * 100) : null;
+    const apySource = dialectApy != null ? 'Dialect Markets' : llamaApy != null ? 'DeFiLlama' : null;
 
     return res.json({
       success:   true,
@@ -102,11 +125,13 @@ router.get('/rates', async (req: Request, res: Response) => {
         performance: `${(SOLANA_YIELD_CONFIG.PERF_FEE_BPS / 100).toFixed(0)}% of yield`,
       },
       comparison: {
-        solana:  apyPct != null ? `${apyPct.toFixed(2)}% (Kamino)` : 'Fetching...',
+        solana:  apyPct != null ? `${apyPct.toFixed(2)}% (Kamino, ${apySource})` : 'Unavailable',
         base:    '~3.17% (Aave v3)',
-        note:    'Solana rates are typically 2-4x higher due to higher utilization',
+        note:    'Solana rates are typically 1-4x higher due to higher utilization',
       },
-      attribution: 'Rate data: Dialect Markets API (https://dialect.to)',
+      attribution: apySource
+        ? `Rate data: ${apySource}${apySource === 'DeFiLlama' ? ' (https://defillama.com)' : ' (https://dialect.to)'}`
+        : 'Rate data unavailable — Kamino API unreachable',
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
@@ -155,18 +180,34 @@ router.get('/position/:wallet', async (req: Request, res: Response) => {
 // ── POST /deposit-tx ───────────────────────────────────────────────────────────
 
 router.post('/deposit-tx', async (req: Request, res: Response) => {
-  const { wallet, amount } = req.body as { wallet?: string; amount?: number | string };
+  const { wallet, amount, amount_usdc, amount_raw } = req.body as {
+    wallet?:       string;
+    amount?:       number | string;
+    amount_usdc?:  number | string;  // preferred: dollars, e.g. 10 = $10
+    amount_raw?:   number | string;  // raw lamports, e.g. 10000000 = $10
+  };
 
   if (!wallet || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet)) {
     return res.status(400).json({ success: false, error: 'wallet: valid Solana public key required' });
   }
 
-  const amountRaw = typeof amount === 'string' ? parseInt(amount, 10) : Number(amount ?? 0);
+  // Accept amount_usdc (dollars), amount_raw (lamports), or amount (auto-detect by size)
+  let amountRaw: number;
+  if (amount_usdc != null) {
+    amountRaw = Math.round(Number(amount_usdc) * 1e6);
+  } else if (amount_raw != null) {
+    amountRaw = Math.round(Number(amount_raw));
+  } else {
+    const n = typeof amount === 'string' ? parseFloat(amount) : Number(amount ?? 0);
+    // Auto-detect: if < 10000 assume dollars (e.g. 10 → $10), otherwise raw lamports
+    amountRaw = n < 10_000 ? Math.round(n * 1e6) : Math.round(n);
+  }
+
   if (!amountRaw || amountRaw < SOLANA_YIELD_CONFIG.MIN_DEPOSIT_RAW) {
     return res.status(400).json({
       success: false,
-      error:   `amount_raw must be >= ${SOLANA_YIELD_CONFIG.MIN_DEPOSIT_RAW} (=$5 USDC). ` +
-               `Example: amount=10000000 for $10 USDC`,
+      error:   `Minimum deposit is $5 USDC. ` +
+               `Use amount_usdc=10 for $10, or amount_raw=10000000 for $10 in raw lamports.`,
     });
   }
 
@@ -200,19 +241,33 @@ router.post('/deposit-tx', async (req: Request, res: Response) => {
 // ── POST /withdraw-tx ──────────────────────────────────────────────────────────
 
 router.post('/withdraw-tx', async (req: Request, res: Response) => {
-  const { wallet, amount } = req.body as { wallet?: string; amount?: number | string | 'MAX' };
+  const { wallet, amount, amount_usdc, amount_raw } = req.body as {
+    wallet?:      string;
+    amount?:      number | string | 'MAX';
+    amount_usdc?: number | string;
+    amount_raw?:  number | string;
+  };
 
   if (!wallet || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet)) {
     return res.status(400).json({ success: false, error: 'wallet: valid Solana public key required' });
   }
 
-  const amountParam: number | 'MAX' =
-    amount === 'MAX' ? 'MAX' : (typeof amount === 'string' ? parseInt(amount, 10) : Number(amount ?? 0));
+  let amountParam: number | 'MAX';
+  if (amount === 'MAX' || amount_usdc === 'MAX' || amount_raw === 'MAX') {
+    amountParam = 'MAX';
+  } else if (amount_usdc != null) {
+    amountParam = Math.round(Number(amount_usdc) * 1e6);
+  } else if (amount_raw != null) {
+    amountParam = Math.round(Number(amount_raw));
+  } else {
+    const n = typeof amount === 'string' ? parseFloat(amount) : Number(amount ?? 0);
+    amountParam = n < 10_000 ? Math.round(n * 1e6) : Math.round(n);
+  }
 
   if (amountParam !== 'MAX' && (!amountParam || amountParam <= 0)) {
     return res.status(400).json({
       success: false,
-      error:   'amount must be a positive integer (raw USDC lamports) or the string "MAX"',
+      error:   'amount must be positive. Use amount_usdc=10 for $10, amount_raw=10000000, or "MAX" to withdraw all.',
     });
   }
 
@@ -326,9 +381,29 @@ router.get('/manifest', (_req: Request, res: Response) => {
       mint:             'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
     },
     agent_instructions: {
-      deposit:  'POST /api/solana-yield/deposit-tx with {wallet, amount}. Sign and submit returned transactions. Confirm with POST /api/solana-yield/confirm.',
-      withdraw: 'POST /api/solana-yield/withdraw-tx with {wallet, amount} or amount="MAX". Sign and submit.',
-      check:    'GET /api/solana-yield/position/{wallet} to check current position and yield earned.',
+      step1_check_rate:  'GET /api/solana-yield/rates — confirm current APY before committing capital.',
+      step2_deposit:     'POST /api/solana-yield/deposit-tx with {wallet, amount_usdc: 10} for $10 USDC. Returns array of base64 transactions.',
+      step3_sign_submit: 'For each transaction in order: decode base64 → Transaction.from(Buffer.from(b64,"base64")) → tx.sign(keypair) → connection.sendRawTransaction(tx.serialize()) → wait for confirmation.',
+      step4_confirm:     'POST /api/solana-yield/confirm with {wallet, txSignature, eventType:"deposit_intent", amountUsdcRaw:"10000000"}.',
+      step5_check:       'GET /api/solana-yield/position/{wallet} — returns depositedUsdc and currentValueUsdc.',
+      withdraw_partial:  'POST /api/solana-yield/withdraw-tx with {wallet, amount_usdc: 5} for $5 USDC.',
+      withdraw_all:      'POST /api/solana-yield/withdraw-tx with {wallet, amount_usdc: "MAX"} to exit fully.',
+    },
+    signing_code_snippet: [
+      'const { Connection, Keypair, Transaction } = require("@solana/web3.js");',
+      'const conn = new Connection("https://api.mainnet-beta.solana.com");',
+      'const keypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(process.env.SOLANA_PRIVATE_KEY)));',
+      'for (const { base64 } of response.transactions) {',
+      '  const tx = Transaction.from(Buffer.from(base64, "base64"));',
+      '  tx.sign(keypair);',
+      '  const sig = await conn.sendRawTransaction(tx.serialize());',
+      '  await conn.confirmTransaction(sig, "confirmed");',
+      '}',
+    ],
+    amount_formats: {
+      preferred:  'amount_usdc: 10  (dollars, e.g. 10 = $10 USDC)',
+      alternative: 'amount_raw: 10000000  (raw USDC lamports, 6 decimals)',
+      legacy:     'amount: 10  (auto-detected: < 10000 treated as dollars)',
     },
     comparison: {
       solana_kamino: 'Typically 6-12% APY',

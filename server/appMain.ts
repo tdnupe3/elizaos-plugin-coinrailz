@@ -638,7 +638,16 @@ const _safeImportRoute = async (modPath: string, label: string): Promise<any> =>
 
 const agentRegistration = await _safeImportRoute('./routes/agentRegistration', 'agentRegistration');
 const agentSelfRegistration = await _safeImportRoute('./routes/agentSelfRegistration', 'agentSelfRegistration');
-const paymentIntegration = await _safeImportRoute('./routes/paymentIntegration', 'paymentIntegration');
+const paymentIntegration = await (async () => {
+  try {
+    const mod = await import('./routes/paymentIntegration');
+    console.log('✅ Loaded route module: paymentIntegration');
+    return mod.default;
+  } catch (err: any) {
+    console.error('❌ FAILED to load route module [paymentIntegration]:', err?.message || err);
+    return Router();
+  }
+})();
 const messagingSystem = await _safeImportRoute('./routes/messagingSystem', 'messagingSystem');
 const disputeResolution = await _safeImportRoute('./routes/disputeResolution', 'disputeResolution');
 const agentPayouts = await _safeImportRoute('./routes/agentPayouts', 'agentPayouts');

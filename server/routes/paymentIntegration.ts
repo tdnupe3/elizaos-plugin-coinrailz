@@ -156,7 +156,7 @@ router.post('/create-payment-intent', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Payment creation failed',
-      message: error.message
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -207,7 +207,7 @@ router.post('/confirm-payment', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Payment confirmation failed',
-      message: error.message
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -257,7 +257,7 @@ router.post('/release-escrow', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Escrow release failed',
-      message: error.message
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -319,7 +319,7 @@ router.post('/refund', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Refund processing failed',
-      message: error.message
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });

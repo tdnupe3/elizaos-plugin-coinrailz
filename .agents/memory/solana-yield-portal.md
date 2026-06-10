@@ -89,7 +89,9 @@ Raw values from klend-sdk are in 6-decimal USDC lamports — never display them 
 - ✅ TVL raw units → divided by 1e6 in all API responses
 - ✅ Manifest signing guide → step-by-step instructions + code snippet + bridge guide
 - ✅ Idempotency key on deposit-tx → `idempotency_key` field (optional); duplicate within 120s TTL → 409 with hint; `bundle_expires_at` returned on every call
-- ✅ /confirm on-chain verification → `getSignatureStatuses` then `getTransaction` signer check; bad format → 400; failed tx → 400; not found or RPC down → stores `pending_verification` (keeper reconciles); real confirmed tx → `confirmed` + position upsert
+- ✅ /confirm on-chain verification → `getSignatureStatuses` then `getTransaction` signer check; bad format → 400; failed tx → 400; not found or RPC down → stores `pending_verification` (keeper reconciles); real confirmed tx with signer proof → `confirmed` + position upsert. CRITICAL: `onChainVerified=true` set ONLY inside the `if (txDetail)` block after signer check passes — NOT in the catch or null path (was a bypass bug, now fixed)
+- ✅ Dedupe guard in /confirm → queries for existing `confirmed` row with same txSignature before writing; returns idempotent 200 if found
+- ✅ Keeper reconciliation (Step 6) → queries `pending_verification` events within 2h cutoff, re-runs `getSignatureStatuses` + `getTransaction` signer check, promotes to `confirmed` or `failed`, upserts position on deposit promotions
 - ✅ Cross-chain barrier documented → manifest `cross_chain_note` with deBridge + Wormhole Portal links; CCTP noted as v3 roadmap; step0 in agent_instructions for EVM agents
 
 ## Schema changes (2026-06-10)
@@ -101,7 +103,7 @@ Raw values from klend-sdk are in 6-decimal USDC lamports — never display them 
 ## Known Gaps (v2 backlog)
 - Performance fee (15%) is declared in config/UI/manifest but NOT collected anywhere
   Requires: per-position yield tracking across keeper cycles + sweep tx + revenue ledger
-- Keeper does NOT yet reconcile `pending_verification` events (re-checks unverified sigs hourly)
+- Keeper DOES reconcile `pending_verification` events (step 6, 2h window, per-cycle)
 - Liquidation monitoring — no Health Factor alert
 - Auto-compounding
 - Two-tx partial failure: fee refund is manual (email support) — no automated recovery path

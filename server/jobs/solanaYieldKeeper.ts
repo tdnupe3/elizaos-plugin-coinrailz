@@ -12,10 +12,10 @@
  */
 
 import { dialectMarketsService } from '../services/dialectMarketsService.js';
-import { getKaminoMarket, invalidateMarketCache, SOLANA_YIELD_CONFIG } from '../services/solanaYield/kaminoClient.js';
+import { getKaminoMarket, invalidateMarketCache, SOLANA_YIELD_CONFIG, getSolanaYieldConnection } from '../services/solanaYield/kaminoClient.js';
 import { db } from '../db.js';
-import { solanaYieldRateSnapshots, solanaYieldPositions } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { solanaYieldRateSnapshots, solanaYieldPositions, solanaYieldEvents } from '@shared/schema';
+import { eq, and, gte } from 'drizzle-orm';
 
 const INTERVAL_MS = 60 * 60 * 1_000; // 1 hour
 
@@ -120,6 +120,108 @@ async function runKeeperCycle(): Promise<void> {
         } catch { /* non-fatal — individual position refresh failure */ }
       }
       console.log(`[SolanaYieldKeeper] Refreshed ${activePositions.length} position valuations`);
+    }
+
+    // ── 6. Reconcile pending_verification events ─────────────────────────────
+    // Re-check sigs that /confirm couldn't fully verify (node unavailable/pruned).
+    // Only look back 2 hours — events older than that are stale and should be
+    // left as-is (manual investigation).
+    try {
+      const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1_000);
+      const pendingEvts = await db
+        .select()
+        .from(solanaYieldEvents)
+        .where(and(eq(solanaYieldEvents.status, 'pending_verification'), gte(solanaYieldEvents.createdAt, cutoff)))
+        .limit(20);
+
+      if (pendingEvts.length > 0) {
+        const conn = getSolanaYieldConnection();
+        let promoted = 0;
+
+        for (const evt of pendingEvts) {
+          if (!evt.txSignature || !evt.wallet) continue;
+          try {
+            const statuses = await conn.getSignatureStatuses([evt.txSignature], { searchTransactionHistory: true });
+            const sigStatus = statuses?.value?.[0];
+            if (!sigStatus) continue; // still propagating — leave as pending_verification
+
+            if (sigStatus.err) {
+              await db.update(solanaYieldEvents)
+                .set({ status: 'failed', errorMessage: `On-chain tx failed: ${JSON.stringify(sigStatus.err)}` })
+                .where(eq(solanaYieldEvents.id, evt.id));
+              continue;
+            }
+
+            if (sigStatus.confirmationStatus !== 'confirmed' && sigStatus.confirmationStatus !== 'finalized') continue;
+
+            // Verify signer — required before promotion to confirmed
+            let signerVerified = false;
+            try {
+              const txDetail = await conn.getTransaction(evt.txSignature, {
+                maxSupportedTransactionVersion: 0,
+                commitment: 'confirmed',
+              });
+              if (txDetail) {
+                const accountKeys = txDetail.transaction.message.getAccountKeys?.()?.staticAccountKeys
+                                 ?? (txDetail.transaction.message as any).accountKeys ?? [];
+                const signerAddrs = accountKeys
+                  .slice(0, txDetail.transaction.message.header?.numRequiredSignatures ?? accountKeys.length)
+                  .map((k: any) => k.toString?.() ?? k);
+                signerVerified = signerAddrs.includes(evt.wallet);
+              }
+            } catch { /* pruned — skip this round, retry next cycle */ }
+
+            if (!signerVerified) continue;
+
+            // Promote to confirmed
+            await db.update(solanaYieldEvents)
+              .set({
+                status:       'confirmed',
+                errorMessage: `Keeper verified on-chain at slot ${sigStatus.slot ?? 'unknown'}`,
+              })
+              .where(eq(solanaYieldEvents.id, evt.id));
+
+            // Upsert active position for deposit confirmations
+            if (evt.eventType === 'deposit_confirmed') {
+              const existingPos = await db
+                .select()
+                .from(solanaYieldPositions)
+                .where(and(eq(solanaYieldPositions.wallet, evt.wallet), eq(solanaYieldPositions.status, 'active')))
+                .limit(1);
+
+              if (existingPos.length === 0) {
+                const mktAddr     = process.env.SOLANA_YIELD_KAMINO_MARKET || SOLANA_YIELD_CONFIG.DEFAULT_MARKET;
+                const collatMint  = SOLANA_YIELD_CONFIG.USDC_MINT.toString();
+                await db.insert(solanaYieldPositions).values({
+                  wallet:             evt.wallet,
+                  market:             mktAddr,
+                  reserveAddress:     'pending',
+                  collateralMint:     collatMint,
+                  depositedUsdcRaw:   evt.amountUsdcRaw ?? '0',
+                  txSignatureDeposit: evt.txSignature,
+                  status:             'active',
+                });
+              } else {
+                const prev = BigInt(existingPos[0].depositedUsdcRaw ?? '0');
+                const add  = BigInt(evt.amountUsdcRaw ?? '0');
+                await db.update(solanaYieldPositions)
+                  .set({ depositedUsdcRaw: (prev + add).toString(), updatedAt: new Date() })
+                  .where(eq(solanaYieldPositions.id, existingPos[0].id));
+              }
+            }
+
+            promoted++;
+          } catch { /* non-fatal per-event — continue loop */ }
+        }
+
+        if (promoted > 0) {
+          console.log(`[SolanaYieldKeeper] Reconciled ${promoted}/${pendingEvts.length} pending_verification events`);
+        } else if (pendingEvts.length > 0) {
+          console.log(`[SolanaYieldKeeper] ${pendingEvts.length} pending_verification event(s) still awaiting on-chain confirmation`);
+        }
+      }
+    } catch (reconcileErr: any) {
+      console.warn('[SolanaYieldKeeper] Reconciliation step failed (non-fatal):', reconcileErr.message);
     }
 
   } catch (err: any) {

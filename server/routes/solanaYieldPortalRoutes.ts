@@ -359,6 +359,25 @@ router.post('/confirm', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'txSignature: invalid Solana signature format' });
   }
 
+  // ── Dedupe guard: same txSignature already confirmed → return idempotently ─
+  try {
+    const existing = await db
+      .select()
+      .from(solanaYieldEvents)
+      .where(and(eq(solanaYieldEvents.txSignature, txSignature), eq(solanaYieldEvents.status, 'confirmed')))
+      .limit(1);
+    if (existing.length > 0) {
+      return res.json({
+        success:            true,
+        message:            'deposit_confirmed confirmed (already recorded)',
+        onChainVerified:    true,
+        verificationStatus: 'confirmed',
+        verificationNote:   'Idempotent — this signature was already confirmed.',
+        existingEventId:    existing[0].id,
+      });
+    }
+  } catch { /* non-fatal — proceed to full verification */ }
+
   // ── On-chain verification ─────────────────────────────────────────────────
   // Verify the transaction actually confirmed on-chain and the claiming wallet
   // was a signer. If the RPC is unavailable, store as pending_verification for
@@ -386,7 +405,9 @@ router.post('/confirm', async (req: Request, res: Response) => {
         txSignature,
       });
     } else if (sigStatus.confirmationStatus === 'confirmed' || sigStatus.confirmationStatus === 'finalized') {
-      // Confirmed — now verify the wallet was a signer in the transaction
+      // Confirmed — now verify the wallet was a signer in the transaction.
+      // If txDetail is unavailable (pruned node / RPC blip), we CANNOT verify the signer,
+      // so we degrade to pending_verification and let the keeper re-check.
       try {
         const txDetail = await conn.getTransaction(txSignature, {
           maxSupportedTransactionVersion: 0,
@@ -407,13 +428,18 @@ router.post('/confirm', async (req: Request, res: Response) => {
               txSignature,
             });
           }
+          // Signer confirmed — mark as verified
+          onChainVerified    = true;
+          verificationStatus = 'confirmed';
+          verificationNote   = `On-chain ${sigStatus.confirmationStatus} at slot ${sigStatus.slot ?? 'unknown'}.`;
+        } else {
+          // Node doesn't have tx details yet — cannot prove signer; keeper will retry
+          verificationNote = 'Transaction details not yet available on this node; keeper will re-verify signer within 60 minutes.';
         }
       } catch {
-        // getTransaction failed (e.g. pruned node) — status check was enough
+        // getTransaction threw (e.g. pruned/unavailable) — cannot prove signer; keeper will retry
+        verificationNote = 'Signer verification temporarily unavailable (RPC); keeper will re-verify within 60 minutes.';
       }
-      onChainVerified      = true;
-      verificationStatus   = 'confirmed';
-      verificationNote     = `On-chain ${sigStatus.confirmationStatus} at slot ${sigStatus.slot ?? 'unknown'}.`;
     } else {
       // Processed but not confirmed yet
       verificationNote = `Transaction status: ${sigStatus.confirmationStatus}. Keeper will re-verify.`;

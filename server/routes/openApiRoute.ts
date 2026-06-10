@@ -312,6 +312,122 @@ router.get('/openapi.json', (req: Request, res: Response) => {
         responses: { '200': { description: 'Contract info, ABI, and agent integration guide' } },
       },
     },
+    '/api/solana-yield/manifest': {
+      get: {
+        operationId: 'getSolanaYieldManifest',
+        summary: 'Solana USDC Yield Portal — full agent integration guide',
+        description: 'Machine-readable manifest for the non-custodial Solana USDC yield portal. Returns current APY, step-by-step deposit flow, bridge instructions for EVM agents, idempotency guidance, and signing code snippet. No auth required.',
+        security: [],
+        tags: ['Solana Yield'],
+        responses: { '200': { description: 'Manifest with agent_instructions, cross_chain_note, and comparison' } },
+        'x-codeSamples': [
+          { lang: 'Shell', label: 'curl', source: `curl ${baseUrl}/api/solana-yield/manifest` },
+        ],
+      },
+    },
+    '/api/solana-yield/rates': {
+      get: {
+        operationId: 'getSolanaYieldRates',
+        summary: 'Live USDC APY on Kamino Lending (Solana)',
+        description: 'Returns current USDC APY from Kamino Lending on Solana. Sourced from DeFiLlama with on-chain TVL/utilization. Includes comparison with Base/Aave. Free endpoint, no auth required.',
+        security: [],
+        tags: ['Solana Yield'],
+        responses: { '200': { description: 'APY, TVL, utilization, and protocol comparison' } },
+        'x-codeSamples': [
+          { lang: 'Shell', label: 'curl', source: `curl ${baseUrl}/api/solana-yield/rates` },
+        ],
+      },
+    },
+    '/api/solana-yield/stats': {
+      get: {
+        operationId: 'getSolanaYieldStats',
+        summary: 'Kamino reserve health — TVL, liquidity, utilization',
+        description: 'Returns Kamino USDC reserve TVL, available liquidity, utilization percentage, and reserve address. Useful for checking if withdrawals are likely to succeed before submitting.',
+        security: [],
+        tags: ['Solana Yield'],
+        responses: { '200': { description: 'Reserve health metrics' } },
+      },
+    },
+    '/api/solana-yield/deposit-tx': {
+      post: {
+        operationId: 'buildSolanaDepositTx',
+        summary: 'Build unsigned Solana deposit transaction bundle',
+        description: 'Returns a bundle of 1-2 unsigned Solana VersionedTransactions (fee tx + deposit tx). Agent signs and submits both. Non-custodial — Coin Railz never holds funds. Min $5 USDC. Optionally pass idempotency_key to prevent duplicate fee charges on retry.',
+        security: [],
+        tags: ['Solana Yield'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['wallet', 'amount_usdc'],
+                properties: {
+                  wallet: { type: 'string', description: "Agent's Solana wallet public key (base58)" },
+                  amount_usdc: { type: 'number', description: 'USDC amount in dollars. Min 5. Example: 10 for $10 USDC.' },
+                  amount_raw: { type: 'string', description: 'Alternative: USDC amount in raw lamports (6 decimals). Min 5000000. Overrides amount_usdc if provided.' },
+                  idempotency_key: { type: 'string', description: 'Optional. Unique key (UUID) to prevent duplicate fee charges if you retry. Same key+wallet+amount within 120s returns 409.' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Transaction bundle with base64-encoded transactions and bundle_expires_at' },
+          '409': { description: 'Duplicate idempotency_key — a pending intent already exists for this wallet/amount/key' },
+        },
+        'x-codeSamples': [
+          { lang: 'Shell', label: 'curl', source: `curl -X POST ${baseUrl}/api/solana-yield/deposit-tx -H 'Content-Type: application/json' -d '{"wallet":"YOUR_SOLANA_PUBKEY","amount_usdc":10,"idempotency_key":"uuid-here"}'` },
+        ],
+      },
+    },
+    '/api/solana-yield/confirm': {
+      post: {
+        operationId: 'confirmSolanaDeposit',
+        summary: 'Confirm deposit after on-chain submission',
+        description: 'Call after submitting the deposit transaction bundle. Verifies the transaction confirmed on-chain and that the claiming wallet was a signer. Stores confirmed position or pending_verification (keeper reconciles within 60 min if RPC unavailable).',
+        security: [],
+        tags: ['Solana Yield'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['wallet', 'txSignature'],
+                properties: {
+                  wallet: { type: 'string', description: "Agent's Solana wallet public key" },
+                  txSignature: { type: 'string', description: 'Base58 transaction signature of the confirmed deposit tx' },
+                  amountUsdcRaw: { type: 'string', description: 'Optional: raw USDC lamports deposited — used for position tracking' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Confirmation result with onChainVerified and verificationStatus (confirmed | pending_verification)' },
+          '400': { description: 'Invalid signature format or transaction failed on-chain' },
+          '403': { description: 'Wallet is not a signer in the provided transaction' },
+        },
+        'x-codeSamples': [
+          { lang: 'Shell', label: 'curl', source: `curl -X POST ${baseUrl}/api/solana-yield/confirm -H 'Content-Type: application/json' -d '{"wallet":"YOUR_PUBKEY","txSignature":"TX_SIG_HERE"}'` },
+        ],
+      },
+    },
+    '/api/solana-yield/position/{wallet}': {
+      get: {
+        operationId: 'getSolanaYieldPosition',
+        summary: "Agent's live USDC position in Kamino Lending",
+        description: 'Returns collateral balance, current USDC value, estimated yield earned, and position status. Free endpoint, no auth required.',
+        security: [],
+        tags: ['Solana Yield'],
+        parameters: [{ name: 'wallet', in: 'path', required: true, schema: { type: 'string' }, description: 'Solana wallet public key (base58)' }],
+        responses: { '200': { description: 'Position data or empty position with next_action hints' } },
+        'x-codeSamples': [
+          { lang: 'Shell', label: 'curl', source: `curl ${baseUrl}/api/solana-yield/position/YOUR_SOLANA_PUBKEY` },
+        ],
+      },
+    },
   };
 
   const mergedPaths = {
@@ -323,6 +439,7 @@ router.get('/openapi.json', (req: Request, res: Response) => {
     { name: 'Onboarding', description: 'Get an API key or checkout session — no wallet required' },
     { name: 'MPP', description: 'MPP (Machine Payments Protocol) endpoints — pathUSD via Tempo. See /.well-known/mpp.json' },
     { name: 'Yield', description: 'Non-custodial USDC yield vault — ERC-4626 auto-routing across Aave v3, Compound v3, and Morpho Blue on Base. No lockup, 0% exit fee.' },
+    { name: 'Solana Yield', description: 'Non-custodial USDC yield portal on Solana — deposits into Kamino Lending. Agent signs and submits transactions; Coin Railz never holds funds.' },
     ...(catalog.tags || []),
   ];
 

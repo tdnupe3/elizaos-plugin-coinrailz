@@ -4739,12 +4739,55 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         category: "solana-yield",
         input_schema: {
           type: "object",
-          required: ["wallet", "amount"],
+          required: ["wallet", "amount_usdc"],
           properties: {
-            wallet: { type: "string", description: "Agent's Solana wallet public key" },
-            amount: { type: "integer", description: "USDC amount in lamports (6 decimals). Min 5000000 = $5 USDC" }
+            wallet: { type: "string", description: "Agent's Solana wallet public key (base58)" },
+            amount_usdc: { type: "number", description: "USDC amount in dollars. Min 5. Example: 10 for $10 USDC." },
+            amount_raw: { type: "string", description: "Alternative: raw lamports (6 decimals). Min 5000000. Overrides amount_usdc if provided." },
+            idempotency_key: { type: "string", description: "Optional UUID. Prevents duplicate fee charge on retry — same key+wallet+amount within 120s returns 409." }
           }
         }
+      },
+      {
+        path: "/api/solana-yield/confirm",
+        methods: ["POST"],
+        price_usd: 0,
+        auth: "open",
+        name: "Solana Yield Deposit Confirm",
+        description: "Call after submitting the deposit tx bundle. Verifies on-chain confirmation and wallet signer proof. Returns confirmed or pending_verification (keeper reconciles within 60 min).",
+        status: "healthy",
+        category: "solana-yield",
+        input_schema: {
+          type: "object",
+          required: ["wallet", "txSignature"],
+          properties: {
+            wallet: { type: "string", description: "Solana wallet public key" },
+            txSignature: { type: "string", description: "Base58 signature of the confirmed deposit transaction" },
+            amountUsdcRaw: { type: "string", description: "Optional: raw USDC lamports deposited, for position tracking" }
+          }
+        }
+      },
+      {
+        path: "/api/solana-yield/stats",
+        methods: ["GET"],
+        price_usd: 0,
+        auth: "open",
+        name: "Solana Yield Reserve Stats",
+        description: "Kamino USDC reserve health — TVL, available liquidity, utilization percentage. Useful to verify withdrawals are likely to succeed before submitting.",
+        status: "healthy",
+        category: "solana-yield",
+        input_schema: { type: "object", properties: {} }
+      },
+      {
+        path: "/api/solana-yield/manifest",
+        methods: ["GET"],
+        price_usd: 0,
+        auth: "open",
+        name: "Solana Yield Portal Manifest",
+        description: "Full agent integration guide: current APY, step-by-step deposit flow, bridge instructions for EVM agents, idempotency guidance, and signing code snippet.",
+        status: "healthy",
+        category: "solana-yield",
+        input_schema: { type: "object", properties: {} }
       },
       {
         path: "/api/solana-yield/position/{wallet}",

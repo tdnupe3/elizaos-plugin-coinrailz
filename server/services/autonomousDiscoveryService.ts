@@ -201,6 +201,14 @@ class AutonomousDiscoveryService {
         '/api/yield/deposit-tx',
         '/api/yield/redeem-tx',
         '/yield-portal',
+        // Solana USDC Yield Portal (Jun 2026)
+        '/api/solana-yield/manifest',
+        '/api/solana-yield/rates',
+        '/api/solana-yield/stats',
+        '/api/solana-yield/deposit-tx',
+        '/api/solana-yield/confirm',
+        '/api/solana-yield/position/{wallet}',
+        '/solana-yield',
         // Machine-to-machine discovery endpoints
         '/api/auth/capabilities',
         '/openapi.json',

@@ -2340,13 +2340,13 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
         description: "Deposit USDC and earn auto-optimized yield on Base. ERC-4626 vault auto-routes to the highest APY protocol (currently Morpho Blue ~4.96% gross). 0.5% entry fee, 15% performance fee on yield gains, 0% exit fee. Rebalances every 24h. Non-custodial — emergencyWithdraw() always works regardless of vault state.",
         tags: ["yield", "usdc", "defi", "base", "erc4626", "aave", "morpho", "compound", "vault", "interest"],
         vault: {
-          address:    "0x86e2508ca0de34530dc847645f60f0d46d95176a",
+          address:    (process.env.YIELD_VAULT_ADDRESS ?? 'deploying-soon'),
           standard:   "ERC-4626",
           shareToken: "crUSDC",
           chainId:    8453,
           asset:      "USDC",
           assetAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-          basescan:   "https://basescan.org/address/0x86e2508ca0de34530dc847645f60f0d46d95176a"
+          basescan:   `https://basescan.org/address/${process.env.YIELD_VAULT_ADDRESS ?? 'deploying-soon'}`
         },
         endpoints: {
           rates:     `${baseUrl}/api/yield/rates`,
@@ -3570,13 +3570,13 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         description: "Deposit USDC and earn auto-optimized yield on Base. ERC-4626 vault auto-routes to highest APY across Aave v3, Compound v3, and Morpho Blue. 0.5% entry, 15% performance fee on yield only, 0% exit fee. Rebalances every 24h. Non-custodial, emergencyWithdraw() always works.",
         tags: ["yield", "usdc", "defi", "base", "erc4626", "aave", "morpho", "compound", "vault", "interest"],
         vault: {
-          address:    "0x86e2508ca0de34530dc847645f60f0d46d95176a",
+          address:    (process.env.YIELD_VAULT_ADDRESS ?? 'deploying-soon'),
           standard:   "ERC-4626",
           shareToken: "crUSDC",
           chainId:    8453,
           asset:      "USDC",
           assetAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-          basescan:   "https://basescan.org/address/0x86e2508ca0de34530dc847645f60f0d46d95176a"
+          basescan:   `https://basescan.org/address/${process.env.YIELD_VAULT_ADDRESS ?? 'deploying-soon'}`
         },
         agentkit: {
           recommended: true,
@@ -4887,13 +4887,13 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         status: "healthy",
         category: "yield",
         vault: {
-          address:    "0x86e2508ca0de34530dc847645f60f0d46d95176a",
+          address:    (process.env.YIELD_VAULT_ADDRESS ?? 'deploying-soon'),
           standard:   "ERC-4626",
           shareToken: "crUSDC",
           chainId:    8453,
           asset:      "USDC",
           assetAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-          basescan:   "https://basescan.org/address/0x86e2508ca0de34530dc847645f60f0d46d95176a"
+          basescan:   `https://basescan.org/address/${process.env.YIELD_VAULT_ADDRESS ?? 'deploying-soon'}`
         },
         agentkit: {
           recommended: true,
@@ -4969,7 +4969,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     yieldVault: {
       description: "AI Agent Yield Portal — non-custodial USDC yield vault. Auto-routes to highest APY across Aave v3, Compound v3, Morpho Blue on Base. 0.5% entry fee + 15% performance fee on yield only. 0% exit fee.",
       standard: "ERC-4626",
-      vault: "0x86e2508ca0de34530dc847645f60f0d46d95176a",
+      vault: (process.env.YIELD_VAULT_ADDRESS ?? 'deploying-soon'),
       network: "base",
       chainId: 8453,
       asset: "USDC",
@@ -6388,7 +6388,7 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
         description: "Non-custodial USDC yield vault on Base. Auto-routes to highest APY across Aave v3, Compound v3, and Morpho Blue. No lockup. 0.5% entry, 15% performance fee on yield only, 0% exit fee. AgentKit: npm install coinrailz-agentkit. Deposit endpoint: /api/yield/deposit-tx",
         endpoint: `${baseUrl}/api/yield/manifest`,
         price: "0.5% entry fee",
-        vaultAddress: "0x86e2508ca0de34530dc847645f60f0d46d95176a",
+        vaultAddress: (process.env.YIELD_VAULT_ADDRESS ?? 'deploying-soon'),
         shareToken: "crUSDC",
         standard: "ERC-4626",
         chainId: 8453,

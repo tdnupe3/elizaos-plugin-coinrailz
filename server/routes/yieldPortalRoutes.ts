@@ -1109,6 +1109,70 @@ router.post('/platform-harvest', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * POST /api/yield/platform-configure-morpho
+ * Calls vault.configureMorphoMarket() — enables Morpho Blue routing on a fresh deployment.
+ * Body: { morpho?, irm?, loanToken, collateralToken, oracle, lltv }
+ */
+router.post('/platform-configure-morpho', async (req: Request, res: Response) => {
+  if (!adminAuth(req, res)) return;
+  if (!VAULT_ADDRESS) return res.status(400).json({ success: false, error: 'Vault not deployed' });
+
+  const {
+    morpho = '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
+    irm    = '0x46415998764C29aB2a25CbeA6254146D50D22687',
+    loanToken, collateralToken, oracle, lltv,
+  } = req.body as Record<string, string>;
+
+  if (!loanToken || !collateralToken || !oracle || !lltv) {
+    return res.status(400).json({
+      success: false,
+      error: 'Provide loanToken, collateralToken, oracle, lltv in body',
+      defaults: { morpho, irm },
+      docs: 'https://docs.morpho.org/morpho/contracts/markets — find the USDC market on Base',
+    });
+  }
+
+  try {
+    const { walletClient, pubClient } = getServerWallet();
+    const vault = VAULT_ADDRESS as `0x${string}`;
+
+    const MORPHO_ABI = parseAbi([
+      'function configureMorphoMarket(address _morpho, (address loanToken, address collateralToken, address oracle, address irm, uint256 lltv) calldata _morphoMarket, address _morphoIrm) external',
+    ]);
+
+    const tx = await walletClient.writeContract({
+      address: vault,
+      abi: MORPHO_ABI,
+      functionName: 'configureMorphoMarket',
+      args: [
+        getAddress(morpho),
+        {
+          loanToken:       getAddress(loanToken),
+          collateralToken: getAddress(collateralToken),
+          oracle:          getAddress(oracle),
+          irm:             getAddress(irm),
+          lltv:            BigInt(lltv),
+        },
+        getAddress(irm),
+      ],
+    });
+
+    const rx = await pubClient.waitForTransactionReceipt({ hash: tx, timeout: 60_000 });
+    res.json({
+      success:     true,
+      txHash:      tx,
+      blockNumber: Number(rx.blockNumber),
+      basescanUrl: `https://basescan.org/tx/${tx}`,
+      morpho,
+      irm,
+      market:      { loanToken, collateralToken, oracle, lltv },
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.shortMessage || err.message });
+  }
+});
+
 // ── Agent Yield Account helpers ───────────────────────────────────────────────
 
 const creditsService = CreditsService.getInstance();

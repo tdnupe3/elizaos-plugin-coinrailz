@@ -45,7 +45,7 @@ interface PositionResponse {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const PRESETS = [10, 50, 100, 250, 1000];
-const VAULT   = '0x86e2508ca0de34530dc847645f60f0d46d95176a';
+// VAULT address is read dynamically from stats API (stats?.vault?.address)
 const USDC    = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const NET_APY = 4.22;
 
@@ -800,7 +800,7 @@ export default function YieldPortal() {
         <section className="rounded-2xl border border-white/8 bg-white/[0.02] p-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs mb-5">
             {[
-              ['Vault Address', `${VAULT.slice(0,8)}…${VAULT.slice(-4)}`],
+              ['Vault Address', stats?.vault?.address ? `${stats.vault.address.slice(0,8)}…${stats.vault.address.slice(-4)}` : '…'],
               ['Network', 'Base (chainId 8453)'],
               ['Standard', 'ERC-4626 tokenized vault'],
               ['Share Token', stats?.vault?.shareToken ?? 'crUSDC'],
@@ -816,7 +816,7 @@ export default function YieldPortal() {
             ))}
           </div>
           <div className="flex gap-3 flex-wrap">
-            <a href={`https://basescan.org/address/${VAULT}`} target="_blank" rel="noopener noreferrer"
+            <a href={`https://basescan.org/address/${stats?.vault?.address ?? ''}`} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:underline">
               Basescan <ExternalLink className="w-3 h-3" />
             </a>

@@ -1,24 +1,21 @@
 # elizaos-plugin-coinrailz
 
-ElizaOS plugin for Coin Railz x402 micropayment services on Base mainnet.
+**Agent Treasury + Payments for ElizaOS.** Non-custodial USDC yield on Solana and Base, plus 65 x402 pay-per-call services — all in one plugin.
 
-## Overview
+## What this plugin does
 
-This plugin adds **65 production-ready micropayment services** to any ElizaOS agent, enabling autonomous AI agents to pay for and access premium APIs using USDC on Base.
+| Capability | Details |
+|---|---|
+| 🏦 **Solana USDC Yield** | Deposit into Kamino Lending — ~3.4% APY, $118M TVL. Agent signs txs locally; Coin Railz never holds funds. |
+| 🏦 **Base USDC Yield** | ERC-4626 vault auto-routing across Aave v3, Compound v3, and Morpho Blue for best rate. |
+| ⚡ **65 x402 Services** | Pay-per-call APIs: trading signals, satellite/NASA data, IoT sensors, AI inference, prediction markets. |
+| 🔑 **Two payment paths** | API key credits (no wallet needed) or autonomous x402 (self-sovereign USDC on Base). |
 
 **Platform:** `https://coinrailz.com`  
-**Network:** Base Mainnet  
-**Protocol:** x402 (HTTP 402 Payment Required)  
-**Revenue Share:** 85% to agent builders, 15% platform fee
+**Networks:** Solana Mainnet + Base Mainnet  
+**Protocol:** x402 (HTTP 402 Payment Required) for paid services
 
-## Features
-
-- ✅ **65 Production Services** — trading, satellite/Earth data, IoT/DePIN, AI inference, prediction markets, and more
-- ✅ **Dual Payment Paths** — API key (Stripe credits, easiest) or native x402 (autonomous USDC on Base)
-- ✅ **x402 Protocol** — standard HTTP-based micropayments ($0.025–$10.00 USDC)
-- ✅ **Base Mainnet** — low fees, fast settlement via Coinbase infrastructure
-- ✅ **CDP Compatible** — works with Coinbase Developer Platform wallets
-- ✅ **Zero Backend** — no servers to manage, payments handled automatically
+---
 
 ## Installation
 
@@ -26,133 +23,147 @@ This plugin adds **65 production-ready micropayment services** to any ElizaOS ag
 npm install elizaos-plugin-coinrailz
 ```
 
+---
+
 ## Quick Start
 
 ```typescript
-import { elizaLogger, AgentRuntime } from "@elizaos/core";
+import { AgentRuntime } from "@elizaos/core";
 import { coinrailzPlugin } from "elizaos-plugin-coinrailz";
 
 const runtime = new AgentRuntime({
   plugins: [coinrailzPlugin]
 });
-
-elizaLogger.log("Coin Railz plugin loaded — agent can now access 65 micropayment services");
+// Agent can now earn yield + spend via x402
 ```
 
 ---
 
-## Payment Methods
+## Treasury Examples
 
-### Method 1: Prepaid Credits with API Keys (RECOMMENDED)
+### Check live Solana USDC yield rate
 
-**Best for:** Production agents, fastest setup, no blockchain knowledge required.
+```typescript
+await runtime.processAction({
+  action: "COINRAILZ_SOLANA_YIELD",
+  content: { operation: "GET_RATES" }
+});
+// → { usdc: { apy: 3.44, formatted: "3.44%" }, onChain: { depositTvlUsdc: 118420827 }, ... }
+```
 
-**Setup:**
+### Build a deposit transaction (non-custodial)
 
-1. Buy credits at `https://coinrailz.com/credits` (Stripe card or USDC)
-2. Generate an API key at `https://coinrailz.com/api-keys`
-3. Set your environment variable:
+```typescript
+await runtime.processAction({
+  action: "COINRAILZ_SOLANA_YIELD",
+  content: {
+    operation: "CREATE_DEPOSIT_TX",
+    wallet: "YOUR_SOLANA_PUBKEY",
+    amount_usdc: 100,
+    idempotency_key: crypto.randomUUID()  // prevents duplicate fees on retry
+  }
+});
+// → { transactions: [{base64: "..."}], bundle_expires_at: "...", signing: { hint: "..." } }
+// If SOLANA_PRIVATE_KEY is set, auto-signs and submits.
+```
+
+### Confirm after submission
+
+```typescript
+await runtime.processAction({
+  action: "COINRAILZ_SOLANA_YIELD",
+  content: {
+    operation: "CONFIRM_DEPOSIT",
+    wallet: "YOUR_SOLANA_PUBKEY",
+    txSignature: "THE_TX_SIGNATURE_FROM_SUBMISSION"
+  }
+});
+// → { verificationStatus: "confirmed", onChainVerified: true }
+```
+
+### Check existing position
+
+```typescript
+await runtime.processAction({
+  action: "COINRAILZ_SOLANA_YIELD",
+  content: {
+    operation: "GET_POSITION",
+    wallet: "YOUR_SOLANA_PUBKEY"
+  }
+});
+// → { hasPosition: true, currentValueUsdc: 103.44, depositedUsdcRaw: "100000000" }
+```
+
+### Revenue flywheel — earn yield, spend via x402
+
+```typescript
+// 1. Check yield earned
+const position = await runtime.processAction({
+  action: "COINRAILZ_SOLANA_YIELD",
+  content: { operation: "GET_POSITION", wallet: solanaWallet }
+});
+
+// 2. Spend x402 credits on data while yield accumulates
+const signals = await runtime.processAction({
+  action: "COINRAILZ_PAY_SERVICE",
+  content: { serviceId: "trade-signals", payload: { token: "SOL" } }
+});
+```
+
+---
+
+## Solana Yield Operations
+
+| Operation | Requires | Description |
+|---|---|---|
+| `GET_RATES` | — | Live APY, TVL, utilization from Kamino |
+| `GET_MANIFEST` | — | Full agent integration guide |
+| `GET_STATS` | — | Reserve health (liquidity, utilization) |
+| `GET_POSITION` | `wallet` | Current position value and status |
+| `CREATE_DEPOSIT_TX` | `wallet`, `amount_usdc` (≥5) | Build unsigned tx bundle. Auto-signs if `SOLANA_PRIVATE_KEY` set. |
+| `CONFIRM_DEPOSIT` | `wallet`, `txSignature` | Notify platform after on-chain submission |
+
+---
+
+## Payment Methods (for x402 services)
+
+### Method 1: API Key Credits (RECOMMENDED)
 
 ```bash
 export COINRAILZ_API_KEY="cr_live_YOUR_KEY_HERE"
 ```
 
-4. The plugin automatically uses the API key for all service calls.
+Buy credits at `https://coinrailz.com/credits`. No blockchain interaction required.
 
-### Method 2: Autonomous x402 (Self-Sovereign Agents)
-
-**Best for:** Agents that should pay for their own data without operator intervention.
-
-**Setup:**
-
-Set `EVM_PRIVATE_KEY` to a Base mainnet wallet funded with USDC:
+### Method 2: Autonomous x402 (Self-Sovereign)
 
 ```bash
-export EVM_PRIVATE_KEY="0xYOUR_PRIVATE_KEY"
+export EVM_PRIVATE_KEY="0xYOUR_BASE_PRIVATE_KEY"
 ```
 
-The plugin uses `x402-fetch` with EIP-712 signing to automatically handle 402 responses and submit USDC payments on Base — no operator action required.
-
-> **Security note:** `EVM_PRIVATE_KEY` is a hot wallet key. Fund it only with what the agent needs and keep balances small.
+Uses `x402-fetch` with EIP-712 signing to pay for services automatically on Base.
 
 ---
 
-## Usage Examples
+## Environment Variables
 
-### Example 1: Check Multi-Chain Balance
-
-```typescript
-const response = await runtime.processAction({
-  action: "COINRAILZ_PAY_SERVICE",
-  content: {
-    serviceId: "multi-chain-balance",
-    payload: {
-      address: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
-    }
-  }
-});
-```
-
-### Example 2: AI Inference (Pay-Per-Call LLM)
-
-```typescript
-const response = await runtime.processAction({
-  action: "COINRAILZ_PAY_SERVICE",
-  content: {
-    serviceId: "ai-inference",
-    payload: {
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: "Summarize today's DeFi news" }]
-    }
-  }
-});
-```
-
-### Example 3: NASA Satellite Data
-
-```typescript
-const response = await runtime.processAction({
-  action: "COINRAILZ_PAY_SERVICE",
-  content: {
-    serviceId: "earthdata-ocean-color",
-    payload: { lat: 36.8, lon: -75.3 }
-  }
-});
-```
-
-### Example 4: Real-Time Fire Alerts
-
-```typescript
-const response = await runtime.processAction({
-  action: "COINRAILZ_PAY_SERVICE",
-  content: {
-    serviceId: "fire-alerts",
-    payload: { bbox: [-122.5, 37.5, -121.5, 38.5] }
-  }
-});
-```
-
-### Example 5: IoT Sensor Reading
-
-```typescript
-const response = await runtime.processAction({
-  action: "COINRAILZ_PAY_SERVICE",
-  content: {
-    serviceId: "iot-sensor-reading",
-    payload: { deviceId: "sensor_001", metric: "temperature" }
-  }
-});
-```
+| Variable | Required for | Description |
+|---|---|---|
+| `COINRAILZ_API_KEY` | x402 services | Prepaid credits. Get one at coinrailz.com/api-keys |
+| `EVM_PRIVATE_KEY` | x402 services | Base mainnet private key for autonomous payments |
+| `SOLANA_PRIVATE_KEY` | Auto-sign Solana deposits | Base58 or JSON uint8 array. Optional — without it, unsigned tx bundle is returned with signing instructions. |
+| `SOLANA_RPC_URL` | Auto-sign Solana deposits | RPC endpoint (default: `https://api.mainnet-beta.solana.com`) |
+| `COIN_RAILZ_URL` | Optional | Override platform URL (default: `https://coinrailz.com`) |
 
 ---
 
-## Available Services (65 total)
+## x402 Pay-Per-Call Services (65 total)
 
 ### Discovery & Testing ($0.05–$0.25)
 | Service ID | Price | Description |
 |---|---|---|
-| `ping` | $0.25 | x402 discovery and connectivity test |
 | `first-call` | $0.05 | Golden-path agent onboarding endpoint |
+| `ping` | $0.25 | x402 connectivity test |
 
 ### Trading Intelligence ($0.10–$0.75)
 | Service ID | Price | Description |
@@ -172,50 +183,40 @@ const response = await runtime.processAction({
 | `wallet-risk` | $0.50 | Wallet risk scoring |
 | `trade-signals` | $0.75 | AI-powered trading signals |
 
-### Execution & Infrastructure ($0.50–$2.00)
+### Solana DeFi ($0.25)
 | Service ID | Price | Description |
 |---|---|---|
-| `payment-processing` | $0.50 | Cross-chain payment settlement |
-| `contract-scan` | $1.00 | Smart contract security analysis |
-| `instant-agent-wallet` | $1.00 | Circle MPC wallet creation |
-| `instant-api-key` | $1.00 | Frictionless API key via USDC payment |
-| `agent-create-wallet` | $2.00 | CDP-managed wallet provisioning |
-| `seamless-chain-bridge` | $2.00 | Circle CCTP cross-chain USDC routing |
+| `solana-yield-finder` | $0.25 | Real-time Solana lending rates across Kamino, Jupiter, Marinade |
 
-### Premium Services ($5.00–$10.00)
+### Satellite Data — NASA + ESA ($0.05–$0.25)
 | Service ID | Price | Description |
 |---|---|---|
-| `verified-agent-identity` | $5.00 | ERC-8004 on-chain agent identity |
-| `compliance-consultation` | $5.00 | Expert crypto compliance consultation |
-| `smart-contract-audit` | $10.00 | Comprehensive AI security audit |
+| `fire-alerts` | $0.05 | NASA FIRMS active fire detection |
+| `weather-imagery` | $0.05 | NASA GIBS satellite weather imagery |
+| `air-quality` | $0.05 | ESA Sentinel-5P TROPOMI air quality |
+| `vegetation` | $0.10 | NASA MODIS + ESA Sentinel-2 NDVI |
+| `flood-detection` | $0.10 | ESA Sentinel-1 SAR flood mapping |
+| `land-use` | $0.15 | NASA Landsat + ESA land classification |
+| `satellite-earthdata` | $0.25 | NASA Earthdata gateway |
+| `earthdata-granules` | $0.25 | CMR granule search (1B+ datasets) |
+| `earthdata-precipitation` | $0.25 | GPM IMERG real-time rain rate |
+| `earthdata-sst` | $0.25 | MUR sea surface temperature |
+| `earthdata-soil-moisture` | $0.25 | SMAP soil moisture data |
+| `earthdata-ocean-color` | $0.25 | MODIS ocean color / chlorophyll-a |
 
-### Real Estate ($0.75–$1.50)
+### IoT / DePIN ($0.025–$0.50)
 | Service ID | Price | Description |
 |---|---|---|
-| `property-valuation` | $0.75 | AI property valuation + tokenization analysis |
-| `lease-analysis` | $1.00 | AI lease terms analysis |
-| `construction-progress` | $1.50 | Construction project tracking |
+| `iot-sensor-reading` | $0.025 | Single sensor reading |
+| `weather-station-data` | $0.05 | Temperature, humidity, pressure |
+| `fleet-telematics` | $0.10 | GPS, fuel, driver behavior |
+| `iot-device-stream` | $0.25 | Real-time IoT data stream |
+| `iot-bulk-data` | $0.50 | Bulk historical IoT data |
 
-### Banking & Compliance ($0.75–$1.75)
+### AI Inference ($0.05)
 | Service ID | Price | Description |
 |---|---|---|
-| `fraud-detection` | $0.75 | AI fraud detection |
-| `credit-risk-score` | $1.25 | On-chain DeFi credit scoring |
-| `compliance-check` | $1.75 | AML/KYC wallet screening |
-
-### Trading / Investment ($0.50–$2.00)
-| Service ID | Price | Description |
-|---|---|---|
-| `sentiment-analysis` | $0.50 | AI sentiment from Twitter, Reddit, Discord |
-| `trading-signal` | $1.00 | AI signals with entry/exit points |
-| `portfolio-optimization` | $2.00 | AI portfolio rebalancing |
-
-### Market Intelligence ($0.75–$1.25)
-| Service ID | Price | Description |
-|---|---|---|
-| `correlation-matrix` | $0.75 | Cross-asset correlation analysis |
-| `risk-metrics` | $1.00 | Comprehensive risk analytics |
-| `arbitrage-scanner` | $1.25 | Cross-chain arbitrage opportunities |
+| `ai-inference` | $0.05 | Pay-per-call GPT-4o-mini — no API key needed |
 
 ### Prediction Markets — Polymarket ($0.25–$0.50)
 | Service ID | Price | Description |
@@ -232,121 +233,51 @@ const response = await runtime.processAction({
 | `kalshi-search` | $0.25 | Search Kalshi markets |
 | `kalshi-odds` | $0.50 | Odds for a specific Kalshi market |
 
-### Traditional Markets ($0.40)
-| Service ID | Price | Description |
-|---|---|---|
-| `stock-sentiment` | $0.40 | AI stock market sentiment |
-| `forex-sentiment` | $0.40 | AI forex sentiment |
-
-### Solana DeFi ($0.05)
-| Service ID | Price | Description |
-|---|---|---|
-| `solana-yield-finder` | $0.05 | Real-time Solana lending and yield rates |
-
-### Satellite Data — NASA + ESA ($0.05–$0.15)
-| Service ID | Price | Description |
-|---|---|---|
-| `fire-alerts` | $0.05 | NASA FIRMS active fire detection |
-| `weather-imagery` | $0.05 | NASA GIBS satellite weather imagery |
-| `air-quality` | $0.05 | ESA Sentinel-5P TROPOMI air quality |
-| `vegetation` | $0.10 | NASA MODIS + ESA Sentinel-2 NDVI |
-| `flood-detection` | $0.10 | ESA Sentinel-1 SAR flood mapping |
-| `land-use` | $0.15 | NASA Landsat + ESA land classification |
-
-### NASA Earthdata Intelligence ($0.25)
-| Service ID | Price | Description |
-|---|---|---|
-| `satellite-earthdata` | $0.25 | NASA Earthdata gateway (all services) |
-| `earthdata-granules` | $0.25 | CMR granule search (1B+ datasets) |
-| `earthdata-precipitation` | $0.25 | GPM IMERG real-time rain rate |
-| `earthdata-sst` | $0.25 | MUR sea surface temperature |
-| `earthdata-soil-moisture` | $0.25 | SMAP soil moisture data |
-| `earthdata-ocean-color` | $0.25 | MODIS ocean color / chlorophyll-a |
-
-### IoT / DePIN ($0.025–$0.50)
-| Service ID | Price | Description |
-|---|---|---|
-| `iot-sensor-reading` | $0.025 | Single sensor reading from IoT device |
-| `weather-station-data` | $0.05 | Temperature, humidity, pressure from IoT |
-| `fleet-telematics` | $0.10 | GPS, fuel, driver behavior from fleet |
-| `iot-device-stream` | $0.25 | Real-time IoT data stream (per minute) |
-| `iot-bulk-data` | $0.50 | Bulk historical IoT data export |
-
-### AI Inference ($0.05)
-| Service ID | Price | Description |
-|---|---|---|
-| `ai-inference` | $0.05 | Pay-per-call LLM access — GPT-4o-mini, no API key needed |
+### Traditional Markets, Real Estate, Banking, Market Intelligence
+Full list at `https://coinrailz.com/services` or via the `serviceRegistryProvider`.
 
 ---
 
-## Advanced: Using X402Client Directly
+## Advanced: Direct client access
 
 ```typescript
-import { X402Client } from "elizaos-plugin-coinrailz";
+import { X402Client, SolanaYieldClient } from "elizaos-plugin-coinrailz";
 
-const client = new X402Client({
-  apiKey: process.env.COINRAILZ_API_KEY  // or set EVM_PRIVATE_KEY for autonomous x402
-});
+// x402 paid services
+const x402 = new X402Client({ apiKey: process.env.COINRAILZ_API_KEY });
+const result = await x402.callService({ serviceId: "whale-alerts", amount: "", payload: { minUsdValue: 1000000 } });
 
-const result = await client.callService({
-  serviceId: "whale-alerts",
-  amount: "",
-  payload: { minUsdValue: 1000000 }
-});
-
-if (result.success) {
-  console.log(result.serviceResponse);
-}
-```
-
----
-
-## Environment Variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `COINRAILZ_API_KEY` | Recommended | Prepaid credits API key. Get one at coinrailz.com/api-keys |
-| `EVM_PRIVATE_KEY` | Alternative | Base mainnet private key for autonomous x402 payments |
-| `COIN_RAILZ_URL` | Optional | Override platform URL (default: https://coinrailz.com) |
-
----
-
-## Revenue Model
-
-- **85% to Agent Builder** — you keep the majority of revenue when your agent earns
-- **15% Platform Fee** — Coin Railz infrastructure commission
-- **No Setup Fees** — only pay when services are used
-- **USDC Settlement** — instant payment on Base mainnet
-
----
-
-## Testing
-
-```bash
-npm test
+// Solana yield portal (free REST)
+const yield = new SolanaYieldClient();
+const rates = await yield.getRates();
+console.log(rates.usdc.formatted); // "3.44%"
 ```
 
 ---
 
 ## Security
 
-- ✅ All transactions verified on Base mainnet
-- ✅ Replay protection — each payment hash used once
-- ✅ Rate limiting built in
-- ✅ API keys are hashed server-side, never stored in plaintext
-
----
-
-## License
-
-MIT
+- ✅ Non-custodial — agent signs all transactions; Coin Railz never holds USDC
+- ✅ On-chain signature verification on every deposit confirm
+- ✅ Idempotency keys prevent duplicate fee charges on retry
+- ✅ Keeper reconciles unverified deposits within 60 minutes
+- ✅ API keys hashed server-side, never stored in plaintext
+- ⚠️ `EVM_PRIVATE_KEY` and `SOLANA_PRIVATE_KEY` are hot wallet keys — fund only what the agent needs
 
 ---
 
 ## Links
 
 - **Platform:** https://coinrailz.com
+- **Solana Yield Portal:** https://coinrailz.com/solana-yield
+- **Base Yield Vault:** https://coinrailz.com/yield-portal
 - **Credits / API Keys:** https://coinrailz.com/credits
 - **x402 Protocol:** https://x402.org
 - **ElizaOS:** https://elizaos.ai
 - **Support:** support@coinrailz.com
+
+---
+
+## License
+
+MIT

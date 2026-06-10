@@ -1173,6 +1173,10 @@ const onChainOutreachRoutes = (await import('./routes/onChainOutreachRoutes')).d
 app.use('/api/onchain-outreach', onChainOutreachRoutes);
 console.log('✅ On-chain x402 outreach routes registered');
 
+const yieldOutreachRoutes = (await import('./routes/yieldOutreachRoutes')).default;
+app.use('/api/admin/yield-outreach', yieldOutreachRoutes);
+console.log('✅ Yield outreach admin routes registered');
+
 const bazaarCrawlerRoutes = (await import('./routes/bazaarCrawlerRoutes')).default;
 app.use('/api/bazaar', bazaarCrawlerRoutes);
 console.log('✅ Bazaar crawler routes registered');

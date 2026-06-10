@@ -1,13 +1,19 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { onChainX402Outreach } from '../services/onChainX402Outreach';
 
 const router = Router();
+
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const key = req.headers['x-admin-key'] as string | undefined;
+  if (key && key === process.env.ADMIN_KEY) return next();
+  return res.status(401).json({ error: 'Admin authentication required. Pass X-Admin-Key header.' });
+}
 
 /**
  * POST /api/onchain-outreach/execute
  * Execute on-chain outreach to active x402 AI agents
  */
-router.post('/execute', async (req, res) => {
+router.post('/execute', requireAdmin, async (req, res) => {
   try {
     const { targetWallets, batchSize } = req.body;
     
@@ -34,7 +40,7 @@ router.post('/execute', async (req, res) => {
           ? `$${(parseFloat(results.totalCost.replace('$', '')) / results.successfulSends).toFixed(4)}`
           : '$0.00'
       },
-      transactions: results.transactions.slice(0, 10), // First 10 for preview
+      transactions: results.transactions.slice(0, 10),
       message: `Sent on-chain messages to ${results.successfulSends} active x402 AI agents on Base`,
       nextSteps: [
         'Monitor x402 service endpoints for incoming payment requests',
@@ -57,7 +63,7 @@ router.post('/execute', async (req, res) => {
  * GET /api/onchain-outreach/discover
  * Discover active x402 wallets from Base chain activity
  */
-router.get('/discover', async (req, res) => {
+router.get('/discover', requireAdmin, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit as string) || 50;
     
@@ -89,7 +95,7 @@ router.get('/discover', async (req, res) => {
  * POST /api/onchain-outreach/send-to-wallet
  * Send message to a specific wallet address
  */
-router.post('/send-to-wallet', async (req, res) => {
+router.post('/send-to-wallet', requireAdmin, async (req, res) => {
   try {
     const { walletAddress } = req.body;
     

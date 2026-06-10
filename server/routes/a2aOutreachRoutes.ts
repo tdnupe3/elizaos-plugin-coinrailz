@@ -1,8 +1,14 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { a2aOutreachService } from '../services/a2aOutreachService';
 import { z } from 'zod';
 
 const router = Router();
+
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const key = req.headers['x-admin-key'] as string | undefined;
+  if (key && key === process.env.ADMIN_KEY) return next();
+  return res.status(401).json({ error: 'Admin authentication required. Pass X-Admin-Key header.' });
+}
 
 /**
  * A2A OUTREACH ROUTES
@@ -15,7 +21,7 @@ const router = Router();
  * POST /api/a2a/outreach/campaign
  * Start a new A2A outreach campaign
  */
-router.post('/outreach/campaign', async (req: Request, res: Response) => {
+router.post('/outreach/campaign', requireAdmin, async (req: Request, res: Response) => {
   try {
     const schema = z.object({
       limit: z.number().min(1).max(100).optional().default(50),

@@ -2337,7 +2337,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "base-usdc-yield-vault",
         name: "USDC Yield Vault (Base) — ERC-4626",
-        description: "Deposit USDC and earn auto-optimized yield on Base. ERC-4626 vault auto-routes to the highest APY protocol (currently Morpho Blue ~4.96% gross). 0.5% entry fee, 15% performance fee on yield gains, 0% exit fee. Rebalances every 24h. Non-custodial — emergencyWithdraw() always works regardless of vault state.",
+        description: "Deposit USDC and earn auto-optimized yield on Base. ERC-4626 vault auto-routes to the highest APY protocol (currently Aave v3, 3.18% gross / 2.70% net after 15% performance fee). 0.5% entry fee, 0% exit fee. Rebalances every 24h. Non-custodial — emergencyWithdraw() always works regardless of vault state. Vault: 0xb7697bf34f1566dd3d19792e12c366e396816736",
         tags: ["yield", "usdc", "defi", "base", "erc4626", "aave", "morpho", "compound", "vault", "interest"],
         vault: {
           address:    (process.env.YIELD_VAULT_ADDRESS ?? 'deploying-soon'),

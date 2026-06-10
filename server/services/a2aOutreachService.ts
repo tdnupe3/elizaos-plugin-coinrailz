@@ -88,6 +88,10 @@ export class A2AOutreachService {
     return `${this.getBaseUrl()}/api/a2a-protocol/responses`;
   }
 
+  private getWebhookBearerToken(): string {
+    return process.env.A2A_WEBHOOK_SECRET || '';
+  }
+
   /**
    * Generate a scoped per-message callback token
    * HMAC-signed with message + agent binding — never exposes the raw global secret

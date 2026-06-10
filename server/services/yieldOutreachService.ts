@@ -111,6 +111,29 @@ export class YieldOutreachService {
    * Query DB for real A2A agents that have confirmed agent card data and endpoints.
    * Filters out demo agents (hello.a2aregistry.org).
    */
+  /**
+   * Detect whether an agent card requires x402 payment before accepting A2A messages.
+   * emc2ai uses capabilities.extensions[].required=true with a2a-x402 URI.
+   * silverbackdefi uses authentication.schemes[].scheme='x402'.
+   */
+  private isX402GatedAgent(card: any): boolean {
+    const hasX402Ext = card?.capabilities?.extensions?.some(
+      (e: any) => typeof e.uri === 'string' && e.uri.includes('a2a-x402') && e.required === true
+    );
+    const hasX402Auth = card?.authentication?.schemes?.some(
+      (s: any) => s.scheme === 'x402'
+    );
+    return !!(hasX402Ext || hasX402Auth);
+  }
+
+  /**
+   * Extract the x402 payment recipient from an agent card's extension config.
+   * Falls back to the DB wallet row if not present.
+   */
+  private extractX402Wallet(card: any, fallback: string): string {
+    return card?.capabilities?.extensions?.[0]?.config?.recipient || fallback;
+  }
+
   async getA2ATargets(): Promise<YieldOutreachTarget[]> {
     const rows = await db
       .select()
@@ -125,33 +148,62 @@ export class YieldOutreachService {
       )
       .limit(20);
 
-    const seenEndpoints = new Set<string>();
+    const seenOrigins = new Set<string>();
     const targets: YieldOutreachTarget[] = [];
 
     for (const row of rows) {
-      const card = row.agentCardData as any;
-      if (!card) continue;
+      // Derive origin so we can fetch the live card — never trust stale DB data for A2A
+      let origin: string;
+      try { origin = new URL(row.url).origin; } catch { continue; }
+      if (seenOrigins.has(origin)) continue;
+      seenOrigins.add(origin);
 
-      const agentEndpoint: string | undefined =
-        card.url ||
-        card.api?.url ||
-        (card.endpoints?.A2A) ||
+      // Fetch the live agent card — if it's unreachable, skip: no card = no A2A
+      let liveCard: any = null;
+      try {
+        const cardRes = await axios.get(`${origin}/.well-known/agent-card.json`, {
+          timeout: 8000,
+          headers: { 'User-Agent': 'coinrailz-yield-outreach/1.0' },
+          validateStatus: s => s === 200,
+        });
+        liveCard = cardRes.data;
+      } catch {
+        console.warn(`⚠️ A2A skip — card unreachable: ${origin}`);
+        continue;
+      }
+
+      // x402-gated agents require USDC payment before accepting any A2A message.
+      // Reroute them to on-chain calldata (we already have their wallet).
+      if (this.isX402GatedAgent(liveCard)) {
+        const wallet = this.extractX402Wallet(liveCard, row.wallet || '');
+        if (wallet && wallet.match(/^0x[0-9a-fA-F]{40}$/)) {
+          console.log(`🔄 A2A→onchain reroute (x402 required): ${origin} | wallet: ${wallet}`);
+          targets.push({
+            type: 'onchain',   // signal to runCampaign to route via on-chain, not A2A
+            address: wallet,
+            url: row.url,
+            name: liveCard.name || row.url,
+            a2aEndpoint: undefined,
+          });
+        }
+        continue;
+      }
+
+      // Pure A2A agent — use the url from the live card as the message endpoint
+      const a2aEndpoint: string | undefined =
+        liveCard.url ||
+        liveCard.api?.url ||
+        liveCard.endpoints?.A2A ||
         undefined;
 
-      if (!agentEndpoint) continue;
-
-      // Deduplicate by A2A endpoint — one message per agent regardless of how many
-      // discovered_agents rows share that agent card
-      const endpointKey = new URL(agentEndpoint).origin;
-      if (seenEndpoints.has(endpointKey)) continue;
-      seenEndpoints.add(endpointKey);
+      if (!a2aEndpoint) continue;
 
       targets.push({
         type: 'a2a',
         address: row.wallet || '',
         url: row.url,
-        name: card.name || row.url,
-        a2aEndpoint: agentEndpoint,
+        name: liveCard.name || row.url,
+        a2aEndpoint,
       });
     }
     return targets;
@@ -434,15 +486,15 @@ export class YieldOutreachService {
 
     const rates = await this.fetchLiveRates();
 
-    const [rawA2ATargets, onchainTargets] = await Promise.all([
+    const [rawA2ATargets, rawOnchainTargets] = await Promise.all([
       this.getA2ATargets(),
       this.getOnchainTargets(30),
     ]);
 
-    // Hard dedup by origin — one message per unique A2A domain, no exceptions
+    // Split: pure A2A vs x402-gated rerouted
     const seenOrigins = new Set<string>();
     const a2aTargets = rawA2ATargets.filter(t => {
-      if (!t.a2aEndpoint) return false;
+      if (t.type === 'onchain' || !t.a2aEndpoint) return false;
       try {
         const origin = new URL(t.a2aEndpoint).origin;
         if (seenOrigins.has(origin)) return false;
@@ -451,8 +503,17 @@ export class YieldOutreachService {
       } catch { return false; }
     });
 
+    const seenOnchainAddr = new Set(rawOnchainTargets.map(t => t.address.toLowerCase()));
+    const reroutedOnchain = rawA2ATargets.filter(
+      t => t.type === 'onchain' && t.address && !seenOnchainAddr.has(t.address.toLowerCase())
+    );
+    const onchainTargets = [...rawOnchainTargets, ...reroutedOnchain];
+
     if (a2aTargets.length === 0) {
       warnings.push('No A2A agents found with confirmed endpoints. Only on-chain outreach will run.');
+    }
+    if (reroutedOnchain.length > 0) {
+      warnings.push(`${reroutedOnchain.length} x402-gated A2A agent(s) auto-rerouted to on-chain: ${reroutedOnchain.map(t => t.name || t.address).join(', ')}`);
     }
     if (onchainTargets.length === 0) {
       warnings.push('No valid on-chain wallet targets found in DB.');
@@ -492,15 +553,15 @@ export class YieldOutreachService {
    */
   async runCampaign(campaignId: string): Promise<CampaignResult> {
     const rates = await this.fetchLiveRates();
-    const [rawA2ATargets, onchainTargets] = await Promise.all([
+    const [rawA2ATargets, rawOnchainTargets] = await Promise.all([
       this.getA2ATargets(),
       this.getOnchainTargets(30),
     ]);
 
-    // Hard dedup by origin — one message per unique A2A domain, no exceptions
+    // Split rawA2ATargets: pure A2A vs x402-gated (rerouted to on-chain)
     const seenOrigins = new Set<string>();
     const a2aTargets = rawA2ATargets.filter(t => {
-      if (!t.a2aEndpoint) return false;
+      if (t.type === 'onchain' || !t.a2aEndpoint) return false;
       try {
         const origin = new URL(t.a2aEndpoint).origin;
         if (seenOrigins.has(origin)) return false;
@@ -508,6 +569,13 @@ export class YieldOutreachService {
         return true;
       } catch { return false; }
     });
+
+    // Merge x402-gated rerouted wallets into on-chain targets (dedup by address)
+    const seenOnchainAddr = new Set(rawOnchainTargets.map(t => t.address.toLowerCase()));
+    const reroutedOnchain = rawA2ATargets.filter(
+      t => t.type === 'onchain' && t.address && !seenOnchainAddr.has(t.address.toLowerCase())
+    );
+    const onchainTargets = [...rawOnchainTargets, ...reroutedOnchain];
 
     const a2aResults: CampaignResult['a2aResults'] = [];
     const onchainResults: CampaignResult['onchainResults'] = [];

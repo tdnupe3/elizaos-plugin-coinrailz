@@ -11,6 +11,7 @@
  * Uses recursive setTimeout (not setInterval) so cycles never overlap.
  */
 
+import axios from 'axios';
 import { dialectMarketsService } from '../services/dialectMarketsService.js';
 import { getKaminoMarket, invalidateMarketCache, SOLANA_YIELD_CONFIG, getSolanaYieldConnection } from '../services/solanaYield/kaminoClient.js';
 import { db } from '../db.js';
@@ -45,7 +46,27 @@ async function runKeeperCycle(): Promise<void> {
       (y: any) => y.protocol?.toLowerCase().includes('kamino') || y.name?.toLowerCase().includes('kamino'),
     ) ?? dialectData?.topYields?.[0];
 
-    const apyPct  = kaminoRate?.apy ?? null;
+    let apyPct: number | null = kaminoRate?.apy ?? null;
+
+    // Fallback: DeFiLlama if Dialect unavailable (Dialect returns 401 when key missing)
+    if (apyPct == null) {
+      try {
+        const KAMINO_USDC_LLAMA_POOL = 'd2141a59-c199-4be7-8d4b-c8223954836b';
+        const { data } = await axios.get(
+          `https://yields.llama.fi/chart/${KAMINO_USDC_LLAMA_POOL}`,
+          { timeout: 6000 },
+        );
+        const pts: any[] = data?.data ?? [];
+        const latest = pts[pts.length - 1];
+        if (latest?.apy != null && latest.apy > 0) {
+          apyPct = latest.apy;
+          console.log(`[SolanaYieldKeeper] APY from DeFiLlama fallback: ${apyPct?.toFixed(2)}%`);
+        }
+      } catch (llamaErr: any) {
+        console.warn('[SolanaYieldKeeper] DeFiLlama fallback failed:', llamaErr?.message);
+      }
+    }
+
     const apyBps  = apyPct != null ? Math.round(apyPct * 100) : 0;
 
     // ── 2. Force-refresh on-chain market data ─────────────────────────────────
@@ -60,8 +81,8 @@ async function runKeeperCycle(): Promise<void> {
       const reserve = market.getReserveByMint(SOLANA_YIELD_CONFIG.USDC_MINT);
       if (reserve) {
         reserveAddr    = reserve.address.toString();
-        tvlUsdc        = Number(reserve.getTotalSupply().toString());
-        liquidityUsdc  = Number(reserve.getLiquidityAvailableAmount().toString());
+        tvlUsdc        = Number(reserve.getTotalSupply().toString()) / 1e6;
+        liquidityUsdc  = Number(reserve.getLiquidityAvailableAmount().toString()) / 1e6;
         const total    = tvlUsdc > 0 ? tvlUsdc : 1;
         utilizationPct = Math.max(0, Math.min(100, ((total - liquidityUsdc) / total) * 100));
       }

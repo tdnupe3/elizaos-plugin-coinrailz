@@ -158,8 +158,8 @@ export async function getUsdcReserveStats(): Promise<ReserveStats> {
     market:                  market.address.toString(),
     reserve:                 reserve.address.toString(),
     collateralMint:          reserve.state.collateral.mintPubkey.toString(),
-    depositTvlUsdc:          supply,
-    availableLiquidityUsdc:  available,
+    depositTvlUsdc:          supply / 1e6,
+    availableLiquidityUsdc:  available / 1e6,
     utilizationPct:          Math.max(0, Math.min(100, utilizationPct)),
     supplyApr,
   };

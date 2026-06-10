@@ -89,8 +89,10 @@ export async function getMarketSummary(): Promise<MarketSummary> {
   const reserve = market.getReserveByMint(SOLANA_YIELD_CONFIG.USDC_MINT);
   if (!reserve) throw new Error('USDC reserve not found in Kamino market');
 
-  const depositTvl    = Number(reserve.getTotalSupply().toString());
-  const available     = Number(reserve.getLiquidityAvailableAmount().toString());
+  const depositTvlRaw = Number(reserve.getTotalSupply().toString());
+  const availableRaw  = Number(reserve.getLiquidityAvailableAmount().toString());
+  const depositTvl    = depositTvlRaw / 1e6;
+  const available     = availableRaw  / 1e6;
   const total         = depositTvl > 0 ? depositTvl : 1;
   const utilPct       = Math.max(0, Math.min(100, ((total - available) / total) * 100));
 

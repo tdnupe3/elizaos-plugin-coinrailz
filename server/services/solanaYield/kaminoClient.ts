@@ -4,8 +4,9 @@
  * Uses @kamino-finance/klend-sdk v5.10.25 (web3.js v1 compatible)
  */
 
-import { Connection, PublicKey } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { KaminoMarket, DEFAULT_RECENT_SLOT_DURATION_MS } from '@kamino-finance/klend-sdk';
+import bs58 from 'bs58';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -16,12 +17,44 @@ export const SOLANA_YIELD_CONFIG = {
   USDC_MINT,
   USDC_DECIMALS:       6,
   MIN_DEPOSIT_RAW:     5_000_000,  // $5 USDC (6 decimals)
-  DEPOSIT_FEE_BPS:     25,         // 0.25%
-  WITHDRAW_FEE_BPS:    10,         // 0.10%
-  PERF_FEE_BPS:        1000,       // 10% of yield
+  DEPOSIT_FEE_BPS:     50,         // 0.50% — matches Base vault
+  WITHDRAW_FEE_BPS:    50,         // 0.50% — matches Base vault
+  PERF_FEE_BPS:        1500,       // 15% of yield — matches Base vault
   PROGRAM_ID:          KAMINO_PROGRAM_ID,
   DEFAULT_MARKET:      '7u3HeL2w6R5n41F89LGa5bCXJxmMTMGSFjcP6A9WDvNR',
 };
+
+// ── Platform Wallet ───────────────────────────────────────────────────────────
+
+/**
+ * Derive or look up the platform Solana wallet that receives fees.
+ * Priority: SOLANA_FEE_WALLET env var (explicit pubkey) → derive from SOLANA_PRIVATE_KEY.
+ * Returns null only if neither is configured (non-fatal — fee deducted but not swept).
+ */
+export function getPlatformSolanaWallet(): PublicKey | null {
+  const explicit = process.env.SOLANA_FEE_WALLET;
+  if (explicit) {
+    try { return new PublicKey(explicit); } catch { /* fall through */ }
+  }
+
+  const raw = process.env.SOLANA_PRIVATE_KEY;
+  if (!raw) return null;
+
+  try {
+    let secretKey: Uint8Array;
+    // base58 keypair strings are 85–90 chars
+    if (raw.length >= 85 && raw.length <= 90) {
+      secretKey = bs58.decode(raw);
+    } else {
+      secretKey = new Uint8Array(JSON.parse(raw));
+    }
+    const kp = Keypair.fromSecretKey(secretKey);
+    return kp.publicKey;
+  } catch (err: any) {
+    console.warn('[kaminoClient] getPlatformSolanaWallet failed to parse SOLANA_PRIVATE_KEY:', err.message);
+    return null;
+  }
+}
 
 // ── Connection ────────────────────────────────────────────────────────────────
 

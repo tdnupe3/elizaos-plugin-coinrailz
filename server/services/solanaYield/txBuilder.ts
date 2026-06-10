@@ -1,21 +1,34 @@
 /**
- * Kamino Transaction Builder — unsigned deposit/withdraw VersionedTransactions
+ * Kamino Transaction Builder — unsigned deposit/withdraw Transactions
  * ISOLATED: no shared code with Base/EVM vault.
  *
  * Returns base64-encoded legacy Transactions that the agent signs + submits.
- * Fee is deducted from the deposit amount AND a real SPL Transfer instruction is
- * appended to collect it into SOLANA_FEE_WALLET (if env var is set).
+ *
+ * Fee collection:
+ *  - Deposit: fee deducted from amountRaw; SPL Transfer + idempotent ATA-create injected
+ *    into preLendingTxn so platform wallet receives fee before Kamino deposit.
+ *  - Withdraw: fee deducted from requestedRaw; same pattern in postLendingTxn.
+ *  - Platform wallet: derived from SOLANA_PRIVATE_KEY (same key used for all other Solana ops).
+ *    Override with SOLANA_FEE_WALLET env var if a separate treasury address is preferred.
+ *  - If neither env var is set: fee is still deducted from deposit amount but NOT swept on-chain.
  */
 
 import { PublicKey, Transaction } from '@solana/web3.js';
 import {
   createTransferInstruction,
+  createAssociatedTokenAccountIdempotentInstruction,
   getAssociatedTokenAddressSync,
   TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import { KaminoAction, VanillaObligation } from '@kamino-finance/klend-sdk';
 import BN from 'bn.js';
-import { getKaminoMarket, getSolanaYieldConnection, SOLANA_YIELD_CONFIG } from './kaminoClient.js';
+import {
+  getKaminoMarket,
+  getSolanaYieldConnection,
+  getPlatformSolanaWallet,
+  SOLANA_YIELD_CONFIG,
+} from './kaminoClient.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -25,8 +38,8 @@ export interface TxBundle {
   feeRaw:          string;
   netAmountRaw:    string;
   feePct:          string;
-  quoteExpiresAt:  number;   // unix ms — blockhash valid for ~90s
-  feeCollected:    boolean;  // true if a fee transfer instruction was included
+  quoteExpiresAt:  number;   // unix ms — blockhash valid ~90s
+  feeCollected:    boolean;  // true when a real SPL Transfer ix was included
   warning?:        string;
 }
 
@@ -57,25 +70,43 @@ function collectTxns(
 }
 
 /**
- * Build a fee Transfer instruction (USDC SPL token) from depositor → platform treasury.
- * Returns null if SOLANA_FEE_WALLET is not configured (fee still deducted from deposit amount,
- * but the tokens remain in the depositor's wallet rather than being swept to treasury).
+ * Build fee-collection instructions: idempotent ATA-create + SPL Transfer.
+ * Returns null set if platform wallet is not configured or fee is zero.
+ *
+ * The ATA-create instruction is idempotent — safe to include even if the ATA
+ * already exists on-chain (rent paid by depositor, ~0.002 SOL one-time only).
  */
-function buildFeeTransferInstruction(
+function buildFeeInstructions(
   depositorOwner: PublicKey,
   feeRaw: number,
-): { ix: ReturnType<typeof createTransferInstruction> | null; treasuryAta: string | null } {
-  const feeWalletStr = process.env.SOLANA_FEE_WALLET;
-  if (!feeWalletStr || feeRaw === 0) return { ix: null, treasuryAta: null };
+): {
+  ataCreateIx: ReturnType<typeof createAssociatedTokenAccountIdempotentInstruction> | null;
+  transferIx:  ReturnType<typeof createTransferInstruction> | null;
+  treasuryAta: string | null;
+} {
+  if (feeRaw === 0) return { ataCreateIx: null, transferIx: null, treasuryAta: null };
+
+  const platformWallet = getPlatformSolanaWallet();
+  if (!platformWallet) {
+    return { ataCreateIx: null, transferIx: null, treasuryAta: null };
+  }
 
   try {
-    const feeWallet    = new PublicKey(feeWalletStr);
     const usdcMint     = SOLANA_YIELD_CONFIG.USDC_MINT;
-
     const depositorAta = getAssociatedTokenAddressSync(usdcMint, depositorOwner, false, TOKEN_PROGRAM_ID);
-    const treasuryAta  = getAssociatedTokenAddressSync(usdcMint, feeWallet, false, TOKEN_PROGRAM_ID);
+    const treasuryAta  = getAssociatedTokenAddressSync(usdcMint, platformWallet, false, TOKEN_PROGRAM_ID);
 
-    const ix = createTransferInstruction(
+    // Idempotent: will succeed whether or not treasury ATA already exists on-chain
+    const ataCreateIx = createAssociatedTokenAccountIdempotentInstruction(
+      depositorOwner,    // payer (pays rent ~0.002 SOL one-time if ATA missing)
+      treasuryAta,
+      platformWallet,
+      usdcMint,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+
+    const transferIx = createTransferInstruction(
       depositorAta,
       treasuryAta,
       depositorOwner,
@@ -84,10 +115,10 @@ function buildFeeTransferInstruction(
       TOKEN_PROGRAM_ID,
     );
 
-    return { ix, treasuryAta: treasuryAta.toString() };
+    return { ataCreateIx, transferIx, treasuryAta: treasuryAta.toString() };
   } catch (err: any) {
-    console.warn('[txBuilder] Fee transfer instruction failed to build (non-fatal):', err.message);
-    return { ix: null, treasuryAta: null };
+    console.warn('[txBuilder] buildFeeInstructions failed (non-fatal):', err.message);
+    return { ataCreateIx: null, transferIx: null, treasuryAta: null };
   }
 }
 
@@ -98,8 +129,9 @@ function buildFeeTransferInstruction(
  * amountUsdcRaw: raw USDC lamports (6 decimals), e.g. 10_000_000 = $10
  *
  * Flow:
- *  1. Optional fee Transfer ix appended to preLendingTxn (if SOLANA_FEE_WALLET is set)
- *  2. Kamino deposit for netRaw = amountRaw - feeRaw
+ *  1. preLendingTxn: [idempotent treasury ATA-create] + [USDC Transfer feeRaw → treasury] + [setup]
+ *  2. lendingTxn:    Kamino deposit for netRaw = amountRaw - feeRaw
+ *  3. postLendingTxn: [cleanup if any]
  */
 export async function buildDepositTxBundle(
   walletAddress: string,
@@ -133,29 +165,29 @@ export async function buildDepositTxBundle(
     300_000,
   );
 
-  const txns      = await action.getTransactions();
-  const blockhash  = (await connection.getLatestBlockhash('confirmed')).blockhash;
+  const txns     = await action.getTransactions();
+  const blockhash = (await connection.getLatestBlockhash('confirmed')).blockhash;
 
-  // ── Inject fee transfer into preLendingTxn (or create a new tx if no pre-tx) ──
-  const { ix: feeIx } = buildFeeTransferInstruction(owner, feeRaw);
+  // ── Inject idempotent ATA-create + fee transfer into preLendingTxn ───────────
+  const { ataCreateIx, transferIx, treasuryAta } = buildFeeInstructions(owner, feeRaw);
   let feeCollected = false;
 
-  if (feeIx && feeRaw > 0) {
+  if (ataCreateIx && transferIx) {
+    const feeBundle = new Transaction().add(ataCreateIx, transferIx);
     if (txns.preLendingTxn) {
-      txns.preLendingTxn.add(feeIx);
-      feeCollected = true;
+      // Prepend fee ixs before existing setup ixs
+      const existingIxs = txns.preLendingTxn.instructions;
+      txns.preLendingTxn = new Transaction().add(ataCreateIx, transferIx, ...existingIxs);
     } else {
-      const feeTx = new Transaction().add(feeIx);
-      feeTx.recentBlockhash = blockhash;
-      feeTx.feePayer        = owner;
-      txns.preLendingTxn    = feeTx;
-      feeCollected          = true;
+      txns.preLendingTxn = feeBundle;
     }
+    feeCollected = true;
+    console.log(`[txBuilder] Deposit fee: ${feeRaw} USDC lamports → ${treasuryAta}`);
   }
 
   const collected = collectTxns(txns, owner, blockhash, [
-    'fee-transfer + setup',
-    'deposit',
+    'treasury-ata-create + fee-transfer + setup',
+    'kamino-deposit',
     'cleanup',
   ]);
 
@@ -166,7 +198,8 @@ export async function buildDepositTxBundle(
   const warnings: string[] = [];
   if (!feeCollected && feeRaw > 0) {
     warnings.push(
-      `Platform fee of ${feeRaw} USDC lamports deducted from deposit but not swept to treasury — set SOLANA_FEE_WALLET env var to enable on-chain collection`,
+      'Platform fee deducted from deposit but not swept to treasury ' +
+      '(SOLANA_PRIVATE_KEY not configured — contact support)',
     );
   }
 
@@ -189,8 +222,9 @@ export async function buildDepositTxBundle(
  * amountUsdcRaw: raw USDC lamports, or the string 'MAX' to withdraw everything.
  *
  * Flow:
- *  1. Kamino withdrawal for full requestedRaw
- *  2. Optional fee Transfer ix in postLendingTxn to sweep feeRaw → treasury
+ *  1. preLendingTxn: [setup if any]
+ *  2. lendingTxn:    Kamino withdrawal for requestedRaw
+ *  3. postLendingTxn: [idempotent treasury ATA-create] + [USDC Transfer feeRaw → treasury] + [cleanup]
  */
 export async function buildWithdrawTxBundle(
   walletAddress: string,
@@ -222,9 +256,9 @@ export async function buildWithdrawTxBundle(
 
   if (requestedRaw <= 0) throw new Error('Nothing to withdraw from this position');
 
-  const feeRaw  = Math.floor((requestedRaw * SOLANA_YIELD_CONFIG.WITHDRAW_FEE_BPS) / 10_000);
-  const netRaw  = requestedRaw - feeRaw;
-  const slot    = await connection.getSlot('confirmed');
+  const feeRaw = Math.floor((requestedRaw * SOLANA_YIELD_CONFIG.WITHDRAW_FEE_BPS) / 10_000);
+  const netRaw = requestedRaw - feeRaw;
+  const slot   = await connection.getSlot('confirmed');
 
   const action = await KaminoAction.buildWithdrawTxns(
     market,
@@ -236,29 +270,27 @@ export async function buildWithdrawTxBundle(
     300_000,
   );
 
-  const txns      = await action.getTransactions();
-  const blockhash  = (await connection.getLatestBlockhash('confirmed')).blockhash;
+  const txns     = await action.getTransactions();
+  const blockhash = (await connection.getLatestBlockhash('confirmed')).blockhash;
 
-  // ── Inject fee transfer into postLendingTxn after withdrawal ────────────────
-  const { ix: feeIx } = buildFeeTransferInstruction(owner, feeRaw);
+  // ── Inject idempotent ATA-create + fee transfer into postLendingTxn ──────────
+  const { ataCreateIx, transferIx, treasuryAta } = buildFeeInstructions(owner, feeRaw);
   let feeCollected = false;
 
-  if (feeIx && feeRaw > 0) {
+  if (ataCreateIx && transferIx) {
     if (txns.postLendingTxn) {
-      txns.postLendingTxn.add(feeIx);
-      feeCollected = true;
+      const existingIxs = txns.postLendingTxn.instructions;
+      txns.postLendingTxn = new Transaction().add(...existingIxs, ataCreateIx, transferIx);
     } else {
-      const feeTx = new Transaction().add(feeIx);
-      feeTx.recentBlockhash = blockhash;
-      feeTx.feePayer        = owner;
-      txns.postLendingTxn   = feeTx;
-      feeCollected          = true;
+      txns.postLendingTxn = new Transaction().add(ataCreateIx, transferIx);
     }
+    feeCollected = true;
+    console.log(`[txBuilder] Withdraw fee: ${feeRaw} USDC lamports → ${treasuryAta}`);
   }
 
-  const collected  = collectTxns(txns, owner, blockhash, [
+  const collected = collectTxns(txns, owner, blockhash, [
     'setup',
-    'withdraw',
+    'kamino-withdraw',
     'cleanup + fee-transfer',
   ]);
 

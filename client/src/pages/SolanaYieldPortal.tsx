@@ -258,9 +258,9 @@ console.log("Yield earned:", (position.currentValueUsdc - position.depositedUsdc
         {/* ── Fee & Limits strip ── */}
         <div className="flex flex-wrap gap-3 justify-center">
           {[
-            { label: "Deposit Fee", val: rates?.fees.deposit ?? "0.25%" },
-            { label: "Withdrawal Fee", val: rates?.fees.withdrawal ?? "0.10%" },
-            { label: "Performance Fee", val: rates?.fees.performance ?? "10% of yield" },
+            { label: "Deposit Fee", val: rates?.fees.deposit ?? "0.50%" },
+            { label: "Withdrawal Fee", val: rates?.fees.withdrawal ?? "0.50%" },
+            { label: "Performance Fee", val: rates?.fees.performance ?? "15% of yield (v2)" },
             { label: "Min Deposit", val: `$${rates?.minDeposit.usdc ?? 5} USDC` },
             { label: "Chain", val: "Solana Mainnet" },
             { label: "Protocol", val: "Kamino Lending v1" },

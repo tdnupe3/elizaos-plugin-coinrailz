@@ -87,13 +87,24 @@ Raw values from klend-sdk are in 6-decimal USDC lamports — never display them 
 - ✅ APY null → DeFiLlama chart fallback (3.44% live)
 - ✅ Amount units trap → accept amount_usdc (dollars), amount_raw (lamports), or amount (auto-detect)
 - ✅ TVL raw units → divided by 1e6 in all API responses
-- ✅ Manifest signing guide → step-by-step instructions + 9-line JS code snippet in manifest
+- ✅ Manifest signing guide → step-by-step instructions + code snippet + bridge guide
+- ✅ Idempotency key on deposit-tx → `idempotency_key` field (optional); duplicate within 120s TTL → 409 with hint; `bundle_expires_at` returned on every call
+- ✅ /confirm on-chain verification → `getSignatureStatuses` then `getTransaction` signer check; bad format → 400; failed tx → 400; not found or RPC down → stores `pending_verification` (keeper reconciles); real confirmed tx → `confirmed` + position upsert
+- ✅ Cross-chain barrier documented → manifest `cross_chain_note` with deBridge + Wormhole Portal links; CCTP noted as v3 roadmap; step0 in agent_instructions for EVM agents
+
+## Schema changes (2026-06-10)
+- `solana_yield_events.idempotency_key` varchar(128) nullable, indexed
+- `solana_yield_events.bundle_expires_at` timestamp nullable
+- `solana_yield_events.status` widened to varchar(30) to accommodate `pending_verification`
+- Added via direct SQL (drizzle-kit push was unresponsive); drizzle schema kept in sync
 
 ## Known Gaps (v2 backlog)
 - Performance fee (15%) is declared in config/UI/manifest but NOT collected anywhere
   Requires: per-position yield tracking across keeper cycles + sweep tx + revenue ledger
+- Keeper does NOT yet reconcile `pending_verification` events (re-checks unverified sigs hourly)
 - Liquidation monitoring — no Health Factor alert
 - Auto-compounding
+- Two-tx partial failure: fee refund is manual (email support) — no automated recovery path
 
 ## React Query Pattern (critical)
 Use template literal for dynamic URLs: `queryKey: [\`/api/solana-yield/position/\${wallet}\`]`

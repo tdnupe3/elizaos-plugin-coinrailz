@@ -6670,20 +6670,23 @@ export type SolanaYieldPosition = typeof solanaYieldPositions.$inferSelect;
 export type InsertSolanaYieldPosition = z.infer<typeof insertSolanaYieldPositionSchema>;
 
 export const solanaYieldEvents = pgTable('solana_yield_events', {
-  id:            serial('id').primaryKey(),
-  wallet:        varchar('wallet', { length: 64 }).notNull(),
-  eventType:     varchar('event_type', { length: 30 }).notNull(), // deposit_intent | deposit_confirmed | withdraw_intent | withdraw_confirmed
-  amountUsdcRaw: varchar('amount_usdc_raw', { length: 40 }),
-  txSignature:   varchar('tx_signature', { length: 128 }),
-  slot:          bigint('slot', { mode: 'number' }),
-  feeUsdcRaw:    varchar('fee_usdc_raw', { length: 40 }),
-  status:        varchar('status', { length: 20 }).notNull().default('pending'),
-  errorMessage:  text('error_message'),
-  createdAt:     timestamp('created_at').defaultNow().notNull(),
+  id:              serial('id').primaryKey(),
+  wallet:          varchar('wallet', { length: 64 }).notNull(),
+  eventType:       varchar('event_type', { length: 30 }).notNull(), // deposit_intent | deposit_confirmed | withdraw_intent | withdraw_confirmed
+  amountUsdcRaw:   varchar('amount_usdc_raw', { length: 40 }),
+  txSignature:     varchar('tx_signature', { length: 128 }),
+  slot:            bigint('slot', { mode: 'number' }),
+  feeUsdcRaw:      varchar('fee_usdc_raw', { length: 40 }),
+  status:          varchar('status', { length: 30 }).notNull().default('pending'), // pending | confirmed | pending_verification | failed
+  errorMessage:    text('error_message'),
+  idempotencyKey:  varchar('idempotency_key', { length: 128 }),  // optional; prevents double-fee on deposit retry
+  bundleExpiresAt: timestamp('bundle_expires_at'),               // blockhash expiry (~90s from deposit-tx call)
+  createdAt:       timestamp('created_at').defaultNow().notNull(),
 }, (t) => [
   index('IDX_sol_yield_evt_wallet').on(t.wallet),
   index('IDX_sol_yield_evt_type').on(t.eventType),
   index('IDX_sol_yield_evt_created').on(t.createdAt),
+  index('IDX_sol_yield_evt_idem').on(t.idempotencyKey),
 ]);
 
 export const insertSolanaYieldEventSchema = createInsertSchema(solanaYieldEvents).omit({

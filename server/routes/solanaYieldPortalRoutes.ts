@@ -14,13 +14,17 @@
 import { Router, Request, Response } from 'express';
 import axios from 'axios';
 import { dialectMarketsService } from '../services/dialectMarketsService.js';
-import { getKaminoMarket, SOLANA_YIELD_CONFIG } from '../services/solanaYield/kaminoClient.js';
+import { getKaminoMarket, SOLANA_YIELD_CONFIG, getSolanaYieldConnection } from '../services/solanaYield/kaminoClient.js';
 import { buildDepositTxBundle, buildWithdrawTxBundle } from '../services/solanaYield/txBuilder.js';
 import { readPosition, getMarketSummary } from '../services/solanaYield/positionReader.js';
 import { db } from '../db.js';
 import { solanaYieldPositions, solanaYieldEvents, solanaYieldRateSnapshots } from '@shared/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, isNotNull } from 'drizzle-orm';
 import { createHitTracker } from '../middleware/hitTracker.js';
+
+// ── Idempotency TTL: Solana blockhashes expire in ~150 slots (~60s). We keep
+//    the intent alive for 120s to give the agent time to submit both txns.
+const DEPOSIT_INTENT_TTL_MS = 120_000;
 
 const router = Router();
 
@@ -180,11 +184,12 @@ router.get('/position/:wallet', async (req: Request, res: Response) => {
 // ── POST /deposit-tx ───────────────────────────────────────────────────────────
 
 router.post('/deposit-tx', async (req: Request, res: Response) => {
-  const { wallet, amount, amount_usdc, amount_raw } = req.body as {
-    wallet?:       string;
-    amount?:       number | string;
-    amount_usdc?:  number | string;  // preferred: dollars, e.g. 10 = $10
-    amount_raw?:   number | string;  // raw lamports, e.g. 10000000 = $10
+  const { wallet, amount, amount_usdc, amount_raw, idempotency_key } = req.body as {
+    wallet?:           string;
+    amount?:           number | string;
+    amount_usdc?:      number | string;  // preferred: dollars, e.g. 10 = $10
+    amount_raw?:       number | string;  // raw lamports, e.g. 10000000 = $10
+    idempotency_key?:  string;           // optional: same key within 120s returns same bundle
   };
 
   if (!wallet || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet)) {
@@ -211,27 +216,73 @@ router.post('/deposit-tx', async (req: Request, res: Response) => {
     });
   }
 
-  try {
-    const bundle = await buildDepositTxBundle(wallet, amountRaw);
+  // ── Idempotency check ───────────────────────────────────────────────────────
+  // If idempotency_key is provided and a live (non-expired, non-confirmed) intent
+  // exists for the same wallet+amount+key, return the existing bundle instead of
+  // building a new one (and charging a second fee).
+  if (idempotency_key) {
+    const iKey = idempotency_key.slice(0, 128); // truncate to column length
+    const existing = await db
+      .select()
+      .from(solanaYieldEvents)
+      .where(
+        and(
+          eq(solanaYieldEvents.wallet,         wallet),
+          eq(solanaYieldEvents.idempotencyKey, iKey),
+          eq(solanaYieldEvents.eventType,      'deposit_intent'),
+          eq(solanaYieldEvents.status,         'pending'),
+          eq(solanaYieldEvents.amountUsdcRaw,  amountRaw.toString()),
+        ),
+      )
+      .orderBy(desc(solanaYieldEvents.createdAt))
+      .limit(1);
 
-    // Record deposit intent
+    if (existing.length > 0) {
+      const intent = existing[0];
+      const expiresAt = intent.bundleExpiresAt;
+      if (expiresAt && new Date(expiresAt) > new Date()) {
+        // Live intent exists — but we can't re-serve the bundle (transactions aren't stored).
+        // Return a clear 409 so agent knows to re-call without the same key after expiry.
+        return res.status(409).json({
+          success:        false,
+          error:          'Duplicate idempotency_key: a pending deposit intent already exists for this wallet/amount/key.',
+          hint:           'Wait for the current bundle to expire (see bundle_expires_at) then retry, or omit idempotency_key to force a new bundle.',
+          bundle_expires_at: expiresAt,
+          existing_intent_id: intent.id,
+        });
+      }
+      // Expired — fall through to build a fresh bundle
+    }
+  }
+
+  try {
+    const bundle    = await buildDepositTxBundle(wallet, amountRaw);
+    const expiresAt = new Date(Date.now() + DEPOSIT_INTENT_TTL_MS);
+    const iKey      = idempotency_key ? idempotency_key.slice(0, 128) : null;
+
+    // Record deposit intent with idempotency key and bundle expiry
     await db.insert(solanaYieldEvents).values({
       wallet,
-      eventType:     'deposit_intent',
-      amountUsdcRaw: amountRaw.toString(),
-      feeUsdcRaw:    bundle.feeRaw,
-      status:        'pending',
+      eventType:       'deposit_intent',
+      amountUsdcRaw:   amountRaw.toString(),
+      feeUsdcRaw:      bundle.feeRaw,
+      status:          'pending',
+      idempotencyKey:  iKey,
+      bundleExpiresAt: expiresAt,
     }).catch(() => {});
 
     return res.json({
       success: true,
       ...bundle,
+      bundle_expires_at: expiresAt.toISOString(),
+      idempotency_key:   iKey ?? undefined,
       instructions: [
-        '1. Sign and submit each transaction in order',
-        '2. Wait for each to confirm before submitting the next',
-        '3. Call POST /api/solana-yield/confirm with the final tx signature',
+        '1. Sign and submit each transaction in order (tx1 first, wait for confirmation, then tx2)',
+        '2. Both transactions must confirm within ~90 seconds of each other (Solana blockhash expiry)',
+        '3. If tx1 confirms but tx2 fails: call /deposit-tx again WITHOUT the same idempotency_key to get a fresh bundle — the fee will be collected again; contact support@coinrailz.com with the failed tx1 signature for a fee refund',
+        '4. Call POST /api/solana-yield/confirm with {wallet, txSignature} after tx2 confirms',
       ],
-      agent_hint: 'Use @solana/web3.js sendRawTransaction or solana-pay compatible wallet',
+      agent_hint: 'Use @solana/web3.js sendRawTransaction. Both txns share the same blockhash — submit promptly.',
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
@@ -292,14 +343,85 @@ router.post('/withdraw-tx', async (req: Request, res: Response) => {
 
 router.post('/confirm', async (req: Request, res: Response) => {
   const { wallet, txSignature, eventType, amountUsdcRaw } = req.body as {
-    wallet?:       string;
-    txSignature?:  string;
-    eventType?:    string;
+    wallet?:        string;
+    txSignature?:   string;
+    eventType?:     string;
     amountUsdcRaw?: string;
   };
 
   if (!wallet || !txSignature) {
     return res.status(400).json({ success: false, error: 'wallet and txSignature are required' });
+  }
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet)) {
+    return res.status(400).json({ success: false, error: 'wallet: invalid Solana public key' });
+  }
+  if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(txSignature)) {
+    return res.status(400).json({ success: false, error: 'txSignature: invalid Solana signature format' });
+  }
+
+  // ── On-chain verification ─────────────────────────────────────────────────
+  // Verify the transaction actually confirmed on-chain and the claiming wallet
+  // was a signer. If the RPC is unavailable, store as pending_verification for
+  // the keeper to finalize rather than blindly marking confirmed.
+  let onChainVerified = false;
+  let verificationStatus: 'confirmed' | 'pending_verification' = 'pending_verification';
+  let verificationNote: string | null = null;
+
+  try {
+    const conn = getSolanaYieldConnection();
+
+    // Fast path: getSignatureStatuses is a single RPC call, ~50-100ms
+    const statuses = await conn.getSignatureStatuses([txSignature], { searchTransactionHistory: true });
+    const sigStatus = statuses?.value?.[0];
+
+    if (!sigStatus) {
+      // Not found yet — may still be propagating; store as pending_verification
+      verificationNote = 'Signature not yet found on-chain; keeper will re-verify within 60 minutes.';
+    } else if (sigStatus.err) {
+      // Transaction found but it failed on-chain — reject
+      return res.status(400).json({
+        success: false,
+        error:   'Transaction failed on-chain and cannot be confirmed.',
+        onChainError: JSON.stringify(sigStatus.err),
+        txSignature,
+      });
+    } else if (sigStatus.confirmationStatus === 'confirmed' || sigStatus.confirmationStatus === 'finalized') {
+      // Confirmed — now verify the wallet was a signer in the transaction
+      try {
+        const txDetail = await conn.getTransaction(txSignature, {
+          maxSupportedTransactionVersion: 0,
+          commitment: 'confirmed',
+        });
+        if (txDetail) {
+          const accountKeys = txDetail.transaction.message.getAccountKeys?.()?.staticAccountKeys
+                           ?? (txDetail.transaction.message as any).accountKeys
+                           ?? [];
+          const signerAddrs = accountKeys
+            .slice(0, txDetail.transaction.message.header?.numRequiredSignatures ?? accountKeys.length)
+            .map((k: any) => k.toString?.() ?? k);
+          const walletIsSigner = signerAddrs.includes(wallet);
+          if (!walletIsSigner) {
+            return res.status(403).json({
+              success: false,
+              error:   'Wallet address is not a signer in the provided transaction.',
+              txSignature,
+            });
+          }
+        }
+      } catch {
+        // getTransaction failed (e.g. pruned node) — status check was enough
+      }
+      onChainVerified      = true;
+      verificationStatus   = 'confirmed';
+      verificationNote     = `On-chain ${sigStatus.confirmationStatus} at slot ${sigStatus.slot ?? 'unknown'}.`;
+    } else {
+      // Processed but not confirmed yet
+      verificationNote = `Transaction status: ${sigStatus.confirmationStatus}. Keeper will re-verify.`;
+    }
+  } catch (rpcErr: any) {
+    // RPC unreachable — degrade gracefully; keeper reconciles
+    verificationNote = `RPC unavailable during verification (${rpcErr?.message ?? 'unknown'}). Keeper will re-verify within 60 minutes.`;
+    console.warn('[SolanaYield/confirm] RPC verification failed (non-fatal):', rpcErr?.message);
   }
 
   try {
@@ -310,29 +432,30 @@ router.post('/confirm', async (req: Request, res: Response) => {
       eventType:     confirmedType,
       txSignature,
       amountUsdcRaw: amountUsdcRaw ?? null,
-      status:        'confirmed',
+      status:        verificationStatus,
+      errorMessage:  verificationNote,
     });
 
-    // Upsert position record for deposits
-    if (confirmedType === 'deposit_confirmed') {
+    // Upsert position record for deposits — only if on-chain verified
+    if (confirmedType === 'deposit_confirmed' && onChainVerified) {
       const existing = await db
         .select()
         .from(solanaYieldPositions)
         .where(and(eq(solanaYieldPositions.wallet, wallet), eq(solanaYieldPositions.status, 'active')))
         .limit(1);
 
-      const marketAddr  = process.env.SOLANA_YIELD_KAMINO_MARKET || SOLANA_YIELD_CONFIG.DEFAULT_MARKET;
-      const collatMint  = SOLANA_YIELD_CONFIG.USDC_MINT.toString(); // placeholder; keeper refreshes
+      const marketAddr = process.env.SOLANA_YIELD_KAMINO_MARKET || SOLANA_YIELD_CONFIG.DEFAULT_MARKET;
+      const collatMint = SOLANA_YIELD_CONFIG.USDC_MINT.toString();
 
       if (existing.length === 0) {
         await db.insert(solanaYieldPositions).values({
           wallet,
-          market:               marketAddr,
-          reserveAddress:       'pending',
-          collateralMint:       collatMint,
-          depositedUsdcRaw:     amountUsdcRaw ?? '0',
-          txSignatureDeposit:   txSignature,
-          status:               'active',
+          market:             marketAddr,
+          reserveAddress:     'pending',
+          collateralMint:     collatMint,
+          depositedUsdcRaw:   amountUsdcRaw ?? '0',
+          txSignatureDeposit: txSignature,
+          status:             'active',
         });
       } else {
         await db
@@ -343,9 +466,12 @@ router.post('/confirm', async (req: Request, res: Response) => {
     }
 
     return res.json({
-      success: true,
-      message: `${confirmedType} recorded`,
+      success:            true,
+      message:            `${confirmedType} ${verificationStatus === 'confirmed' ? 'confirmed' : 'recorded (pending verification)'}`,
       txSignature,
+      onChainVerified,
+      verificationStatus,
+      verificationNote,
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
@@ -381,33 +507,49 @@ router.get('/manifest', (_req: Request, res: Response) => {
       mint:             'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
     },
     agent_instructions: {
-      step1_check_rate:  'GET /api/solana-yield/rates — confirm current APY before committing capital.',
-      step2_deposit:     'POST /api/solana-yield/deposit-tx with {wallet, amount_usdc: 10} for $10 USDC. Returns array of base64 transactions.',
-      step3_sign_submit: 'For each transaction in order: decode base64 → Transaction.from(Buffer.from(b64,"base64")) → tx.sign(keypair) → connection.sendRawTransaction(tx.serialize()) → wait for confirmation.',
-      step4_confirm:     'POST /api/solana-yield/confirm with {wallet, txSignature, eventType:"deposit_intent", amountUsdcRaw:"10000000"}.',
-      step5_check:       'GET /api/solana-yield/position/{wallet} — returns depositedUsdc and currentValueUsdc.',
-      withdraw_partial:  'POST /api/solana-yield/withdraw-tx with {wallet, amount_usdc: 5} for $5 USDC.',
-      withdraw_all:      'POST /api/solana-yield/withdraw-tx with {wallet, amount_usdc: "MAX"} to exit fully.',
+      step0_bridge_if_needed: 'ONLY NEEDED if your USDC is on Base/Ethereum: bridge to Solana first via https://app.debridge.finance or https://portalbridge.com (Wormhole). Target mint: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v. Skip if you already hold Solana USDC.',
+      step1_check_rate:       'GET /api/solana-yield/rates — confirm current APY before committing capital.',
+      step2_deposit:          'POST /api/solana-yield/deposit-tx with {wallet, amount_usdc: 10, idempotency_key: "<uuid>"}. Returns array of base64 unsigned transactions and a bundle_expires_at timestamp.',
+      step3_sign_submit:      'Submit tx1 first, wait for confirmation, then submit tx2 — both must confirm before bundle_expires_at (~120s). Code: for (const {base64} of response.transactions) { const tx = Transaction.from(Buffer.from(base64,"base64")); tx.sign(keypair); const sig = await conn.sendRawTransaction(tx.serialize()); await conn.confirmTransaction(sig,"confirmed"); }',
+      step4_confirm:          'POST /api/solana-yield/confirm with {wallet, txSignature} after tx2 confirms. The server verifies on-chain before recording the position.',
+      step5_check:            'GET /api/solana-yield/position/{wallet} — returns depositedUsdc and currentValueUsdc.',
+      withdraw_partial:       'POST /api/solana-yield/withdraw-tx with {wallet, amount_usdc: 5} for $5 USDC.',
+      withdraw_all:           'POST /api/solana-yield/withdraw-tx with {wallet, amount: "MAX"} to exit fully.',
+      retry_on_partial_fail:  'If tx1 (fee) confirmed but tx2 (deposit) failed: do NOT reuse idempotency_key. Call /deposit-tx with a fresh key. Email support@coinrailz.com with the failed tx1 signature for a fee refund.',
     },
     signing_code_snippet: [
       'const { Connection, Keypair, Transaction } = require("@solana/web3.js");',
-      'const conn = new Connection("https://api.mainnet-beta.solana.com");',
+      'const conn = new Connection(process.env.HELIUS_RPC || "https://api.mainnet-beta.solana.com");',
       'const keypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(process.env.SOLANA_PRIVATE_KEY)));',
-      'for (const { base64 } of response.transactions) {',
+      'const { transactions, bundle_expires_at } = await fetch("/api/solana-yield/deposit-tx", {',
+      '  method: "POST", headers: {"Content-Type":"application/json"},',
+      '  body: JSON.stringify({ wallet: keypair.publicKey.toString(), amount_usdc: 10, idempotency_key: crypto.randomUUID() })',
+      '}).then(r => r.json());',
+      'for (const { base64 } of transactions) {',
       '  const tx = Transaction.from(Buffer.from(base64, "base64"));',
       '  tx.sign(keypair);',
-      '  const sig = await conn.sendRawTransaction(tx.serialize());',
+      '  const sig = await conn.sendRawTransaction(tx.serialize(), { skipPreflight: false });',
       '  await conn.confirmTransaction(sig, "confirmed");',
+      '  // Call /confirm after the LAST transaction',
       '}',
     ],
     amount_formats: {
-      preferred:  'amount_usdc: 10  (dollars, e.g. 10 = $10 USDC)',
+      preferred:   'amount_usdc: 10  (dollars — e.g. 10 = $10 USDC)',
       alternative: 'amount_raw: 10000000  (raw USDC lamports, 6 decimals)',
-      legacy:     'amount: 10  (auto-detected: < 10000 treated as dollars)',
+      legacy:      'amount: 10  (auto-detected: < 10000 treated as dollars)',
+    },
+    cross_chain_note: {
+      supported_chain:    'Solana mainnet-beta only',
+      evm_agents:         'EVM-native agents (Base, Ethereum) must bridge USDC to Solana before depositing.',
+      recommended_bridge: 'deBridge (https://app.debridge.finance) — non-custodial, ~2min, supports Base→Solana USDC',
+      alt_bridge:         'Wormhole Portal (https://portalbridge.com) — canonical bridge, ~2min',
+      usdc_mint_solana:   'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+      roadmap:            'Native CCTP (Circle cross-chain transfer protocol) support planned for v3 — no manual bridge needed.',
     },
     comparison: {
-      solana_kamino: 'Typically 6-12% APY',
-      base_aave:     '~3.17% APY',
+      solana_kamino:  'Current APY: see /rates (recently ~3-5%; historically up to 12%)',
+      base_aave:      '~3.17% APY (Aave v3)',
+      note:           'Solana rates fluctuate with utilization. Check /rates before every deposit decision.',
     },
   });
 });

@@ -12,7 +12,7 @@ import { sql } from 'drizzle-orm';
 import crypto from 'crypto';
 
 interface HitTrackerOptions {
-  endpointType: 'x402' | 'iot' | 'catalog' | 'service' | 'discovery';
+  endpointType: 'x402' | 'iot' | 'catalog' | 'service' | 'discovery' | 'yield';
   extractResourceId?: (req: Request) => string | undefined;
 }
 
@@ -22,12 +22,17 @@ function hashIP(ip: string | undefined): string | undefined {
 }
 
 function extractWalletAddress(req: Request): string | undefined {
-  return (
+  const candidate = (
     req.headers['x-wallet-address'] as string ||
     req.headers['x-payer-address'] as string ||
+    (req.params as Record<string, string>)?.wallet ||
     req.query.wallet as string ||
+    req.query.recipient as string ||
+    req.query.depositor as string ||
     undefined
   );
+  if (!candidate) return undefined;
+  return /^0x[0-9a-fA-F]{40}$/.test(candidate) ? candidate.toLowerCase() : undefined;
 }
 
 function extractTrackingId(req: Request): string | undefined {
@@ -93,6 +98,20 @@ export const trackDiscovery = createHitTracker({
     if (path.includes('agent.json')) return 'agent.json';
     if (path.includes('x402.json')) return 'x402.json';
     return path.split('/').pop();
+  },
+});
+
+export const trackYieldPortal = createHitTracker({
+  endpointType: 'yield',
+  extractResourceId: (req) => {
+    const path = req.originalUrl.split('?')[0];
+    if (path.includes('/position/')) return 'position';
+    if (path.includes('/deposit-tx')) return 'deposit-tx';
+    if (path.includes('/rates')) return 'rates';
+    if (path.includes('/stats')) return 'stats';
+    if (path.includes('/contract')) return 'contract';
+    if (path.includes('/manifest') || path.includes('yield-portal.json')) return 'manifest';
+    return 'other';
   },
 });
 

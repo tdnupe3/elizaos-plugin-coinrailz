@@ -17,8 +17,12 @@ import { db } from '../db.js';
 import { agentYieldPositions } from '@shared/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { CreditsService } from '../services/creditsService.js';
+import { trackYieldPortal } from '../middleware/hitTracker';
 
 const router = Router();
+
+// Apply hit tracking to all yield routes
+router.use(trackYieldPortal);
 
 // ── Base Mainnet Contract Addresses ──────────────────────────────────────────
 

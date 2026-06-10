@@ -7,7 +7,9 @@
  * Fee collection:
  *  - Deposit: fee deducted from amountRaw; SPL Transfer + idempotent ATA-create injected
  *    into preLendingTxn so platform wallet receives fee before Kamino deposit.
- *  - Withdraw: fee deducted from requestedRaw; same pattern in postLendingTxn.
+ *  - Withdraw: flat 0.5% fee PLUS 15% performance fee on yield earned (high-water mark).
+ *    Performance fee = max(0, currentValue - depositedUsdc) * PERF_FEE_BPS / 10_000.
+ *    Both fees combined into a single SPL Transfer in postLendingTxn.
  *  - Platform wallet: derived from SOLANA_PRIVATE_KEY (same key used for all other Solana ops).
  *    Override with SOLANA_FEE_WALLET env var if a separate treasury address is preferred.
  *  - If neither env var is set: fee is still deducted from deposit amount but NOT swept on-chain.
@@ -35,11 +37,14 @@ import {
 export interface TxBundle {
   transactions:    Array<{ base64: string; description: string }>;
   requestedRaw:    string;
-  feeRaw:          string;
+  feeRaw:          string;         // total fee (flat + perf) in USDC lamports
+  flatFeeRaw:      string;         // flat 0.5% withdrawal fee
+  perfFeeRaw:      string;         // 15% performance fee on yield earned (0 if no yield)
+  yieldEarnedRaw:  string;         // gross yield = currentValue - deposited (0 if unknown)
   netAmountRaw:    string;
   feePct:          string;
-  quoteExpiresAt:  number;   // unix ms — blockhash valid ~90s
-  feeCollected:    boolean;  // true when a real SPL Transfer ix was included
+  quoteExpiresAt:  number;         // unix ms — blockhash valid ~90s
+  feeCollected:    boolean;        // true when a real SPL Transfer ix was included
   warning?:        string;
 }
 
@@ -220,15 +225,23 @@ export async function buildDepositTxBundle(
 /**
  * Build an unsigned withdraw transaction bundle.
  * amountUsdcRaw: raw USDC lamports, or the string 'MAX' to withdraw everything.
+ * depositedUsdcRaw: the wallet's original deposited amount from our DB (used for perf fee).
+ *
+ * Fee model:
+ *  - Flat:        0.5%  of requested withdrawal amount (WITHDRAW_FEE_BPS)
+ *  - Performance: 15%   of yield earned (current value − original deposit, high-water mark)
+ *                 Only charged when depositedUsdcRaw is provided and yield > 0.
+ *  Both fees are swept to the platform treasury in a single SPL Transfer instruction.
  *
  * Flow:
- *  1. preLendingTxn: [setup if any]
- *  2. lendingTxn:    Kamino withdrawal for requestedRaw
- *  3. postLendingTxn: [idempotent treasury ATA-create] + [USDC Transfer feeRaw → treasury] + [cleanup]
+ *  1. preLendingTxn:  [setup if any]
+ *  2. lendingTxn:     Kamino withdrawal for requestedRaw
+ *  3. postLendingTxn: [idempotent treasury ATA-create] + [USDC Transfer totalFeeRaw → treasury] + [cleanup]
  */
 export async function buildWithdrawTxBundle(
-  walletAddress: string,
-  amountUsdcRaw: number | 'MAX',
+  walletAddress:    string,
+  amountUsdcRaw:    number | 'MAX',
+  depositedUsdcRaw?: string,   // from DB: position.depositedUsdcRaw
 ): Promise<TxBundle> {
   const owner      = new PublicKey(walletAddress);
   const market     = await getKaminoMarket();
@@ -256,9 +269,35 @@ export async function buildWithdrawTxBundle(
 
   if (requestedRaw <= 0) throw new Error('Nothing to withdraw from this position');
 
-  const feeRaw = Math.floor((requestedRaw * SOLANA_YIELD_CONFIG.WITHDRAW_FEE_BPS) / 10_000);
-  const netRaw = requestedRaw - feeRaw;
-  const slot   = await connection.getSlot('confirmed');
+  // ── Fee calculation ─────────────────────────────────────────────────────────
+  // 1. Flat withdrawal fee (0.5%)
+  const flatFeeRaw = Math.floor((requestedRaw * SOLANA_YIELD_CONFIG.WITHDRAW_FEE_BPS) / 10_000);
+
+  // 2. Performance fee (15% of yield earned, high-water mark)
+  //    Only calculated when the deposited amount is known from DB.
+  //    yieldEarned = max(0, requestedRaw − depositedUsdcRaw)
+  let yieldEarnedRaw = 0;
+  let perfFeeRaw     = 0;
+
+  if (depositedUsdcRaw) {
+    const deposited = Number(depositedUsdcRaw);
+    if (!isNaN(deposited) && deposited > 0 && requestedRaw > deposited) {
+      yieldEarnedRaw = requestedRaw - deposited;
+      perfFeeRaw     = Math.floor((yieldEarnedRaw * SOLANA_YIELD_CONFIG.PERF_FEE_BPS) / 10_000);
+    }
+  }
+
+  const totalFeeRaw = flatFeeRaw + perfFeeRaw;
+  const netRaw      = requestedRaw - totalFeeRaw;
+  const slot        = await connection.getSlot('confirmed');
+
+  if (perfFeeRaw > 0) {
+    console.log(
+      `[txBuilder] Perf fee: yield_earned=${(yieldEarnedRaw / 1e6).toFixed(4)} USDC → ` +
+      `perf_fee=${(perfFeeRaw / 1e6).toFixed(4)} USDC (15%) + flat=${(flatFeeRaw / 1e6).toFixed(4)} USDC (0.5%) ` +
+      `= total_fee=${(totalFeeRaw / 1e6).toFixed(4)} USDC`,
+    );
+  }
 
   const action = await KaminoAction.buildWithdrawTxns(
     market,
@@ -270,11 +309,11 @@ export async function buildWithdrawTxBundle(
     300_000,
   );
 
-  const txns     = await action.getTransactions();
+  const txns      = await action.getTransactions();
   const blockhash = (await connection.getLatestBlockhash('confirmed')).blockhash;
 
-  // ── Inject idempotent ATA-create + fee transfer into postLendingTxn ──────────
-  const { ataCreateIx, transferIx, treasuryAta } = buildFeeInstructions(owner, feeRaw);
+  // ── Inject idempotent ATA-create + combined fee transfer into postLendingTxn ─
+  const { ataCreateIx, transferIx, treasuryAta } = buildFeeInstructions(owner, totalFeeRaw);
   let feeCollected = false;
 
   if (ataCreateIx && transferIx) {
@@ -285,7 +324,7 @@ export async function buildWithdrawTxBundle(
       txns.postLendingTxn = new Transaction().add(ataCreateIx, transferIx);
     }
     feeCollected = true;
-    console.log(`[txBuilder] Withdraw fee: ${feeRaw} USDC lamports → ${treasuryAta}`);
+    console.log(`[txBuilder] Withdraw total fee: ${totalFeeRaw} lamports → ${treasuryAta}`);
   }
 
   const collected = collectTxns(txns, owner, blockhash, [
@@ -298,12 +337,19 @@ export async function buildWithdrawTxBundle(
     throw new Error('Kamino returned no transactions for withdrawal');
   }
 
+  const effectiveFeePct = requestedRaw > 0
+    ? ((totalFeeRaw / requestedRaw) * 100).toFixed(2)
+    : SOLANA_YIELD_CONFIG.WITHDRAW_FEE_BPS.toString();
+
   return {
     transactions:   collected,
     requestedRaw:   requestedRaw.toString(),
-    feeRaw:         feeRaw.toString(),
+    feeRaw:         totalFeeRaw.toString(),
+    flatFeeRaw:     flatFeeRaw.toString(),
+    perfFeeRaw:     perfFeeRaw.toString(),
+    yieldEarnedRaw: yieldEarnedRaw.toString(),
     netAmountRaw:   netRaw.toString(),
-    feePct:         (SOLANA_YIELD_CONFIG.WITHDRAW_FEE_BPS / 100).toFixed(2),
+    feePct:         effectiveFeePct,
     quoteExpiresAt: Date.now() + 60_000,
     feeCollected,
   };

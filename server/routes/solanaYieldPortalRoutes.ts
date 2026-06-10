@@ -323,17 +323,41 @@ router.post('/withdraw-tx', async (req: Request, res: Response) => {
   }
 
   try {
-    const bundle = await buildWithdrawTxBundle(wallet, amountParam);
+    // Fetch the wallet's recorded deposit amount from DB — needed for perf fee calculation.
+    // Non-fatal: if not found (new wallet, or DB miss), perf fee is simply not charged.
+    let depositedUsdcRaw: string | undefined;
+    try {
+      const activePos = await db
+        .select()
+        .from(solanaYieldPositions)
+        .where(and(eq(solanaYieldPositions.wallet, wallet), eq(solanaYieldPositions.status, 'active')))
+        .limit(1);
+      if (activePos.length > 0 && activePos[0].depositedUsdcRaw && activePos[0].depositedUsdcRaw !== '0') {
+        depositedUsdcRaw = activePos[0].depositedUsdcRaw;
+      }
+    } catch { /* non-fatal — proceed without perf fee */ }
+
+    const bundle = await buildWithdrawTxBundle(wallet, amountParam, depositedUsdcRaw);
 
     await db.insert(solanaYieldEvents).values({
       wallet,
       eventType:     'withdraw_intent',
       amountUsdcRaw: bundle.requestedRaw,
       feeUsdcRaw:    bundle.feeRaw,
+      perfFeeUsdcRaw: bundle.perfFeeRaw !== '0' ? bundle.perfFeeRaw : null,
       status:        'pending',
     }).catch(() => {});
 
-    return res.json({ success: true, ...bundle });
+    return res.json({
+      success:        true,
+      fee_breakdown: {
+        flat_fee_usdc:  (Number(bundle.flatFeeRaw) / 1e6).toFixed(6),
+        perf_fee_usdc:  (Number(bundle.perfFeeRaw) / 1e6).toFixed(6),
+        yield_earned_usdc: (Number(bundle.yieldEarnedRaw) / 1e6).toFixed(6),
+        total_fee_usdc: (Number(bundle.feeRaw) / 1e6).toFixed(6),
+      },
+      ...bundle,
+    });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }

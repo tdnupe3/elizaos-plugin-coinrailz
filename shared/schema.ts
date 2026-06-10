@@ -6676,7 +6676,8 @@ export const solanaYieldEvents = pgTable('solana_yield_events', {
   amountUsdcRaw:   varchar('amount_usdc_raw', { length: 40 }),
   txSignature:     varchar('tx_signature', { length: 128 }),
   slot:            bigint('slot', { mode: 'number' }),
-  feeUsdcRaw:      varchar('fee_usdc_raw', { length: 40 }),
+  feeUsdcRaw:      varchar('fee_usdc_raw', { length: 40 }),      // total fee (flat + perf)
+  perfFeeUsdcRaw:  varchar('perf_fee_usdc_raw', { length: 40 }), // 15% perf fee portion (0 if no yield)
   status:          varchar('status', { length: 30 }).notNull().default('pending'), // pending | confirmed | pending_verification | failed
   errorMessage:    text('error_message'),
   idempotencyKey:  varchar('idempotency_key', { length: 128 }),  // optional; prevents double-fee on deposit retry

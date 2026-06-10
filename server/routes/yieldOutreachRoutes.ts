@@ -101,4 +101,49 @@ router.post('/send', requireAdmin, async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * POST /api/admin/yield-outreach/send-wallets
+ *
+ * TARGETED SEND — sends yield vault outreach to an explicit wallet list.
+ * Use for high-value wallets missed by the LIMIT-30 discovery batch, or
+ * to retry wallets that failed in a prior campaign.
+ *
+ * Body: { wallets: string[], campaignId?: string }
+ * wallets: array of 0x-prefixed EOA addresses on Base
+ */
+router.post('/send-wallets', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { wallets, campaignId: bodyId } = req.body as { wallets?: string[]; campaignId?: string };
+
+    if (!wallets || !Array.isArray(wallets) || wallets.length === 0) {
+      return res.status(400).json({ error: 'Body must include non-empty wallets array' });
+    }
+    if (wallets.length > 100) {
+      return res.status(400).json({ error: 'Max 100 wallets per targeted send' });
+    }
+
+    const campaignId = bodyId || `yield-targeted-${nanoid(8)}`;
+    console.log(`🎯 Targeted yield send starting — campaign: ${campaignId} | wallets: ${wallets.length}`);
+
+    const result = await yieldOutreachService.sendToWallets(wallets, campaignId);
+
+    res.json({
+      success: true,
+      mode: 'targeted',
+      campaignId: result.campaignId,
+      stats: result.stats,
+      results: result.onchainResults.map(r => ({
+        wallet: r.wallet,
+        success: r.success,
+        txHash: r.txHash,
+        explorerUrl: r.txHash ? `https://basescan.org/tx/${r.txHash}` : undefined,
+        error: r.error,
+      })),
+    });
+  } catch (err: any) {
+    console.error('❌ Targeted yield send failed:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 export default router;

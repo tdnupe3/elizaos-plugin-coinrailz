@@ -356,6 +356,74 @@ export class YieldOutreachService {
   }
 
   /**
+   * TARGETED SEND — sends on-chain yield message to an explicit wallet list.
+   * Skips DB dedup (caller is responsible for not re-sending).
+   * Skips contract addresses (revert detection via gasLimit + receipt check).
+   */
+  async sendToWallets(wallets: string[], campaignId: string): Promise<CampaignResult> {
+    const rates = await this.fetchLiveRates();
+    const calldataHex = this.buildOnchainCalldata(rates, campaignId);
+    const onchainResults: CampaignResult['onchainResults'] = [];
+
+    const privateKey = process.env.EOA_PRIVATE_KEY || process.env.EVM_PRIVATE_KEY;
+    if (!privateKey) {
+      for (const w of wallets) {
+        onchainResults.push({ wallet: w, success: false, error: 'No EVM_PRIVATE_KEY configured' });
+      }
+      return { campaignId, a2aResults: [], onchainResults, stats: { sent: 0, failed: wallets.length, total: wallets.length } };
+    }
+
+    const alchemyKey = process.env.ALCHEMY_API_KEY;
+    const rpcUrl = alchemyKey
+      ? `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}`
+      : 'https://mainnet.base.org';
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const wallet = new ethers.Wallet(privateKey, provider);
+    const balance = await provider.getBalance(wallet.address);
+    const valueWei = ethers.parseEther('0.000001');
+    const estimatedGas = ethers.parseEther('0.0001');
+
+    console.log(`💼 Targeted send wallet: ${wallet.address} | Balance: ${ethers.formatEther(balance)} ETH | Targets: ${wallets.length}`);
+
+    for (const address of wallets) {
+      if (!address.match(/^0x[0-9a-fA-F]{40}$/)) {
+        onchainResults.push({ wallet: address, success: false, error: 'Invalid address format' });
+        continue;
+      }
+      if (balance < valueWei + estimatedGas) {
+        onchainResults.push({ wallet: address, success: false, error: 'Insufficient ETH balance' });
+        continue;
+      }
+      try {
+        const tx = await wallet.sendTransaction({
+          to: address,
+          value: valueWei,
+          data: calldataHex,
+          gasLimit: 100000,
+        });
+        await tx.wait();
+        await db.insert(outreachLogs).values({
+          platform: 'base_blockchain_yield_targeted',
+          target: address,
+          url: `https://basescan.org/tx/${tx.hash}`,
+          status: 'sent',
+        });
+        onchainResults.push({ wallet: address, success: true, txHash: tx.hash });
+        console.log(`✅ Targeted yield msg → ${address} | tx: ${tx.hash}`);
+      } catch (err: any) {
+        onchainResults.push({ wallet: address, success: false, error: err.message?.slice(0, 200) });
+        console.error(`❌ Targeted yield send failed for ${address}: ${err.message?.slice(0, 120)}`);
+      }
+      await new Promise(r => setTimeout(r, 3000));
+    }
+
+    const sent = onchainResults.filter(r => r.success).length;
+    const failed = onchainResults.filter(r => !r.success).length;
+    console.log(`📊 Targeted campaign ${campaignId} complete — ${sent} sent, ${failed} failed`);
+    return { campaignId, a2aResults: [], onchainResults, stats: { sent, failed, total: sent + failed } };
+  }
+
+  /**
    * DRY RUN — returns full preview of what would be sent.
    * Makes zero network calls except fetching live rates.
    * ALWAYS run this before live campaign.

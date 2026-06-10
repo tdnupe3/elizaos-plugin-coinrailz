@@ -3,10 +3,16 @@
  * ISOLATED: no shared code with Base/EVM vault.
  *
  * Returns base64-encoded legacy Transactions that the agent signs + submits.
- * Fee is deducted from the deposit amount (not charged separately).
+ * Fee is deducted from the deposit amount AND a real SPL Transfer instruction is
+ * appended to collect it into SOLANA_FEE_WALLET (if env var is set).
  */
 
 import { PublicKey, Transaction } from '@solana/web3.js';
+import {
+  createTransferInstruction,
+  getAssociatedTokenAddressSync,
+  TOKEN_PROGRAM_ID,
+} from '@solana/spl-token';
 import { KaminoAction, VanillaObligation } from '@kamino-finance/klend-sdk';
 import BN from 'bn.js';
 import { getKaminoMarket, getSolanaYieldConnection, SOLANA_YIELD_CONFIG } from './kaminoClient.js';
@@ -20,6 +26,7 @@ export interface TxBundle {
   netAmountRaw:    string;
   feePct:          string;
   quoteExpiresAt:  number;   // unix ms — blockhash valid for ~90s
+  feeCollected:    boolean;  // true if a fee transfer instruction was included
   warning?:        string;
 }
 
@@ -49,11 +56,50 @@ function collectTxns(
   return result;
 }
 
+/**
+ * Build a fee Transfer instruction (USDC SPL token) from depositor → platform treasury.
+ * Returns null if SOLANA_FEE_WALLET is not configured (fee still deducted from deposit amount,
+ * but the tokens remain in the depositor's wallet rather than being swept to treasury).
+ */
+function buildFeeTransferInstruction(
+  depositorOwner: PublicKey,
+  feeRaw: number,
+): { ix: ReturnType<typeof createTransferInstruction> | null; treasuryAta: string | null } {
+  const feeWalletStr = process.env.SOLANA_FEE_WALLET;
+  if (!feeWalletStr || feeRaw === 0) return { ix: null, treasuryAta: null };
+
+  try {
+    const feeWallet    = new PublicKey(feeWalletStr);
+    const usdcMint     = SOLANA_YIELD_CONFIG.USDC_MINT;
+
+    const depositorAta = getAssociatedTokenAddressSync(usdcMint, depositorOwner, false, TOKEN_PROGRAM_ID);
+    const treasuryAta  = getAssociatedTokenAddressSync(usdcMint, feeWallet, false, TOKEN_PROGRAM_ID);
+
+    const ix = createTransferInstruction(
+      depositorAta,
+      treasuryAta,
+      depositorOwner,
+      BigInt(feeRaw),
+      [],
+      TOKEN_PROGRAM_ID,
+    );
+
+    return { ix, treasuryAta: treasuryAta.toString() };
+  } catch (err: any) {
+    console.warn('[txBuilder] Fee transfer instruction failed to build (non-fatal):', err.message);
+    return { ix: null, treasuryAta: null };
+  }
+}
+
 // ── Deposit ───────────────────────────────────────────────────────────────────
 
 /**
  * Build an unsigned deposit transaction bundle.
  * amountUsdcRaw: raw USDC lamports (6 decimals), e.g. 10_000_000 = $10
+ *
+ * Flow:
+ *  1. Optional fee Transfer ix appended to preLendingTxn (if SOLANA_FEE_WALLET is set)
+ *  2. Kamino deposit for netRaw = amountRaw - feeRaw
  */
 export async function buildDepositTxBundle(
   walletAddress: string,
@@ -87,12 +133,41 @@ export async function buildDepositTxBundle(
     300_000,
   );
 
-  const txns     = await action.getTransactions();
-  const blockhash = (await connection.getLatestBlockhash('confirmed')).blockhash;
-  const collected = collectTxns(txns, owner, blockhash, ['setup', 'deposit', 'cleanup']);
+  const txns      = await action.getTransactions();
+  const blockhash  = (await connection.getLatestBlockhash('confirmed')).blockhash;
+
+  // ── Inject fee transfer into preLendingTxn (or create a new tx if no pre-tx) ──
+  const { ix: feeIx } = buildFeeTransferInstruction(owner, feeRaw);
+  let feeCollected = false;
+
+  if (feeIx && feeRaw > 0) {
+    if (txns.preLendingTxn) {
+      txns.preLendingTxn.add(feeIx);
+      feeCollected = true;
+    } else {
+      const feeTx = new Transaction().add(feeIx);
+      feeTx.recentBlockhash = blockhash;
+      feeTx.feePayer        = owner;
+      txns.preLendingTxn    = feeTx;
+      feeCollected          = true;
+    }
+  }
+
+  const collected = collectTxns(txns, owner, blockhash, [
+    'fee-transfer + setup',
+    'deposit',
+    'cleanup',
+  ]);
 
   if (collected.length === 0) {
     throw new Error('Kamino returned no transactions for deposit');
+  }
+
+  const warnings: string[] = [];
+  if (!feeCollected && feeRaw > 0) {
+    warnings.push(
+      `Platform fee of ${feeRaw} USDC lamports deducted from deposit but not swept to treasury — set SOLANA_FEE_WALLET env var to enable on-chain collection`,
+    );
   }
 
   return {
@@ -102,6 +177,8 @@ export async function buildDepositTxBundle(
     netAmountRaw:   netRaw.toString(),
     feePct:         (SOLANA_YIELD_CONFIG.DEPOSIT_FEE_BPS / 100).toFixed(2),
     quoteExpiresAt: Date.now() + 60_000,
+    feeCollected,
+    warning:        warnings.length > 0 ? warnings.join('; ') : undefined,
   };
 }
 
@@ -110,6 +187,10 @@ export async function buildDepositTxBundle(
 /**
  * Build an unsigned withdraw transaction bundle.
  * amountUsdcRaw: raw USDC lamports, or the string 'MAX' to withdraw everything.
+ *
+ * Flow:
+ *  1. Kamino withdrawal for full requestedRaw
+ *  2. Optional fee Transfer ix in postLendingTxn to sweep feeRaw → treasury
  */
 export async function buildWithdrawTxBundle(
   walletAddress: string,
@@ -157,7 +238,29 @@ export async function buildWithdrawTxBundle(
 
   const txns      = await action.getTransactions();
   const blockhash  = (await connection.getLatestBlockhash('confirmed')).blockhash;
-  const collected  = collectTxns(txns, owner, blockhash, ['setup', 'withdraw', 'cleanup']);
+
+  // ── Inject fee transfer into postLendingTxn after withdrawal ────────────────
+  const { ix: feeIx } = buildFeeTransferInstruction(owner, feeRaw);
+  let feeCollected = false;
+
+  if (feeIx && feeRaw > 0) {
+    if (txns.postLendingTxn) {
+      txns.postLendingTxn.add(feeIx);
+      feeCollected = true;
+    } else {
+      const feeTx = new Transaction().add(feeIx);
+      feeTx.recentBlockhash = blockhash;
+      feeTx.feePayer        = owner;
+      txns.postLendingTxn   = feeTx;
+      feeCollected          = true;
+    }
+  }
+
+  const collected  = collectTxns(txns, owner, blockhash, [
+    'setup',
+    'withdraw',
+    'cleanup + fee-transfer',
+  ]);
 
   if (collected.length === 0) {
     throw new Error('Kamino returned no transactions for withdrawal');
@@ -170,5 +273,6 @@ export async function buildWithdrawTxBundle(
     netAmountRaw:   netRaw.toString(),
     feePct:         (SOLANA_YIELD_CONFIG.WITHDRAW_FEE_BPS / 100).toFixed(2),
     quoteExpiresAt: Date.now() + 60_000,
+    feeCollected,
   };
 }

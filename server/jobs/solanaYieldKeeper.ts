@@ -7,6 +7,8 @@
  *   - Reserve health checks (utilization, liquidity)
  *   - Pause-flag monitoring
  *   - Position valuation refresh for active wallets
+ *
+ * Uses recursive setTimeout (not setInterval) so cycles never overlap.
  */
 
 import { dialectMarketsService } from '../services/dialectMarketsService.js';
@@ -17,7 +19,8 @@ import { eq } from 'drizzle-orm';
 
 const INTERVAL_MS = 60 * 60 * 1_000; // 1 hour
 
-let _keeperInterval: ReturnType<typeof setInterval> | null = null;
+let _keeperRunning = false;
+let _keeperTimeout: ReturnType<typeof setTimeout> | null = null;
 
 async function runKeeperCycle(): Promise<void> {
   const isPaused = process.env.SOLANA_YIELD_PAUSED === 'true';
@@ -46,9 +49,9 @@ async function runKeeperCycle(): Promise<void> {
     const apyBps  = apyPct != null ? Math.round(apyPct * 100) : 0;
 
     // ── 2. Force-refresh on-chain market data ─────────────────────────────────
-    let reserveAddr  = 'unknown';
-    let tvlUsdc      = 0;
-    let liquidityUsdc = 0;
+    let reserveAddr    = 'unknown';
+    let tvlUsdc        = 0;
+    let liquidityUsdc  = 0;
     let utilizationPct = 0;
 
     try {
@@ -94,7 +97,6 @@ async function runKeeperCycle(): Promise<void> {
     }
 
     // ── 5. Refresh last_valuation_usdc for active positions ───────────────────
-    // This is best-effort — position value will be re-read on-demand via readPosition()
     const activePositions = await db
       .select()
       .from(solanaYieldPositions)
@@ -125,8 +127,24 @@ async function runKeeperCycle(): Promise<void> {
   }
 }
 
+// ── Recursive scheduler — ensures no cycle overlap ───────────────────────────
+
+function scheduleNextCycle(): void {
+  if (!_keeperRunning) return;
+
+  _keeperTimeout = setTimeout(async () => {
+    try {
+      await runKeeperCycle();
+    } catch (err: any) {
+      console.warn('[SolanaYieldKeeper] Uncaught cycle error:', err.message);
+    } finally {
+      scheduleNextCycle();
+    }
+  }, INTERVAL_MS);
+}
+
 export function startSolanaYieldKeeper(): void {
-  if (_keeperInterval) {
+  if (_keeperRunning) {
     console.warn('[SolanaYieldKeeper] Already running — skipping duplicate start');
     return;
   }
@@ -137,26 +155,22 @@ export function startSolanaYieldKeeper(): void {
     return;
   }
 
-  console.log(`[SolanaYieldKeeper] Starting (interval: ${INTERVAL_MS / 1000 / 60}min)`);
+  _keeperRunning = true;
+  console.log(`[SolanaYieldKeeper] Starting (interval: ${INTERVAL_MS / 1000 / 60}min, recursive-setTimeout)`);
 
-  // Run immediately on start, then on interval
-  runKeeperCycle().catch(err =>
-    console.warn('[SolanaYieldKeeper] Initial cycle failed (non-fatal):', err.message),
-  );
+  // Run immediately on start, then schedule recursive chain
+  runKeeperCycle()
+    .catch(err => console.warn('[SolanaYieldKeeper] Initial cycle failed (non-fatal):', err.message))
+    .finally(() => scheduleNextCycle());
 
-  _keeperInterval = setInterval(() => {
-    runKeeperCycle().catch(err =>
-      console.warn('[SolanaYieldKeeper] Interval cycle failed (non-fatal):', err.message),
-    );
-  }, INTERVAL_MS);
-
-  console.log('[SolanaYieldKeeper] Keeper registered (1h interval)');
+  console.log('[SolanaYieldKeeper] Keeper registered (1h recursive interval)');
 }
 
 export function stopSolanaYieldKeeper(): void {
-  if (_keeperInterval) {
-    clearInterval(_keeperInterval);
-    _keeperInterval = null;
-    console.log('[SolanaYieldKeeper] Stopped');
+  _keeperRunning = false;
+  if (_keeperTimeout) {
+    clearTimeout(_keeperTimeout);
+    _keeperTimeout = null;
   }
+  console.log('[SolanaYieldKeeper] Stopped');
 }

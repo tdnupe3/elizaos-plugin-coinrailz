@@ -8,3 +8,4 @@
 - [API route registration — pre-static required](api-route-registration.md) — new API routes MUST be registered in the pre-static block (around line 3860 of appMain.ts, before setupVite). Post-listen routes are shadowed by Vite's wildcard catch-all `app.use("*", ...)` in server/vite.ts and will return HTML instead of JSON.
 - [Yield Vault — live mainnet deployment](yield-vault-mainnet.md) — v2.1 on Base @ 0x86e2508ca; `expectedSupplyAssets` doesn't exist on Morpho singleton — use shares math; `ownerRescueMorpho()` added as escape hatch
 - [Yield vault agent accounts](yield-vault-agent-accounts.md) — custodial API-key yield: credits→position→withdraw, no wallet needed; wallet path via deposit-tx endpoint
+- [Solana USDC Yield Portal](solana-yield-portal.md) — Kamino v1 non-custodial; needs HELIUS_API_KEY + SOLANA_FEE_WALLET + SOLANA_YIELD_ENABLED=true to go live; perf fee not yet impl

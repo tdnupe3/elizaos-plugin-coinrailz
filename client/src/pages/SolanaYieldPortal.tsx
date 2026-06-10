@@ -93,7 +93,7 @@ export default function SolanaYieldPortal() {
 
   // Position lookup
   const { data: positionData, isLoading: positionLoading } = useQuery<PositionResponse>({
-    queryKey: ["/api/solana-yield/position", lookedUpWallet],
+    queryKey: [`/api/solana-yield/position/${lookedUpWallet}`],
     enabled: !!lookedUpWallet,
     retry: false,
   });

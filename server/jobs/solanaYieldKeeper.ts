@@ -16,7 +16,7 @@ import { dialectMarketsService } from '../services/dialectMarketsService.js';
 import { getKaminoMarket, invalidateMarketCache, SOLANA_YIELD_CONFIG, getSolanaYieldConnection } from '../services/solanaYield/kaminoClient.js';
 import { db } from '../db.js';
 import { solanaYieldRateSnapshots, solanaYieldPositions, solanaYieldEvents } from '@shared/schema';
-import { eq, and, gte } from 'drizzle-orm';
+import { eq, and, gte, lt, or, isNull, isNotNull, sql } from 'drizzle-orm';
 
 const INTERVAL_MS = 60 * 60 * 1_000; // 1 hour
 
@@ -243,6 +243,59 @@ async function runKeeperCycle(): Promise<void> {
       }
     } catch (reconcileErr: any) {
       console.warn('[SolanaYieldKeeper] Reconciliation step failed (non-fatal):', reconcileErr.message);
+    }
+
+    // ── 7. Give-up sweep: mark stuck pending_verification events as failed ────
+    // Any event still pending_verification after 4 hours will never resolve
+    // (fake sig, pruned node, lost tx). Mark failed so they stop looping.
+    try {
+      const giveUpCutoff = new Date(Date.now() - 4 * 60 * 60 * 1_000);
+      const gaveUp = await db
+        .update(solanaYieldEvents)
+        .set({
+          status:       'failed',
+          errorMessage: 'Keeper give-up: signature unverifiable after 4 hours — likely invalid or dropped transaction.',
+        })
+        .where(and(
+          eq(solanaYieldEvents.status, 'pending_verification'),
+          lt(solanaYieldEvents.createdAt, giveUpCutoff),
+        ))
+        .returning({ id: solanaYieldEvents.id });
+
+      if (gaveUp.length > 0) {
+        console.warn(`[SolanaYieldKeeper] ⚠️  Gave up on ${gaveUp.length} unresolvable pending_verification event(s) — marked failed`);
+      }
+    } catch (giveUpErr: any) {
+      console.warn('[SolanaYieldKeeper] Give-up sweep failed (non-fatal):', giveUpErr.message);
+    }
+
+    // ── 8. Intent expiry sweep: expire stale deposit intents ─────────────────
+    // deposit_intent rows stuck pending after bundle_expires_at (or 30 min
+    // for intents created without an expiry) are dead — the unsigned tx was
+    // never broadcast. Mark them expired so the ledger stays clean.
+    try {
+      const fallbackExpiry = new Date(Date.now() - 30 * 60 * 1_000);
+      const expired = await db
+        .update(solanaYieldEvents)
+        .set({
+          status:       'expired',
+          errorMessage: 'Keeper expiry sweep: deposit intent never broadcast within allowed window.',
+        })
+        .where(and(
+          eq(solanaYieldEvents.eventType, 'deposit_intent'),
+          eq(solanaYieldEvents.status, 'pending'),
+          or(
+            and(isNotNull(solanaYieldEvents.bundleExpiresAt), lt(solanaYieldEvents.bundleExpiresAt, sql`NOW()`)),
+            and(isNull(solanaYieldEvents.bundleExpiresAt),    lt(solanaYieldEvents.createdAt, fallbackExpiry)),
+          ),
+        ))
+        .returning({ id: solanaYieldEvents.id });
+
+      if (expired.length > 0) {
+        console.log(`[SolanaYieldKeeper] Expired ${expired.length} stale deposit intent(s)`);
+      }
+    } catch (expiryErr: any) {
+      console.warn('[SolanaYieldKeeper] Intent expiry sweep failed (non-fatal):', expiryErr.message);
     }
 
   } catch (err: any) {

@@ -467,7 +467,7 @@ router.get('/position/:wallet', async (req: Request, res: Response) => {
  */
 router.get('/contract', async (req: Request, res: Response) => {
   res.setHeader('Link', '</api/yield/manifest>; rel="manifest", </api/yield/deposit-tx?preset=100&recipient={wallet}>; rel="next"');
-  res.setHeader('X-Agent-Tip', 'Use GET /api/yield/deposit-tx for pre-built calldata — no ABI parsing required');
+  res.setHeader('X-Agent-Tip', 'Use GET /api/yield/deposit-tx for pre-built calldata - no ABI parsing required');
   // Load ABI from compiled artifact if available
   let vaultAbi: unknown[] | null = null;
   try {

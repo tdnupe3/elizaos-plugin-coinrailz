@@ -2980,6 +2980,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       pushNotifications: false,
       stateTransitionHistory: true,
       x402Payments: true,
+      serviceCategories: ["Execution", "Treasury Management", "Market Intelligence", "Prediction Markets", "Satellite Intelligence", "IoT & DePIN", "AI Inference", "Real Estate", "Identity"],
       x402: {
         protocolVersion: "2.12.0",
         facilitatorUrl: "https://api.cdp.coinbase.com/platform/v2/x402",
@@ -4021,6 +4022,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     },
     networks: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"],
     walletProviders: ["coinbase-cdp", "moonpay-agents", "any-evm"],
+    categories: ["Execution", "Treasury Management", "Market Intelligence", "Prediction Markets", "Satellite Intelligence", "IoT & DePIN", "AI Inference", "Real Estate", "Identity"],
     facilitators: [
       "https://api.cdp.coinbase.com/platform/v2/x402",
       "https://x402.dexter.cash"

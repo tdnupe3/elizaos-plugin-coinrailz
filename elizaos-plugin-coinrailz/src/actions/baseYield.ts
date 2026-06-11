@@ -51,7 +51,7 @@ export const baseYieldAction: Action = {
     'COINRAILZ_VAULT',
   ],
   description:
-    'Access the Coin Railz Base USDC Yield Vault (ERC-4626) — auto-routes USDC across Aave v3, Compound v3, and Morpho for the best APY on Base. Get live rates, check your crUSDC position, and build deposit/redeem transactions without needing to parse an ABI.',
+    'Yield-While-Trading on Base — park idle USDC between trades in the ERC-4626 auto-routing vault (Aave v3/Compound v3/Morpho). Get live APY rates, check positions, and build deposit/redeem transactions. No lockup; redeem when trade opportunities appear.',
 
   examples: [
     [

@@ -6,11 +6,18 @@ import { serviceRegistryProvider } from './providers/serviceRegistry';
 
 export const coinrailzPlugin: Plugin = {
   name: 'coinrailz',
-  description: 'Coin Railz — Agent Treasury + Payments. USDC yield on Base (ERC-4626 vault, auto-routing Aave/Compound/Morpho) + Solana (non-custodial Kamino portal), plus 65 x402 pay-per-call services for data, inference, IoT, and execution.',
+  description: 'Coin Railz (ElizaOS PR #8382 merged) — Agent Treasury + Payments. Enable Yield-While-Trading on Base (ERC-4626, Aave/Compound/Morpho) + Solana (non-custodial Kamino). Plus 65 x402 pay-per-call services: data, AI inference, IoT, satellite, and execution. AgentKit & Coinbase Agentic Wallet compatible.',
   actions:    [payForServiceAction, baseYieldAction, solanaYieldAction],
   evaluators: [],
   providers:  [serviceRegistryProvider],
   services:   [],
+};
+
+// AgentKit compatibility export — allows coinbase/agentkit consumers to import actions directly
+export const agentKitActions = {
+  yieldBase:   baseYieldAction,
+  yieldSolana: solanaYieldAction,
+  payService:  payForServiceAction,
 };
 
 export default coinrailzPlugin;

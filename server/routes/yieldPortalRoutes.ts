@@ -555,7 +555,7 @@ router.get('/manifest', async (req: Request, res: Response) => {
 
     res.json({
       name:        'CoinRailz AI Agent Yield Portal',
-      description: 'Non-custodial USDC yield vault for AI agents. Auto-routes to highest APY across Aave v3, Compound v3, and Morpho Blue on Base.',
+      description: 'Balance optimization for autonomous trading agents. Park USDC between trades on Base and earn yield automatically — auto-routes to highest APY across Aave v3, Compound v3, and Morpho Blue (ERC-4626). No lockup. Near-instant redemption when trade opportunities arise.',
       version:     '1.0.0',
       type:        'yield-vault',
       network:     'base',

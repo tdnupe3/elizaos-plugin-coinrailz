@@ -43,7 +43,7 @@ export const solanaYieldAction: Action = {
     'CHECK_SOLANA_YIELD',
   ],
   description:
-    'Access the Coin Railz Solana USDC Yield Portal — earn non-custodial yield on Kamino Lending, check live APY/TVL, create deposit transaction bundles, and manage positions. Agent signs transactions locally; Coin Railz never holds funds.',
+    'Yield-While-Trading on Solana — park idle USDC between trades in Kamino Lending (~3.4% APY, $118M TVL). Non-custodial: agent signs locally, Coin Railz never holds funds. Check live APY, create deposit bundles, withdraw instantly when needed.',
 
   examples: [
     [

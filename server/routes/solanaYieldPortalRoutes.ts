@@ -534,7 +534,7 @@ router.get('/manifest', (_req: Request, res: Response) => {
   const baseUrl = process.env.PUBLIC_URL || 'https://coinrailz.com';
   res.json({
     name:         'Coin Railz — Solana USDC Yield Portal',
-    description:  'Automated USDC yield for AI agents on Solana. Deposit USDC into Kamino Finance, earn real APY. 1-API-call transaction building. Optimized for ElizaOS agents.',
+    description:  'Non-custodial yield for autonomous Solana trading agents. Earn real APY via Kamino Finance — no lockup, no custody. Single-call TX-building: deposit USDC between trades, withdraw when execution is needed. Agent signs transactions locally; Coin Railz never holds funds.',
     chain:        'solana',
     protocol:     'Kamino Lending',
     version:      '1.0.0',

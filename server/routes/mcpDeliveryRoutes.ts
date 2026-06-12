@@ -65,6 +65,127 @@ function serviceToMcpTool(s: CanonicalService) {
 }
 
 // ---------------------------------------------------------------------------
+// POST /mcp  — Streamable HTTP MCP transport (JSON-RPC 2.0)
+// Smithery and other MCP gateways probe this endpoint for tool discovery.
+// Handles: initialize, tools/list, tools/call, resources/list, prompts/list
+// ---------------------------------------------------------------------------
+router.post('/', async (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json');
+
+  const { jsonrpc, id, method, params } = req.body ?? {};
+
+  if (jsonrpc !== '2.0' || !method) {
+    return res.status(400).json({
+      jsonrpc: '2.0',
+      id: id ?? null,
+      error: { code: -32600, message: 'Invalid Request' },
+    });
+  }
+
+  if (method === 'initialize') {
+    return res.json({
+      jsonrpc: '2.0',
+      id,
+      result: {
+        protocolVersion: MCP_VERSION,
+        capabilities: { tools: {}, resources: {}, prompts: {} },
+        serverInfo: {
+          name: 'coinrailz-mcp',
+          version: '1.1.0',
+          description: '63 x402 micropayment services via USDC — crypto analytics, NASA/ESA satellite data, IoT sensors, AI inference, and prediction markets.',
+        },
+      },
+    });
+  }
+
+  if (method === 'tools/list') {
+    const services = getCanonicalServices();
+    const tools = services.map(serviceToMcpTool);
+    return res.json({
+      jsonrpc: '2.0',
+      id,
+      result: { tools },
+    });
+  }
+
+  if (method === 'tools/call') {
+    const { name, arguments: args = {} } = params ?? {};
+    if (!name) {
+      return res.status(400).json({
+        jsonrpc: '2.0', id,
+        error: { code: -32602, message: 'Missing tool name' },
+      });
+    }
+
+    const serviceId = name.replace(/^coinrailz_/, '').replace(/_/g, '-');
+    const service   = getCanonicalServices().find(s => s.id === serviceId);
+
+    if (!service) {
+      return res.status(404).json({
+        jsonrpc: '2.0', id,
+        error: { code: -32601, message: `Unknown tool: ${name}` },
+      });
+    }
+
+    const apiKey     = extractApiKey(req);
+    const x402Header = req.headers['x-payment'] as string | undefined;
+
+    if (!apiKey && !x402Header) {
+      return res.status(402).json({
+        jsonrpc: '2.0', id,
+        error: {
+          code: 402,
+          message: 'Payment required. Add X-API-KEY (prepaid credits) or X-PAYMENT (x402).',
+          details: { trialKey: '/api/m2m/credits/trial', priceUsd: service.priceUsd },
+        },
+      });
+    }
+
+    try {
+      const forwardHeaders: Record<string, string> = { 'content-type': 'application/json' };
+      if (apiKey)     forwardHeaders['x-api-key'] = apiKey;
+      if (x402Header) forwardHeaders['x-payment']  = x402Header;
+
+      const baseUrl    = `http://localhost:${process.env.PORT || 5000}`;
+      const upstream   = await fetch(`${baseUrl}${service.endpoint}`, {
+        method:  service.method,
+        headers: forwardHeaders,
+        body:    service.method !== 'GET' ? JSON.stringify(args) : undefined,
+      });
+
+      const ct = upstream.headers.get('content-type') ?? '';
+      const result = ct.includes('application/json') ? await upstream.json() : { text: await upstream.text() };
+
+      if (!upstream.ok) {
+        return res.status(upstream.status).json({
+          jsonrpc: '2.0', id,
+          error: { code: -32603, message: 'Upstream error', details: result },
+        });
+      }
+
+      return res.json({
+        jsonrpc: '2.0', id,
+        result: { content: [{ type: 'text', text: JSON.stringify(result) }] },
+      });
+    } catch (err: any) {
+      return res.status(500).json({
+        jsonrpc: '2.0', id,
+        error: { code: -32603, message: 'Internal error' },
+      });
+    }
+  }
+
+  if (method === 'resources/list' || method === 'prompts/list') {
+    return res.json({ jsonrpc: '2.0', id, result: { [method.split('/')[0]]: [] } });
+  }
+
+  return res.status(404).json({
+    jsonrpc: '2.0', id,
+    error: { code: -32601, message: `Method not found: ${method}` },
+  });
+});
+
+// ---------------------------------------------------------------------------
 // GET /mcp/tools/list
 // No auth required — tool discovery is public (price is in description)
 // ---------------------------------------------------------------------------

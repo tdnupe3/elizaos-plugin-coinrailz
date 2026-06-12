@@ -1,6 +1,6 @@
 # Coin Railz MCP Server
 
-<!-- mcp-name: io.github.coinrailz/coinrailz -->
+<!-- mcp-name: io.github.tdnupe3/coinrailz -->
 
 [![PyPI version](https://badge.fury.io/py/coinrailz-mcp.svg)](https://pypi.org/project/coinrailz-mcp/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -225,7 +225,7 @@ Contributions welcome! Please open an issue or submit a PR.
 ## Support
 
 - Documentation: https://coinrailz.com/developers
-- Issues: https://github.com/coinrailz/mcp-server-coinrailz/issues
+- Issues: https://github.com/tdnupe3/mcp-server-coinrailz/issues
 - Email: support@coinrailz.com
 
 ## License

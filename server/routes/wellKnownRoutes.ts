@@ -116,6 +116,14 @@ router.get('/.well-known/mcp.json', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /.well-known/mcp-registry-auth  (ownership proof for modelcontextprotocol/registry)
+ */
+router.get('/.well-known/mcp-registry-auth', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/plain');
+  res.send('v=MCPv1; k=ed25519; p=pjdKM8jUJeYMPD1AMP3TGx+L1M9sNfqQ4/zB+vPj7jE=');
+});
+
+/**
  * GET /.well-known/mcp-server.json
  * 
  * Secondary MCP discovery manifest probed by NotHumanSearch
@@ -7063,6 +7071,7 @@ router.all('/.well-known/*', (req: Request, res: Response) => {
       '/.well-known/solana-pay.json',
       '/.well-known/helius.json',
       '/.well-known/autopay-guide.json',
+      '/.well-known/mcp-registry-auth',
     ],
   });
 });

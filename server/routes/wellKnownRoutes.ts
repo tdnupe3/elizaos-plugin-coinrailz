@@ -6887,6 +6887,140 @@ router.get('/.well-known/api-catalog', (req: Request, res: Response) => {
 });
 
 /**
+ * GET /.well-known/autopay-guide.json
+ *
+ * Machine-readable Auto-Pay Helper for AI agents that received an HTTP 402 challenge
+ * and need to understand how to complete a payment programmatically.
+ *
+ * No trial credits mentioned — pure x402 payment flow documentation.
+ * Consumers: Any agent framework, payment-aware crawler, or developer building
+ *   autonomous agents that need to close the discovery→payment loop.
+ */
+router.get('/.well-known/autopay-guide.json', (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.json({
+    title: "Coin Railz Auto-Pay Guide",
+    version: "1.0.0",
+    protocol: "x402",
+    specVersion: "2",
+    audience: "AI agents and autonomous frameworks that received an HTTP 402 Payment Required and need to complete the payment programmatically.",
+    summary: "You received a 402. Here is exactly how to pay it and retry your request.",
+
+    step_by_step: [
+      {
+        step: 1,
+        action: "Read the 402 challenge body",
+        description: "The 402 response contains a JSON body with payment requirements. Parse it.",
+        fields: {
+          "x402Version": "Must be 2",
+          "accepts[].network": "Payment network — 'base' (EVM) or 'solana'",
+          "accepts[].asset": "Token — USDC contract address",
+          "accepts[].maxAmountRequired": "Amount in atomic units (USDC has 6 decimals — 50000 = $0.05)",
+          "accepts[].payTo": "Destination wallet address",
+          "accepts[].extra.facilitatorUrl": "The facilitator that verifies the payment"
+        },
+        example_402_body: {
+          x402Version: 2,
+          accepts: [{
+            network: "base",
+            asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            maxAmountRequired: "50000",
+            payTo: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+            extra: {
+              facilitatorUrl: "https://api.cdp.coinbase.com/platform/v2/x402",
+              name: "USDC"
+            }
+          }]
+        }
+      },
+      {
+        step: 2,
+        action: "Construct the payment using a facilitator",
+        description: "Use a facilitator SDK to sign and submit the payment. The facilitator handles USDC transfer and returns a signed payment proof.",
+        facilitators: {
+          cdp: {
+            name: "Coinbase CDP (primary)",
+            url: "https://api.cdp.coinbase.com/platform/v2/x402",
+            sdk: "npm install @coinbase/cdp-sdk",
+            chains: ["base", "ethereum", "polygon", "arbitrum"],
+            docs: "https://docs.cdp.coinbase.com"
+          },
+          dexter: {
+            name: "Dexter (fallback)",
+            url: "https://x402.dexter.cash",
+            chains: ["base", "solana"],
+            docs: "https://dexter.cash/docs"
+          }
+        },
+        typescript_example: "import { fetchWithPayment } from 'x402-fetch';\nconst response = await fetchWithPayment(\n  endpoint,\n  { method: 'POST', body: JSON.stringify(payload) },\n  wallet\n);\nconst data = await response.json();",
+        python_example: "from x402 import paid_fetch\nresponse = paid_fetch(endpoint, method='POST', wallet=your_wallet)",
+        sdks: {
+          typescript: "npm install x402-fetch",
+          python: "pip install x402",
+          coinbase_agentkit: "npm install @coinbase/agentkit"
+        }
+      },
+      {
+        step: 3,
+        action: "Build the X-Payment header",
+        description: "The facilitator returns a base64-encoded payment proof. Include it as the X-Payment header on your retry.",
+        header_name: "X-Payment",
+        header_format: "Base64-encoded JSON: { x402Version: 2, scheme: 'exact', network: '...', payload: { ... } }",
+        note: "Most SDK wrappers (x402-fetch, agentkit) do steps 2 and 3 automatically."
+      },
+      {
+        step: 4,
+        action: "Retry the original request with X-Payment header",
+        description: "Resend the exact same request with the X-Payment header added. The server verifies on-chain and returns your data.",
+        success_response: "HTTP 200 with your data",
+        failure_responses: {
+          "402": "Payment invalid or expired — re-fetch the challenge and try again",
+          "400": "Malformed X-Payment header",
+          "500": "Server error — retry once"
+        }
+      }
+    ],
+
+    networks: {
+      base: {
+        caip2: "eip155:8453",
+        asset: "USDC",
+        contractAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        payTo: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+        facilitatorUrl: "https://api.cdp.coinbase.com/platform/v2/x402",
+        minAmount: "$0.05 USDC"
+      },
+      solana: {
+        caip2: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+        asset: "USDC",
+        tokenMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        payTo: "BmUPzSupHJu2kW4cL27dF7Vc2JaZTwXKzFsRuagPDtL8",
+        facilitatorUrl: "https://x402.dexter.cash",
+        minAmount: "$0.05 USDC"
+      }
+    },
+
+    first_payment_endpoint: {
+      description: "Canonical onboarding endpoint — cheapest call ($0.05) to verify your payment setup works end-to-end.",
+      url: `${baseUrl}/x402/first-call`,
+      method: "POST",
+      price: "$0.05 USDC",
+      networks: ["base", "solana"],
+      expected_response: { success: true, message: "First call completed successfully." }
+    },
+
+    service_catalog: `${baseUrl}/x402/catalog`,
+    full_manifest: `${baseUrl}/.well-known/x402.json`,
+    openapi: `${baseUrl}/openapi.json`,
+    a2a_interaction: `${baseUrl}/a2a/v1/message/send`,
+    agent_card: `${baseUrl}/.well-known/agent-card.json`,
+  });
+});
+
+/**
  * Catch-all: unknown /.well-known/* paths return 404
  * Prevents PHP exploit probes and unknown paths from falling through
  * to the Vite frontend, which would return 200 with index.html.
@@ -6924,6 +7058,7 @@ router.all('/.well-known/*', (req: Request, res: Response) => {
       '/.well-known/solana-actions.json',
       '/.well-known/solana-pay.json',
       '/.well-known/helius.json',
+      '/.well-known/autopay-guide.json',
     ],
   });
 });

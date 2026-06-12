@@ -46,6 +46,12 @@ const trackSolanaYield = createHitTracker({
 
 router.use(trackSolanaYield);
 
+// ── Rates Cache (30s TTL — Kamino on-chain load is ~1s per uncached call) ───────
+
+interface SolanaRateCache { data: object; cachedAt: number; }
+let solanaRateCache: SolanaRateCache | null = null;
+const SOLANA_RATE_CACHE_TTL_MS = 30_000;
+
 // ── GET /rates ─────────────────────────────────────────────────────────────────
 
 router.get('/rates', async (req: Request, res: Response) => {
@@ -53,6 +59,12 @@ router.get('/rates', async (req: Request, res: Response) => {
     const isPaused = process.env.SOLANA_YIELD_PAUSED === 'true';
     if (isPaused) {
       return res.status(503).json({ success: false, error: 'Solana yield portal is temporarily paused' });
+    }
+
+    if (solanaRateCache && Date.now() - solanaRateCache.cachedAt < SOLANA_RATE_CACHE_TTL_MS) {
+      res.setHeader('X-Cache', 'HIT');
+      res.setHeader('X-Cache-Age', String(Math.floor((Date.now() - solanaRateCache.cachedAt) / 1000)) + 's');
+      return res.json(solanaRateCache.data);
     }
 
     // Source 1: Dialect Markets (10-min cache)
@@ -110,7 +122,7 @@ router.get('/rates', async (req: Request, res: Response) => {
     const apyBps = apyPct != null ? Math.round(apyPct * 100) : null;
     const apySource = dialectApy != null ? 'Dialect Markets' : llamaApy != null ? 'DeFiLlama' : null;
 
-    return res.json({
+    const responseData = {
       success:   true,
       timestamp: new Date().toISOString(),
       chain:     'solana',
@@ -136,7 +148,11 @@ router.get('/rates', async (req: Request, res: Response) => {
       attribution: apySource
         ? `Rate data: ${apySource}${apySource === 'DeFiLlama' ? ' (https://defillama.com)' : ' (https://dialect.to)'}`
         : 'Rate data unavailable — Kamino API unreachable',
-    });
+    };
+
+    solanaRateCache = { data: responseData, cachedAt: Date.now() };
+    res.setHeader('X-Cache', 'MISS');
+    return res.json(responseData);
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }

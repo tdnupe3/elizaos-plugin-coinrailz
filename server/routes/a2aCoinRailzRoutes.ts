@@ -32,6 +32,13 @@ function classifyA2AIntent(text: string): A2AIntentType {
   if (/\bhello[,.]?\s+i am\b/i.test(t) && /\bwhat services\b/i.test(t)) return 'peer_discovery_greeting';
   if (/\bwhat (services|can you|do you)\b/i.test(t) || /\bhello[,.]?\s+i am\b/i.test(t)) return 'peer_discovery_greeting';
   if (/^(hello|hi|hey|greetings|howdy|ping|test|yo)[.!?]?\s*$/i.test(t)) return 'peer_discovery_greeting';
+  // Agent self-introduction: "Hello from [AgentName/Org]" — probing, not requesting a service
+  if (/^hello\s+from\b/i.test(t)) return 'peer_discovery_greeting';
+  // Explicit probe / smoke-test patterns — connectivity checks, not service requests
+  if (/\bsmoke[\s-]?test\b/i.test(t)) return 'peer_discovery_greeting';
+  if (/\breply\s+brief/i.test(t)) return 'peer_discovery_greeting';
+  // Capability probe patterns used by agent frameworks (e.g. arbor-a2a-probe)
+  if (/\bcapability\s+probe\b/i.test(t)) return 'peer_discovery_greeting';
   if (t.length > 0) return 'service_query';
   return 'unknown';
 }

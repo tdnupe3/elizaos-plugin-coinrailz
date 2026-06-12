@@ -40,26 +40,105 @@ function extractApiKey(req: Request): string | null {
 }
 
 // ---------------------------------------------------------------------------
+// Common parameter descriptions for auto-enriching inputSchema properties
+// ---------------------------------------------------------------------------
+const PARAM_DESCRIPTIONS: Record<string, string> = {
+  message:        'Optional message or query string to include in the request',
+  chain:          'Blockchain network identifier (e.g. "ethereum", "base", "polygon", "arbitrum", "solana")',
+  chains:         'Comma-separated list of blockchain networks to query',
+  tokenAddress:   'ERC-20 token contract address (0x...)',
+  walletAddress:  'Wallet address to query (0x... for EVM, base58 for Solana)',
+  address:        'Blockchain address to look up',
+  symbol:         'Token ticker symbol (e.g. "ETH", "BTC", "USDC")',
+  from:           'Source token or asset identifier',
+  to:             'Destination token or asset identifier',
+  amount:         'Amount in token units (as a string to avoid floating-point issues)',
+  limit:          'Maximum number of results to return',
+  offset:         'Pagination offset — number of records to skip',
+  network:        'Blockchain network name (e.g. "mainnet", "base", "solana")',
+  deviceId:       'Unique IoT device identifier registered on the platform',
+  agentId:        'AI agent identifier for billing and tracking purposes',
+  lat:            'Latitude coordinate in decimal degrees (e.g. 37.7749)',
+  lon:            'Longitude coordinate in decimal degrees (e.g. -122.4194)',
+  latitude:       'Latitude coordinate in decimal degrees',
+  longitude:      'Longitude coordinate in decimal degrees',
+  bbox:           'Bounding box as "minLon,minLat,maxLon,maxLat"',
+  startDate:      'Start date in ISO 8601 format (YYYY-MM-DD)',
+  endDate:        'End date in ISO 8601 format (YYYY-MM-DD)',
+  date:           'Date in ISO 8601 format (YYYY-MM-DD)',
+  model:          'LLM model identifier (e.g. "gpt-4o", "gpt-4o-mini")',
+  prompt:         'Text prompt to send to the AI model',
+  contractAddress:'Smart contract address (0x...)',
+  txHash:         'Transaction hash to look up',
+  market:         'Prediction market identifier or slug',
+  ticker:         'Asset or market ticker symbol',
+  interval:       'Time interval for data aggregation (e.g. "1h", "1d")',
+  city:           'City name for location-based queries',
+  country:        'ISO 3166-1 alpha-2 country code (e.g. "US", "GB")',
+  query:          'Search query string',
+  type:           'Resource or data type filter',
+  format:         'Output format (e.g. "json", "csv")',
+  resolution:     'Spatial or temporal resolution of the dataset',
+  collection:     'Satellite or data collection identifier',
+  productId:      'Data product identifier for satellite or sensor data',
+};
+
+// Standard MCP output schema (content array format)
+const MCP_OUTPUT_SCHEMA = {
+  type: 'object',
+  properties: {
+    content: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          type: { type: 'string', description: 'Content type ("text" or "json")' },
+          text: { type: 'string', description: 'Response data as a JSON string' },
+        },
+        required: ['type', 'text'],
+      },
+      description: 'Array of content blocks returned by the service',
+    },
+  },
+  required: ['content'],
+} as const;
+
+// ---------------------------------------------------------------------------
+// Helper: enrich inputSchema properties with descriptions where missing
+// ---------------------------------------------------------------------------
+function enrichInputSchema(raw: unknown): Record<string, unknown> {
+  const schema = (raw ?? { type: 'object', properties: {}, required: [] }) as Record<string, unknown>;
+  const props = (schema.properties ?? {}) as Record<string, Record<string, unknown>>;
+
+  const enriched: Record<string, Record<string, unknown>> = {};
+  for (const [key, def] of Object.entries(props)) {
+    enriched[key] = def.description
+      ? def
+      : { ...def, description: PARAM_DESCRIPTIONS[key] ?? `Value for the "${key}" parameter` };
+  }
+
+  return { ...schema, properties: enriched };
+}
+
+// ---------------------------------------------------------------------------
 // Helper: convert a CanonicalService into an MCP tool definition
 // ---------------------------------------------------------------------------
 function serviceToMcpTool(s: CanonicalService) {
-  const inputSchema = s.inputSchema ?? {
-    type: 'object',
-    properties: {},
-    required: [],
-  };
+  const price   = s.priceUsd > 0 ? `$${s.priceUsd.toFixed(2)} USDC` : 'free';
+  const category = s.category ?? 'data';
 
   return {
-    name: `coinrailz_${s.id.replace(/-/g, '_')}`,
-    description: `[${s.priceUsd > 0 ? `$${s.priceUsd.toFixed(2)} USDC` : 'free'}] ${s.name} — ${s.description}`,
-    inputSchema,
+    name:         `coinrailz_${s.id.replace(/-/g, '_')}`,
+    description:  `[${price}] ${s.name} — ${s.description}`,
+    inputSchema:  enrichInputSchema(s.inputSchema),
+    outputSchema: MCP_OUTPUT_SCHEMA,
     annotations: {
-      provider:  'Coin Railz',
-      serviceId: s.id,
-      endpoint:  s.endpoint,
-      priceUsd:  s.priceUsd,
-      category:  s.category,
-      paymentMethods: ['X-API-KEY', 'Authorization: Bearer', 'X-PAYMENT (x402)'],
+      audience: ['assistant'] as string[],
+      priority: s.priceUsd === 0 ? 0.3 : s.priceUsd <= 0.10 ? 0.6 : 0.8,
+      title:    s.name,
+      readOnlyHint:    true,
+      destructiveHint: false,
+      idempotentHint:  true,
     },
   };
 }

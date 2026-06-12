@@ -104,10 +104,12 @@ router.get('/.well-known/mcp.json', async (req: Request, res: Response) => {
   res.status(200).json({
     mcp_version: "1.0.0",
     name: "Coin Railz MCP Server",
-    description: "Multi-chain x402 payment infrastructure for AI agents",
+    description: "Multi-chain x402 USDC payment infrastructure for AI agents. Coinbase AgentKit compatible. 60+ services across 8 blockchains.",
     version: "1.0.0",
     url: baseUrl,
     endpoints: {
+      tools_list: `${baseUrl}/mcp/tools/list`,
+      tools_call: `${baseUrl}/mcp/tools/call`,
       services: `${baseUrl}/mcp/services`
     }
   });
@@ -122,8 +124,9 @@ router.get('/.well-known/mcp-server.json', async (req: Request, res: Response) =
   const baseUrl = getBaseUrl(req);
   res.status(200).json({
     name: "Coin Railz",
-    description: "Universal payment infrastructure for AI agents",
-    mcp_endpoint: `${baseUrl}/mcp/services`,
+    description: "Multi-chain x402 USDC payment infrastructure for AI agents. Coinbase AgentKit compatible.",
+    mcp_endpoint: `${baseUrl}/mcp/tools/call`,
+    tools_list: `${baseUrl}/mcp/tools/list`,
     discovery_url: `${baseUrl}/.well-known/mcp.json`
   });
 });
@@ -142,15 +145,16 @@ function buildServerCard(baseUrl: string) {
     $schema: "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
     name: "coinrailz/x402-payment-infrastructure",
     title: "Coin Railz x402 Payment Infrastructure",
-    description: `Production-grade x402 USDC payment infrastructure for AI agents. ${getCanonicalServiceCount()} paid services across 8 blockchains (7 EVM + Solana) — Crypto Intelligence, Trading, Market Intelligence, Satellite Data (NASA/ESA), IoT/DePIN, AI Inference, and more. Settle in USDC with no accounts or API keys required.`,
+    description: `Production-grade x402 USDC payment infrastructure for AI agents. Coinbase AgentKit compatible. ${getCanonicalServiceCount()} paid services across 8 blockchains (7 EVM + Solana) — Crypto Intelligence, Trading, Market Intelligence, Satellite Data (NASA/ESA), IoT/DePIN, AI Inference, and more. Settle in USDC with no accounts or API keys required.`,
     version: "1.0.0",
     protocolVersion: "2024-11-05",
-    serverUrl: `${baseUrl}/mcp/services`,
+    serverUrl: `${baseUrl}/mcp/tools/call`,
     iconUrl: `${baseUrl}/attached_assets/Coin%20Railz%20Logo%20No%20BG.png`,
     documentationUrl: `${baseUrl}/mcp-integration-guide`,
     transport: {
       type: "http",
-      endpoint: "/mcp/services"
+      endpoint: "/mcp/tools/call",
+      listEndpoint: "/mcp/tools/list"
     },
     capabilities: {
       tools: { listChanged: false },

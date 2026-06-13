@@ -3,6 +3,7 @@ import { ethers } from "ethers";
 import jwt from "jsonwebtoken";
 import { nanoid } from "nanoid";
 import { db } from "../db";
+import { isCanaryPayer } from "../utils/canaryAddress";
 import { usedTransactionHashes, x402Payments, x402PaymentIntents } from "@shared/schema";
 import { eq, and, or, sql } from "drizzle-orm";
 import { creditsService } from "../services/creditsService.js";
@@ -659,6 +660,7 @@ export async function verifyTransactionPayment(
         retries: 0,
         expiresAt,
         metadata: intentMetadata,
+        isCanary: isCanaryPayer(senderAddress),
       });
       
       console.log(`📝 Created payment intent ${intentId} with status PENDING (token: ${paymentToken})`);

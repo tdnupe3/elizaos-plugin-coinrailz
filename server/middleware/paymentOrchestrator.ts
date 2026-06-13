@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { isCanaryPayer } from "../utils/canaryAddress";
 import { 
   verifyTransactionPayment, 
   markPaymentIntentSucceeded, 
@@ -1672,6 +1673,7 @@ export function createPaymentOrchestrator(
           retries: 0,
           expiresAt: solanaExpiresAt,
           metadata: { chain: 'solana', token: solanaResult.token, paymentScheme: 'direct' },
+          isCanary: isCanaryPayer(solanaResult.fromWallet),
         }).onConflictDoNothing();
         console.log(`📝 Solana intent ${solanaIntentId} created as PENDING`);
         
@@ -2117,6 +2119,7 @@ export function createPaymentOrchestrator(
                 retries: 0,
                 expiresAt: svmExpiresAt,
                 metadata: { chain: 'solana', token: solanaResult.token, paymentScheme: 'ExactSvmScheme' },
+                isCanary: isCanaryPayer(solanaResult.fromWallet),
               }).onConflictDoNothing();
               console.log(`📝 ExactSvmScheme intent ${svmIntentId} created as PENDING`);
 
@@ -2271,6 +2274,7 @@ export function createPaymentOrchestrator(
           retries: 0,
           expiresAt: new Date(Date.now() + 15 * 60 * 1000),
           metadata: { chain: 'solana', token: solanaResult.token, paymentScheme: 'dexter-facilitator' },
+          isCanary: isCanaryPayer(solanaResult.fromWallet),
         }).onConflictDoNothing();
         await x402InteractionTracker.trackInteraction({
           serviceId: serviceName,

@@ -27,6 +27,15 @@ import { x402CanaryPayments, x402PaymentIntents } from "@shared/schema";
 import { desc, eq, and, gte, sql } from "drizzle-orm";
 import { invalidateCanaryCache } from "../middleware/x402ResponseEnricher";
 
+const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
+const TOPUP_THRESHOLD_ATOMIC = BigInt(200_000);  // $0.20 — trigger top-up below this
+const TOPUP_AMOUNT_ATOMIC     = BigInt(2_000_000); // $2.00 — funds ~40 canary runs
+
+const USDC_ABI = [
+  { name: "balanceOf", type: "function", inputs: [{ name: "account", type: "address" }], outputs: [{ name: "", type: "uint256" }], stateMutability: "view" },
+  { name: "transfer",  type: "function", inputs: [{ name: "to", type: "address" }, { name: "value", type: "uint256" }], outputs: [{ name: "", type: "bool" }], stateMutability: "nonpayable" },
+] as const;
+
 const CANARY_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const MAX_CONSECUTIVE_FAILURES = 3;
 const CANARY_AMOUNT_USD = "0.05";
@@ -84,6 +93,55 @@ export class X402CanaryJob {
     };
   }
 
+  /**
+   * Auto-top-up the canary buyer wallet from the platform wallet when USDC balance
+   * drops below TOPUP_THRESHOLD_ATOMIC. Transfers TOPUP_AMOUNT_ATOMIC from EVM_PRIVATE_KEY
+   * (the platform/payTo wallet) to the canary buyer wallet. Non-fatal: logs and continues
+   * if the top-up fails (e.g., platform wallet also empty).
+   */
+  private static async topUpIfNeeded(buyerAddress: string): Promise<void> {
+    try {
+      const publicClient = createPublicClient({ chain: base, transport: http() });
+
+      const balance = await publicClient.readContract({
+        address: USDC_BASE,
+        abi: USDC_ABI,
+        functionName: "balanceOf",
+        args: [buyerAddress as `0x${string}`],
+      }) as bigint;
+
+      if (balance >= TOPUP_THRESHOLD_ATOMIC) {
+        console.log(`🕯️  X402CanaryJob: canary wallet balance $${(Number(balance) / 1e6).toFixed(4)} USDC — no top-up needed`);
+        return;
+      }
+
+      console.warn(`🕯️  X402CanaryJob: ⚠️  canary wallet low ($${(Number(balance) / 1e6).toFixed(4)} USDC) — topping up $${(Number(TOPUP_AMOUNT_ATOMIC) / 1e6).toFixed(2)} from platform wallet`);
+
+      const platformKey = process.env.EVM_PRIVATE_KEY;
+      if (!platformKey) {
+        console.warn("🕯️  X402CanaryJob: EVM_PRIVATE_KEY not set — cannot auto-top-up canary wallet");
+        return;
+      }
+
+      const platformKeyHex: Hex = platformKey.startsWith("0x") ? (platformKey as Hex) : (`0x${platformKey}` as Hex);
+      const platformAccount = privateKeyToAccount(platformKeyHex);
+      const platformClient = createWalletClient({ account: platformAccount, chain: base, transport: http() });
+
+      const txHash = await platformClient.writeContract({
+        address: USDC_BASE,
+        abi: USDC_ABI,
+        functionName: "transfer",
+        args: [buyerAddress as `0x${string}`, TOPUP_AMOUNT_ATOMIC],
+      });
+
+      console.log(`🕯️  X402CanaryJob: 💰 top-up sent — tx ${txHash}. Waiting for confirmation…`);
+      await publicClient.waitForTransactionReceipt({ hash: txHash, timeout: 30_000 });
+      console.log(`🕯️  X402CanaryJob: ✅ top-up confirmed — canary wallet now has $${(Number(balance + TOPUP_AMOUNT_ATOMIC) / 1e6).toFixed(2)} USDC`);
+    } catch (err: any) {
+      console.warn(`🕯️  X402CanaryJob: top-up failed (non-fatal) — ${err?.message ?? String(err)}`);
+    }
+  }
+
   private static async runCanary(): Promise<void> {
     if (this.circuitOpen) {
       console.warn("🕯️  X402CanaryJob: circuit open — skipping run. Restart server to reset.");
@@ -104,6 +162,9 @@ export class X402CanaryJob {
     try {
       const keyHex: Hex = privateKey.startsWith("0x") ? (privateKey as Hex) : (`0x${privateKey}` as Hex);
       const account = privateKeyToAccount(keyHex);
+
+      // Auto-top-up from platform wallet if canary wallet USDC balance is low
+      await X402CanaryJob.topUpIfNeeded(account.address);
 
       const walletClient = createWalletClient({
         account,

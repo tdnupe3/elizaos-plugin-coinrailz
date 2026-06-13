@@ -4300,6 +4300,7 @@ export const x402PaymentIntents = pgTable(
     expiresAt: timestamp("expires_at").notNull(), // Intent expiration (15 min default)
     succeededAt: timestamp("succeeded_at"), // When handler completed successfully
     metadata: jsonb("metadata"), // Additional context (e.g., token type USDC/USDT)
+    isCanary: boolean("is_canary").notNull().default(false), // True for canary health-check payments — excluded from organic analytics
   },
   (table) => [
     // Composite unique index for txHash + serviceName (one payment per service per tx)

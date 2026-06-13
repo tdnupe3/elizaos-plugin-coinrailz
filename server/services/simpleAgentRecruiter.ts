@@ -2,7 +2,7 @@
 export class SimpleAgentRecruiter {
   private platformWallet = "rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW"; // Your XRP platform wallet
   private botEmail = "support@coinrailz.com";
-  private githubToken = process.env.GITHUB_TOKEN || "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"; // Your provided GitHub token
+  private githubToken = process.env.GITHUB_TOKEN || ''; // Set GITHUB_TOKEN environment variable
   
   // AI Agent discovery sources - targeting ACTIVE TRANSACTING AGENTS
   private discoveryChannels = {

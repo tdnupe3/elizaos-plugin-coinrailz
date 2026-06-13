@@ -9,6 +9,9 @@ import { storage } from '../storage.js';
 
 // JWT Secret - REQUIRED from environment variables for enterprise security
 const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  if (process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT) {
+    throw new Error('FATAL: JWT_SECRET environment variable must be set in production');
+  }
   console.error('🔒 WARNING: JWT_SECRET not set - using development fallback. REQUIRED for production deployment!');
   return 'development_jwt_secret_not_for_production';
 })();

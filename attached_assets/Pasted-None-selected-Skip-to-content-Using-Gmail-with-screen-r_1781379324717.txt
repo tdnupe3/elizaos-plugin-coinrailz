@@ -1,0 +1,120 @@
+None selected 
+
+Skip to content
+Using Gmail with screen readers
+2 of 11,543
+Re: [solana-foundation/solana-com] docs: add Coin Railz to x402 Tooling table (PR #1560)
+Inbox
+Updates
+
+vercel[bot] <notifications@github.com> Unsubscribe
+2:00 PM (34 minutes ago)
+to solana-foundation/solana-com, me, Mention
+
+
+vercel[bot]
+ left a comment 
+(solana-foundation/solana-com#1560)
+The latest updates on your projects. Learn more about Vercel for GitHub.
+
+5 Skipped Deployments
+Project	Deployment	Actions	Updated (UTC)
+solana-com	Skipped Skipped		Jun 13, 2026 7:00pm
+solana-com-accelerate	Skipped Skipped		Jun 13, 2026 7:00pm
+solana-com-breakpoint-2	Skipped Skipped		Jun 13, 2026 7:00pm
+solana-com-media	Skipped Skipped		Jun 13, 2026 7:00pm
+templates	Skipped Skipped		Jun 13, 2026 7:00pm
+Request Review
+
+—
+Reply to this email directly, view it on GitHub, or unsubscribe.
+Triage notifications, keep track of coding agent tasks and review pull requests on the go with GitHub Mobile for iOS and Android. Download it today!
+You are receiving this because you were mentioned.
+
+
+vercel[bot] <notifications@github.com> Unsubscribe
+2:00 PM (34 minutes ago)
+to solana-foundation/solana-com, me, Mention
+
+
+vercel[bot]
+ left a comment 
+(solana-foundation/solana-com#1560)
+@tdnupe3 is attempting to deploy a commit to the Solana Foundation Team on Vercel.
+
+A member of the Team first needs to authorize it.
+
+—
+Reply to this email directly, view it on GitHub, or unsubscribe.
+Triage notifications, keep track of coding agent tasks and review pull requests on the go with GitHub Mobile for iOS and Android. Download it today!
+You are receiving this because you were mentioned.
+
+
+greptile-apps[bot] <notifications@github.com>
+2:02 PM (33 minutes ago)
+to solana-foundation/solana-com, me, Mention
+
+
+greptile-apps[bot]
+ left a comment 
+(solana-foundation/solana-com#1560)
+Greptile Summary
+This PR adds a single row for Coin Railz to the "x402 Tooling" table in the agentic payments documentation page.
+
+Appends [Coin Railz](https://coinrailz.com/) to the existing table of x402-compatible tools and SDKs, describing the service as a provider of live x402-enabled endpoints across crypto analytics, satellite data, IoT, and AI inference domains.
+Confidence Score: 4/5
+A single documentation row addition with no functional impact; safe to merge after addressing the description length.
+
+The change is purely additive documentation. The only concern is that the new row's description is noticeably longer than all other entries in the table, inconsistent with the table's concise, 3–6 word style established by every existing row.
+
+apps/docs/content/docs/en/payments/agentic-payments.mdx — description text in the new row.
+
+Important Files Changed
+Filename	Overview
+apps/docs/content/docs/en/payments/agentic-payments.mdx	Adds a new row for Coin Railz to the x402 Tooling table; the entry's description is substantially longer than all other rows in the table.
+Flowchart
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    A["agentic-payments.mdx\n(x402 Tooling table)"] --> B[Corbits]
+    A --> C[MCPay.tech]
+    A --> D[PayAI]
+    A --> E[x402 GitHub]
+    A --> F[ACK]
+    A --> G[A2A x402]
+    A --> H["Coin Railz new"]
+
+    style H fill:#22c55e,color:#fff
+Loading
+Reviews (1): Last reviewed commit: "docs: add Coin Railz to x402 Tooling tab..." | Re-trigger Greptile
+
+—
+Reply to this email directly, view it on GitHub, or unsubscribe.
+Triage notifications, keep track of coding agent tasks and review pull requests on the go with GitHub Mobile for iOS and Android. Download it today!
+You are receiving this because you were mentioned.
+
+
+greptile-apps[bot] <notifications@github.com>
+2:02 PM (32 minutes ago)
+to solana-foundation/solana-com, me, Mention
+
+@greptile-apps[bot] commented on this pull request.
+
+In apps/docs/content/docs/en/payments/agentic-payments.mdx:
+
+> @@ -118,3 +118,4 @@ To learn more on x402, check out our guides:
+ | [x402 GitHub](https://github.com/coinbase/x402)                 | Reference implementation             |
+ | [ACK](https://github.com/agentcommercekit/ack)                  | Agent Commerce Kit                   |
+ | [A2A x402](https://github.com/google-agentic-commerce/a2a-x402) | Google's agent-to-agent payments     |
++| [Coin Railz](https://coinrailz.com/)                            | 63 live x402 services — crypto analytics, NASA/ESA satellite data, IoT sensors, AI inference |
+P2 The description is considerably longer than every other entry in this table (most are 3–6 words), giving this row a marketing-copy feel that breaks the table's visual consistency. A shorter phrase aligned with the table's existing style would fit better.
+
+⬇️ Suggested change
+-| [Coin Railz](https://coinrailz.com/)                            | 63 live x402 services — crypto analytics, NASA/ESA satellite data, IoT sensors, AI inference |
++| [Coin Railz](https://coinrailz.com/)                            | Multi-domain x402 service provider   |
+Note: If this suggestion doesn't match your team's coding style, reply to this and let me know. I'll remember it for next time!
+
+—
+Reply to this email directly, view it on GitHub, or unsubscribe.
+Triage notifications, keep track of coding agent tasks and review pull requests on the go with GitHub Mobile for iOS and Android. Download it today!
+You are receiving this because you were mentioned.
+

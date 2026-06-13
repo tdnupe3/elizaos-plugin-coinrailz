@@ -2943,8 +2943,10 @@ function generate402Response(
       discoverable: true,
       extensions: {
         bazaar: {
-          input: { type: "http" as const, method: "POST" as const, bodyType: "json" as const, body: { query: "example parameter" }, headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' } },
-          output: { type: "application/json", format: "json", example: { success: true, result: {}, timestamp: new Date().toISOString() } }
+          info: {
+            input: { type: "http" as const, method: "POST" as const, bodyType: "json" as const, body: { query: "example parameter" }, headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' } },
+            output: { type: "application/json", format: "json", example: { success: true, result: {}, timestamp: new Date().toISOString() } }
+          }
         }
       }
     },

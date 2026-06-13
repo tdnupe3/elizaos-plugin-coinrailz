@@ -125,7 +125,7 @@ function buildMppChallenge(serviceName: string, amountUsd: number, challengeId: 
         trialKey: `GET ${PUBLIC_BASE_URL}/api/m2m/credits/trial`,
         purchaseCredits: `POST ${PUBLIC_BASE_URL}/api/m2m/credits/checkout/session`,
         header: "X-API-KEY: cr_live_...",
-        note: "Free $5 trial available. Credits work across all 65 services.",
+        note: "Free $5 trial available. Credits work across all 63 services.",
       },
       {
         type: "x402",

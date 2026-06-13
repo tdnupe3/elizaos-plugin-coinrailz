@@ -1,7 +1,7 @@
 /**
- * AP2 v0.1 Merchant Endpoint — Coin Railz
+ * AP2 v0.2 Merchant Endpoint — Coin Railz
  *
- * Implements Google's Agent Payments Protocol (AP2) v0.1 as a merchant endpoint.
+ * Implements Google's Agent Payments Protocol (AP2) v0.2 as a merchant endpoint.
  * Transport: A2A JSON-RPC 2.0 (distinct from our HTTP+JSON A2A endpoint at /a2a/v1)
  * Spec: https://ap2-protocol.org/specification/
  *
@@ -35,6 +35,7 @@ import { stripe as _stripeFactory } from '../services/stripeClient';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { serviceCatalogService } from '../services/serviceCatalogService';
+import { getCanonicalServiceCount } from '../utils/serviceCount';
 import { creditsService } from '../services/creditsService';
 import { db } from '../db';
 import { a2aInteractions } from '../../shared/schema';
@@ -229,9 +230,9 @@ function agentUserId(merchantAgent: string | undefined, mandateId: string): stri
 router.get('/ap2/v1/merchant', (_req: Request, res: Response) => {
   const catalog = serviceCatalogService.getCatalog();
   res.json({
-    ap2Version: '0.1',
+    ap2Version: '0.2',
     merchant: 'Coin Railz',
-    description: `x402 micropayment APIs for AI agents — ${catalog.totalServices} pay-per-call services on Base + Solana. Crypto analytics, trading signals, contract security, satellite data, prediction markets, and more.`,
+    description: `x402 micropayment APIs for AI agents — ${getCanonicalServiceCount()} pay-per-call services on Base + Solana. Crypto analytics, trading signals, contract security, satellite data, prediction markets, and more.`,
     supportedPaymentMethods: ['X402', 'CARD', 'VISA', 'MASTERCARD', 'AMEX', 'STRIPE'],
     supportedCurrencies: ['USDC', 'USD'],
     supportedChains: ['base', 'solana'],
@@ -244,7 +245,7 @@ router.get('/ap2/v1/merchant', (_req: Request, res: Response) => {
     integrationGuide: `${BASE_URL}/mcp-integration-guide`,
     x402SpecVersion: 2,
     facilitators: [FACILITATOR_CDP, FACILITATOR_DEXTER],
-    priceRange: '$0.10 – $10.00 per request',
+    priceRange: '$0.05–$10.00 per call',
     mandateAuthorization: {
       format: 'sha256:<hex>',
       algorithm: 'SHA-256',
@@ -262,7 +263,7 @@ router.get('/ap2/v1/merchant', (_req: Request, res: Response) => {
       checkoutUrl: `${BASE_URL}/pilots/buy`
     },
     availableServices: catalog.services.slice(0, 10).map(toAp2Service),
-    totalServices: catalog.totalServices
+    totalServices: getCanonicalServiceCount()
   });
 });
 
@@ -495,7 +496,7 @@ router.post('/ap2/v1/merchant', async (req: Request, res: Response) => {
                 }]
               }],
               metadata: {
-                ap2Version: '0.1',
+                ap2Version: '0.2',
                 paymentMethod: methodName,
                 status: 'completed',
                 creditsAdded: requestedAmount,
@@ -530,7 +531,7 @@ router.post('/ap2/v1/merchant', async (req: Request, res: Response) => {
               }]
             }],
             metadata: {
-              ap2Version: '0.1',
+              ap2Version: '0.2',
               paymentMethod: methodName,
               stripePaymentIntentId: paymentIntent.id,
               stripeStatus: paymentIntent.status,
@@ -575,7 +576,7 @@ router.post('/ap2/v1/merchant', async (req: Request, res: Response) => {
           }]
         }],
         metadata: {
-          ap2Version: '0.1',
+          ap2Version: '0.2',
           paymentMethod: methodName,
           checkoutUrl: `${BASE_URL}/pilots/buy?amount=${requestedAmount}&source=ap2&mandate=${contents.payment_mandate_id}&agent=${encodeURIComponent(userId)}`,
           amount: requestedAmount,
@@ -644,7 +645,7 @@ router.post('/ap2/v1/merchant', async (req: Request, res: Response) => {
           }]
         }],
         metadata: {
-          ap2Version: '0.1',
+          ap2Version: '0.2',
           paymentMethod: 'X402',
           serviceId: service.id,
           serviceName: service.name,

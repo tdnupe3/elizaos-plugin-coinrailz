@@ -622,7 +622,7 @@ router.get('/capabilities', (req: Request, res: Response) => {
 
   res.status(200).json({
     service: 'Coin Railz',
-    description: 'Multi-chain AI agent payment infrastructure — 65 services, 8 blockchains, API-key and x402 support.',
+    description: 'Multi-chain AI agent payment infrastructure — 63 services, 8 blockchains, API-key and x402 support.',
     authModes: [
       {
         mode: 'api_key',
@@ -907,7 +907,7 @@ router.get('/trial', async (req: Request, res: Response) => {
       keyPrefix,
       credits: TRIAL_CREDITS,
       currency: "USD",
-      serviceCalls: "~80-100 calls across all 65 /x402/* services",
+      serviceCalls: "~80-100 calls across all 63 /x402/* services",
       expiresIn: "7 days",
       usage: {
         header: "X-API-KEY",

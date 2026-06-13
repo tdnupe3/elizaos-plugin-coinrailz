@@ -361,7 +361,7 @@ function handleMessageSend(req: Request, res: Response) {
     freeTrial: {
       url: `${BASE_URL}/api/m2m/credits/trial`,
       method: 'GET',
-      note: 'No wallet required. Returns a $5 credit API key instantly. Works on all 65+ services.',
+      note: 'No wallet required. Returns a $5 credit API key instantly. Works on all 63 services.',
       creditsUsd: 5,
       callsEstimate: '80-100 calls at standard pricing',
       curl: `curl ${BASE_URL}/api/m2m/credits/trial`

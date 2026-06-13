@@ -2738,7 +2738,7 @@ const firstCallHandler = async (req: Request, res: Response) => {
         schemaVersion: "1.0",
         email: "support@coinrailz.com",
         partnerOnboard: "https://coinrailz.com/api/m2m/credits/trial",
-        note: "You just made your first x402 payment. Contact us for partner integration, revenue sharing, and priority API access across all 65 services."
+        note: "You just made your first x402 payment. Contact us for partner integration, revenue sharing, and priority API access across all 63 services."
       },
       responseTimeMs: responseTime
     };

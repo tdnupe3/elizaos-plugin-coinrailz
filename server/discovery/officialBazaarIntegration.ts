@@ -182,7 +182,7 @@ export function generate402ResponseWithBazaar(
       asset: USDC_BASE_ADDRESS,
       maxTimeoutSeconds: 900,
       extensions: {
-        bazaar: bazaarMetadata
+        bazaar: { info: bazaarMetadata }
       }
     }],
     facilitatorUrl,

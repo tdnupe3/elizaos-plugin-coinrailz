@@ -123,7 +123,7 @@ function generateX402PaymentRequired(product: typeof SATELLITE_DATA_PRODUCTS[0],
           chainName: 'Base',
         },
         extensions: {
-          bazaar: bazaarMetadata
+          bazaar: { info: bazaarMetadata }
         },
         discoverable: true,
       },

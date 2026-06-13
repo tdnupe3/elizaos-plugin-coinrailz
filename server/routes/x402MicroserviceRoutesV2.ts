@@ -2054,7 +2054,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       },
       // OFFICIAL BAZAAR EXTENSION FORMAT (required for facilitator indexing)
       extensions: {
-        bazaar: bazaarMetadata
+        bazaar: { info: bazaarMetadata }
       },
       // Legacy outputSchema for backward compatibility
       outputSchema: {
@@ -2587,7 +2587,7 @@ enterpriseDirectEndpoints.forEach(service => {
         tags: ["Enterprise", "AI", "x402", "USDC"],
         extra: { name: "USD Coin", version: "2", decimals: 6, chainId: 8453, chainName: "Base" },
         extensions: {
-          bazaar: { input: bazaarInput, output: bazaarOutput }
+          bazaar: { info: { input: bazaarInput, output: bazaarOutput } }
         },
         type: "http",
         metadata: {}

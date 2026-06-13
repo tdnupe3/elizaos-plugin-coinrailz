@@ -408,7 +408,7 @@ export function x402ResponseEnricher() {
               const bazaarMetadata = buildBazaarDiscoveryMetadata(matchedService, 'POST');
               enriched.extensions = {
                 ...(enriched.extensions || {}),
-                bazaar: bazaarMetadata
+                bazaar: { info: bazaarMetadata }
               };
             } catch (e) {
             }

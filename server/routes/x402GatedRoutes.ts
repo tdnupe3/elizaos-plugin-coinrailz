@@ -453,7 +453,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       },
       // OFFICIAL BAZAAR EXTENSION FORMAT (required for facilitator indexing)
       extensions: {
-        bazaar: bazaarMetadata
+        bazaar: { info: bazaarMetadata }
       },
       outputSchema: {
         input: {

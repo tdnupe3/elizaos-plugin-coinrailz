@@ -1,14 +1,15 @@
 /**
  * Bazaar Bulk Payment Script
  * 
- * Pays for multiple x402 services through the Coinbase Bazaar facilitator
- * to trigger indexing of all services not yet in Bazaar's registry.
+ * Pays for ALL x402 services through the Coinbase Bazaar facilitator
+ * to trigger indexing of every service in Bazaar's registry.
  * 
  * Uses V1 format (proven to work from bazaar-direct-settle.ts):
  *   x402Version: 1, network: "base", scheme: "exact"
  * 
- * Budget: ~$3.45 USDC remaining (69 calls at $0.05)
- * Focus: Services most likely missing from Bazaar's March 17 index
+ * Budget estimate: ~$5 USDC (68 routes, mostly $0.05, 5 NASA routes at $0.25, 1 at $1.00)
+ * Safety cap: skips any route priced above $1.00
+ * Non-402 routes are automatically skipped with no USDC spent
  */
 
 import { privateKeyToAccount } from 'viem/accounts';
@@ -21,39 +22,89 @@ const BASE_URL = 'https://coinrailz.com';
 const BAZAAR_URL = 'https://api.cdp.coinbase.com/platform/v2/x402';
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
-// Services to pay for — prioritized by revenue/visibility potential
-// Each must return a 402 with valid EIP-3009 authorization support
+// All x402 payment-gated services across the platform.
+// Non-402 routes (admin/utility) are automatically skipped — no USDC wasted.
+// Safety cap: any route priced above $1.00 is skipped automatically.
 const TARGET_SERVICES = [
-  // Core AI services (highest agent traffic)
-  { path: '/x402/gas-price-oracle',       method: 'GET',  body: null },
-  { path: '/x402/token-price',            method: 'POST', body: { token: 'ETH', chain: 'base' } },
-  { path: '/x402/token-metadata',         method: 'POST', body: { address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', chain: 'base' } },
-  { path: '/x402/wallet-risk',            method: 'POST', body: { address: '0x5837A864C03912ea14a5609968F73E75B9d42a7C', chain: 'base' } },
-  { path: '/x402/trade-signals',          method: 'POST', body: { pair: 'ETH/USDC', chain: 'base' } },
-  { path: '/x402/token-sentiment',        method: 'POST', body: { token: 'ETH' } },
-  { path: '/x402/trending-tokens',        method: 'GET',  body: null },
-  { path: '/x402/whale-alerts',           method: 'GET',  body: null },
-  { path: '/x402/dex-liquidity',          method: 'POST', body: { pair: 'ETH/USDC', chain: 'base' } },
-  { path: '/x402/multi-chain-balance',    method: 'POST', body: { address: '0x5837A864C03912ea14a5609968F73E75B9d42a7C' } },
-  { path: '/x402/contract-scan',          method: 'POST', body: { address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', chain: 'base' } },
-  { path: '/x402/portfolio-tracker',      method: 'POST', body: { address: '0x5837A864C03912ea14a5609968F73E75B9d42a7C' } },
-  { path: '/x402/arbitrage-scanner',      method: 'GET',  body: null },
-  { path: '/x402/transaction-builder',    method: 'POST', body: { to: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91', amount: '1', token: 'USDC', chain: 'base' } },
-  // IoT / DePIN services
-  { path: '/x402/iot-device-stream',      method: 'POST', body: { deviceId: 'test-device-001', dataType: 'temperature' } },
-  { path: '/x402/fleet-telematics',       method: 'POST', body: { vehicleId: 'vehicle-001' } },
-  { path: '/x402/weather-station',        method: 'POST', body: { stationId: 'station-001' } },
-  { path: '/x402/fire-alert',             method: 'GET',  body: null },
-  // Satellite / Earth observation
-  { path: '/x402/satellite-weather',      method: 'POST', body: { lat: 37.7749, lon: -122.4194 } },
-  { path: '/x402/vegetation-health',      method: 'POST', body: { lat: 37.7749, lon: -122.4194 } },
-  // Prediction markets
-  { path: '/x402/polymarket-odds',        method: 'GET',  body: null },
-  { path: '/x402/kalshi-markets',         method: 'GET',  body: null },
-  // Golden path
-  { path: '/x402/first-call',             method: 'POST', body: { prompt: 'ping' } },
-  // AI inference (already paid, will verify indexing)  
-  { path: '/x402/ai-inference',           method: 'POST', body: { prompt: 'What is Base?', model: 'gpt-4o-mini' } },
+  // ── Core DeFi / Market Data ──────────────────────────────────────────
+  { path: '/x402/gas-price-oracle',        method: 'GET',  body: null },
+  { path: '/x402/token-price',             method: 'POST', body: { token: 'ETH', chain: 'base' } },
+  { path: '/x402/token-price-lookup',      method: 'POST', body: { address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', chain: 'base' } },
+  { path: '/x402/token-metadata',          method: 'POST', body: { address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', chain: 'base' } },
+  { path: '/x402/token-sentiment',         method: 'POST', body: { token: 'ETH' } },
+  { path: '/x402/trending-tokens',         method: 'GET',  body: null },
+  { path: '/x402/whale-alerts',            method: 'GET',  body: null },
+  { path: '/x402/trade-signals',           method: 'POST', body: { pair: 'ETH/USDC', chain: 'base' } },
+  { path: '/x402/trading-signal',          method: 'POST', body: { pair: 'ETH/USDC' } },
+  { path: '/x402/dex-liquidity',           method: 'POST', body: { pair: 'ETH/USDC', chain: 'base' } },
+  { path: '/x402/arbitrage-scanner',       method: 'GET',  body: null },
+  { path: '/x402/batch-quote',             method: 'POST', body: { tokens: ['ETH', 'USDC', 'BTC'] } },
+  { path: '/x402/stock-sentiment',         method: 'POST', body: { ticker: 'COIN' } },
+  { path: '/x402/forex-sentiment',         method: 'POST', body: { pair: 'EUR/USD' } },
+  { path: '/x402/sentiment-analysis',      method: 'POST', body: { text: 'ETH looks bullish on Base' } },
+  { path: '/x402/correlation-matrix',      method: 'POST', body: { assets: ['ETH', 'BTC', 'SOL'] } },
+  { path: '/x402/risk-metrics',            method: 'POST', body: { portfolio: ['ETH', 'USDC'] } },
+  { path: '/x402/portfolio-tracker',       method: 'POST', body: { address: '0x5837A864C03912ea14a5609968F73E75B9d42a7C' } },
+  { path: '/x402/portfolio-optimization',  method: 'POST', body: { assets: ['ETH', 'BTC', 'USDC'] } },
+
+  // ── Wallet / Chain Infrastructure ───────────────────────────────────
+  { path: '/x402/wallet-risk',             method: 'POST', body: { address: '0x5837A864C03912ea14a5609968F73E75B9d42a7C', chain: 'base' } },
+  { path: '/x402/multi-chain-balance',     method: 'POST', body: { address: '0x5837A864C03912ea14a5609968F73E75B9d42a7C' } },
+  { path: '/x402/contract-scan',           method: 'POST', body: { address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', chain: 'base' } },
+  { path: '/x402/transaction-builder',     method: 'POST', body: { to: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91', amount: '1', token: 'USDC', chain: 'base' } },
+  { path: '/x402/approval-manager',        method: 'POST', body: { token: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', spender: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91', amount: '100' } },
+  { path: '/x402/seamless-chain-bridge',   method: 'POST', body: { fromChain: 'base', toChain: 'ethereum', amount: '1', token: 'USDC' } },
+  { path: '/x402/fraud-detection',         method: 'POST', body: { address: '0x5837A864C03912ea14a5609968F73E75B9d42a7C' } },
+  { path: '/x402/compliance-check',        method: 'POST', body: { address: '0x5837A864C03912ea14a5609968F73E75B9d42a7C' } },
+  { path: '/x402/compliance-consultation', method: 'POST', body: { query: 'DeFi compliance for Base' } },
+  { path: '/x402/smart-contract-audit',    method: 'POST', body: { contractAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' } },
+  { path: '/x402/credit-risk-score',       method: 'POST', body: { address: '0x5837A864C03912ea14a5609968F73E75B9d42a7C' } },
+  { path: '/x402/payment-processing',      method: 'POST', body: { amount: '1.00', token: 'USDC', chain: 'base' } },
+
+  // ── Agent Identity & Wallets ─────────────────────────────────────────
+  { path: '/x402/first-call',              method: 'POST', body: { prompt: 'ping' } },
+  { path: '/x402/ai-inference',            method: 'POST', body: { prompt: 'What is Base?', model: 'gpt-4o-mini' } },
+  { path: '/x402/agent-create-wallet',     method: 'POST', body: { agentId: 'bazaar-probe-001' } },
+  { path: '/x402/instant-agent-wallet',    method: 'POST', body: {} },
+  { path: '/x402/verified-agent-identity', method: 'POST', body: { agentId: 'bazaar-probe-001' } },
+  { path: '/x402/solana-yield-finder',     method: 'GET',  body: null },
+
+  // ── Prediction Markets ───────────────────────────────────────────────
+  { path: '/x402/polymarket-odds',         method: 'GET',  body: null },
+  { path: '/x402/polymarket-events',       method: 'GET',  body: null },
+  { path: '/x402/polymarket-search',       method: 'POST', body: { query: 'crypto' } },
+  { path: '/x402/kalshi-markets',          method: 'GET',  body: null },
+  { path: '/x402/kalshi-odds',             method: 'GET',  body: null },
+  { path: '/x402/kalshi-search',           method: 'POST', body: { query: 'crypto' } },
+  { path: '/x402/prediction-market-odds',  method: 'GET',  body: null },
+
+  // ── Real Estate / Alternative Data ───────────────────────────────────
+  { path: '/x402/property-valuation',      method: 'POST', body: { address: '123 Main St, San Francisco, CA' } },
+  { path: '/x402/lease-analysis',          method: 'POST', body: { address: '123 Main St', squareFeet: 1000 } },
+  { path: '/x402/construction-progress',   method: 'POST', body: { projectId: 'proj-001' } },
+
+  // ── IoT / DePIN ──────────────────────────────────────────────────────
+  { path: '/x402/iot-device-stream',       method: 'POST', body: { deviceId: 'test-device-001', dataType: 'temperature' } },
+  { path: '/x402/iot-sensor-reading',      method: 'POST', body: { deviceId: 'test-device-001', sensorType: 'temperature' } },
+  { path: '/x402/iot-bulk-data',           method: 'POST', body: { deviceId: 'test-device-001' } },
+  { path: '/x402/fleet-telematics',        method: 'POST', body: { vehicleId: 'vehicle-001' } },
+  { path: '/x402/weather-station-data',    method: 'POST', body: { stationId: 'station-001' } },
+
+  // ── Satellite / Earth Observation ────────────────────────────────────
+  { path: '/x402/satellite-earthdata',     method: 'POST', body: { lat: 37.7749, lon: -122.4194 } },
+  { path: '/x402/fire-alerts',             method: 'POST', body: { lat: 37.7749, lon: -122.4194 } },
+  { path: '/x402/flood-detection',         method: 'POST', body: { lat: 37.7749, lon: -122.4194 } },
+  { path: '/x402/air-quality',             method: 'POST', body: { lat: 37.7749, lon: -122.4194 } },
+  { path: '/x402/weather-imagery',         method: 'POST', body: { lat: 37.7749, lon: -122.4194 } },
+  { path: '/x402/vegetation',              method: 'POST', body: { lat: 37.7749, lon: -122.4194 } },
+  { path: '/x402/land-use',                method: 'POST', body: { lat: 37.7749, lon: -122.4194 } },
+
+  // ── NASA Earthdata (priced at $0.25 each) ────────────────────────────
+  { path: '/x402/earthdata-ocean-color',   method: 'POST', body: { lat: 37.7749, lon: -122.4194 } },
+  { path: '/x402/earthdata-sst',           method: 'POST', body: { lat: 37.7749, lon: -122.4194 } },
+  { path: '/x402/earthdata-precipitation', method: 'POST', body: { lat: 37.7749, lon: -122.4194 } },
+  { path: '/x402/earthdata-soil-moisture', method: 'POST', body: { lat: 37.7749, lon: -122.4194 } },
+  { path: '/x402/earthdata-granules',      method: 'POST', body: { collection: 'MOD11A1', bbox: '-122.5,37.5,-122.0,38.0' } },
 ];
 
 async function getUsdcBalance(address: `0x${string}`, client: ReturnType<typeof createWalletClient>) {

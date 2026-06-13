@@ -53,9 +53,9 @@ export class X402CanaryJob {
       return;
     }
 
-    const privateKey = process.env.PLATFORM_EOA_PRIVATE_KEY || process.env.EVM_PRIVATE_KEY;
+    const privateKey = process.env.X402_BUYER_PRIVATE_KEY || process.env.PLATFORM_EOA_PRIVATE_KEY;
     if (!privateKey) {
-      console.error("❌ X402CanaryJob: no wallet key available (PLATFORM_EOA_PRIVATE_KEY / EVM_PRIVATE_KEY). Canary disabled.");
+      console.error("❌ X402CanaryJob: no wallet key available (X402_BUYER_PRIVATE_KEY / PLATFORM_EOA_PRIVATE_KEY). Canary disabled.");
       return;
     }
 
@@ -90,7 +90,7 @@ export class X402CanaryJob {
       return;
     }
 
-    const privateKey = process.env.PLATFORM_EOA_PRIVATE_KEY || process.env.EVM_PRIVATE_KEY;
+    const privateKey = process.env.X402_BUYER_PRIVATE_KEY || process.env.PLATFORM_EOA_PRIVATE_KEY;
     if (!privateKey) {
       await this.recordResult("skipped", undefined, "No wallet key available");
       return;

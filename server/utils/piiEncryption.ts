@@ -5,7 +5,14 @@
 
 import crypto from 'crypto';
 
-const ENCRYPTION_KEY = process.env.PII_ENCRYPTION_KEY || crypto.randomBytes(32);
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.REPLIT_DEPLOYMENT;
+const rawPiiKey = process.env.PII_ENCRYPTION_KEY;
+
+if (isProduction && !rawPiiKey) {
+  throw new Error('FATAL: PII_ENCRYPTION_KEY environment variable is required in production. Missing key would make previously encrypted PII undecryptable.');
+}
+
+const ENCRYPTION_KEY = rawPiiKey || crypto.randomBytes(32);
 const ALGORITHM = 'aes-256-gcm';
 
 export class PIIEncryption {

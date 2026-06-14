@@ -249,7 +249,7 @@ export class ReferralProcessor {
         SELECT 
           COUNT(DISTINCT r.referee_agent_id) as total_referrals,
           COALESCE(SUM(CAST(at.amount AS DECIMAL)), 0) as total_referral_rewards,
-          COUNT(CASE WHEN r.first_transaction_completed THEN 1 END) as active_referrals
+          COUNT(CASE WHEN r.is_first_transaction THEN 1 END) as active_referrals
         FROM agent_referrals r
         LEFT JOIN agent_transactions at ON at.recipient_agent_id = ${agentId}
           AND at.transaction_type = 'referral_reward'
@@ -335,7 +335,7 @@ export class ReferralProcessor {
         ga.id,
         ga.agent_name,
         ga.reputation,
-        r.first_transaction_completed,
+        r.is_first_transaction,
         r.created_at as referral_date,
         COALESCE(COUNT(at.id), 0) as transaction_count,
         COALESCE(SUM(CAST(at.amount AS DECIMAL)), 0) as total_volume
@@ -344,7 +344,7 @@ export class ReferralProcessor {
       LEFT JOIN agent_transactions at ON at.initiator_agent_id = ga.id
         AND at.status = 'completed'
       WHERE r.referrer_agent_id = ${agentId}
-      GROUP BY ga.id, ga.agent_name, ga.reputation, r.first_transaction_completed, r.created_at
+      GROUP BY ga.id, ga.agent_name, ga.reputation, r.is_first_transaction, r.created_at
       ORDER BY total_volume DESC
     `);
 

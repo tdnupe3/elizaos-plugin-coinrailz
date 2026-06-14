@@ -13,3 +13,4 @@
 - [Yield outreach campaign](yield-outreach-campaign.md) — admin-gated POST /api/admin/yield-outreach/{dry-run,send}; 3 A2A agents + 30 on-chain wallets; dedup MUST be applied post-query in both dryRun() and runCampaign() not just getA2ATargets()
 - [db:push non-interactive schema drift](db-push-noninteractive.md) — post-merge db:push with stdin closed silently aborts on rename prompts; fix with targeted ALTER TABLE, not global --force (risks live data on other tables)
 - [Encryption key secrets required for deploy](encryption-key-deploy.md) — PII_ENCRYPTION_KEY and ENCRYPTION_KEY must exist as Replit secrets before any production deploy; both have fail-fast guards that crash startup if missing
+- [Dialect Markets — expired keys, DeFiLlama fallback](dialect-markets-fallback.md) — DIALECT_BE_KEY/DIALECT_MARKETS_FE_KEY expired; dialectMarketsService now latches on 401 and falls back to DeFiLlama yields.llama.fi/pools permanently

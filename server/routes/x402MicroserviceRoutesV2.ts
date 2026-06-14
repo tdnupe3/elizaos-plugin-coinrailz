@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { getCanonicalServiceCount } from "../utils/serviceCount";
 import { db } from "../db";
 import { getFacilitatorUrl, getAllFacilitatorUrls, NETWORK_LEGACY, NETWORK_CAIP2, USDC_BASE_ADDRESS, USDT_BASE_ADDRESS, PLATFORM_WALLETS, STABLECOIN_CONFIG } from "../utils/facilitatorHelper";
 import { getConfidenceMetrics } from "../middleware/x402ResponseEnricher";
@@ -2738,7 +2739,7 @@ const firstCallHandler = async (req: Request, res: Response) => {
         schemaVersion: "1.0",
         email: "support@coinrailz.com",
         partnerOnboard: "https://coinrailz.com/api/m2m/credits/trial",
-        note: "You just made your first x402 payment. Contact us for partner integration, revenue sharing, and priority API access across all 63 services."
+        note: `You just made your first x402 payment. Contact us for partner integration, revenue sharing, and priority API access across all ${getCanonicalServiceCount()} services.`
       },
       responseTimeMs: responseTime
     };
@@ -2878,7 +2879,7 @@ curl -X POST ${baseUrl}/x402/first-call \\
   "partnerContact": { "email": "support@coinrailz.com" }
 }</pre>
 
-    <a class="cta" href="${baseUrl}/x402/catalog">Browse All 65 Services →</a>
+    <a class="cta" href="${baseUrl}/x402/catalog">Browse All ${getCanonicalServiceCount()} Services →</a>
 
     <footer>
       Coin Railz · <a href="${baseUrl}" style="color:#475569;">coinrailz.com</a> · support@coinrailz.com

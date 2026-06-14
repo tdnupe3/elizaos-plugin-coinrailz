@@ -2,7 +2,7 @@
  * GET /openapi.json — OpenAPI 3.1 spec for Coin Railz agent payment services
  *
  * Serves the merged canonical spec:
- *  - All 63 x402 service paths from public/openapi-x402-services.json
+ *  - All 64 x402 service paths from public/openapi-x402-services.json
  *  - Onboarding paths (trial key, checkout, auth capabilities)
  *  - MPP paths
  *  - Discovery well-known paths
@@ -12,6 +12,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { getCanonicalServiceCount } from '../utils/serviceCount';
 import fs from 'fs';
 import path from 'path';
 
@@ -448,7 +449,7 @@ router.get('/openapi.json', (req: Request, res: Response) => {
     info: {
       title: 'Coin Railz Agent Payment API',
       version: '3.0.0',
-      description: 'Production-grade x402 micropayment infrastructure for AI agents. 63 services across 8 blockchains (7 EVM + Solana), settling in USDC. Categories: Crypto Intelligence, Trading, Market Intelligence, Prediction Markets (Kalshi/Polymarket), Satellite Intelligence (NASA/ESA), IoT & DePIN (fleet telematics, weather stations, sensor data), AI Inference (GPT-4o-mini at $0.05/call), Real Estate, Banking, and Compliance. Pricing: $0.05–$10.00 per call. Free $5 trial key at /api/m2m/credits/trial. Supports API-key prepaid credits and native x402 on-chain USDC payments.',
+      description: `Production-grade x402 micropayment infrastructure for AI agents. ${getCanonicalServiceCount()} services across 8 blockchains (7 EVM + Solana), settling in USDC. Categories: Crypto Intelligence, Trading, Market Intelligence, Prediction Markets (Kalshi/Polymarket), Satellite Intelligence (NASA/ESA), IoT & DePIN (fleet telematics, weather stations, sensor data), AI Inference (GPT-4o-mini at $0.05/call), Real Estate, Banking, and Compliance. Pricing: $0.05–$10.00 per call. Free $5 trial key at /api/m2m/credits/trial. Supports API-key prepaid credits and native x402 on-chain USDC payments.`,
       contact: { email: 'support@coinrailz.com', url: 'https://coinrailz.com' },
       'x-payment-info': catalog.info?.['x-payment-info'],
     },

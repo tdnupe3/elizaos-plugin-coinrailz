@@ -21,6 +21,7 @@ export type CanonicalService = {
   priceUsd: number;
   category: string;
   tags: string[];
+  featured: boolean;
   inputSchema?: unknown;
 };
 
@@ -29,6 +30,7 @@ type OpenApiOp = {
   description?: string;
   tags?: string[];
   'x-price-usd'?: number;
+  'x-featured'?: boolean;
   requestBody?: { content?: { 'application/json'?: { schema?: unknown } } };
 };
 
@@ -76,6 +78,7 @@ function loadSpec(): OpenApiDoc {
           .toLowerCase()
           .replace(/\s+/g, '-'),
         tags: op.tags ?? [],
+        featured: op['x-featured'] === true,
         inputSchema:
           op.requestBody?.content?.['application/json']?.schema,
       };
@@ -92,19 +95,29 @@ function loadSpec(): OpenApiDoc {
 }
 
 /**
- * Returns the total number of paths in the canonical OpenAPI spec.
+ * Returns the total number of /x402/* services in the canonical OpenAPI spec.
  * This is the authoritative service count for all discovery surfaces.
  */
 export function getCanonicalServiceCount(): number {
-  const doc = loadSpec();
-  return Object.keys(doc.paths ?? {}).length;
+  loadSpec();
+  return cache!.services.length;
 }
 
 /**
  * Returns all /x402/* services as structured objects.
- * Safe to call on every request — result is cached.
+ * Featured services sort first. Safe to call on every request — result is cached.
  */
 export function getCanonicalServices(): CanonicalService[] {
   loadSpec();
   return cache!.services;
+}
+
+/**
+ * Returns only the featured /x402/* services, sorted by price ascending.
+ */
+export function getFeaturedServices(): CanonicalService[] {
+  loadSpec();
+  return cache!.services
+    .filter((s) => s.featured)
+    .sort((a, b) => a.priceUsd - b.priceUsd);
 }

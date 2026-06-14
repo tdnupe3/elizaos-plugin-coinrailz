@@ -21,6 +21,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { getCanonicalServiceCount } from '../utils/serviceCount';
 import { stripe } from '../services/stripeClient';
 import { creditsService } from '../services/creditsService.js';
 import { db } from '../db.js';
@@ -622,7 +623,7 @@ router.get('/capabilities', (req: Request, res: Response) => {
 
   res.status(200).json({
     service: 'Coin Railz',
-    description: 'Multi-chain AI agent payment infrastructure — 63 services, 8 blockchains, API-key and x402 support.',
+    description: `Multi-chain AI agent payment infrastructure — ${getCanonicalServiceCount()} services, 8 blockchains, API-key and x402 support.`,
     authModes: [
       {
         mode: 'api_key',
@@ -907,7 +908,7 @@ router.get('/trial', async (req: Request, res: Response) => {
       keyPrefix,
       credits: TRIAL_CREDITS,
       currency: "USD",
-      serviceCalls: "~80-100 calls across all 63 /x402/* services",
+      serviceCalls: `~80-100 calls across all ${getCanonicalServiceCount()} /x402/* services`,
       expiresIn: "7 days",
       usage: {
         header: "X-API-KEY",

@@ -26,6 +26,7 @@ import {
   xrpOrders,
   aiAgentProducts,
   aiAgentSubscriptions,
+  apiKeys,
   transactionProofs,
   gptAuthSessions,
   type GptAuthSession,
@@ -129,6 +130,7 @@ export interface IStorage {
   createSubscription(subscription: InsertAIAgentSubscription): Promise<AIAgentSubscription>;
   getSubscription(agentId: string): Promise<AIAgentSubscription | null>;
   getSubscriptionByApiKey(apiKeyHash: string): Promise<AIAgentSubscription | null>;
+  getApiKeyByHash(hashedKey: string): Promise<{ userId: string; keyPrefix: string; status: string; revokedAt: Date | null } | null>;
   updateSubscription(id: number, data: Partial<InsertAIAgentSubscription>): Promise<AIAgentSubscription | null>;
   updateSubscriptionUsage(id: number, usageStats: any): Promise<void>;
   getActiveSubscriptions(): Promise<AIAgentSubscription[]>;
@@ -2259,6 +2261,17 @@ export class DatabaseStorage implements IStorage {
   async getSubscription(agentId: string): Promise<AIAgentSubscription | null> {
     const [result] = await db.select().from(aiAgentSubscriptions)
       .where(eq(aiAgentSubscriptions.agentId, agentId));
+    return result || null;
+  }
+
+  async getApiKeyByHash(hashedKey: string): Promise<{ userId: string; keyPrefix: string; status: string; revokedAt: Date | null } | null> {
+    const [result] = await db.select({
+      userId: apiKeys.userId,
+      keyPrefix: apiKeys.keyPrefix,
+      status: apiKeys.status,
+      revokedAt: apiKeys.revokedAt,
+    }).from(apiKeys)
+      .where(eq(apiKeys.hashedKey, hashedKey));
     return result || null;
   }
 

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { storage } from '../storage.js';
 
 // JWT Secret - REQUIRED from environment variables for enterprise security
@@ -142,19 +143,21 @@ export const fastRevenueAuth = async (req: any, res: any, next: any) => {
       req.userTier = decoded.tier || 'basic';
       return next();
     } catch (jwtError) {
-      // Fallback: Check for valid token format (usr_, ent_, api_ prefixes)
-      if (!token.startsWith('usr_') && !token.startsWith('ent_') && !token.startsWith('api_')) {
+      // Fallback: validate against DB-backed api_keys table (SHA-256 hash lookup)
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+      const apiKey = await storage.getApiKeyByHash(hashedToken);
+
+      if (!apiKey || apiKey.status !== 'active' || apiKey.revokedAt) {
         return res.status(401).json({
-          error: 'Invalid token format',
-          message: 'Token must be valid JWT or start with usr_, ent_, or api_ prefix'
+          error: 'Invalid or revoked token',
+          message: 'Provide a valid JWT or an active API key'
         });
       }
-      
-      // Extract userId from prefixed token (backwards compatibility)
-      req.userId = token.includes('_') ? token.split('_')[1] : token;
-      req.userTier = token.startsWith('ent_') ? 'enterprise' : 
-                    token.startsWith('api_') ? 'premium' : 'basic';
-      next();
+
+      req.userId = apiKey.userId;
+      req.userTier = apiKey.keyPrefix?.startsWith('ent_') ? 'enterprise' :
+                     apiKey.keyPrefix?.startsWith('api_') ? 'premium' : 'basic';
+      return next();
     }
   } catch (error: any) {
     console.error('Fast revenue auth error:', error);

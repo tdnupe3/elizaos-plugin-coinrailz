@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { getCanonicalServiceCount } from "../utils/serviceCount";
+import { getCanonicalServiceCount, getCanonicalServices } from "../utils/serviceCount";
 import { db } from "../db";
 import { getFacilitatorUrl, getAllFacilitatorUrls, NETWORK_LEGACY, NETWORK_CAIP2, USDC_BASE_ADDRESS, USDT_BASE_ADDRESS, PLATFORM_WALLETS, STABLECOIN_CONFIG } from "../utils/facilitatorHelper";
 import { getConfidenceMetrics } from "../middleware/x402ResponseEnricher";
@@ -252,18 +252,38 @@ router.get('/openapi.json', async (req: Request, res: Response) => {
 // ============================================================================
 router.get('/catalog', async (req: Request, res: Response) => {
   try {
-    const catalog = serviceCatalogService.getCatalog();
-    const summary = serviceCatalogService.getCatalogSummary();
-    
+    // Support ?tier=featured|experimental filtering
+    const tier = (req.query.tier as string | undefined)?.toLowerCase();
+
+    const allServices = getCanonicalServices();
+    const featured = allServices.filter(s => s.featured);
+    const experimental = allServices.filter(s => !s.featured);
+
+    let filteredServices: typeof allServices;
+    if (tier === 'featured') {
+      filteredServices = featured;
+    } else if (tier === 'experimental') {
+      filteredServices = experimental;
+    } else {
+      // Default: featured first, then rest (both sorted by price ascending within tier)
+      filteredServices = [
+        ...featured.sort((a, b) => a.priceUsd - b.priceUsd),
+        ...experimental.sort((a, b) => a.priceUsd - b.priceUsd),
+      ];
+    }
+
     res.setHeader('Cache-Control', 'public, max-age=300');
     res.setHeader('Content-Type', 'application/json');
-    
+
     res.json({
       x402Version: 2,
-      catalogUrl: summary.catalogUrl,
+      catalogUrl: `${PUBLIC_BASE_URL}/x402/catalog`,
       facilitatorUrl: getFacilitatorUrl(),
       registrationEndpoint: `${PUBLIC_BASE_URL}/.well-known/agent-registration.json`,
-      totalServices: summary.totalServices,
+      totalServices: allServices.length,
+      featuredServices: featured.length,
+      experimentalServices: experimental.length,
+      tier: tier ?? 'all',
       network: 'eip155:8453',
       x402Network: 'eip155:8453',
       paymentAsset: {
@@ -272,21 +292,26 @@ router.get('/catalog', async (req: Request, res: Response) => {
         decimals: 6,
         chainId: 8453,
       },
-      services: catalog.services.map(service => ({
+      services: filteredServices.map(service => ({
         id: service.id,
         name: service.name,
         description: service.description,
         endpoint: service.endpoint,
-        priceUSD: service.priceUSD,
-        priceUSDC: service.priceUSDC,
-        priceMicro: SERVICE_PRICING_MICRO[service.id as ServiceName] || 0,
+        method: service.method,
+        priceUSD: service.priceUsd,
+        priceUSDC: service.priceUsd,
+        priceMicro: Math.round(service.priceUsd * 1_000_000),
         category: service.category,
+        tags: service.tags,
+        featured: service.featured,
+        tier: service.featured ? 'featured' : 'experimental',
         discoverable: true,
         firstCallFree: ['gas-price-oracle', 'token-metadata'].includes(service.id),
       })),
       firstCallFreeServices: ['gas-price-oracle', 'token-metadata'],
       quickStart: {
         docsUrl: `${PUBLIC_BASE_URL}/docs/x402-quick-start`,
+        tierFiltering: `${PUBLIC_BASE_URL}/x402/catalog?tier=featured | ?tier=experimental`,
         note: 'First call is FREE on gas-price-oracle and token-metadata services!',
       },
     });

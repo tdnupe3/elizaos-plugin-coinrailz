@@ -121,3 +121,22 @@ export function getFeaturedServices(): CanonicalService[] {
     .filter((s) => s.featured)
     .sort((a, b) => a.priceUsd - b.priceUsd);
 }
+
+/**
+ * Returns the count of featured /x402/* services.
+ */
+export function getFeaturedServiceCount(): number {
+  loadSpec();
+  return cache!.services.filter((s) => s.featured).length;
+}
+
+/**
+ * Returns experimental (non-featured) /x402/* services, sorted by price ascending.
+ * "Experimental" means any service that is NOT in the featured set.
+ */
+export function getExperimentalServices(): CanonicalService[] {
+  loadSpec();
+  return cache!.services
+    .filter((s) => !s.featured)
+    .sort((a, b) => a.priceUsd - b.priceUsd);
+}

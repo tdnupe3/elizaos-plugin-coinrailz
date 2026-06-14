@@ -5447,7 +5447,7 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
     id: "coinrailz-x402-infrastructure",
     name: "Coin Railz",
     canonicalUrl: baseUrl,
-    description: "Universal payment rail for the AI agent economy. 63 pay-per-call services across 8 blockchains (7 EVM + Solana): financial data, satellite intelligence (NASA Earthdata), AI inference, DeFi analytics, IoT/DePIN, prediction markets, and more. Includes USDC Yield Vault (ERC-4626 on Base, auto-routing across Aave v3/Compound v3/Morpho Blue) — earn yield on idle USDC with no lockup. Settles in USDC. API-key credits path requires no crypto wallet.",
+    description: `Universal payment rail for the AI agent economy. ${getCanonicalServiceCount()} pay-per-call services across 8 blockchains (7 EVM + Solana): financial data, satellite intelligence (NASA Earthdata), AI inference, DeFi analytics, IoT/DePIN, prediction markets, and more. Includes USDC Yield Vault (ERC-4626 on Base, auto-routing across Aave v3/Compound v3/Morpho Blue) — earn yield on idle USDC with no lockup. Settles in USDC. API-key credits path requires no crypto wallet.`,
     version_platform: "2.3.0",
     protocols: ["x402", "WebMCP", "A2A", "MPP", "OpenAPI"],
     capabilities: [
@@ -5699,7 +5699,7 @@ router.get('/.well-known/agent-directory.json', (req: Request, res: Response) =>
     platform: {
       name: 'Coin Railz',
       url: baseUrl,
-      description: 'Multi-chain AI agent payment infrastructure. 63 x402 micropayment services across 8 blockchains (7 EVM + Solana), settling in USDC.',
+      description: `Multi-chain AI agent payment infrastructure. ${getCanonicalServiceCount()} x402 micropayment services across 8 blockchains (7 EVM + Solana), settling in USDC.`,
       contact: 'support@coinrailz.com',
       agentCard: `${baseUrl}/.well-known/agent.json`,
       x402Manifest: `${baseUrl}/.well-known/x402.json`,

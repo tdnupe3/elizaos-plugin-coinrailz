@@ -19,7 +19,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { getCanonicalServices, CanonicalService } from '../utils/serviceCount';
+import { getCanonicalServices, getCanonicalServiceCount, CanonicalService } from '../utils/serviceCount';
 
 const router = Router();
 
@@ -171,7 +171,7 @@ router.post('/', async (req: Request, res: Response) => {
         serverInfo: {
           name: 'coinrailz-mcp',
           version: '1.1.0',
-          description: '63 x402 micropayment services via USDC — crypto analytics, NASA/ESA satellite data, IoT sensors, AI inference, and prediction markets.',
+          description: `${getCanonicalServiceCount()} x402 micropayment services via USDC — crypto analytics, NASA/ESA satellite data, IoT sensors, AI inference, and prediction markets.`,
         },
       },
     });

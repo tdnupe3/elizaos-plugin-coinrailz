@@ -252,23 +252,23 @@ router.get('/openapi.json', async (req: Request, res: Response) => {
 // ============================================================================
 router.get('/catalog', async (req: Request, res: Response) => {
   try {
-    // Support ?tier=featured|experimental filtering
+    // Support ?tier=featured|standard filtering
     const tier = (req.query.tier as string | undefined)?.toLowerCase();
 
     const allServices = getCanonicalServices();
     const featured = allServices.filter(s => s.featured);
-    const experimental = allServices.filter(s => !s.featured);
+    const standard = allServices.filter(s => !s.featured);
 
     let filteredServices: typeof allServices;
     if (tier === 'featured') {
       filteredServices = featured;
-    } else if (tier === 'experimental') {
-      filteredServices = experimental;
+    } else if (tier === 'standard') {
+      filteredServices = standard;
     } else {
-      // Default: featured first, then rest (both sorted by price ascending within tier)
+      // Default: featured first, then standard (both sorted by price ascending within tier)
       filteredServices = [
         ...featured.sort((a, b) => a.priceUsd - b.priceUsd),
-        ...experimental.sort((a, b) => a.priceUsd - b.priceUsd),
+        ...standard.sort((a, b) => a.priceUsd - b.priceUsd),
       ];
     }
 
@@ -282,7 +282,7 @@ router.get('/catalog', async (req: Request, res: Response) => {
       registrationEndpoint: `${PUBLIC_BASE_URL}/.well-known/agent-registration.json`,
       totalServices: allServices.length,
       featuredServices: featured.length,
-      experimentalServices: experimental.length,
+      standardServices: standard.length,
       tier: tier ?? 'all',
       network: 'eip155:8453',
       x402Network: 'eip155:8453',
@@ -304,14 +304,14 @@ router.get('/catalog', async (req: Request, res: Response) => {
         category: service.category,
         tags: service.tags,
         featured: service.featured,
-        tier: service.featured ? 'featured' : 'experimental',
+        tier: service.featured ? 'featured' : 'standard',
         discoverable: true,
         firstCallFree: ['gas-price-oracle', 'token-metadata'].includes(service.id),
       })),
       firstCallFreeServices: ['gas-price-oracle', 'token-metadata'],
       quickStart: {
         docsUrl: `${PUBLIC_BASE_URL}/docs/x402-quick-start`,
-        tierFiltering: `${PUBLIC_BASE_URL}/x402/catalog?tier=featured | ?tier=experimental`,
+        tierFiltering: `${PUBLIC_BASE_URL}/x402/catalog?tier=featured | ?tier=standard`,
         note: 'First call is FREE on gas-price-oracle and token-metadata services!',
       },
     });

@@ -131,10 +131,10 @@ export function getFeaturedServiceCount(): number {
 }
 
 /**
- * Returns experimental (non-featured) /x402/* services, sorted by price ascending.
- * "Experimental" means any service that is NOT in the featured set.
+ * Returns standard (non-featured) /x402/* services, sorted by price ascending.
+ * "Standard" means any service that is NOT in the featured set — all are production-ready.
  */
-export function getExperimentalServices(): CanonicalService[] {
+export function getStandardServices(): CanonicalService[] {
   loadSpec();
   return cache!.services
     .filter((s) => !s.featured)

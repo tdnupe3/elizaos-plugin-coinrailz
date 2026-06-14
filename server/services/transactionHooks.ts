@@ -43,7 +43,7 @@ export class TransactionHooks {
       // Mark first transaction as completed in referral system
       await db.execute(sql`
         UPDATE agent_referrals 
-        SET first_transaction_completed = true 
+        SET is_first_transaction = true 
         WHERE referee_agent_id = ${agentId}
       `);
 

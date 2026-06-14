@@ -2,7 +2,7 @@
  * GET /openapi.json — OpenAPI 3.1 spec for Coin Railz agent payment services
  *
  * Serves the merged canonical spec:
- *  - All 64 x402 service paths from public/openapi-x402-services.json
+ *  - All 65 x402 service paths from public/openapi-x402-services.json
  *  - Onboarding paths (trial key, checkout, auth capabilities)
  *  - MPP paths
  *  - Discovery well-known paths

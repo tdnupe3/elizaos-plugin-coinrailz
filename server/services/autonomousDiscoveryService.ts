@@ -14,6 +14,7 @@ import { db } from '../db';
 import { globalAIAgents } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { serviceCatalogService } from './serviceCatalogService';
+import { getCanonicalServiceCount } from '../utils/serviceCount';
 
 interface DiscoveryTarget {
   name: string;
@@ -532,6 +533,7 @@ class AutonomousDiscoveryService {
    */
   generateRobotsTxt(hostname?: string): string {
     const baseUrl = this.getBaseUrl(hostname);
+    const svcCount = getCanonicalServiceCount();
     return `User-agent: *
 Allow: /
 Allow: /api/agents/directory
@@ -542,7 +544,7 @@ Allow: /api/x402/
 Sitemap: ${baseUrl}/sitemap.xml
 
 # AI Agent Marketplace
-# x402 Payment Protocol Support
+# x402 Payment Protocol Support — ${svcCount} paid services available
 # A2A 2.0 Discoverable Agents
 # Contact: support@coinrailz.com
 `;

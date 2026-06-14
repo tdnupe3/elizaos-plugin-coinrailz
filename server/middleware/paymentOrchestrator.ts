@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { isCanaryPayer } from "../utils/canaryAddress";
+import { getCanonicalServiceCount } from "../utils/serviceCount";
 import { 
   verifyTransactionPayment, 
   markPaymentIntentSucceeded, 
@@ -3070,7 +3071,7 @@ function generate402Response(
     },
     recommended_next_step: {
       action: "purchase_api_key",
-      description: "Get an API key with a card — no crypto wallet required. Works on all 60 services.",
+      description: `Get an API key with a card — no crypto wallet required. Works on all ${getCanonicalServiceCount()} services.`,
       endpoint: `${baseUrl}/api/m2m/credits/purchase`,
       method: "POST",
       body: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "replace-with-uuid-v4" },
@@ -3079,7 +3080,7 @@ function generate402Response(
       advanced_alternative: "On-chain USDC payment via accepts[] below (crypto wallet required)"
     },
     non_x402: {
-      description: "Card-first payment paths — no crypto wallet required. API key works on all 60 /x402/* services.",
+      description: `Card-first payment paths — no crypto wallet required. API key works on all ${getCanonicalServiceCount()} /x402/* services.`,
       checkoutUrl: `${baseUrl}/api/m2m/credits/checkout/session`,
       trialUrl: `${baseUrl}/api/m2m/credits/trial`,
       capabilitiesUrl: `${baseUrl}/api/auth/capabilities`,

@@ -104,7 +104,7 @@ router.get('/.well-known/mcp.json', async (req: Request, res: Response) => {
   res.status(200).json({
     mcp_version: "1.0.0",
     name: "Coin Railz MCP Server",
-    description: "Multi-chain x402 USDC payment infrastructure for AI agents. Coinbase AgentKit compatible. 60+ services across 8 blockchains.",
+    description: `Multi-chain x402 USDC payment infrastructure for AI agents. Coinbase AgentKit compatible. ${getCanonicalServiceCount()} services across 8 blockchains.`,
     version: "1.0.0",
     url: baseUrl,
     endpoints: {
@@ -3564,7 +3564,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
           name: "Agent first payment",
           description: "Pay $0.05 USDC to receive full platform capabilities and service catalog",
           input: {},
-          output: { message: "Welcome to Coin Railz", services: 60, chains: 8 }
+          output: { message: "Welcome to Coin Railz", services: getCanonicalServiceCount(), chains: 8 }
         }]
       },
       // AI Inference Gateway

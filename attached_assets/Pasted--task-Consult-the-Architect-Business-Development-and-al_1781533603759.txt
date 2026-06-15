@@ -1,0 +1,87 @@
+<task>
+Consult the Architect, Business Development, and all available analytics sources to produce a complete 12-hour Coin Railz platform activity assessment.
+</task>
+
+<context>
+Analyze platform activity from the last 12 hours. Compare the current window against prior 12-hour windows, recent daily trends, and any known recent updates, fixes, deployments, or changes. We know there may be no conversions yet, so do not over-focus on the absence of payments unless there is a meaningful change in payment behavior.
+</context>
+
+<required_tools>
+Use the internal file that lists all available analytical tools. Use every relevant tool needed to investigate thoroughly, including traffic logs, API logs, payment-header checks, x402/challenge data, crawler/user-agent analysis, endpoint-level activity, referrer data, IP/session clustering, security/probe detection, manifest access patterns, and conversion/funnel signals.
+</required_tools>
+
+<analysis_requirements>
+
+1. Identify total activity volume, unique IPs, user agents, sessions, services hit, and challenge/payment activity.
+2. Separate normal crawlers, AI agents, partner/platform validators, SEO/research bots, unknown recurring actors, and suspicious/security probes.
+3. Identify the most important actors and explain why they matter.
+4. Determine the impact of any recent updates, fixes, deployments.
+5. Highlight endpoint-level demand signals, especially repeated visits, independent convergence, new endpoint testing, deeper catalog traversal, and high-value service interest.
+6. Check for mid-funnel or conversion-adjacent signals: X-PAYMENT headers, payment attempts, retries, wallet behavior, quote requests, POST behavior, auth attempts, agent manifests, x402.json activity, and repeat validation loops.
+7. Identify any technical issues, failed responses, abnormal errors, broken routes, rate-limit problems, latency issues, or security concerns.
+8. Compare this window to previous windows and state whether the platform is moving forward, sideways, or backward.
+   </analysis_requirements>
+
+<output_format>
+Provide the assessment in this structure:
+
+1. Executive Summary
+
+   * Plain-English summary of what happened.
+   * One-sentence verdict on whether the platform improved, declined, or stayed flat.
+
+2. Headline Signals
+
+   * The 3–7 most important findings.
+   * Explain why each one matters.
+
+3. Actor Analysis
+
+   * Major AI platforms
+   * SEO/research bots
+   * Unknown recurring actors
+   * Bazaar/sweepers/indexers
+   * Suspicious or hostile traffic
+
+4. Endpoint Demand Analysis
+
+   * Which services attracted the most meaningful attention.
+   * Which endpoints show repeat validation or independent convergence.
+   * Which endpoints look most likely to convert first.
+
+5. Impact of Recent Updates/Fixes
+
+   * What changed after recent updates.
+   * What improved.
+   * What did not improve.
+   * Any evidence that fixes are holding.
+
+6. Conversion Readiness
+
+   * Be honest about whether there are payments or conversion signals.
+   * Do not dwell negatively on no conversions.
+   * Focus on whether behavior is moving closer to paid usage.
+
+7. Security / Technical Issues
+
+   * Probes, errors, abnormal activity, broken paths, failed requests, or urgent fixes.
+
+8. Business Development Read
+
+   * What this means commercially.
+   * Which actors or endpoints deserve follow-up.
+   * Whether this looks like discovery, validation, pre-conversion, or actual conversion.
+
+9. Action Items
+
+   * Give 5–10 specific recommendations for Replit/dev work, analytics improvements, endpoint optimization, security hardening, and monetization readiness.
+
+10. Final Verdict
+
+* Give a blunt but fair conclusion.
+* Include confidence level: Low / Medium / High.
+  </output_format>
+
+<style>
+Be thorough, analytical, and direct. Do not hype weak signals, but do not dismiss meaningful validation behavior. Distinguish facts from interpretation. Give me the founder-level read: what matters, what does not, what changed, and what I should do next.
+</style>

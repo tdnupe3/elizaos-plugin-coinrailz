@@ -7,8 +7,9 @@ IoT Payments SDK for device-to-device payments, metering, and credits. Built for
 - **Device Registration** - Register IoT devices with unique IDs and wallet addresses
 - **Credits System** - Pre-purchase credits for pay-per-event billing
 - **D2D Transfers** - Device-to-device payments with 2% + $0.02 fee
-- **Metering** - Track billable events (messages, sensor readings, API calls)
-- **Multi-chain** - Support for Base, Ethereum, Polygon, Arbitrum, Solana
+- **Micropayment-Enabled Sensors** - Access 66+ x402 intelligence services directly from IoT devices
+- **Metering** - Track billable events (messages, sensor readings, NASA data calls)
+- **Multi-chain** - Native support for Base (USDC) and Solana DePIN ecosystems
 - **Non-custodial** - Devices control their own wallets
 - **Secure Auth** - SHA-256 hashed API keys with rotation support
 

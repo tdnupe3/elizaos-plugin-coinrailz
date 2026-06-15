@@ -5,11 +5,12 @@ AI Agent Payment Processing SDK - Non-custodial USDC payments for AI agents with
 ## Features
 
 - **Non-custodial**: Your wallet, your keys. We never custody funds.
+- **Yield-while-trading**: Earn USDC yield (Kamino ~3.4% APY / Aave) while your agent spends.
 - **Low fees**: 1.5% + $0.01 per transaction ($0.05 minimum)
-- **Multi-chain**: Base Chain primary, with Ethereum, Polygon, Arbitrum support
-- **Intelligence bundle**: 41 x402 microservices for market data, analytics, and more
-- **CDP wallets**: Automatic wallet creation via Coinbase Developer Platform
-- **Framework agnostic**: Works with ElizaOS, AgentKit, MCP, or any TypeScript/JavaScript project
+- **Multi-chain**: Base and Solana primary, with Ethereum, Polygon, Arbitrum support.
+- **Intelligence bundle**: 66 x402 microservices covering NASA satellite data, prediction markets, and AI.
+- **CDP wallets**: Automatic wallet creation via Coinbase Developer Platform.
+- **Official ElizaOS Plugin**: Deep integration with the leading AI agent framework.
 
 ## Installation
 
@@ -183,7 +184,7 @@ const wallet = await client.createWallet();
 
 ### Intelligence Services
 
-Access 41 bundled x402 microservices (requires bundle subscription or +0.35% per call).
+Access 66 bundled x402 microservices (requires bundle subscription or +0.35% per call).
 
 ```typescript
 const client = new CoinRailz({
@@ -191,31 +192,25 @@ const client = new CoinRailz({
   enableIntelligence: true
 });
 
-// Get wallet risk score
-const risk = await client.intelligence('wallet-risk', {
-  address: '0x...'
+// Get prediction market spreads (featured)
+const spread = await client.intelligence('prediction-market-spread', {
+  event: 'US Election'
 });
 
-// Get trade signals
-const signals = await client.intelligence('trade-signals', {
-  token: 'ETH'
-});
-
-// Get token sentiment
-const sentiment = await client.intelligence('token-sentiment', {
-  token: 'BTC'
+// Get NASA satellite imagery
+const satellite = await client.intelligence('weather-imagery', {
+  lat: 40.7128,
+  lon: -74.0060
 });
 ```
 
-Available intelligence services:
-- `wallet-risk` - Wallet risk analysis
-- `trade-signals` - AI-generated trade signals
-- `token-sentiment` - Social sentiment analysis
-- `whale-alerts` - Large transaction monitoring
-- `trending-tokens` - Trending token discovery
-- `gas-price-oracle` - Real-time gas prices
-- `contract-scan` - Smart contract security scan
-- And 34 more...
+Available intelligence categories:
+- **Trading & Markets**: Signals, whale alerts, trending tokens, gas oracles.
+- **Satellite (NASA/ESA)**: Earthdata, fire alerts, flood detection, air quality.
+- **Prediction Markets**: Polymarket/Kalshi odds, spreads, and search.
+- **AI & IoT**: Pay-per-call GPT inference, telematics, and sensor readings.
+- **Risk & Compliance**: Wallet scoring, AML checks, and contract audits.
+- And 50+ more...
 
 ## Error Handling
 

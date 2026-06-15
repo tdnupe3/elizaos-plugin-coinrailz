@@ -1,7 +1,7 @@
 Metadata-Version: 2.4
 Name: coinrailz
-Version: 1.0.2
-Summary: AI Agent Payment Processing SDK - Non-custodial USDC payments for AI agents with bundled intelligence services
+Version: 1.1.0
+Summary: Non-custodial USDC payment SDK for AI agents with 66 bundled x402 intelligence services across Base and Solana. Official ElizaOS support.
 Author-email: Coin Railz <support@coinrailz.com>
 License: MIT
 Project-URL: Homepage, https://coinrailz.com
@@ -37,11 +37,13 @@ AI Agent Payment Processing SDK - Non-custodial USDC payments for AI agents with
 ## Features
 
 - **Non-custodial**: Your wallet, your keys. We never custody funds.
+- **Yield-while-trading**: Earn USDC yield (Kamino ~3.4% APY / Aave) while your agent spends.
 - **Low fees**: 1.5% + $0.01 per transaction ($0.05 minimum)
-- **Multi-chain**: Base Chain primary, with Ethereum, Polygon, Arbitrum support
-- **Intelligence bundle**: 41 x402 microservices for market data, analytics, and more
-- **CDP wallets**: Automatic wallet creation via Coinbase Developer Platform
-- **Type-safe**: Full Pydantic models for all API responses
+- **Multi-chain**: Base and Solana primary, with Ethereum, Polygon, Arbitrum support.
+- **Intelligence bundle**: 66 x402 microservices covering NASA satellite data, prediction markets, and AI.
+- **CDP wallets**: Automatic wallet creation via Coinbase Developer Platform.
+- **Official ElizaOS Plugin**: Deep integration with the leading AI agent framework.
+- **Type-safe**: Full Pydantic models for all API responses.
 
 ## Installation
 

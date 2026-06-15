@@ -1,5 +1,14 @@
 # @elizaos/plugin-coinrailz
 
+> ⚠️ **DEPRECATED** — This package is no longer maintained.
+>
+> Please use [`elizaos-plugin-coinrailz`](https://www.npmjs.com/package/elizaos-plugin-coinrailz) instead.
+> It includes Yield-While-Trading (Kamino + Morpho/Aave), all 66 x402 services, and has an active PR merged into the ElizaOS develop branch.
+>
+> ```bash
+> npm install elizaos-plugin-coinrailz
+> ```
+
 ElizaOS plugin for Coin Railz x402 micropayment services on Base mainnet.
 
 ## Overview

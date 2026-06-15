@@ -6,11 +6,13 @@ AI Agent Payment Processing SDK - Non-custodial USDC payments for AI agents with
 ## Features
 
 - **Non-custodial**: Your wallet, your keys. We never custody funds.
+- **Yield-while-trading**: Earn USDC yield (Kamino ~3.4% APY / Aave) while your agent spends.
 - **Low fees**: 1.5% + $0.01 per transaction ($0.05 minimum)
-- **Multi-chain**: Base Chain primary, with Ethereum, Polygon, Arbitrum support
-- **Intelligence bundle**: 41 x402 microservices for market data, analytics, and more
-- **CDP wallets**: Automatic wallet creation via Coinbase Developer Platform
-- **Type-safe**: Full Pydantic models for all API responses
+- **Multi-chain**: Base and Solana primary, with Ethereum, Polygon, Arbitrum support.
+- **Intelligence bundle**: 66 x402 microservices covering NASA satellite data, prediction markets, and AI.
+- **CDP wallets**: Automatic wallet creation via Coinbase Developer Platform.
+- **Official ElizaOS Plugin**: Deep integration with the leading AI agent framework.
+- **Type-safe**: Full Pydantic models for all API responses.
 
 ## Installation
 

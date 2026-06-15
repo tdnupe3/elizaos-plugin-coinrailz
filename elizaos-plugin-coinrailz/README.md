@@ -1,14 +1,14 @@
 # elizaos-plugin-coinrailz
 
-**Agent Treasury + Payments for ElizaOS.** Non-custodial USDC yield on Solana and Base, plus 65 x402 pay-per-call services — all in one plugin.
+**Agent Treasury + Payments for ElizaOS.** Non-custodial USDC yield on Solana and Base, plus 66 x402 pay-per-call services — all in one plugin.
 
 ## What this plugin does
 
 | Capability | Details |
 |---|---|
-| 🏦 **Solana USDC Yield** | Deposit into Kamino Lending — ~3.4% APY, $118M TVL. Agent signs txs locally; Coin Railz never holds funds. |
+| 🏦 **Solana USDC Yield** | Deposit into Kamino Lending — ~3.4% APY. Agent signs txs locally; Coin Railz never holds funds. |
 | 🏦 **Base USDC Yield** | ERC-4626 vault auto-routing across Aave v3, Compound v3, and Morpho Blue for best rate. |
-| ⚡ **65 x402 Services** | Pay-per-call APIs: trading signals, satellite/NASA data, IoT sensors, AI inference, prediction markets. |
+| ⚡ **66 x402 Services** | Pay-per-call APIs: NASA satellite data, prediction market spread, AI inference, trading signals. |
 | 🔑 **Two payment paths** | API key credits (no wallet needed) or autonomous x402 (self-sovereign USDC on Base). |
 
 **Platform:** `https://coinrailz.com`  
@@ -157,7 +157,15 @@ Uses `x402-fetch` with EIP-712 signing to pay for services automatically on Base
 
 ---
 
-## x402 Pay-Per-Call Services (65 total)
+## x402 Pay-Per-Call Services (66 total)
+
+### 📈 Featured: Prediction Markets ($0.25–$0.75)
+| Service ID | Price | Description |
+|---|---|---|
+| `prediction-market-spread` | $0.75 | Arbitrage scanner for Polymarket vs Kalshi spreads |
+| `polymarket-odds` | $0.50 | Current odds for a specific market |
+| `kalshi-odds` | $0.50 | Odds for a specific Kalshi market |
+| `polymarket-search` | $0.25 | Search for specific prediction markets |
 
 ### Discovery & Testing ($0.05–$0.25)
 | Service ID | Price | Description |

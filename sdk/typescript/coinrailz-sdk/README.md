@@ -4,11 +4,13 @@ Official JavaScript/TypeScript SDK for [Coin Railz LLC](https://coinrailz.com) -
 
 ## Features
 
-- 🚀 **38 Microservices** - Trading intelligence, prediction markets, gas oracles, traditional markets, and more
-- 💳 **Simple API Key Auth** - No blockchain wallet required
+- 🚀 **66 Microservices** - NASA satellite data, trading intelligence, prediction markets, AI inference, and IoT/DePIN
+- 💳 **Simple API Key Auth** - No account or blockchain wallet required to start
 - 📦 **TypeScript First** - Full type definitions included
-- ⚡ **Zero Dependencies** - Uses native fetch (Node 18+)
-- 🤖 **Built for AI Agents** - Designed for autonomous bot integration
+- ⚡ **Zero Dependencies** - Lightweight and fast, uses native fetch
+- 🤖 **Built for AI Agents** - Native x402 micropayment support for autonomous integration
+- 💰 **Yield-While-Trading** - Earn USDC yield (Kamino/Aave) while your agent operates
+- 🌍 **NASA/ESA Earth Data** - Real-time satellite intelligence at $0.15-$0.25/call
 
 ## Installation
 
@@ -49,7 +51,7 @@ const client = new CoinRailzClient({
   apiKey: process.env.COINRAILZ_API_KEY,
 });
 
-// All 38 services available with full credits
+// All 66 services available with full credits
 const signals = await client.tradeSignals({ token: 'ETH' });
 ```
 
@@ -121,63 +123,36 @@ runTradingBot();
 
 ## Available Services
 
-### Trading Intelligence
-- `gasPriceOracle()` - Real-time gas prices across 7 chains
-- `tokenMetadata()` - Token info (symbol, name, decimals)
-- `tokenPrice()` - Current USD price
+### 🛰️ Satellite Intelligence (NASA & ESA)
+- `satelliteEarthdata()` - NASA Earthdata gateway (1B+ datasets)
+- `weatherImagery()` - Real-time NASA GIBS satellite weather imagery
+- `floodDetection()` - ESA Sentinel-1 SAR flood mapping
+- `fireAlerts()` - NASA FIRMS active fire detection
+
+### 📈 Trading & Market Intelligence
 - `tradeSignals()` - AI-powered buy/sell/hold signals
-- `whaleAlerts()` - Large transaction monitoring
-- `sentimentAnalysis()` - Social media sentiment
-- `dexLiquidity()` - DEX liquidity analysis
-- `arbitrageScanner()` - Cross-chain arbitrage opportunities
-- `contractScan()` - Smart contract security audit
-- `portfolioOptimization()` - AI portfolio rebalancing
-- `trendingTokens()` - Trending tokens by volume
-- `correlationMatrix()` - Token price correlations
+- `predictionMarketSpread()` - [NEW] Arb scanner for Polymarket/Kalshi
+- `whaleAlerts()` - Large transaction monitoring ($0.35)
+- `gasPriceOracle()` - FREE tier gas prices across 7+ chains
 
-### Prediction Markets
-- `predictionMarketOdds()` - Market odds and probabilities
-- `polymarketEvents()` - Polymarket event listings
-- `predictionAnalysis()` - Deep market analysis
-
-### Agent Infrastructure
+### 🤖 AI & Execution
+- `aiInference()` - Pay-per-call GPT on Base ($0.05)
 - `createAgentWallet()` - Instant USDC wallet on Base
-- `transactionBuilder()` - Build transactions
-- `batchQuote()` - Multi-swap quotes
-- `chainBridge()` - Cross-chain bridge routing
+- `seamlessChainBridge()` - Automated cross-chain routing
+- `verifiedAgentIdentity()` - On-chain agent verification (ERC-8004)
 
-### Risk & Compliance
-- `walletRisk()` - Wallet risk scoring
-- `riskMetrics()` - Token risk analysis
-- `creditRiskScore()` - Credit risk scoring for addresses
-- `fraudDetection()` - Fraud detection analysis
-- `complianceCheck()` - Regulatory compliance check
-- `complianceConsultation()` - Compliance advisory
+### 📟 IoT & DePIN
+- `weatherStationData()` - Global weather station sensor readings
+- `fleetTelematics()` - GPS and vehicle behavior data
+- `iotDeviceStream()` - Real-time machine data streams
 
-### Real Estate
-- `propertyValuation()` - AI property valuation
-- `leaseAnalysis()` - Lease agreement analysis
-- `constructionProgress()` - Construction monitoring
+### ⚖️ Risk, Banking & Real Estate
+- `walletRisk()` - ML-powered wallet risk scoring
+- `complianceCheck()` - Regulatory AML/KYC checks
+- `propertyValuation()` - AI-driven real estate valuation
 
-### Traditional Markets
-- `stockSentiment()` - AI-powered stock market sentiment ($0.40/call)
-- `forexSentiment()` - AI-powered forex sentiment analysis ($0.40/call)
-
-### Additional Trading
-- `tokenSentiment()` - Token social sentiment
-- `tradingSignal()` - Trading signal (alternative)
-- `portfolioTracker()` - Multi-chain portfolio tracking
-- `approvalManager()` - Token approval management
-- `multiChainBalance()` - Cross-chain balance lookup
-- `smartContractAudit()` - Deep contract security audit
-
-### Polymarket Extended
-- `polymarketOdds()` - Direct odds lookup
-- `polymarketSearch()` - Search prediction markets
-
-### Agent Identity
-- `instantAgentWallet()` - Instant wallet creation
-- `verifiedAgentIdentity()` - ERC-8004 identity verification
+---
+*See the full 66-service catalog at [coinrailz.com/x402/catalog](https://coinrailz.com/x402/catalog)*
 
 ### Generic Call
 ```typescript

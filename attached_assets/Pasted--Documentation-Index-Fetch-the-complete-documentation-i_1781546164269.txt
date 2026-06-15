@@ -1,0 +1,179 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developers.circle.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# Use Circle's MCP Server in Your IDE
+
+export const MCPSetupButtons = () => {
+  return <div className="mcp-setup-section">
+      <span className="mcp-setup-label">1-click IDE setup</span>
+      <div className="mcp-cta-group">
+        <a className="mcp-cta" href="cursor://anysphere.cursor-deeplink/mcp/install?name=circle&amp;config=eyJ1cmwiOiJodHRwczovL2FwaS5jaXJjbGUuY29tL3YxL2NvZGVnZW4vbWNwIn0%3D">
+          <img src="/images/cursor-logo-filled.jpg" alt="Cursor logo" />
+          <span>Add to Cursor</span>
+        </a>
+        <a className="mcp-cta" href="https://kiro.dev/launch/mcp/add/?name=circle&amp;config=%7B%22url%22%3A%22https%3A%2F%2Fapi.circle.com%2Fv1%2Fcodegen%2Fmcp%22%2C%22disabled%22%3Afalse%2C%22autoApprove%22%3A%5B%5D%7D" target="_blank" rel="noopener noreferrer">
+          <img src="/images/kiro-ide-logo.png" alt="Kiro IDE logo" />
+          <span>Add to Kiro</span>
+        </a>
+      </div>
+      <br />
+    </div>;
+};
+
+Integrate Circle's MCP server to let your LLM or AI-assisted IDE generate and
+fix code for crypto apps using Circle's offerings, including Wallets, Contracts,
+CCTP, and Gateway.
+
+<MCPSetupButtons />
+
+<span className="mcp-setup-label">CLI commands</span>
+
+<CodeGroup>
+  ```shell Claude Code icon="https://mintcdn.com/circle-167b8d39/5X_H2DLmIxVDSWCs/images/claude-logo.png?fit=max&auto=format&n=5X_H2DLmIxVDSWCs&q=85&s=2711bd5dc795308c62570a011248ef2d" theme={null}
+  claude mcp add --transport http circle https://api.circle.com/v1/codegen/mcp --scope user
+  ```
+
+  ```shell Codex icon="https://mintcdn.com/circle-167b8d39/5X_H2DLmIxVDSWCs/images/open-ai-logo-1.png?fit=max&auto=format&n=5X_H2DLmIxVDSWCs&q=85&s=6a603cbffbbef93cfa078c899e8f19e8" theme={null}
+  codex mcp add circle --url https://api.circle.com/v1/codegen/mcp
+  ```
+</CodeGroup>
+
+## Quick setup
+
+Add Circle's MCP server to your client with the following details:
+
+* **Server Name**: `circle`
+* **Server URL**: `https://api.circle.com/v1/codegen/mcp`
+
+## Installation with your IDE
+
+Select your MCP client to view detailed setup instructions:
+
+> **Note:** If you are using a client that is not listed here, you can still use
+> the Circle MCP server by manually adding the server URL to your client's
+> configuration.
+
+<Tabs>
+  <Tab title="Cursor">
+    Download and install [Cursor](https://cursor.com) if you haven't already.
+
+    [1-Click Set Up](cursor://anysphere.cursor-deeplink/mcp/install?name=circle\&config=eyJ1cmwiOiJodHRwczovL2FwaS5jaXJjbGUuY29tL3YxL2NvZGVnZW4vbWNwIn0%3D)
+
+    Manual steps:
+
+    1. Open a project in Cursor and navigate to **Cursor Settings**.
+
+    2. In the settings menu, go to the **MCP** section.
+
+    3. Click **New MCP Server**. This will open your `mcp.json` configuration file.
+
+    4. Add the following configuration:
+
+       ```json theme={null}
+       {
+         "mcpServers": {
+           "circle": {
+             "url": "https://api.circle.com/v1/codegen/mcp"
+           }
+         }
+       }
+       ```
+
+    5. Return to the MCP settings page and enable the server using the toggle switch
+       next to `circle`. Start generating code for Circle Wallets, Contracts, CCTP,
+       and Gateway.
+
+    For more information on how to use MCP with Cursor, see the
+    [Cursor MCP documentation](https://cursor.com/docs/context/mcp).
+  </Tab>
+
+  <Tab title="Claude Code">
+    Download and install
+    [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) if you
+    haven't already.
+
+    1. Using the Claude Code command line add the MCP server with the following
+       command:
+
+    ```shell theme={null}
+    claude mcp add --transport http circle https://api.circle.com/v1/codegen/mcp --scope user
+    ```
+
+    2. Verify the server is added by running the following command:
+
+    ```shell theme={null}
+    claude mcp get circle
+    ```
+
+    3. Start generating code for Circle Wallets, Contracts, CCTP, and Gateway.
+
+    For more information on how to use MCP with Claude Code, see the
+    [Claude Code MCP documentation](https://docs.claude.com/en/docs/claude-code/mcp).
+  </Tab>
+
+  <Tab title="Windsurf">
+    Download and install
+    [Windsurf](https://docs.windsurf.com/windsurf/getting-started) if you haven't
+    already.
+
+    1. Open the `~/.codeium/windsurf/mcp_config.json` file and add the following:
+
+       ```json theme={null}
+       {
+         "mcpServers": {
+           "circle": {
+             "url": "https://api.circle.com/v1/codegen/mcp"
+           }
+         }
+       }
+       ```
+
+    2. Enable the Circle MCP server in your MCP settings. Start generating code for
+       Circle Wallets, Contracts, CCTP, and Gateway.
+
+    For more information on how to use MCP with Windsurf, see the
+    [Windsurf MCP documentation](https://docs.windsurf.com/windsurf/cascade/mcp).
+  </Tab>
+
+  <Tab title="Kiro">
+    Download and install [Kiro](https://kiro.dev) if you haven't already.
+
+    1. Open Kiro and go to **Preferences/Settings** → search for "MCP" → enable MCP
+       support.
+
+    2. Create or open the MCP config file:
+       * **Workspace-level**: `./.kiro/settings/mcp.json` (recommended for
+         project-specific)
+       * **User-level**: `~/.kiro/settings/mcp.json`
+
+    3. Add a server configuration entry for Circle:
+
+       ```json theme={null}
+       {
+         "mcpServers": {
+           "circle": {
+             "command": "npx",
+             "args": ["-y", "@circle/mcp-server"],
+             "env": {
+               "CIRCLE_BASE_URL": "https://api.circle.com/v1/codegen/mcp"
+             },
+             "disabled": false
+           }
+         }
+       }
+       ```
+
+    4. Save and then restart Kiro (or reload the MCP server list) so the new server
+       appears in the MCP tab.
+
+    5. In Kiro's side panel → **MCP Servers** tab → you should see "circle-mcp"
+       listed. Start generating code for Circle Wallets, Contracts, CCTP, and
+       Gateway.
+
+    Kiro's general MCP setup: [Kiro Docs - MCP](https://kiro.dev/docs/mcp/).
+  </Tab>
+</Tabs>
+
+```
+```

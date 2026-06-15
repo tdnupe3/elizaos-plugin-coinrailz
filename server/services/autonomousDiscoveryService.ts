@@ -160,6 +160,8 @@ class AutonomousDiscoveryService {
         '/x402/kalshi-markets',
         '/x402/kalshi-odds',
         '/x402/kalshi-search',
+        // Cross-platform prediction market spread (1 service) - added Jun 2026
+        '/x402/prediction-market-spread',
         // Golden path & AI inference (2 services)
         '/x402/first-call',
         '/x402/ai-inference',

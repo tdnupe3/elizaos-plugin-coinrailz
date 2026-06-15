@@ -1,0 +1,151 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developers.circle.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# Liquidity Services
+
+> Access institutional-grade tools for minting USDC and EURC directly from Circle, executing stablecoin FX trades, and offering stablecoin-backed accounts to your business customers.
+
+## What you can build
+
+Circle provides institutional infrastructure for accessing digital currencies,
+executing stablecoin FX trades, and enabling stablecoin-backed account services.
+These tools enable banks, exchanges, payment providers, and fintechs to
+integrate USDC and EURC into their operations at scale.
+
+Key capabilities:
+
+* **Direct USDC and EURC minting**: Access digital currencies directly from
+  Circle, the sole issuer, with 1:1 redemption guarantees.
+* **Institutional FX execution**: Execute stablecoin currency swaps with
+  competitive rates from multiple liquidity providers.
+* **24/7 settlement**: Trade and settle around the clock with sub-second
+  finality on Arc blockchain.
+* **Stablecoin-backed accounts**: Offer your business customers dedicated
+  accounts with fiat deposits, crypto transfers, and Circle-managed custody.
+* **Simplified operations**: Reduce reliance on multiple intermediaries and
+  bilateral agreements with unified API access.
+
+## Choose your product
+
+These products are designed for institutional customers with different use
+cases:
+
+<CardGroup cols={3}>
+  <Card title="Circle Mint" icon="building-columns" href="/circle-mint">
+    Mint and redeem USDC and EURC directly from Circle. Manage funds securely
+    and distribute them to crypto wallets globally, 24/7.
+  </Card>
+
+  <Card title="StableFX" icon="swap" href="/stablefx">
+    Institutional-grade stablecoin FX engine built on Arc. Execute USDC and EURC
+    trades with aggregated liquidity and smart contract settlement.
+  </Card>
+
+  <Card title="Digital Asset Accounts" icon="wallet" href="/digital-asset-accounts">
+    Offer stablecoin-backed account capabilities to your business customers with
+    fiat deposits, crypto transfers, and Circle-managed custody.
+  </Card>
+</CardGroup>
+
+## Circle Mint
+
+Circle Mint is the fastest and most cost-effective way for institutions to
+access and redeem USDC and EURC. Your Circle Mint account allows you to manage
+funds securely and distribute them worldwide using a web UI or API integration.
+
+**Benefits:**
+
+* Fiat funds from your bank account are automatically converted to USDC and EURC
+* Participating banks offer instant settlement programs
+* USDC and EURC can always be redeemed 1:1 for US dollars or Euros
+
+**Who should use Circle Mint:**
+
+* Exchanges and institutional traders
+* Wallet providers and custodians
+* Banks and payment service providers
+* Consumer app companies requiring stablecoin infrastructure
+
+<Note>
+  Circle Mint is for institutional customers. [Contact
+  Circle](https://www.circle.com/mint-contact) to learn more about accessing the
+  platform.
+</Note>
+
+## StableFX
+
+StableFX is an institutional-grade FX engine that combines Request-for-Quote
+(RFQ) execution with onchain settlement. This permissioned platform is designed
+for financial institutions including payment service providers, fintechs, crypto
+OTC desks, and prime brokers.
+
+**Key features:**
+
+* **Aggregated liquidity**: Access competitive rates from multiple liquidity
+  providers through a single API call
+* **24/7 settlement**: Trade and settle around the clock with sub-second
+  finality on Arc
+* **Simplified operations**: Replace multiple bilateral agreements with one
+  integration
+* **Smart contract escrow**: Both sides of a trade settle simultaneously or not
+  at all
+
+**Common use cases:**
+
+* Cross-border payment flows with real-time currency conversion
+* Institutional treasury management and automated rebalancing
+* Embedded FX liquidity services for platforms
+* Next-generation remittance solutions with guaranteed settlement
+
+<Note>
+  Reach out to your [Circle representative](mailto:sales@circle.com) to get an
+  API key for StableFX.
+</Note>
+
+## Digital Asset Accounts
+
+Digital Asset Accounts enables distributors such as fintechs, platforms, and
+marketplaces to offer stablecoin-backed account features to their business end
+customers. Circle retains custody, compliance, and regulatory oversight under a
+Direct End-User Custody model.
+
+**Key features:**
+
+* **Fiat deposits and withdrawals**: Fund accounts through wire transfers with
+  automatic stablecoin minting and redemption
+* **Crypto transfers**: Send and receive stablecoins to and from external
+  blockchain addresses
+* **Internal transfers**: Move funds instantly between sub-accounts with no
+  blockchain fees
+* **Custody balances**: Real-time balance visibility with Circle-managed custody
+
+**Common use cases:**
+
+* Fintech wallets with stablecoin-powered account experiences
+* Marketplace payouts to sellers and service providers
+* SMB financial operating systems with multi-currency support
+* Cross-border B2B payment solutions
+
+<Note>
+  Reach out to your [Circle representative](mailto:sales@circle.com) to get API
+  access for Digital Asset Accounts.
+</Note>
+
+## Dive deeper
+
+* Learn about
+  [Circle Mint core capabilities](/circle-mint/quickstarts/getting-started)
+  including deposits, withdrawals, and transfers.
+* Follow the [StableFX taker quickstart](/stablefx/quickstarts/fx-trade-taker)
+  to request and execute your first USDC to EURC trade.
+* Follow the [StableFX maker quickstart](/stablefx/quickstarts/fx-trade-maker)
+  to fulfill trades and provide liquidity.
+* Follow the
+  [Digital Asset Accounts fiat funding quickstart](/digital-asset-accounts/quickstarts/fund-account-with-wire-deposit)
+  to deposit fiat and verify your stablecoin balance.
+* Explore
+  [Circle Mint supported chains](/circle-mint/references/supported-chains-and-currencies),
+  [StableFX supported currencies](/stablefx/references/supported-currencies),
+  and
+  [Digital Asset Accounts supported currencies and blockchains](/digital-asset-accounts/references/supported-currencies-and-blockchains).

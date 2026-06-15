@@ -1,0 +1,67 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developers.circle.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# Agent Stack
+
+> Empower your AI agents to autonomously operate wallets, transact onchain, and pay for API services through Circle's agent-native tooling.
+
+Circle Agent Stack lets your AI agent hold and transact USDC and other tokens
+across blockchains, discover and pay for x402 services, and operate within
+built-in compliance guardrails. Use with
+[Claude Code](https://claude.com/claude-code), [Cursor](https://cursor.com/),
+[Codex](https://openai.com/codex), [OpenClaw](https://openclaw.ai/), or any
+custom AI agent.
+
+## What you can do
+
+* **Build with an agent-native interface**: Use
+  [Circle CLI](/agent-stack/circle-cli) and [Circle Skills](/ai/skills) to give
+  your agent access to [Circle Wallets](/wallets), [CCTP](/cctp), and
+  [Gateway](/gateway) from a single command interface.
+* **Give your AI agent wallets**: Use
+  [Agent Wallets](/agent-stack/agent-wallets) to hold and spend USDC and other
+  tokens with customizable spending controls and built-in compliance guardrails.
+* **Discover and pay for services on demand**: Search
+  [x402-compatible APIs](https://agents.circle.com/services) and pay per
+  request, without subscriptions or API keys.
+* **Operate onchain across blockchains**: Trade tokens, bridge USDC, and execute
+  onchain strategies across
+  [supported blockchains](/agent-stack/agent-wallets/supported-blockchains).
+
+## The agent stack
+
+<CardGroup cols={3}>
+  <Card title="Circle CLI" icon="terminal" href="/agent-stack/circle-cli">
+    A command-line tool for managing agent wallets, installing skills, and
+    accessing the Circle product suite from any agent framework.
+  </Card>
+
+  <Card title="Agent Wallets" icon="wallet" href="/agent-stack/agent-wallets">
+    Wallets for AI agents with custom spending policies, multichain support, and
+    built-in compliance controls. Gasless across blockchains.
+  </Card>
+
+  <Card title="Agent Nanopayments" icon="bolt" href="/agent-stack/agent-nanopayments">
+    Gasless USDC payments at sub-cent scale. Pay for x402-compatible services
+    from your AI agent. Powered by Gateway.
+  </Card>
+
+  <Card title="Agent Marketplace" icon="store" href="https://agents.circle.com/services">
+    A curated, compliance-first service catalog where AI agents can discover and
+    pay for USDC-priced services.
+  </Card>
+
+  <Card title="Circle Skills" icon="puzzle-piece" href="/ai/skills">
+    Open-source skills that give your AI agent specialized knowledge for
+    building with Circle products.
+  </Card>
+</CardGroup>
+
+## Dive deeper
+
+* Get started with the
+  [Agent Wallets quickstart](/agent-stack/agent-wallets/quickstart).
+* Make your first nanopayment with the
+  [Agent Nanopayments quickstart](/agent-stack/agent-nanopayments/quickstart).
+* Browse [Circle CLI commands](/agent-stack/circle-cli/command-reference).

@@ -1665,6 +1665,44 @@ const x402Routes = {
       }
     },
   },
+  // Cross-Platform Prediction Market Spread (Featured)
+  "POST /prediction-market-spread": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["prediction-market-spread"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/prediction-market-spread`,
+      name: "Prediction Market Cross-Platform Spread",
+      description: "Live cross-platform spread analysis: Polymarket vs Kalshi. Finds identical real-world events on both exchanges simultaneously, computes YES probability divergence, and ranks arbitrage opportunities by magnitude. Returns matchConfidence, actionHint, edgeBps per opportunity.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 15,
+      inputSchema: {
+        bodyFields: {
+          limit: { type: "number", description: "Max opportunities to return (1-25, default 10)", required: false },
+          minSpreadPct: { type: "number", description: "Minimum spread in percentage points (e.g. 3 = filter below 3pp)", required: false },
+          minConfidence: { type: "string", description: "Minimum match confidence: low, medium, high", required: false }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            limit: { type: "number", description: "Max opportunities to return" },
+            minSpreadPct: { type: "number", description: "Minimum spread in percentage points" },
+            minConfidence: { type: "string", enum: ["low", "medium", "high"] }
+          }
+        },
+        output: {
+          type: "object",
+          properties: {
+            opportunities: { type: "array", description: "Ranked arbitrage opportunities with spread, confidence, and actionHint" },
+            summary: { type: "object", description: "Cross-reference summary with widest spread" },
+            sourceStatus: { type: "object", description: "Live/stale status for each data source" }
+          }
+        }
+      }
+    },
+  },
   // Traditional Markets Services - Stock & Forex Sentiment
   "POST /stock-sentiment": {
     price: `$${microToUSD(SERVICE_PRICING_MICRO["stock-sentiment"])}`,
@@ -2270,7 +2308,7 @@ const serviceEndpoints = [
   "trading-signal", "portfolio-optimization", "sentiment-analysis",
   "arbitrage-scanner", "correlation-matrix", "risk-metrics",
   "polymarket-events", "polymarket-odds", "polymarket-search", "prediction-market-odds",
-  "kalshi-markets", "kalshi-odds", "kalshi-search",
+  "kalshi-markets", "kalshi-odds", "kalshi-search", "prediction-market-spread",
   "agent-create-wallet",
   "stock-sentiment", "forex-sentiment",
   "ai-inference"
@@ -4139,10 +4177,12 @@ router.post("/prediction-market-odds",
 // Complements Polymarket with regulated US market coverage
 // ========================================
 import { KalshiMarketsHandler, KalshiOddsHandler, KalshiSearchHandler } from '../services/handlers/KalshiHandler';
+import { PredictionMarketSpreadHandler } from '../services/handlers/PredictionMarketSpreadHandler';
 
 const kalshiMarketsHandler = new KalshiMarketsHandler();
 const kalshiOddsHandler = new KalshiOddsHandler();
 const kalshiSearchHandler = new KalshiSearchHandler();
+const predictionMarketSpreadHandler = new PredictionMarketSpreadHandler();
 
 router.post("/kalshi-markets",
   createPaymentOrchestrator("kalshi-markets", SERVICE_PRICING_MICRO["kalshi-markets"], async (req: Request, res: Response) => {
@@ -4190,6 +4230,29 @@ router.post("/kalshi-search",
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
       await trackRequest("kalshi-search", req.body, null, responseTime, SERVICE_PRICING_USD["kalshi-search"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+// ========================================
+// CROSS-PLATFORM PREDICTION MARKET SPREAD
+// Polymarket × Kalshi live spread analysis
+// Featured service — $0.25 USDC per call
+// ========================================
+
+router.post("/prediction-market-spread",
+  createPaymentOrchestrator("prediction-market-spread", SERVICE_PRICING_MICRO["prediction-market-spread"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = await predictionMarketSpreadHandler.execute(req.body);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("prediction-market-spread", req.body, result, responseTime, SERVICE_PRICING_USD["prediction-market-spread"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "prediction-market-spread", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("prediction-market-spread", req.body, null, responseTime, SERVICE_PRICING_USD["prediction-market-spread"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   })

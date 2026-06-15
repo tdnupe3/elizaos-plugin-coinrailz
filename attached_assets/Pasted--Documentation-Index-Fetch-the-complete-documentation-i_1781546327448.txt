@@ -1,0 +1,128 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://developers.circle.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# Build Onchain Experiences
+
+> Compose wallets, contracts, gas sponsorship, and compliance to ship onchain apps faster.
+
+export const PermissionlessBadge = () => {
+  return <div style={{
+    position: "relative",
+    minHeight: "20px",
+    marginTop: "8px"
+  }}>
+      <span style={{
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    fontSize: "0.75rem",
+    color: "#6b7280",
+    fontWeight: "500",
+    lineHeight: "1.5"
+  }}>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={{
+    width: "12px",
+    height: "12px",
+    flexShrink: 0
+  }}>
+          <path fillRule="evenodd" d="M14.5 1A4.5 4.5 0 0010 5.5V9H3a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-1.5V5.5a3 3 0 116 0v2.75a.75.75 0 001.5 0V5.5A4.5 4.5 0 0014.5 1z" clipRule="evenodd" />
+        </svg>
+        Permissionless
+      </span>
+    </div>;
+};
+
+## What you can build
+
+* [**Embedded wallets**](/wallets): build flexible, secure, and scalable wallets
+  into your application.
+* [**Gasless UX**](/wallets/gas-station): give end users a gasless experience
+  with Gas Station and Paymaster.
+* [**Smart contracts**](/contracts): create, deploy, and execute smart contracts
+  through intuitive APIs.
+* [**Compliance operations**](/wallets/compliance-engine): screen transactions
+  and automate alerts.
+
+## Compose your stack
+
+Mix and match these building blocks based on who controls the keys, how you
+cover fees, and the level of automation you need.
+
+<CardGroup cols={3}>
+  <Card title="Wallets: Dev-Controlled" icon="wallet" href="/wallets/dev-controlled">
+    Use APIs to create wallets, move funds, and manage policies on behalf of
+    your users with instant scale.
+  </Card>
+
+  <Card title="Wallets: User-Controlled" icon="user" href="/wallets/user-controlled">
+    Ship passkeys, social logins, and custom signing UIs so end users truly own
+    their keys across devices.
+  </Card>
+
+  <Card title="Wallets: Modular" icon="layer-group" href="/wallets/modular">
+    Plug in modules like permissions, recovery, or automation to ship custom
+    smart-accounts.
+  </Card>
+
+  <Card title="Gas Station" icon="gas-pump" href="/wallets/gas-station">
+    Sponsor gas to create a gasless UX for end-users.
+  </Card>
+
+  <Card title="Paymaster" icon="coin-vertical" href="/paymaster">
+    Let anyone pay gas directly in USDC through permissionless ERC-4337
+    paymasters.
+  </Card>
+
+  <Card title="Contracts" icon="code" href="/contracts">
+    Deploy and operate smart contracts via audited templates, APIs, and
+    monitoring.
+  </Card>
+
+  <Card title="Compliance Engine" icon="shield-check" href="/wallets/compliance-engine">
+    Screen transactions, manage rules, and investigate alerts.
+  </Card>
+</CardGroup>
+
+## Building something crosschain?
+
+Wallets and contracts become more powerful when they connect across ecosystems.
+Use these primitives to move liquidity crosschain and expose a unified balance.
+
+<Tip>
+  **Use dedicated SDKs for crosschain transfers**
+
+  [Bridge Kit](https://www.npmjs.com/package/@circle-fin/bridge-kit) and
+  [Unified Balance Kit](https://www.npmjs.com/package/@circle-fin/unified-balance-kit)
+  let you move USDC across blockchains without low-level protocol work. Both
+  support multiple blockchains and wallet providers.
+</Tip>
+
+<CardGroup cols={2}>
+  <Card title="CCTP" icon="arrow-up-arrow-down" href="/cctp">
+    Burn-and-mint native USDC between supported chains with guarantees.
+
+    <PermissionlessBadge />
+  </Card>
+
+  <Card title="Gateway" icon="dungeon" href="/gateway">
+    Give users a single USDC balance they can spend anywhere while Circle
+    handles settlement.
+
+    <PermissionlessBadge />
+  </Card>
+</CardGroup>
+
+## Dive deeper
+
+* Follow the
+  [dev-controlled wallet quickstart](/wallets/dev-controlled/create-your-first-wallet)
+  to stand up API-driven wallets in minutes.
+* Use the [user-controlled wallet tutorials](/wallets/user-controlled) to embed
+  passkey flows and branded signing experiences.
+* Head to the [Contracts quickstart](/contracts/scp-deploy-smart-contract) to
+  deploy an audited template and connect to wallets.
+* Explore
+  [Gas Station quickstarts](/wallets/gas-station/send-a-gasless-transaction) and
+  [Paymaster guides](/paymaster/pay-gas-fees-usdc) to abstract gas across
+  networks.

@@ -14,3 +14,4 @@
 - [db:push non-interactive schema drift](db-push-noninteractive.md) — post-merge db:push with stdin closed silently aborts on rename prompts; fix with targeted ALTER TABLE, not global --force (risks live data on other tables)
 - [Encryption key secrets required for deploy](encryption-key-deploy.md) — PII_ENCRYPTION_KEY and ENCRYPTION_KEY must exist as Replit secrets before any production deploy; both have fail-fast guards that crash startup if missing
 - [Dialect Markets — expired keys, DeFiLlama fallback](dialect-markets-fallback.md) — DIALECT_BE_KEY/DIALECT_MARKETS_FE_KEY expired; dialectMarketsService now latches on 401 and falls back to DeFiLlama yields.llama.fi/pools permanently
+- [Kalshi API v2 field changes](kalshi-api-v2-fields.md) — yes_price gone; use yes_ask_dollars/last_price_dollars; fetch liquid series sequentially to avoid 429

@@ -571,6 +571,17 @@ export class ServiceCatalogService {
         x402Compatible: true,
         stripeCompatible: true
       },
+      {
+        id: 'prediction-market-spread',
+        name: 'Prediction Market Cross-Platform Spread',
+        description: 'Live cross-platform spread analysis: finds identical events on Polymarket and Kalshi simultaneously, computes YES probability divergence, and ranks arbitrage opportunities by spread magnitude',
+        endpoint: '/x402/prediction-market-spread',
+        network: 'eip155:8453',
+        category: 'prediction-markets',
+        capabilities: ['arbitrage', 'spread-analysis', 'polymarket', 'kalshi', 'cross-platform', 'featured'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
       // Traditional Markets (2) - Stock & Forex Sentiment
       {
         id: 'stock-sentiment',

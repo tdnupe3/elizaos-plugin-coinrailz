@@ -65,6 +65,7 @@ export type ServiceName =
   | "kalshi-markets"
   | "kalshi-odds"
   | "kalshi-search"
+  | "prediction-market-spread"
   // Traditional Markets vertical (2 services) - Stocks & Forex
   | "stock-sentiment"
   | "forex-sentiment"
@@ -182,6 +183,7 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   "kalshi-markets": 250000,            // $0.25 - active Kalshi markets (CFTC-regulated)
   "kalshi-odds": 500000,               // $0.50 - odds for specific Kalshi market
   "kalshi-search": 250000,             // $0.25 - search Kalshi prediction markets
+  "prediction-market-spread": 250000,  // $0.25 - cross-platform spread: Polymarket × Kalshi (featured)
   
   // VERTICAL EXPANSION - Traditional Markets Services ($0.40)
   "stock-sentiment": 400000,           // $0.40 - AI stock sentiment analysis
@@ -285,6 +287,7 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   "kalshi-markets": 0.25,
   "kalshi-odds": 0.50,
   "kalshi-search": 0.25,
+  "prediction-market-spread": 0.25,
   
   // Traditional Markets vertical
   "stock-sentiment": 0.40,

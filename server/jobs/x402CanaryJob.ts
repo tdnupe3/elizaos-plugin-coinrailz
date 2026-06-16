@@ -28,8 +28,8 @@ import { desc, eq, and, gte, sql } from "drizzle-orm";
 import { invalidateCanaryCache } from "../middleware/x402ResponseEnricher";
 
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
-const TOPUP_THRESHOLD_ATOMIC = BigInt(200_000);  // $0.20 — trigger top-up below this
-const TOPUP_AMOUNT_ATOMIC     = BigInt(2_000_000); // $2.00 — funds ~40 canary runs
+const TOPUP_THRESHOLD_ATOMIC = BigInt(2_000_000);  // $2.00 — trigger top-up below this
+const TOPUP_AMOUNT_ATOMIC     = BigInt(10_000_000); // $10.00 — funds ~200 canary runs
 
 const USDC_ABI = [
   { name: "balanceOf", type: "function", inputs: [{ name: "account", type: "address" }], outputs: [{ name: "", type: "uint256" }], stateMutability: "view" },
@@ -298,6 +298,64 @@ export class X402CanaryJob {
     this.circuitOpen = false;
     this.consecutiveFailures = 0;
     await this.runCanary();
+  }
+
+  /**
+   * Unconditionally top up the canary wallet from EVM_PRIVATE_KEY,
+   * regardless of current balance. Returns a status object.
+   */
+  static async forceTopUp(): Promise<{ success: boolean; message: string; txHash?: string }> {
+    const buyerKey = process.env.X402_BUYER_PRIVATE_KEY || process.env.PLATFORM_EOA_PRIVATE_KEY;
+    if (!buyerKey) {
+      return { success: false, message: "X402_BUYER_PRIVATE_KEY not set — cannot determine canary wallet address" };
+    }
+    const platformKey = process.env.EVM_PRIVATE_KEY;
+    if (!platformKey) {
+      return { success: false, message: "EVM_PRIVATE_KEY not set — no funding source available" };
+    }
+
+    try {
+      const { createWalletClient, createPublicClient, http } = await import("viem");
+      const { privateKeyToAccount } = await import("viem/accounts");
+      const { base } = await import("viem/chains");
+      type Hex = `0x${string}`;
+
+      const buyerKeyHex: Hex = buyerKey.startsWith("0x") ? (buyerKey as Hex) : (`0x${buyerKey}` as Hex);
+      const buyerAddress = privateKeyToAccount(buyerKeyHex).address;
+
+      const platformKeyHex: Hex = platformKey.startsWith("0x") ? (platformKey as Hex) : (`0x${platformKey}` as Hex);
+      const platformAccount = privateKeyToAccount(platformKeyHex);
+      const platformClient = createWalletClient({ account: platformAccount, chain: base, transport: http() });
+      const publicClient = createPublicClient({ chain: base, transport: http() });
+
+      const balanceBefore = await publicClient.readContract({
+        address: USDC_BASE,
+        abi: USDC_ABI,
+        functionName: "balanceOf",
+        args: [buyerAddress],
+      }) as bigint;
+
+      console.log(`🕯️  X402CanaryJob.forceTopUp: canary wallet balance $${(Number(balanceBefore) / 1e6).toFixed(4)} — sending $${(Number(TOPUP_AMOUNT_ATOMIC) / 1e6).toFixed(2)} USDC`);
+
+      const txHash = await platformClient.writeContract({
+        address: USDC_BASE,
+        abi: USDC_ABI,
+        functionName: "transfer",
+        args: [buyerAddress, TOPUP_AMOUNT_ATOMIC],
+      });
+
+      console.log(`🕯️  X402CanaryJob.forceTopUp: tx sent ${txHash} — waiting for confirmation`);
+      await publicClient.waitForTransactionReceipt({ hash: txHash, timeout: 60_000 });
+
+      const balanceAfter = (Number(balanceBefore) + Number(TOPUP_AMOUNT_ATOMIC)) / 1e6;
+      const msg = `Top-up confirmed. Canary wallet now ~$${balanceAfter.toFixed(2)} USDC. tx: ${txHash}`;
+      console.log(`🕯️  X402CanaryJob.forceTopUp: ✅ ${msg}`);
+      return { success: true, message: msg, txHash };
+    } catch (err: any) {
+      const msg = `forceTopUp failed: ${err?.message ?? String(err)}`;
+      console.error(`🕯️  X402CanaryJob.forceTopUp: ❌ ${msg}`);
+      return { success: false, message: msg };
+    }
   }
 
   /**

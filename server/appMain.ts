@@ -3889,6 +3889,23 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     res.redirect(301, '/api-keys');
   });
   console.log('✅ Dashboard API keys redirect registered (pre-static)');
+
+  // 🕯️ Admin: canary wallet top-up — POST /api/admin/canary/topup
+  app.post('/api/admin/canary/topup', async (req, res) => {
+    const key = req.headers['x-admin-key'] || req.headers['authorization']?.replace('Bearer ', '');
+    if (!key || key !== process.env.ADMIN_KEY) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    try {
+      const { X402CanaryJob } = await import('./jobs/x402CanaryJob');
+      const result = await X402CanaryJob.forceTopUp();
+      return res.status(result.success ? 200 : 500).json(result);
+    } catch (err: any) {
+      return res.status(500).json({ error: err?.message ?? String(err) });
+    }
+  });
+  console.log('✅ Admin canary top-up endpoint registered at POST /api/admin/canary/topup');
+
   _lap('pre-serveStatic — all pre-static routes registered');
   
   if (isProduction) {
@@ -4121,6 +4138,12 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
         const { X402CanaryJob } = await import('./jobs/x402CanaryJob');
         X402CanaryJob.start();
         console.log('🕯️  x402 canary job registered');
+        // Top up the canary wallet on every startup so it never runs dry between deploys.
+        // Non-blocking — runs in background, failure is logged but doesn't affect boot.
+        X402CanaryJob.forceTopUp().then(r => {
+          if (r.success) console.log(`🕯️  Canary startup top-up: ${r.message}`);
+          else console.warn(`🕯️  Canary startup top-up skipped/failed: ${r.message}`);
+        }).catch(e => console.warn('🕯️  Canary startup top-up error (non-fatal):', e?.message));
       } catch (canaryErr: any) {
         console.warn('⚠️ x402 canary job failed to start (non-fatal):', canaryErr.message);
       }

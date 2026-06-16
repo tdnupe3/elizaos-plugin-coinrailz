@@ -275,6 +275,18 @@ function Router() {
       <Route path="/x402">
         {() => <X402DocsPage />}
       </Route>
+
+      {/* MiCA Compliance Landing Page — EU stablecoin regulation, USDC-first positioning */}
+      <Route path="/solutions/mica-compliant-payments">
+        {() => {
+          const MicaCompliancePage = lazy(() => import("@/pages/MicaCompliancePage"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <MicaCompliancePage />
+            </Suspense>
+          );
+        }}
+      </Route>
       
       {/* Service Bundles Marketplace */}
       <Route path="/bundles">

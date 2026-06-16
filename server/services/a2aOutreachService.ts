@@ -241,6 +241,242 @@ export class A2AOutreachService {
     const x402Native = this.isX402Native(capabilities, metadata);
     const service = this.getRelevantServiceForAgent(agentName, capabilities, metadata);
 
+    // SEGMENT-SPECIFIC CUSTOM PAYLOADS — priority targets get tailored messages
+    // based on biz dev strategy: peer swap for x402 partners, catalog manifest for directories,
+    // vertical data pitch for environmental agents
+    const urlLower = agentUrl.toLowerCase();
+    const metaSegment = (metadata as any)?.segment || '';
+
+    if (urlLower.includes('syndiode') || metaSegment === 'x402-peer-partner') {
+      // NomadArbiter/Syndiode — peer commerce reciprocity. They sent us 2 structured offers.
+      // Message: acknowledge their offer, propose service swap on shared x402 rails.
+      const peerMessageId = nanoid();
+      const peerToken = this.generateScopedCallbackToken(peerMessageId, agentUrl);
+      return {
+        jsonrpc: '2.0',
+        id: `coinrailz-outreach-${peerMessageId}`,
+        method: 'message/send',
+        params: {
+          message: {
+            role: 'user',
+            parts: [
+              {
+                type: 'text',
+                text: 'Coin Railz acknowledges your inter-agent commerce offers (received June 2026). We operate on the same x402/USDC rails. Proposing service swap: your compute/auth services available to our agents; our 60 data services (satellite, DeFi, IoT, AI inference) available to yours. Review our catalog and initiate at your preferred tier.'
+              },
+              {
+                type: 'data',
+                data: {
+                  type: 'peer_partnership_proposal',
+                  from: 'coinrailz',
+                  proposal: 'service_swap',
+                  our_catalog: 'https://coinrailz.com/x402/catalog',
+                  our_agent_card: 'https://coinrailz.com/.well-known/agent.json',
+                  our_first_call: {
+                    url: 'https://coinrailz.com/x402/first-call',
+                    cost: '$0.05 USDC',
+                    payment_protocol: 'x402 v2',
+                    network: 'eip155:8453',
+                    asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+                  },
+                  your_services_of_interest: ['compute_auth', 'inter_agent_witness'],
+                  settlement: 'USDC on Base (eip155:8453) — same rails you already run',
+                  peer_contract_reference: 'https://www.syndiode.com/nomad/.well-known/nomad-peer-acquisition.json',
+                  opt_out: 'Reply with {"action":"opt_out"} to decline'
+                }
+              }
+            ],
+            messageId: peerMessageId
+          },
+          configuration: {
+            pushNotificationConfig: {
+              url: this.getResponseWebhookUrl(),
+              token: peerToken
+            }
+          },
+          metadata: {
+            source: 'coinrailz-a2a-outreach',
+            version: '2.0.0',
+            segment: 'x402-peer-partner',
+            timestamp: new Date().toISOString()
+          }
+        }
+      };
+    }
+
+    if (urlLower.includes('waggle.zone') || metaSegment === 'directory-platform') {
+      // Waggle — directory/orchestration platform. 3,737 hits to our agent card.
+      // Message: request priority directory placement, provide catalog manifest.
+      const waggleMessageId = nanoid();
+      const waggleToken = this.generateScopedCallbackToken(waggleMessageId, agentUrl);
+      return {
+        jsonrpc: '2.0',
+        id: `coinrailz-outreach-${waggleMessageId}`,
+        method: 'message/send',
+        params: {
+          message: {
+            role: 'user',
+            parts: [
+              {
+                type: 'text',
+                text: 'Coin Railz — 60 pay-per-call data services across 8 chains. Machine-readable catalog at https://coinrailz.com/x402/catalog. Free probe: GET https://coinrailz.com/x402/ping. Requesting directory placement for AI agent discovery.'
+              },
+              {
+                type: 'data',
+                data: {
+                  type: 'directory_registration_request',
+                  from: 'coinrailz',
+                  agent_card: 'https://coinrailz.com/.well-known/agent.json',
+                  catalog_manifest: 'https://coinrailz.com/x402/catalog',
+                  service_count: 60,
+                  chains_supported: 8,
+                  settlement: 'USDC on Base, Solana, Ethereum, Polygon, Arbitrum',
+                  protocol: 'x402 v2 + A2A 0.3',
+                  categories: ['satellite_data', 'defi_data', 'prediction_markets', 'iot_data', 'ai_inference', 'gas_oracle', 'portfolio', 'wallet_management'],
+                  free_probe: {
+                    url: 'https://coinrailz.com/x402/ping',
+                    method: 'GET',
+                    cost: 'free',
+                    returns: 'live gas prices across 8 chains'
+                  },
+                  verified_payment: {
+                    first_call_endpoint: 'https://coinrailz.com/x402/first-call',
+                    network: 'eip155:8453',
+                    asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+                  },
+                  opt_out: 'Reply with {"action":"opt_out"} to decline'
+                }
+              }
+            ],
+            messageId: waggleMessageId
+          },
+          configuration: {
+            pushNotificationConfig: {
+              url: this.getResponseWebhookUrl(),
+              token: waggleToken
+            }
+          },
+          metadata: {
+            source: 'coinrailz-a2a-outreach',
+            version: '2.0.0',
+            segment: 'directory-platform',
+            timestamp: new Date().toISOString()
+          }
+        }
+      };
+    }
+
+    if (urlLower.includes('solved.earth') || metaSegment === 'environmental-vertical') {
+      // solved.earth — public registry of 3,053 agents with register_agent skill.
+      // Frame this as a registration request so their agent can route to the right skill.
+      const envMessageId = nanoid();
+      const envToken = this.generateScopedCallbackToken(envMessageId, agentUrl);
+      return {
+        jsonrpc: '2.0',
+        id: `coinrailz-outreach-${envMessageId}`,
+        method: 'message/send',
+        params: {
+          message: {
+            role: 'user',
+            parts: [
+              {
+                type: 'text',
+                text: 'Please register Coin Railz in your public directory. Coin Railz is multi-chain AI agent payment infrastructure — 60+ x402 pay-per-call services (satellite data, AI inference, DeFi data, IoT payments) payable in USDC on Base and Solana. A2A endpoint: https://coinrailz.com/a2a/v1/message/send. Agent card: https://coinrailz.com/.well-known/agent.json. Catalog: https://coinrailz.com/x402/catalog. First paid call: https://coinrailz.com/x402/first-call ($0.05 USDC, no signup).'
+              },
+              {
+                type: 'data',
+                data: {
+                  type: 'agent_registration_request',
+                  from: 'coinrailz',
+                  agent_name: 'Coin Railz',
+                  description: 'Multi-chain AI agent payment infrastructure. Universal payment layer for the AI agent economy — 60+ x402 pay-per-call services across DeFi data, satellite imagery, IoT sensors, AI inference, and prediction markets.',
+                  url: 'https://coinrailz.com',
+                  a2a_endpoint: 'https://coinrailz.com/a2a/v1/message/send',
+                  agent_card: 'https://coinrailz.com/.well-known/agent.json',
+                  catalog: 'https://coinrailz.com/x402/catalog',
+                  payment_protocol: 'x402 v2',
+                  service_count: 60,
+                  price_range: '$0.03 – $10.00 USDC',
+                  chains: ['eip155:8453', 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'],
+                  categories: ['payment-infrastructure', 'x402', 'satellite-data', 'ai-inference', 'defi-data', 'iot-payments'],
+                  opt_out: 'Reply with {"action":"opt_out"} to decline'
+                }
+              }
+            ],
+            messageId: envMessageId
+          },
+          configuration: {
+            pushNotificationConfig: {
+              url: this.getResponseWebhookUrl(),
+              token: envToken
+            }
+          },
+          metadata: {
+            source: 'coinrailz-a2a-outreach',
+            version: '2.0.0',
+            segment: 'registry-registration',
+            timestamp: new Date().toISOString()
+          }
+        }
+      };
+    }
+
+    if (urlLower.includes('agent-tools.cloud') || urlLower.includes('agenstry.com') || metaSegment === 'tooling-platform' || metaSegment === 'agent-platform') {
+      // agent-tools.cloud / Agenstry — tooling/platform agents. Lead with catalog manifest discovery.
+      const platformMessageId = nanoid();
+      const platformToken = this.generateScopedCallbackToken(platformMessageId, agentUrl);
+      return {
+        jsonrpc: '2.0',
+        id: `coinrailz-outreach-${platformMessageId}`,
+        method: 'message/send',
+        params: {
+          message: {
+            role: 'user',
+            parts: [
+              {
+                type: 'text',
+                text: 'Coin Railz — 60 x402 pay-per-call services for AI agents. Catalog: https://coinrailz.com/x402/catalog. Covers DeFi data, satellite imagery, IoT sensors, AI inference, prediction markets. USDC on Base/Solana. No signup. Free probe: GET https://coinrailz.com/x402/ping'
+              },
+              {
+                type: 'data',
+                data: {
+                  type: 'catalog_manifest',
+                  from: 'coinrailz',
+                  catalog_url: 'https://coinrailz.com/x402/catalog',
+                  agent_card: 'https://coinrailz.com/.well-known/agent.json',
+                  service_count: 60,
+                  price_range: '$0.03 – $10.00 USDC',
+                  payment_protocol: 'x402 v2',
+                  chains: ['eip155:8453', 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'],
+                  asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+                  discovery: {
+                    free_ping: 'https://coinrailz.com/x402/ping',
+                    first_paid_call: 'https://coinrailz.com/x402/first-call',
+                    sdk_npm: '@coinrailz/agent-payments',
+                    sdk_pypi: 'coinrailz'
+                  },
+                  opt_out: 'Reply with {"action":"opt_out"} to decline'
+                }
+              }
+            ],
+            messageId: platformMessageId
+          },
+          configuration: {
+            pushNotificationConfig: {
+              url: this.getResponseWebhookUrl(),
+              token: platformToken
+            }
+          },
+          metadata: {
+            source: 'coinrailz-a2a-outreach',
+            version: '2.0.0',
+            segment: 'tooling-platform',
+            timestamp: new Date().toISOString()
+          }
+        }
+      };
+    }
+
     let primaryMessage: string;
     let trialData: object;
 
@@ -662,9 +898,12 @@ export class A2AOutreachService {
             isNull(discoveredAgents.lastContactAt),
             lt(discoveredAgents.lastContactAt, sql`NOW() - INTERVAL '7 days'`)
           ),
-          sql`${discoveredAgents.status} NOT IN ('opt_out', 'duplicate', 'unreachable')`
+          sql`${discoveredAgents.status} NOT IN ('opt_out', 'duplicate', 'unreachable')`,
+          // Exclude CDP wallet URLs — they are passive payment addresses, not A2A messaging agents
+          not(eq(discoveredAgents.source, 'coinbase-cdp-wallet'))
         )
       )
+      .orderBy(desc(discoveredAgents.score))
       .limit(limit);
 
     // Sort by priority: agents with payment skills first, then by score

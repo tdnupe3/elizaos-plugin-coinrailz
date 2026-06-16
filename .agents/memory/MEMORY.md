@@ -16,3 +16,4 @@
 - [Dialect Markets — expired keys, DeFiLlama fallback](dialect-markets-fallback.md) — DIALECT_BE_KEY/DIALECT_MARKETS_FE_KEY expired; dialectMarketsService now latches on 401 and falls back to DeFiLlama yields.llama.fi/pools permanently
 - [Kalshi API v2 field changes](kalshi-api-v2-fields.md) — yes_price gone; use yes_ask_dollars/last_price_dollars; fetch liquid series sequentially to avoid 429
 - [SDK publish infrastructure](sdk-publish-infrastructure.md) — scripts/release-sdks.mjs publishes npm packages; PyPI via twine with PYPI_TOKEN; Replit firewall requires --registry https://registry.npmjs.org + per-package .npmrc; plugin-coinrailz v2.0.0 deprecated → use elizaos-plugin-coinrailz
+- [A2A outreach wave 5 findings](a2a-outreach-wave5.md) — solved.earth + agent-tools.cloud are registry/directory agents (distribution, not just outreach); orderBy fix; endpoint resolution uses metadata.url not agent.url

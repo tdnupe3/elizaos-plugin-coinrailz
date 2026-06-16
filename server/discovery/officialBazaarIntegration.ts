@@ -12,6 +12,18 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { ServiceCatalogService, CatalogService } from '../services/serviceCatalogService';
 import { getCdpFacilitatorUrl, USDC_BASE_ADDRESS, NETWORK_CAIP2 } from '../utils/facilitatorHelper';
+import { getCanonicalServices } from '../utils/serviceCount';
+import fs from 'fs';
+import path from 'path';
+
+function readCanonicalCount(): number {
+  try {
+    const spec = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public', 'openapi-x402-services.json'), 'utf8'));
+    return Object.keys(spec.paths || {}).filter((p: string) => p.startsWith('/x402/')).length;
+  } catch {
+    return getCanonicalServices().length;
+  }
+}
 
 const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91') as `0x${string}`;
 const PUBLIC_BASE_URL = process.env.PUBLIC_URL || 
@@ -255,8 +267,7 @@ export function createOfficialBazaarRouter(): Router {
   });
 
   router.get('/bazaar/integration-status', (req: Request, res: Response) => {
-    const catalog = ServiceCatalogService.getInstance().getCatalog();
-    const x402Services = catalog.services.filter(s => s.x402Compatible);
+    const canonicalCount = readCanonicalCount();
     
     res.json({
       success: true,
@@ -277,8 +288,8 @@ export function createOfficialBazaarRouter(): Router {
       facilitatorUrl: getCdpFacilitatorUrl(),
       facilitators: ["https://api.cdp.coinbase.com/platform/v2/x402", "https://dexter.cash"],
       walletProviders: ["coinbase-cdp", "moonpay-agents", "any-evm"],
-      totalServices: x402Services.length,
-      servicesWithBazaarMetadata: x402Services.length,
+      totalServices: canonicalCount,
+      servicesWithBazaarMetadata: canonicalCount,
       discoveryEndpoints: {
         resources: '/api/discovery/resources',
         bazaarRoutes: '/api/bazaar/routes',

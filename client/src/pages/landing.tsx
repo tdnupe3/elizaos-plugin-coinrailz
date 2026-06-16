@@ -177,6 +177,39 @@ export default function Landing() {
               </div>
             </div>
 
+            {/* x402 AWS CloudFront & Coinbase Announcement Section */}
+            <div className="max-w-2xl mx-auto mb-8 sm:mb-10 px-4">
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-xl p-5 sm:p-6">
+                <div className="text-center">
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+                    x402 now live on AWS CloudFront, Solana and Base
+                  </h2>
+                  <p className="text-sm text-gray-700 mb-4">
+                    Coin Railz operates the x402 micropayment infrastructure agents use today to autonomously purchase data.
+                  </p>
+                  <div className="space-y-2 text-left max-w-xl mx-auto mb-4">
+                    <div className="flex items-start space-x-3">
+                      <Check className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-gray-700">66 pay-per-call services: DeFi analytics, satellite data, IoT, AI inference</span>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <Check className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-gray-700">$0.05 entry price per API call</span>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <Check className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-gray-700">Live on Base and Solana</span>
+                    </div>
+                  </div>
+                  <Link href="/x402-docs">
+                    <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white text-sm font-semibold px-6">
+                      Make your first x402 call
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+
             {/* PRIMARY CTA - Card-first instant API key */}
             <div className="max-w-lg mx-auto mb-6 sm:mb-8 space-y-3">
               <Link href="/pilots/buy">

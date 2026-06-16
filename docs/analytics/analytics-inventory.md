@@ -321,24 +321,36 @@ GROUP BY sdk_type;
 
 ---
 
-## Real Revenue Picture (Jun 9 2026)
+## Real Revenue Picture (Jun 16 2026)
 
-**All-time USDC: $266.59 across 404 payment intents from 13 distinct wallets**
+**All-time USDC: ~$279 across 466 payment intents from 14 distinct wallets**
+
+**External (organic) revenue only — canary and internal excluded:**
 
 | Payer | Network | Intents | USDC | Last Payment | Notes |
 |---|---|---|---|---|---|
-| 0x5837a864... | Base (eip155:8453) | 167 | $124.50 | May 3 2026 | Largest external payer |
-| 0x92ca4cef... | Base | 92 | $79.40 | Dec 4 2025 | |
-| 0x2f5134f7... | Base + eip155:8453 | 48 | $31.70 | Jan 10 2026 | |
+| 0x92ca4cef... | Base | 94 | $79.75 | Dec 22 2025 | |
+| 0x2f5134f7... | Base | 48 | $31.70 | Jan 10 2026 | |
 | 0x0a2854fb... | Base | 1 | $14.87 | Dec 14 2025 | |
-| 0x74de5d4f... | Ethereum mainnet | 1 | $9.84 | Feb 18 2026 | |
-| **0xa4bbe37f...** | Base | **78** | **$3.90** | **Jun 8 2026** | **Canary wallet — internal** |
-| 0x3803a192... | Base | 2 | $0.30 | Jun 1 2026 | First organic external payment |
-| 0x2f5134f7... | Base | 10 | $10.50 | Dec 12 2025 | |
-| Others | Various | ~5 | ~$1.58 | Various | |
+| **0x9cc42f3d...** | **Base** | **21** | **$10.15** | **Jun 12 2026** | **NEW — paid 21 services in one session** |
+| 0x74de5d4f... | Ethereum | 1 | $9.84 | Feb 18 2026 | |
+| 0x6341b240... | Base | 4 | $0.70 | Jan 25 2026 | |
+| 0x3803a192... | Base | 6 | $1.10 | Jun 13 2026 | Organic returner — earthdata specialist |
+| Others (3 wallets) | Base | 3 | $0.75 | Dec 2025 | |
 | Hgby7VEo6va... | Solana | 2 | $0.10 | Feb 27 2026 | Internal test |
 
-**Last confirmed external (non-canary) payment: June 1, 2026** — wallet `0x3803a192...`, $0.30 total.
+**Internal canary/testing wallets (excluded from external totals):**
+
+| Wallet | Intents | USDC | Notes |
+|---|---|---|---|
+| **0x5837a864...** | **176** | **$124.95** | **Active canary wallet — derived from X402_BUYER_PRIVATE_KEY. ALL payments internal.** |
+| 0xa4bbe37f... | 109 | $5.45 | Secondary internal wallet (TK5 MetaMask, still funded ~$47 USDC). Stopped firing Jun 13 — was a legacy dev/test canary before X402_BUYER_PRIVATE_KEY canary job was formalized. is_canary=false in DB. |
+
+> ⚠️ **CORRECTION from Jun 9 doc**: `0x5837a864` was incorrectly labeled "Largest external payer." It is and always has been the canary wallet (is_canary=true). No external payer has ever spent more than $10.15 in a single session.
+
+**Last confirmed external (non-canary) payment: June 13, 2026** — wallet `0x3803a192...`, earthdata-precipitation $0.25.
+
+**Most significant recent event: June 12, 2026** — new wallet `0x9cc42f3d...` paid for 21 different services in 15 minutes ($10.15 total). First external payer to broadly test the catalog in a single session.
 
 **To get current totals at any check:**
 ```sql
@@ -368,6 +380,8 @@ FROM x402_payment_intents;
 | x402-healthbot/1.0 (decixa.ai) | GET to 2 services | Never | Decixa.ai health monitor |
 | Dexter-Verifier/1.0 | GET /x402/ping | Never (probe only) | Dexter facilitator health check |
 | 402.ad-probe/1.0 | Occasional GET | Never | x402 ecosystem probe |
+| *(blank)* IPv6 2a06:98c0:3600::103 | Systematic GET catalog sweep → POST all services, ~2–4h cycle. Active Jun 10–present. | Never | Cloudflare-fronted, blank UA, parallel requests. Behaves like a catalog indexer (not a buyer). NOT a conversion candidate. |
+| *(blank)* 79.137.72.94 | POST only (`node` UA). Alternates first-call and gas-price-oracle on ~3–5 day cycle. Active since Mar 8 2026. Recently hitting instant-api-key. | 7 free calls (gas-price-oracle, first-call-free). Never paid. | **Longest-running stuck prospect — 4 months, 962 hits, 30 services. Genuinely trying to pay (now targeting instant-api-key) but wallet appears unfunded.** |
 
 ---
 
@@ -461,4 +475,4 @@ GROUP BY stage, channel ORDER BY count DESC;
 
 ---
 
-*Last Updated: June 9, 2026*
+*Last Updated: June 16, 2026*

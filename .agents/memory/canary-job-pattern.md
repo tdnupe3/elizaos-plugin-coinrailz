@@ -22,3 +22,9 @@ description: How the x402 canary payment job works and how it connects to the 40
 **Cache invalidation:** After a successful run, calls `invalidateCanaryCache()` so the next 402 challenge issued picks up the fresh proof without waiting the 10-minute cache TTL.
 
 **Why:** `lastVerifiedPayment` in the 402 challenge body is machine-verifiable settlement proof — any evaluating agent can check Basescan independently. This converts "spec-compliant challenge" to "proven live payment rail" without requiring trust.
+
+**Canary wallet identity (verified Jun 16 2026):**
+- Active canary wallet: `0x5837a864...` — derived from `X402_BUYER_PRIVATE_KEY`. Marked `is_canary=true` in `x402_payment_intents`. Has been the canary since at least Feb 7 2026. $124.95 spent across 176 intents = all internal.
+- `0xa4bbe37f...` (TK5 MetaMask, still funded ~$47 USDC) — legacy dev/test wallet, `is_canary=false` in DB. Stopped firing Jun 13 2026. Was never the production canary.
+- The analytics inventory doc previously labeled `0x5837a864` as "Largest external payer" — this was WRONG. Corrected Jun 16 2026.
+- **Transient failures** (e.g. June 15 09:21 + 17:11) are NOT wallet balance issues — insufficient funds shows as 'skipped', not 'failed'. Mid-day UTC failure clusters are Base network/CDP API congestion. Self-healing (recover same day).

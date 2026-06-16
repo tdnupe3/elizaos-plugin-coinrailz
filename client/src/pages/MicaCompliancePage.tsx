@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, CheckCircle, Zap, Globe, Bot, Network, AlertTriangle, TrendingUp, DollarSign, Lock } from "lucide-react";
+import { Shield, CheckCircle, Zap, Globe, Bot, Network, AlertTriangle, TrendingUp, Lock } from "lucide-react";
 import { useSEO } from "@/hooks/useSEO";
 
 const EU_FEATURES = [
@@ -72,12 +72,9 @@ export default function MicaCompliancePage() {
   useSEO({
     title: "MiCA-Compliant Payment Infrastructure for EU AI Agents | Coin Railz",
     description: "USDT banned from EU exchanges. Coin Railz is USDC-first — fully MiCA-compliant payment rails for AI agents, IoT networks, and DePIN projects operating in the European Union.",
-    keywords: ["MiCA compliant", "USDC EU", "AI agent payments EU", "DePIN MiCA", "stablecoin compliance", "USDT alternative EU"],
-    openGraph: {
-      title: "MiCA-Native AI Agent Payment Infrastructure | Coin Railz",
-      description: "USDT is banned in the EU. Coin Railz was USDC-first from day one. 60+ x402 microservices, MiCA-compliant by design.",
-      type: "website"
-    }
+    keywords: "MiCA compliant, USDC EU, AI agent payments EU, DePIN MiCA, stablecoin compliance, USDT alternative EU",
+    ogTitle: "MiCA-Native AI Agent Payment Infrastructure | Coin Railz",
+    ogDescription: "USDT is banned in the EU. Coin Railz was USDC-first from day one. 60+ x402 microservices, MiCA-compliant by design.",
   });
 
   return (

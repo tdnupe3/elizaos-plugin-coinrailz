@@ -24,12 +24,23 @@ function hashIP(ip: string | undefined): string | undefined {
   return crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16);
 }
 
-type A2AIntentType = 'peer_discovery_greeting' | 'peer_offer_clawpay_v1' | 'service_query' | 'no_text' | 'unknown';
+type A2AIntentType = 'peer_discovery_greeting' | 'peer_offer_clawpay_v1' | 'ownership_claim_verify' | 'service_query' | 'no_text' | 'unknown';
 
 function classifyA2AIntent(text: string): A2AIntentType {
   if (!text) return 'no_text';
   const t = text.trim();
   if (/^CLAWPAY_V1\s/i.test(t)) return 'peer_offer_clawpay_v1';
+  // solved.earth + any registry claim/ownership verification probe
+  if (
+    /\baccept\b/i.test(t) ||
+    /\bclaim\b/i.test(t) ||
+    /solved\.earth/i.test(t) ||
+    /\bverif(y|ication)\b.*\b(owner|claim|agent)\b/i.test(t) ||
+    /\bprove\b.*\bownership\b/i.test(t) ||
+    /\bconfirm\b.*\bownership\b/i.test(t) ||
+    /\bagent.*owner\b/i.test(t) ||
+    /\b(ownership|proprietor)\b/i.test(t)
+  ) return 'ownership_claim_verify';
   if (/\bhello[,.]?\s+i am\b/i.test(t) && /\bwhat services\b/i.test(t)) return 'peer_discovery_greeting';
   if (/\bwhat (services|can you|do you)\b/i.test(t) || /\bhello[,.]?\s+i am\b/i.test(t)) return 'peer_discovery_greeting';
   if (/^(hello|hi|hey|greetings|howdy|ping|test|yo)[.!?]?\s*$/i.test(t)) return 'peer_discovery_greeting';
@@ -290,6 +301,27 @@ function handleMessageSend(req: Request, res: Response) {
   const intentType = classifyA2AIntent(text);
   const matches = matchServices(text);
   const catalog = serviceCatalogService.getCatalog();
+
+  // solved.earth + registry ownership claim verification
+  // solved.earth sends a message and looks for "ACCEPT" in the reply to confirm agent ownership
+  if (intentType === 'ownership_claim_verify') {
+    res.status(200).json(buildTaskResponse(taskId, [{
+      parts: [{
+        type: 'text',
+        text: `ACCEPT\n\nCoin Railz confirms ownership of this agent endpoint. This is the canonical Coin Railz A2A interaction endpoint at ${BASE_URL}/a2a/v1/message/send.\n\nAgent: Coin Railz\nWebsite: ${BASE_URL}\nAgent card: ${BASE_URL}/.well-known/agent-card.json\nPayment protocol: x402 v2\nChains: Base, Solana\nServices: ${catalog.totalServices}+ pay-per-call APIs`
+      }]
+    }], {
+      intentType: 'ownership_claim_verify',
+      accepted: true,
+      agentId: 'coinrailz-x402-agent',
+      agentUrl: BASE_URL,
+      agentCard: `${BASE_URL}/.well-known/agent-card.json`
+    }));
+    const latencyMs = Date.now() - startTime;
+    trackA2AHit(req, { resourceId: 'a2a-claim-verify', statusCode: 200, responseTimeMs: latencyMs, matched: false, queryText: text, requestId: taskId });
+    logA2AInteraction({ requestId: taskId, latencyMs, statusCode: 200, matched: false, resourceId: 'a2a-claim-verify', matchCount: 0, intentType, queryText: text, clientIpHash, userAgent, trackingId });
+    return;
+  }
 
   if (intentType === 'peer_discovery_greeting' && matches.length === 0) {
     const featured = catalog.services

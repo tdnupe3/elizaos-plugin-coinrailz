@@ -162,18 +162,31 @@ export default function Landing() {
             </p>
             
             {/* Trust Badges - Card first, x402 secondary */}
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-6 sm:mb-8 text-sm text-gray-700">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6 text-sm text-gray-700">
               <div className="flex items-center space-x-2">
                 <Badge className="bg-green-100 text-green-800">✓ API Key in ~60 Seconds</Badge>
               </div>
               <div className="flex items-center space-x-2">
-                <Badge className="bg-blue-100 text-blue-800">✓ 60 Pay-Per-Call APIs</Badge>
+                <Badge className="bg-blue-100 text-blue-800">✓ 66 Pay-Per-Call APIs</Badge>
               </div>
               <div className="flex items-center space-x-2">
                 <Badge className="bg-orange-100 text-orange-800">✓ Coinbase Agentic Wallets</Badge>
               </div>
               <div className="flex items-center space-x-2">
                 <Badge className="bg-purple-100 text-purple-800">✓ x402 On-Chain (Advanced)</Badge>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Badge className="bg-slate-100 text-slate-700">✓ x402 Open Standard</Badge>
+              </div>
+            </div>
+
+            {/* x402 Foundation trust strip */}
+            <div className="max-w-2xl mx-auto mb-5 px-4">
+              <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 flex items-start space-x-3">
+                <Check className="w-4 h-4 text-slate-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  <span className="font-semibold text-slate-800">x402 Protocol — Open Internet Standard</span> governed by the Linux Foundation. Members include AWS, Google, Microsoft, Mastercard, Cloudflare, Stripe, Adyen, Circle, and Shopify. Coin Railz operates 66 discoverable x402 services for autonomous AI agent data purchasing.
+                </p>
               </div>
             </div>
 

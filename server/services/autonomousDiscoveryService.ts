@@ -425,6 +425,9 @@ class AutonomousDiscoveryService {
         { path: '/audit-status', priority: '0.6' },
         { path: '/outreach', priority: '0.6' },
         
+        // Solutions / Compliance Landing Pages (Jun 2026)
+        { path: '/solutions/mica-compliant-payments', priority: '0.9' },
+
         // Legal & Company Info
         { path: '/about', priority: '0.5' },
         { path: '/privacy', priority: '0.5' },

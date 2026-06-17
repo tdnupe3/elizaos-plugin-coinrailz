@@ -53,6 +53,7 @@ async function emitFirstX402Call(params: {
   paymentRail: string;
   serviceName: string;
   userAgent?: string;
+  walletAddress?: string;
   metadata?: Record<string, any>;
 }): Promise<void> {
   if (isLoopback(params.ip)) return;
@@ -78,6 +79,7 @@ async function emitFirstX402Call(params: {
     await tx.insert(conversionFunnelEvents).values({
       stage: 'first_x402_call',
       channel: params.paymentRail,
+      walletAddress: params.walletAddress || null,
       metadata: {
         actorKey,
         paymentRail: params.paymentRail,
@@ -94,6 +96,7 @@ export function emitFirstX402CallAsync(params: {
   paymentRail: string;
   serviceName: string;
   userAgent?: string;
+  walletAddress?: string;
   metadata?: Record<string, any>;
 }): void {
   void emitFirstX402Call(params).catch((err: Error) => {

@@ -253,14 +253,29 @@ ORDER BY created_at DESC;
 ### 11. `api_keys` - **API KEY REGISTRY**
 **Purpose**: Track issued API keys
 **Key columns**: `status`, `last_used_at`, `created_at`, `expires_at`, `allowed_services`, `rate_limit`
+**⚠️ SCHEMA NOTE**: There is NO `is_active` column. Use `status = 'active'` (values: `'active'`, `'revoked'`, `'expired'`). There is NO `last_used` column — use `last_used_at`.
 
 ```sql
--- Snapshot: total, active last 24h, new today
+-- Snapshot: total by status, usage recency
 SELECT status,
   COUNT(*) as total_keys,
   COUNT(CASE WHEN last_used_at >= NOW() - INTERVAL '24 hours' THEN 1 END) as used_24h,
+  COUNT(CASE WHEN last_used_at >= NOW() - INTERVAL '7 days' THEN 1 END) as used_7d,
+  COUNT(CASE WHEN last_used_at IS NULL THEN 1 END) as never_used,
   COUNT(CASE WHEN created_at >= NOW() - INTERVAL '24 hours' THEN 1 END) as new_24h
 FROM api_keys GROUP BY status;
+
+-- Dormancy buckets: active keys by last-use recency
+SELECT
+  CASE
+    WHEN last_used_at IS NULL THEN 'never_used'
+    WHEN last_used_at >= NOW() - INTERVAL '24 hours' THEN 'used_24h'
+    WHEN last_used_at >= NOW() - INTERVAL '7 days' THEN 'used_7d'
+    WHEN last_used_at >= NOW() - INTERVAL '30 days' THEN 'used_30d'
+    ELSE 'dormant_30d_plus'
+  END as usage_bucket,
+  COUNT(*) as keys
+FROM api_keys WHERE status = 'active' GROUP BY 1 ORDER BY 1;
 ```
 
 ---

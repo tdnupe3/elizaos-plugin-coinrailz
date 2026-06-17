@@ -1712,7 +1712,7 @@ export function createPaymentOrchestrator(
             .set({ status: 'SUCCEEDED', succeededAt: new Date(), updatedAt: new Date() })
             .where(and(eq(x402PaymentIntents.txHash, xPayment), eq(x402PaymentIntents.serviceName, serviceName)));
           console.log(`✅ Solana intent marked SUCCEEDED for ${serviceName}`);
-          emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'solana', serviceName, userAgent: userAgent as string | undefined, metadata: { token: solanaResult.token } });
+          emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'solana', serviceName, userAgent: userAgent as string | undefined, walletAddress: solanaResult.fromWallet || undefined, metadata: { token: solanaResult.token } });
         } catch (handlerErr: any) {
           await db.update(x402PaymentIntents)
             .set({ status: 'FAILED', lastError: handlerErr.message, updatedAt: new Date() })
@@ -2158,7 +2158,7 @@ export function createPaymentOrchestrator(
                   .set({ status: 'SUCCEEDED', succeededAt: new Date(), updatedAt: new Date() })
                   .where(and(eq(x402PaymentIntents.txHash, solanaSig), eq(x402PaymentIntents.serviceName, serviceName)));
                 console.log(`✅ ExactSvmScheme intent marked SUCCEEDED for ${serviceName}`);
-                emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'solana', serviceName, userAgent: userAgent as string | undefined, metadata: { scheme: 'ExactSvmScheme', token: solanaResult.token } });
+                emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'solana', serviceName, userAgent: userAgent as string | undefined, walletAddress: solanaResult.fromWallet || undefined, metadata: { scheme: 'ExactSvmScheme', token: solanaResult.token } });
               } catch (handlerErr: any) {
                 await db.update(x402PaymentIntents)
                   .set({ status: 'FAILED', lastError: handlerErr.message, updatedAt: new Date() })
@@ -2302,7 +2302,7 @@ export function createPaymentOrchestrator(
             .set({ status: 'SUCCEEDED', succeededAt: new Date(), updatedAt: new Date() })
             .where(and(eq(x402PaymentIntents.txHash, txHash), eq(x402PaymentIntents.serviceName, serviceName)));
           console.log(`✅ Solana (Dexter) intent marked SUCCEEDED for ${serviceName}`);
-          emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'solana', serviceName, userAgent: userAgent as string | undefined, metadata: { facilitator: 'dexter', token: solanaResult.token } });
+          emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'solana', serviceName, userAgent: userAgent as string | undefined, walletAddress: solanaResult.fromWallet || undefined, metadata: { facilitator: 'dexter', token: solanaResult.token } });
         } catch (handlerErr: any) {
           await db.update(x402PaymentIntents)
             .set({ status: 'FAILED', lastError: handlerErr.message, updatedAt: new Date() })
@@ -2404,7 +2404,7 @@ export function createPaymentOrchestrator(
               }
             });
 
-            emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'evm', serviceName, userAgent: userAgent as string | undefined, metadata: { chain: evmChain, token: verificationResult.paymentToken } });
+            emitFirstX402CallAsync({ ip: ipAddress, paymentRail: 'evm', serviceName, userAgent: userAgent as string | undefined, walletAddress: payerWallet || undefined, metadata: { chain: evmChain, token: verificationResult.paymentToken } });
             
             if (offerTrackingId) {
               try {

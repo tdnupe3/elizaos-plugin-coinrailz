@@ -74,7 +74,21 @@ async function emitFirstX402Call(params: {
       LIMIT 1
     `);
 
-    if (existing.rows.length > 0) return;
+    if (existing.rows.length > 0) {
+      // Backfill wallet_address if the existing row lacks it and we now have one.
+      // Safe: advisory lock is held above, NULL guard prevents overwriting a known value.
+      if (params.walletAddress) {
+        await tx.execute(sql`
+          UPDATE conversion_funnel_events
+          SET wallet_address = ${params.walletAddress}
+          WHERE stage = 'first_x402_call'
+            AND metadata->>'actorKey' = ${actorKey}
+            AND created_at > ${thirtyDaysAgo.toISOString()}
+            AND wallet_address IS NULL
+        `);
+      }
+      return;
+    }
 
     await tx.insert(conversionFunnelEvents).values({
       stage: 'first_x402_call',

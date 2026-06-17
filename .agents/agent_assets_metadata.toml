@@ -6,3 +6,9 @@ id = "rBbQQloFCNhm9gcsQCz85"
 uri = "file://contracts/basescan-standard-input.json"
 type = "unspecified"
 title = "Basescan Standard JSON Input"
+
+[[outputs]]
+id = "6HDPXOinaxawlFlGKbXsH"
+uri = "file://public/coin-railz-x402-endpoints.csv"
+type = "table"
+title = "Coin Railz — 66 x402 Endpoints (Circle Agent Directory Upload)"

@@ -823,8 +823,17 @@ async function trendingTokensFeedService(timeframe: string = "24h", chain: strin
 }
 
 // Service 8: Whale Wallet Alerts
-async function whaleWalletAlertsService(tokenAddress: string, chain: string = "ethereum", threshold: number = 100000) {
-  const cacheKey = `whale-alerts-${chain}-${tokenAddress}-${threshold}`;
+// Default: USDC on Ethereum. Callers may omit tokenAddress to get USDC whale movements.
+const WHALE_DEFAULT_TOKENS: Record<string, string> = {
+  ethereum: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC
+  base:     "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+  arbitrum: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", // USDC on Arbitrum
+};
+async function whaleWalletAlertsService(tokenAddress: string | undefined, chain: string = "ethereum", threshold: number = 100000) {
+  const resolvedToken = (typeof tokenAddress === "string" && tokenAddress.length > 0)
+    ? tokenAddress
+    : (WHALE_DEFAULT_TOKENS[chain] ?? WHALE_DEFAULT_TOKENS["ethereum"]);
+  const cacheKey = `whale-alerts-${chain}-${resolvedToken.slice(0,8)}-${threshold}`;
   const cached = getCachedData(cacheKey);
   if (cached) return cached;
 
@@ -836,11 +845,11 @@ async function whaleWalletAlertsService(tokenAddress: string, chain: string = "e
 
     const transfers = await withResilience(
       () => alchemy.core.getAssetTransfers({
-        contractAddresses: [tokenAddress],
+        contractAddresses: [resolvedToken],
         category: ["erc20" as any],
         maxCount: 100,
       }),
-      `alchemy-whale-${chain}-${tokenAddress.slice(0,8)}`,
+      `alchemy-whale-${chain}-${resolvedToken.slice(0,8)}`,
       { maxRetries: 2, timeoutMs: 5000, fallback: { transfers: [] } }
     );
 
@@ -868,7 +877,7 @@ async function whaleWalletAlertsService(tokenAddress: string, chain: string = "e
     whaleMovements.sort((a, b) => parseFloat(b.valueUSD.replace(/[$,]/g, "")) - parseFloat(a.valueUSD.replace(/[$,]/g, "")));
 
     const result = {
-      token: tokenAddress,
+      token: resolvedToken,
       chain,
       threshold: `$${threshold.toLocaleString()}`,
       whaleMovements: whaleMovements.slice(0, 20),

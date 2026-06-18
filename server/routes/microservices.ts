@@ -91,16 +91,15 @@ const alchemyConfigs = {
     apiKey: process.env.ALCHEMY_API_KEY || "",
     network: Network.ARB_MAINNET,
   }),
-  optimism: new Alchemy({
-    apiKey: process.env.ALCHEMY_API_KEY || "",
-    network: Network.OPT_MAINNET,
-  }),
+  // optimism: intentionally omitted — OPT_MAINNET not enabled on this Alchemy key.
+  // Gas prices are served via mainnet.optimism.io public RPC (see rpcUrls).
 };
 
-// RPC URLs for chains without Alchemy SDK support
+// RPC URLs for chains without Alchemy SDK support (or where the Alchemy key lacks the network)
 const rpcUrls = {
   bnb: "https://bsc-dataseed1.binance.org",
   avalanche: "https://api.avax.network/ext/bc/C/rpc",
+  optimism: "https://mainnet.optimism.io",
 };
 
 // Helper: Track request in database
@@ -299,8 +298,8 @@ async function gasPriceOracleService(chains: string[]) {
       // Check if Alchemy-supported chain
       const alchemy = alchemyConfigs[chain as keyof typeof alchemyConfigs];
       
-      // For BNB and Avalanche, use direct RPC calls
-      if (!alchemy && (chain === "bnb" || chain === "avalanche")) {
+      // For BNB, Avalanche, and Optimism use direct public RPC calls
+      if (!alchemy && (chain === "bnb" || chain === "avalanche" || chain === "optimism")) {
         const rpcUrl = rpcUrls[chain as keyof typeof rpcUrls];
         const response = await axios.post(rpcUrl, {
           jsonrpc: "2.0",

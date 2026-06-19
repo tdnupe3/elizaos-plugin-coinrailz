@@ -2031,7 +2031,7 @@ router.use(async (req: Request, res: Response, next) => {
 // Coinbase Bazaar crawler uses GET requests to discover x402 services
 // We must return proper 402 Payment Required responses for GET (not just POST)
 // ============================================================================
-function generate402ResponseForGet(serviceKey: string, req: Request, res: Response): void {
+function generate402ResponseForGet(serviceKey: string, req: Request, res: Response, extraFields?: Record<string, unknown>): void {
   const routeConfig = x402Routes[serviceKey as keyof typeof x402Routes];
   if (!routeConfig) {
     res.status(404).json({ error: "Service not found" });
@@ -2290,7 +2290,8 @@ curl -X POST https://coinrailz.com/x402/gas-price-oracle \\
         "Fund with USDC to start transacting"
       ],
       rateLimit: "2 free wallets per IP per day"
-    }
+    },
+    ...(extraFields || {}),
   };
 
   res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
@@ -2504,6 +2505,15 @@ serviceEndpoints.forEach(endpoint => {
             }
           } else {
             console.log(`⚠️ GET API key: Insufficient credits for ${endpoint} ($${balance.toFixed(2)} < $${priceUsd.toFixed(2)})`);
+            return generate402ResponseForGet(`POST /${endpoint}`, req, res, {
+              insufficientCredits: true,
+              currentBalance: `$${balance.toFixed(2)}`,
+              requiredAmount: `$${priceUsd.toFixed(2)}`,
+              action: {
+                topup_url: 'https://coinrailz.com/dashboard/credits',
+                message: `Your API key balance ($${balance.toFixed(2)}) is below the required amount ($${priceUsd.toFixed(2)}) for ${endpoint}. Add at least $${Math.max(0, priceUsd - balance).toFixed(2)} USDC to continue.`,
+              },
+            });
           }
         } else {
           console.log(`⚠️ GET API key: Invalid API key for ${endpoint}`);

@@ -21,7 +21,7 @@ interface VerificationResult {
   failureReason?: string;
 }
 
-const DB_QUERY_TIMEOUT_MS = 60000; // 60s — allows Neon WS pool to reconnect after transient stall
+const DB_QUERY_TIMEOUT_MS = 90000; // 90s — allows Neon WS pool to reconnect after transient stall
 const MAX_CONSECUTIVE_WARN = 2; // log WARN for first 2 transient timeouts, then escalate to ERROR
 
 export class TopupConfirmationJob {
@@ -90,7 +90,7 @@ export class TopupConfirmationJob {
           )
           .limit(50),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('DB query timeout after 30s')), DB_QUERY_TIMEOUT_MS)
+          setTimeout(() => reject(new Error('DB query timeout after 90s')), DB_QUERY_TIMEOUT_MS)
         ),
       ]);
 

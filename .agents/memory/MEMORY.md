@@ -10,6 +10,7 @@
 - [Yield Vault — live mainnet deployment](yield-vault-mainnet.md) — v2.1 on Base @ 0x86e2508ca; `expectedSupplyAssets` doesn't exist on Morpho singleton — use shares math; `ownerRescueMorpho()` added as escape hatch
 - [Yield vault agent accounts](yield-vault-agent-accounts.md) — custodial API-key yield: credits→position→withdraw, no wallet needed; wallet path via deposit-tx endpoint
 - [Solana USDC Yield Portal](solana-yield-portal.md) — Kamino v1 non-custodial; all 7 tasks complete; live data confirmed (3.49% APY, $118M TVL); db.execute returns .rows; neon() client must NOT be created separately
+- [Solana yield rates SWR cache](solana-yield-swr.md) — /api/solana-yield/rates uses SWR: 60s fresh, 10min stale-while-revalidate, _ratesRefreshing lock prevents thundering herd; fixed 1770ms peak → 4–9ms HIT
 - [Yield outreach campaign](yield-outreach-campaign.md) — admin-gated POST /api/admin/yield-outreach/{dry-run,send}; 3 A2A agents + 30 on-chain wallets; dedup MUST be applied post-query in both dryRun() and runCampaign() not just getA2ATargets()
 - [db:push non-interactive schema drift](db-push-noninteractive.md) — post-merge db:push with stdin closed silently aborts on rename prompts; fix with targeted ALTER TABLE, not global --force (risks live data on other tables)
 - [Encryption key secrets required for deploy](encryption-key-deploy.md) — PII_ENCRYPTION_KEY and ENCRYPTION_KEY must exist as Replit secrets before any production deploy; both have fail-fast guards that crash startup if missing

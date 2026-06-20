@@ -46,11 +46,110 @@ const trackSolanaYield = createHitTracker({
 
 router.use(trackSolanaYield);
 
-// ── Rates Cache (30s TTL — Kamino on-chain load is ~1s per uncached call) ───────
+// ── Rates Cache — Stale-While-Revalidate ─────────────────────────────────────
+// Fresh window: 60s  — serve directly, no background work needed.
+// Stale window: 60s–10min — return immediately (sub-5ms) + kick off background refresh.
+// Grace window: >10min with no data — only then block the caller for a live fetch.
+// Refresh lock: _ratesRefreshing prevents multiple simultaneous RPC calls on burst traffic.
 
-interface SolanaRateCache { data: object; cachedAt: number; }
+interface SolanaRateCache { data: any; cachedAt: number; }
 let solanaRateCache: SolanaRateCache | null = null;
-const SOLANA_RATE_CACHE_TTL_MS = 30_000;
+let _ratesRefreshing = false;
+const SOLANA_RATE_FRESH_MS  =  60_000;  // 60s  — serve from cache, no refresh needed
+const SOLANA_RATE_STALE_MS  = 600_000;  // 10min — serve stale + refresh in background
+// > STALE_MS with no cache: block and fetch live (cold-start only)
+
+async function fetchSolanaRates(): Promise<any> {
+  const KAMINO_USDC_LLAMA_POOL = 'd2141a59-c199-4be7-8d4b-c8223954836b';
+
+  // Source 1: Dialect Markets
+  const dialectData = await dialectMarketsService.getTopYields({
+    token:    'USDC',
+    protocol: 'kamino',
+    type:     'lending',
+    limit:    5,
+  }).catch(() => null);
+
+  const kaminoRate = dialectData?.topYields?.find(
+    (y: any) => y.protocol?.toLowerCase().includes('kamino') || y.name?.toLowerCase().includes('kamino'),
+  ) ?? dialectData?.topYields?.[0];
+  const dialectApy: number | null = kaminoRate?.apy ?? null;
+
+  // Source 2: DeFiLlama fallback (only if Dialect unavailable)
+  let llamaApy: number | null = null;
+  if (dialectApy == null) {
+    try {
+      const { data } = await axios.get(
+        `https://yields.llama.fi/chart/${KAMINO_USDC_LLAMA_POOL}`,
+        { timeout: 5000 },
+      );
+      const pts: any[] = data?.data ?? [];
+      const latest = pts[pts.length - 1];
+      if (latest?.apy != null && latest.apy > 0) llamaApy = latest.apy;
+    } catch (e: any) {
+      console.log('[SolanaYield] DeFiLlama fetch error:', e?.message ?? e);
+    }
+  }
+
+  // Source 3: on-chain reserve TVL stats
+  let reserveStats: any = null;
+  try {
+    const market  = await getKaminoMarket();
+    const reserve = market.getReserveByMint(SOLANA_YIELD_CONFIG.USDC_MINT);
+    if (reserve) {
+      const totalSupplyRaw = Number(reserve.getTotalSupply().toString());
+      const availableRaw   = Number(reserve.getLiquidityAvailableAmount().toString());
+      reserveStats = {
+        market:         market.address.toString(),
+        reserve:        reserve.address.toString(),
+        collateralMint: reserve.state.collateral.mintPubkey.toString(),
+        depositTvlUsdc: totalSupplyRaw / 1e6,
+        liquidityUsdc:  availableRaw   / 1e6,
+      };
+    }
+  } catch { /* non-fatal */ }
+
+  const apyPct    = dialectApy ?? llamaApy ?? null;
+  const apyBps    = apyPct != null ? Math.round(apyPct * 100) : null;
+  const apySource = dialectApy != null ? 'Dialect Markets' : llamaApy != null ? 'DeFiLlama' : null;
+
+  return {
+    success:   true,
+    timestamp: new Date().toISOString(),
+    chain:     'solana',
+    protocol:  'Kamino Lending',
+    usdc: {
+      apyPct:    apyPct != null ? parseFloat(apyPct.toFixed(2)) : null,
+      apyBps,
+      formatted: apyPct != null ? `${apyPct.toFixed(2)}%` : 'Loading...',
+    },
+    topOpportunities: dialectData?.topYields?.slice(0, 5) ?? [],
+    onChain:    reserveStats,
+    minDeposit: { raw: SOLANA_YIELD_CONFIG.MIN_DEPOSIT_RAW, usdc: 5 },
+    fees: {
+      deposit:     `${(SOLANA_YIELD_CONFIG.DEPOSIT_FEE_BPS / 100).toFixed(2)}%`,
+      withdrawal:  `${(SOLANA_YIELD_CONFIG.WITHDRAW_FEE_BPS / 100).toFixed(2)}%`,
+      performance: `${(SOLANA_YIELD_CONFIG.PERF_FEE_BPS / 100).toFixed(0)}% of yield`,
+    },
+    comparison: {
+      solana:  apyPct != null ? `${apyPct.toFixed(2)}% (Kamino, ${apySource})` : 'Unavailable',
+      base:    '~3.17% (Aave v3)',
+      note:    'Solana rates are typically 1-4x higher due to higher utilization',
+    },
+    attribution: apySource
+      ? `Rate data: ${apySource}${apySource === 'DeFiLlama' ? ' (https://defillama.com)' : ' (https://dialect.to)'}`
+      : 'Rate data unavailable — Kamino API unreachable',
+  };
+}
+
+function triggerBackgroundRefresh(): void {
+  if (_ratesRefreshing) return;
+  _ratesRefreshing = true;
+  fetchSolanaRates()
+    .then(data => { solanaRateCache = { data, cachedAt: Date.now() }; })
+    .catch(err  => console.warn('[SolanaYield] Background refresh failed (stale data kept):', err?.message))
+    .finally(()  => { _ratesRefreshing = false; });
+}
 
 // ── GET /rates ─────────────────────────────────────────────────────────────────
 
@@ -61,99 +160,49 @@ router.get('/rates', async (req: Request, res: Response) => {
       return res.status(503).json({ success: false, error: 'Solana yield portal is temporarily paused' });
     }
 
-    if (solanaRateCache && Date.now() - solanaRateCache.cachedAt < SOLANA_RATE_CACHE_TTL_MS) {
+    const now = Date.now();
+    const age = solanaRateCache ? now - solanaRateCache.cachedAt : Infinity;
+
+    if (age < SOLANA_RATE_FRESH_MS) {
+      // Cache is fresh — return immediately
       res.setHeader('X-Cache', 'HIT');
-      res.setHeader('X-Cache-Age', String(Math.floor((Date.now() - solanaRateCache.cachedAt) / 1000)) + 's');
+      res.setHeader('X-Cache-Age', Math.floor(age / 1000) + 's');
+      return res.json(solanaRateCache!.data);
+    }
+
+    if (age < SOLANA_RATE_STALE_MS) {
+      // Cache is stale but usable — return stale immediately, refresh in background
+      res.setHeader('X-Cache', 'STALE');
+      res.setHeader('X-Cache-Age', Math.floor(age / 1000) + 's');
+      triggerBackgroundRefresh();
+      return res.json(solanaRateCache!.data);
+    }
+
+    // Cache is empty or very old — fetch live (cold-start / first boot only)
+    if (_ratesRefreshing) {
+      // Another request is already fetching — return last known data if any
+      if (solanaRateCache) {
+        res.setHeader('X-Cache', 'STALE-LOCKED');
+        res.setHeader('X-Cache-Age', Math.floor(age / 1000) + 's');
+        return res.json(solanaRateCache.data);
+      }
+    }
+
+    _ratesRefreshing = true;
+    try {
+      const data = await fetchSolanaRates();
+      solanaRateCache = { data, cachedAt: Date.now() };
+      res.setHeader('X-Cache', 'MISS');
+      return res.json(data);
+    } finally {
+      _ratesRefreshing = false;
+    }
+  } catch (err: any) {
+    // Last resort: return stale data rather than 500 if we have anything cached
+    if (solanaRateCache) {
+      res.setHeader('X-Cache', 'STALE-ERROR');
       return res.json(solanaRateCache.data);
     }
-
-    // Source 1: Dialect Markets (10-min cache)
-    const dialectData = await dialectMarketsService.getTopYields({
-      token:    'USDC',
-      protocol: 'kamino',
-      type:     'lending',
-      limit:    5,
-    }).catch(() => null);
-
-    const kaminoRate = dialectData?.topYields?.find(
-      (y: any) => y.protocol?.toLowerCase().includes('kamino') || y.name?.toLowerCase().includes('kamino'),
-    ) ?? dialectData?.topYields?.[0];
-    const dialectApy: number | null = kaminoRate?.apy ?? null;
-
-    // Source 2: DeFiLlama targeted chart endpoint (free, no key — ~KB response, fast fallback)
-    // Pool ID: Kamino main market USDC on Solana (stable — use /pools to refresh if ever stale)
-    const KAMINO_USDC_LLAMA_POOL = 'd2141a59-c199-4be7-8d4b-c8223954836b';
-    let llamaApy: number | null = null;
-    if (dialectApy == null) {
-      try {
-        const { data } = await axios.get(
-          `https://yields.llama.fi/chart/${KAMINO_USDC_LLAMA_POOL}`,
-          { timeout: 6000 },
-        );
-        const pts: any[] = data?.data ?? [];
-        const latest = pts[pts.length - 1];
-        if (latest?.apy != null && latest.apy > 0) {
-          llamaApy = latest.apy;
-        }
-      } catch (e: any) {
-        console.log('[SolanaYield] DeFiLlama fetch error:', e?.message ?? e);
-      }
-    }
-
-    // Source 3: on-chain reserve TVL stats (always available)
-    let reserveStats: any = null;
-    try {
-      const market  = await getKaminoMarket();
-      const reserve = market.getReserveByMint(SOLANA_YIELD_CONFIG.USDC_MINT);
-      if (reserve) {
-        const totalSupplyRaw = Number(reserve.getTotalSupply().toString());
-        const availableRaw   = Number(reserve.getLiquidityAvailableAmount().toString());
-        reserveStats = {
-          market:         market.address.toString(),
-          reserve:        reserve.address.toString(),
-          collateralMint: reserve.state.collateral.mintPubkey.toString(),
-          depositTvlUsdc: totalSupplyRaw / 1e6,
-          liquidityUsdc:  availableRaw   / 1e6,
-        };
-      }
-    } catch { /* non-fatal */ }
-
-    const apyPct = dialectApy ?? llamaApy ?? null;
-    const apyBps = apyPct != null ? Math.round(apyPct * 100) : null;
-    const apySource = dialectApy != null ? 'Dialect Markets' : llamaApy != null ? 'DeFiLlama' : null;
-
-    const responseData = {
-      success:   true,
-      timestamp: new Date().toISOString(),
-      chain:     'solana',
-      protocol:  'Kamino Lending',
-      usdc: {
-        apyPct:    apyPct != null ? parseFloat(apyPct.toFixed(2)) : null,
-        apyBps,
-        formatted: apyPct != null ? `${apyPct.toFixed(2)}%` : 'Loading...',
-      },
-      topOpportunities: dialectData?.topYields?.slice(0, 5) ?? [],
-      onChain:    reserveStats,
-      minDeposit: { raw: SOLANA_YIELD_CONFIG.MIN_DEPOSIT_RAW, usdc: 5 },
-      fees: {
-        deposit:     `${(SOLANA_YIELD_CONFIG.DEPOSIT_FEE_BPS / 100).toFixed(2)}%`,
-        withdrawal:  `${(SOLANA_YIELD_CONFIG.WITHDRAW_FEE_BPS / 100).toFixed(2)}%`,
-        performance: `${(SOLANA_YIELD_CONFIG.PERF_FEE_BPS / 100).toFixed(0)}% of yield`,
-      },
-      comparison: {
-        solana:  apyPct != null ? `${apyPct.toFixed(2)}% (Kamino, ${apySource})` : 'Unavailable',
-        base:    '~3.17% (Aave v3)',
-        note:    'Solana rates are typically 1-4x higher due to higher utilization',
-      },
-      attribution: apySource
-        ? `Rate data: ${apySource}${apySource === 'DeFiLlama' ? ' (https://defillama.com)' : ' (https://dialect.to)'}`
-        : 'Rate data unavailable — Kamino API unreachable',
-    };
-
-    solanaRateCache = { data: responseData, cachedAt: Date.now() };
-    res.setHeader('X-Cache', 'MISS');
-    return res.json(responseData);
-  } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }
 });

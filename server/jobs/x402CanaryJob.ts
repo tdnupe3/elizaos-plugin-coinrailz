@@ -335,6 +335,13 @@ export class X402CanaryJob {
         args: [buyerAddress],
       }) as bigint;
 
+      // Skip transfer if canary wallet already has sufficient balance
+      if (balanceBefore >= TOPUP_THRESHOLD_ATOMIC) {
+        const msg = `Canary wallet already has $${(Number(balanceBefore) / 1e6).toFixed(4)} USDC (≥ $${(Number(TOPUP_THRESHOLD_ATOMIC) / 1e6).toFixed(2)} threshold) — no top-up needed`;
+        console.log(`🕯️  X402CanaryJob.forceTopUp: ✅ ${msg}`);
+        return { success: true, message: msg };
+      }
+
       console.log(`🕯️  X402CanaryJob.forceTopUp: canary wallet balance $${(Number(balanceBefore) / 1e6).toFixed(4)} — sending $${(Number(TOPUP_AMOUNT_ATOMIC) / 1e6).toFixed(2)} USDC`);
 
       const txHash = await platformClient.writeContract({

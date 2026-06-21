@@ -72,6 +72,7 @@ async function runKeeperCycle(): Promise<void> {
 
     // ── 2. Force-refresh on-chain market data ─────────────────────────────────
     let reserveAddr    = 'unknown';
+    let collateralMint = 'unknown';
     let tvlUsdc        = 0;
     let liquidityUsdc  = 0;
     let utilizationPct = 0;
@@ -82,6 +83,7 @@ async function runKeeperCycle(): Promise<void> {
       const reserve = market.getReserveByMint(SOLANA_YIELD_CONFIG.USDC_MINT);
       if (reserve) {
         reserveAddr    = reserve.address.toString();
+        collateralMint = reserve.state.collateral.mintPubkey.toString();
         tvlUsdc        = Number(reserve.getTotalSupply().toString()) / 1e6;
         liquidityUsdc  = Number(reserve.getLiquidityAvailableAmount().toString()) / 1e6;
         const total    = tvlUsdc > 0 ? tvlUsdc : 1;
@@ -132,10 +134,16 @@ async function runKeeperCycle(): Promise<void> {
         onChain: tvlUsdc > 0 ? {
           market:         marketAddr,
           reserve:        reserveAddr,
+          collateralMint,
           depositTvlUsdc: tvlUsdc,
           liquidityUsdc,
         } : null,
-        minDeposit: { usdc: 5 },
+        minDeposit: { raw: SOLANA_YIELD_CONFIG.MIN_DEPOSIT_RAW, usdc: 5 },
+        fees: {
+          deposit:     `${(SOLANA_YIELD_CONFIG.DEPOSIT_FEE_BPS  / 100).toFixed(2)}%`,
+          withdrawal:  `${(SOLANA_YIELD_CONFIG.WITHDRAW_FEE_BPS / 100).toFixed(2)}%`,
+          performance: `${(SOLANA_YIELD_CONFIG.PERF_FEE_BPS     / 100).toFixed(0)}% of yield`,
+        },
         comparison: {
           solana: apyPct != null
             ? `${apyPct.toFixed(2)}% (Kamino, ${apySource})`

@@ -3411,9 +3411,7 @@ const portfolioTrackerHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/portfolio-tracker",
-  createPaymentOrchestrator("portfolio-tracker", SERVICE_PRICING_MICRO["portfolio-tracker"], portfolioTrackerHandler),
-  // x402Middleware removed - orchestrator handles 402 responses directly
-  portfolioTrackerHandler
+  createPaymentOrchestrator("portfolio-tracker", SERVICE_PRICING_MICRO["portfolio-tracker"], portfolioTrackerHandler)
 );
 
 const instantAgentWalletHandler = async (req: Request, res: Response) => {
@@ -3466,9 +3464,7 @@ const instantAgentWalletHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/instant-agent-wallet",
-  createPaymentOrchestrator("instant-agent-wallet", SERVICE_PRICING_MICRO["instant-agent-wallet"], instantAgentWalletHandler),
-  // x402Middleware removed - orchestrator handles 402 responses directly
-  instantAgentWalletHandler
+  createPaymentOrchestrator("instant-agent-wallet", SERVICE_PRICING_MICRO["instant-agent-wallet"], instantAgentWalletHandler)
 );
 
 const verifiedAgentIdentityHandler = async (req: Request, res: Response) => {

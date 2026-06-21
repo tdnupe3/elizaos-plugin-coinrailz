@@ -55,6 +55,16 @@ router.use(trackSolanaYield);
 interface SolanaRateCache { data: any; cachedAt: number; }
 let solanaRateCache: SolanaRateCache | null = null;
 let _ratesRefreshing = false;
+
+/**
+ * Warm the module-level rates cache from an external caller (e.g. SolanaYieldKeeper).
+ * Calling this after a successful keeper cycle eliminates cold-start misses for
+ * hourly external probes that would otherwise hit the >60s stale window.
+ */
+export function warmSolanaRateCache(data: any): void {
+  solanaRateCache = { data, cachedAt: Date.now() };
+}
+
 const SOLANA_RATE_FRESH_MS  =  60_000;  // 60s  — serve from cache, no refresh needed
 const SOLANA_RATE_STALE_MS  = 600_000;  // 10min — serve stale + refresh in background
 // > STALE_MS with no cache: block and fetch live (cold-start only)

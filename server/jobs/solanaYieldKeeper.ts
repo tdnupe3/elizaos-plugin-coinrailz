@@ -17,6 +17,7 @@ import { getKaminoMarket, invalidateMarketCache, SOLANA_YIELD_CONFIG, getSolanaY
 import { db } from '../db.js';
 import { solanaYieldRateSnapshots, solanaYieldPositions, solanaYieldEvents } from '@shared/schema';
 import { eq, and, gte, lt, or, isNull, isNotNull, sql } from 'drizzle-orm';
+import { warmSolanaRateCache } from '../routes/solanaYieldPortalRoutes.js';
 
 const INTERVAL_MS = 60 * 60 * 1_000; // 1 hour
 
@@ -108,6 +109,48 @@ async function runKeeperCycle(): Promise<void> {
       `TVL=$${tvlUsdc.toFixed(2)} Util=${utilizationPct.toFixed(1)}% ` +
       `(${Date.now() - start}ms)`,
     );
+
+    // ── 3b. Warm routes-level SolanaRateCache so /api/solana-yield/rates HIT
+    //        immediately even before the first HTTP request triggers a fetch.
+    //        This eliminates cold-start misses for external hourly monitors.
+    try {
+      const apySource = (dialectData != null && kaminoRate?.apy != null)
+        ? 'Dialect Markets'
+        : (apyPct != null ? 'DeFiLlama' : null);
+
+      warmSolanaRateCache({
+        success:   true,
+        timestamp: new Date().toISOString(),
+        chain:     'solana',
+        protocol:  'Kamino Lending',
+        usdc: {
+          apyPct:    apyPct != null ? parseFloat(apyPct.toFixed(2)) : null,
+          apyBps:    apyPct != null ? Math.round(apyPct * 100) : null,
+          formatted: apyPct != null ? `${apyPct.toFixed(2)}%` : 'Loading...',
+        },
+        topOpportunities: dialectData?.topYields?.slice(0, 5) ?? [],
+        onChain: tvlUsdc > 0 ? {
+          market:         marketAddr,
+          reserve:        reserveAddr,
+          depositTvlUsdc: tvlUsdc,
+          liquidityUsdc,
+        } : null,
+        minDeposit: { usdc: 5 },
+        comparison: {
+          solana: apyPct != null
+            ? `${apyPct.toFixed(2)}% (Kamino, ${apySource})`
+            : 'Unavailable',
+          base: '~3.17% (Aave v3)',
+          note: 'Solana rates are typically 1-4x higher due to higher utilization',
+        },
+        attribution: apySource
+          ? `Rate data: ${apySource}${apySource === 'DeFiLlama' ? ' (https://defillama.com)' : ' (https://dialect.to)'}`
+          : 'Rate data unavailable — Kamino API unreachable',
+      });
+      console.log('[SolanaYieldKeeper] Warmed routes-level SolanaRateCache');
+    } catch (warmErr: any) {
+      console.warn('[SolanaYieldKeeper] Cache warm failed (non-fatal):', warmErr?.message);
+    }
 
     // ── 4. Health check: warn on high utilization ─────────────────────────────
     if (utilizationPct > 95) {

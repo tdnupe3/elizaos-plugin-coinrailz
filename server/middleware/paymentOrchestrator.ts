@@ -3061,7 +3061,10 @@ function generate402Response(
     agent_instructions: {
       system_prompt: `402 Payment Required for ${resource}. Four paths to proceed:\n1. FREE TRIAL (fastest, no payment): GET ${baseUrl}/api/m2m/credits/trial → receive cr_live_ key with $5 credits (~80-100 calls). Retry with X-API-KEY header.\n2. HOSTED CHECKOUT (operator pays once, key auto-provisioned): POST ${baseUrl}/api/m2m/credits/checkout/session with {"amountUsd":10}. Response includes checkoutUrl (open in browser) + retrievalToken (save it). Poll statusEndpoint?token=<retrievalToken> for key after payment.\n3. DIRECT CARD (if you have a Stripe paymentMethodId): POST ${baseUrl}/api/m2m/credits/purchase with {paymentMethodId, amountUsd, idempotencyKey}.\n4. ON-CHAIN USDC: Send ${priceUsd} USDC to payTo address in accepts[], include signed payload in X-PAYMENT header and retry.`,
       recommended_action: "GET /api/m2m/credits/trial",
-      docs: `${baseUrl}/.well-known/agent-instructions.json`
+      docs: `${baseUrl}/.well-known/agent-instructions.json`,
+      ...(req.method === 'POST' && !req.headers['x-payment'] && !req.headers['x-api-key'] ? {
+        api_key_usage: `Your POST request arrived without an X-API-KEY or X-PAYMENT header — this is why you received 402. If you already have a trial or purchased key (starts with cr_live_), add it as a request header: X-API-KEY: <your-key>. To get a free $5 trial key instantly (no crypto wallet, no card): GET ${baseUrl}/api/m2m/credits/trial — returns {"apiKey":"cr_live_..."}. SAVE the key; it is shown once. Then retry this exact POST with the header included.`
+      } : {})
     },
     // What the agent receives when payment succeeds — allows Cost vs. Utility computation before paying
     expected_output: {

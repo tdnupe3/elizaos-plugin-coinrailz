@@ -20,6 +20,19 @@ function isKnownWsTransientError(err: Error): boolean {
   return isExpectedType && hasWsMessage && hasWsStack;
 }
 
+// ============================================================================
+// STARTUP WINDOW: track whether initApp has completed.
+// During the startup window, unhandledRejections are logged but NOT fatal —
+// fire-and-forget optional services (CDP, Alchemy, jobs) can reject without
+// killing the container before Cloud Run marks the revision healthy.
+// After startup completes, unhandledRejections become fatal again so genuine
+// post-startup bugs still crash loudly.
+// ============================================================================
+let _startupComplete = false;
+export function markStartupComplete() {
+  _startupComplete = true;
+}
+
 // Global exception handlers MUST be first — before any imports that could throw
 process.on('uncaughtException', (err: Error) => {
   if (isKnownWsTransientError(err)) {
@@ -38,7 +51,14 @@ process.on('unhandledRejection', (reason: unknown) => {
     console.warn('⚠️ ws transient rejection (swallowed, known safe):', err.message);
     return;
   }
-  // Unknown/fatal rejection — log fully and exit for clean restart
+  if (!_startupComplete) {
+    // During startup: log but do NOT exit — optional service init rejections
+    // (CDP, Alchemy, background jobs) must not crash the container before
+    // Cloud Run health-check succeeds.
+    console.warn('⚠️ Unhandled Rejection during startup (non-fatal):', err.message || reason);
+    return;
+  }
+  // Post-startup: fatal — genuine app bugs should crash loudly
   console.error('💥 Unhandled Rejection (fatal — exiting for clean restart):', reason);
   process.exit(1);
 });

@@ -1,4 +1,4 @@
-import { app, httpServer, port, markFrontendReady } from './index.js';
+import { app, httpServer, port, markFrontendReady, markStartupComplete } from './index.js';
 
 export async function initApp() {
 
@@ -4415,9 +4415,14 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   
   _lap('post-listen complete');
   console.log('✅ Post-listen initialization complete');
+  // Mark startup complete — unhandledRejections are now fatal again
+  markStartupComplete();
   
   } catch (error) {
     console.error('❌ WebSocket or post-listen initialization error:', error);
+    // Mark startup complete even on error so the process doesn't stay in
+    // non-fatal rejection mode indefinitely
+    markStartupComplete();
   }
   }); // End of setImmediate
   

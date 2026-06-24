@@ -5424,4 +5424,94 @@ router.post("/earthdata-ocean-color",
   })
 );
 
+// ============================================================
+// UNKNOWN-SERVICE CATCH-ALL — must be the LAST route in this router
+// Returns machine-readable JSON 404 with did_you_mean for malformed
+// paths (e.g. gas-price-oracle%60 → suggests gas-price-oracle).
+// Paths starting with /wallet pass through to app-level freeWalletRoutes.
+// ============================================================
+{
+  const KNOWN_SLUGS = [
+    'ping','first-call','multi-chain-balance','gas-price-oracle','token-price',
+    'contract-scan','wallet-risk','trade-signals','token-sentiment','trending-tokens',
+    'whale-alerts','dex-liquidity','transaction-builder','token-metadata',
+    'approval-manager','batch-quote','portfolio-tracker','instant-agent-wallet',
+    'verified-agent-identity','seamless-chain-bridge','ai-inference',
+    'service/smart-contract-audit','service/payment-processing','service/compliance-consultation',
+    'property-valuation','lease-analysis','construction-progress','credit-risk-score',
+    'fraud-detection','compliance-check','trading-signal','portfolio-optimization',
+    'sentiment-analysis','arbitrage-scanner','correlation-matrix','risk-metrics',
+    'polymarket-events','polymarket-odds','polymarket-search','prediction-market-odds',
+    'kalshi-markets','kalshi-odds','kalshi-search','prediction-market-spread',
+    'agent-create-wallet','stock-sentiment','instant-api-key','forex-sentiment',
+    'solana-yield-finder','fire-alerts','weather-imagery','vegetation',
+    'flood-detection','air-quality','land-use','fleet-telematics',
+    'weather-station-data','iot-sensor-reading','iot-device-stream','iot-bulk-data',
+    'earthdata-sst','earthdata-soil-moisture','earthdata-ocean-color',
+    'catalog','openapi.json','payment-status','payment-docs',
+  ];
+
+  function lev(a: string, b: string): number {
+    const m = a.length, n = b.length;
+    const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+      Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+    );
+    for (let i = 1; i <= m; i++)
+      for (let j = 1; j <= n; j++)
+        dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1]
+          : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    return dp[m][n];
+  }
+
+  function bestMatch(slug: string): string | null {
+    if (KNOWN_SLUGS.includes(slug)) return slug;
+    for (const s of KNOWN_SLUGS) if (s.startsWith(slug) || slug.startsWith(s)) return s;
+    let best: string | null = null, bestDist = Infinity;
+    for (const s of KNOWN_SLUGS) {
+      const d = lev(slug, s);
+      if (d < bestDist) { bestDist = d; best = s; }
+    }
+    return bestDist <= Math.max(3, Math.floor(slug.length * 0.4)) ? best : null;
+  }
+
+  function normalizeSlug(raw: string): string {
+    let s = raw;
+    try { s = decodeURIComponent(s); } catch {}
+    return s.replace(/^\/+/, '').toLowerCase().replace(/[`'"\\]+$/, '').trim();
+  }
+
+  router.all('*', (req: Request, res: Response, next) => {
+    // Pass /wallet/* through to app-level freeWalletRoutes
+    if (req.path.startsWith('/wallet')) return next();
+
+    const rawPath = req.path;
+    const normalized = normalizeSlug(rawPath);
+    const candidate = bestMatch(normalized);
+    const serviceUrl = candidate ? `/x402/${candidate}` : null;
+
+    const body: Record<string, unknown> = {
+      x402Version: 2,
+      error: 'SERVICE_NOT_FOUND',
+      message: `No x402 service found at /x402/${normalized || rawPath.replace(/^\//, '')}`,
+      requested_path: `/x402${rawPath}`,
+      normalized_slug: normalized,
+    };
+
+    if (candidate && normalized !== candidate) {
+      body.did_you_mean = candidate;
+      body.service_url = serviceUrl;
+      body.hint = `Try ${req.method} ${serviceUrl}`;
+    } else if (candidate) {
+      body.note = `Service "${candidate}" exists but this path has a typo. Correct URL: ${serviceUrl}`;
+      body.service_url = serviceUrl;
+      body.correct_path = serviceUrl;
+    }
+
+    body.catalog_url = '/.well-known/x402.json';
+    body.docs_url = '/x402/payment-docs';
+
+    return res.status(404).json(body);
+  });
+}
+
 export default router;

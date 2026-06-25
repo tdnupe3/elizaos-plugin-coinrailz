@@ -5480,6 +5480,17 @@ router.post("/earthdata-ocean-color",
     return s.replace(/^\/+/, '').toLowerCase().replace(/[`'"\\]+$/, '').trim();
   }
 
+  // Compatibility redirect: /x402/service/:slug → /x402/:slug
+  // x402-observer and some validators construct URLs as /x402/service/<slug> instead of /x402/<slug>.
+  // Rather than letting them hit the catch-all 404, redirect to the canonical path so they
+  // receive a real 402 challenge and can record the service as reachable.
+  router.all('/service/:slug', (req: Request, res: Response) => {
+    const slug = req.params.slug;
+    const target = `/x402/${slug}`;
+    res.setHeader('X-Redirect-Reason', 'canonical-path-alias');
+    return res.redirect(308, target);
+  });
+
   router.all('*', (req: Request, res: Response, next) => {
     // Pass /wallet/* through to app-level freeWalletRoutes
     if (req.path.startsWith('/wallet')) return next();
@@ -5501,10 +5512,39 @@ router.post("/earthdata-ocean-color",
       body.did_you_mean = candidate;
       body.service_url = serviceUrl;
       body.hint = `Try ${req.method} ${serviceUrl}`;
-    } else if (candidate) {
-      body.note = `Service "${candidate}" exists but this path has a typo. Correct URL: ${serviceUrl}`;
-      body.service_url = serviceUrl;
-      body.correct_path = serviceUrl;
+    } else if (candidate && normalized === candidate) {
+      // Exact slug match — service is real but only has a POST handler registered.
+      // Return a proper 402 challenge instead of a confusing 404.
+      // This covers satellite services (weather-imagery, fire-alerts, etc.) that register
+      // only router.post() and rely on this catch-all for GET/HEAD discovery.
+      const priceMicro = SERVICE_PRICING_MICRO[candidate as keyof typeof SERVICE_PRICING_MICRO];
+      const priceUsd   = SERVICE_PRICING_USD[candidate as keyof typeof SERVICE_PRICING_USD];
+      if (priceMicro && priceUsd) {
+        const publicBase = process.env.PUBLIC_URL ||
+          (process.env.REPLIT_DEPLOYMENT === '1' ? 'https://coinrailz.com' :
+          `${req.protocol}://${req.get('host')}`);
+        const challengeBody = {
+          x402Version: 2,
+          accepts: [{
+            scheme: 'exact',
+            network: 'eip155:8453',
+            maxAmountRequired: String(priceMicro),
+            resource: `${publicBase}/x402/${candidate}`,
+            description: `POST /x402/${candidate} — $${priceUsd} USDC per call`,
+            mimeType: 'application/json',
+            payToAddress: process.env.PLATFORM_WALLET_ADDRESS || process.env.EVM_WALLET_ADDRESS || '',
+            maxTimeoutSeconds: 300,
+          }],
+          error: 'PAYMENT_REQUIRED',
+          x402_service: candidate,
+          service_url: `${publicBase}/x402/${candidate}`,
+          catalog_url: `${publicBase}/.well-known/x402.json`,
+          note: `Send POST with X-PAYMENT header to /x402/${candidate}`,
+        };
+        res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
+        res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
+        return res.status(402).json(challengeBody);
+      }
     }
 
     body.catalog_url = '/.well-known/x402.json';

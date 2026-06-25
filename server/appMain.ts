@@ -3906,6 +3906,42 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   });
   console.log('✅ Admin canary top-up endpoint registered at POST /api/admin/canary/topup');
 
+  // 🕯️ Admin: manually trigger canary payment — POST /api/admin/canary/trigger
+  app.post('/api/admin/canary/trigger', async (req, res) => {
+    const key = req.headers['x-admin-key'] || req.headers['authorization']?.replace('Bearer ', '');
+    if (!key || key !== process.env.ADMIN_KEY) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    try {
+      const { X402CanaryJob } = await import('./jobs/x402CanaryJob');
+      const before = new Date();
+      await X402CanaryJob.triggerNow();
+      // Give DB write a moment to settle, then check for the row
+      await new Promise(r => setTimeout(r, 5000));
+      const { db } = await import('./db');
+      const { x402CanaryPayments } = await import('@shared/schema');
+      const { desc, gte } = await import('drizzle-orm');
+      const rows = await db
+        .select()
+        .from(x402CanaryPayments)
+        .where(gte(x402CanaryPayments.createdAt, before))
+        .orderBy(desc(x402CanaryPayments.createdAt))
+        .limit(1);
+      const row = rows[0] ?? null;
+      return res.status(200).json({
+        triggered: true,
+        db_row_written: !!row,
+        row: row ?? null,
+        message: row
+          ? `Canary succeeded — status=${row.status}, txHash=${row.txHash ?? 'pending'}`
+          : 'Canary ran but no DB row written within 5s — potential persistence issue',
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err?.message ?? String(err) });
+    }
+  });
+  console.log('✅ Admin canary trigger endpoint registered at POST /api/admin/canary/trigger');
+
   _lap('pre-serveStatic — all pre-static routes registered');
   
   if (isProduction) {

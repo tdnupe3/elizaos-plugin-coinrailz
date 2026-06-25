@@ -115,8 +115,15 @@ app.get('/healthz', (_req, res) => {
 });
 
 app.get('/', (req, res, next) => {
+  const ua = (req.headers['user-agent'] || '').toLowerCase();
+  // Cloud Run / Kubernetes health probes — ALWAYS return terminal 200, never next()
+  // This prevents probe failures during rolling promote when static middleware
+  // isn't fully registered yet (frontendReady race window).
+  const isHealthProbe = ua.includes('googlehc') || ua.includes('kube-probe') || ua.includes('go-http-client') || ua === '';
+  if (isHealthProbe) {
+    return res.status(200).json({ status: 'ok', service: 'Coin Railz', ts: Date.now() });
+  }
   if (!frontendReady) {
-    const ua = (req.headers['user-agent'] || '').toLowerCase();
     const isCrawler = ua.includes('bot') || ua.includes('crawler') || ua.includes('facebookexternalhit') || ua.includes('twitterbot') || ua.includes('linkedinbot') || ua.includes('slackbot');
     if (isCrawler && fallbackHtml) {
       return res.status(200).type('html').send(fallbackHtml);

@@ -44,41 +44,40 @@ function detectGateway(req: Request): string | null {
 export function usageAnalyticsMiddleware(req: Request, res: Response, next: NextFunction) {
   const requestId = nanoid();
   const startTime = Date.now();
-  
-  const serviceId = extractServiceId(req.path);
+
+  // Use originalUrl (full path e.g. /x402/trade-signals) not req.path which is
+  // router-relative (e.g. /trade-signals) and would never match /x402/...
+  const requestPath = req.originalUrl || req.path;
+  const serviceId = extractServiceId(requestPath);
   const userAgent = req.headers['user-agent'] || null;
   const requestMethod = req.method;
-  const requestPath = req.originalUrl || req.path;
   const clientIp = getClientIp(req);
   const paymentAttempted = !!req.headers['x-payment'];
   const sourceGateway = detectGateway(req);
-  
+
   // DIAGNOSTIC: Log every x402 request with gateway info
   console.log(`📊 ANALYTICS MW: ${requestMethod} ${requestPath} | Gateway: ${sourceGateway || 'direct'} | UA: ${userAgent?.substring(0, 50)} | IP: ${clientIp}`);
-  
+
   const analyticsContext: AnalyticsContext = {
     requestId,
     serviceId,
     startTime,
     userAgent: userAgent || undefined,
   };
-  
+
   (req as any).analytics = analyticsContext;
-  
+
   let analyticsLogged = false;
-  
-  const originalSend = res.send;
-  const originalJson = res.json;
-  
-  const logRequest = async (responseData: any, statusCode: number) => {
+
+  const logRequest = async (statusCode: number) => {
     if (analyticsLogged) return;
     analyticsLogged = true;
-    
+
     const responseTime = Date.now() - startTime;
-    
+
     const paymentHeader = req.headers['x-payment'] as string | undefined;
     let paymentMethod: 'eip712' | 'tx_hash' | null = null;
-    
+
     if (paymentHeader) {
       if (paymentHeader.startsWith('0x') && paymentHeader.length === 66) {
         paymentMethod = 'tx_hash';
@@ -86,14 +85,14 @@ export function usageAnalyticsMiddleware(req: Request, res: Response, next: Next
         paymentMethod = 'eip712';
       }
     }
-    
+
     try {
       console.log(`📊 ANALYTICS DB INSERT: serviceId=${serviceId} requestId=${requestId} status=${statusCode}`);
       await db.insert(microserviceRequests).values({
         id: requestId,
         serviceId,
         requestInput: req.body || {},
-        responseData: typeof responseData === 'string' ? { raw: responseData } : responseData,
+        responseData: null,
         responseTime,
         paymentMethod,
         userAgent: userAgent || null,
@@ -104,29 +103,27 @@ export function usageAnalyticsMiddleware(req: Request, res: Response, next: Next
         sourceGateway,
         paymentStatus: statusCode === 200 ? 'completed' : statusCode === 402 ? 'pending' : 'failed',
         walletAddress: analyticsContext.walletAddress || null,
-        error: statusCode >= 400 && statusCode !== 402 ? JSON.stringify(responseData) : null,
+        error: statusCode >= 400 && statusCode !== 402 ? `HTTP ${statusCode}` : null,
       });
       console.log(`✅ ANALYTICS DB INSERT SUCCESS: ${requestId}`);
     } catch (error: any) {
       console.error(`❌ ANALYTICS DB INSERT FAILED: ${error.message} | ${error.code || 'no-code'}`);
     }
   };
-  
-  res.send = function(data: any) {
-    logRequest(data, res.statusCode).catch(console.error);
-    return originalSend.call(this, data);
-  };
-  
-  res.json = function(data: any) {
-    logRequest(data, res.statusCode).catch(console.error);
-    return originalJson.call(this, data);
-  };
-  
+
+  // Use res.on('finish') instead of overriding res.send/res.json.
+  // 'finish' fires for ALL response types: json, send, redirect (308/301), end().
+  // The old override pattern silently missed redirect responses.
+  res.on('finish', () => {
+    logRequest(res.statusCode).catch(console.error);
+  });
+
   next();
 }
 
 function extractServiceId(path: string): string {
-  const match = path.match(/\/x402\/([^\/]+)/);
+  // path should be originalUrl (e.g. /x402/trade-signals or /x402/service/trade-signals)
+  const match = path.match(/\/x402\/(?:service\/)?([^/?#]+)/);
   return match ? match[1] : 'unknown';
 }
 

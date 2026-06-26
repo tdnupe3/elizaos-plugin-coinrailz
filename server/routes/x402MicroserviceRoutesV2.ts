@@ -3696,6 +3696,25 @@ router.post("/service/compliance-consultation",
   complianceConsultationHandler
 );
 
+// Direct-path POST aliases for enterprise services.
+// GET /x402/{slug} is registered above (discovery/402 challenge).
+// POST /x402/{slug} was missing — agents POSTing directly (without /service/) got 404.
+// These aliases are functionally identical to the /service/ variants above.
+router.post("/smart-contract-audit",
+  createPaymentOrchestrator("smart-contract-audit", SERVICE_PRICING_MICRO["smart-contract-audit"], smartContractAuditHandler),
+  smartContractAuditHandler
+);
+
+router.post("/payment-processing",
+  createPaymentOrchestrator("payment-processing", SERVICE_PRICING_MICRO["payment-processing"], paymentProcessingHandler),
+  paymentProcessingHandler
+);
+
+router.post("/compliance-consultation",
+  createPaymentOrchestrator("compliance-consultation", SERVICE_PRICING_MICRO["compliance-consultation"], complianceConsultationHandler),
+  complianceConsultationHandler
+);
+
 // ========================================
 // PAYMENT TESTING & DOCUMENTATION ENDPOINTS
 // ========================================

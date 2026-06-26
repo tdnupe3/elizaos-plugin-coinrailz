@@ -37,15 +37,27 @@ const USDC_ABI = [
 ] as const;
 
 const CANARY_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
-const MAX_CONSECUTIVE_FAILURES = 3;
+const MAX_CONSECUTIVE_FAILURES = 5;            // raised from 3 — transient RPC failures need more headroom
+const CIRCUIT_AUTO_RESET_MS   = 2 * 60 * 60 * 1000; // 2h — self-heal after one missed interval
+const TRANSIENT_RETRY_DELAY_MS = 90_000;       // 90s wait before single retry on transient RPC errors
 const CANARY_AMOUNT_USD = "0.05";
 const CANARY_SERVICE = "first-call";
 const MAX_PAYMENT_MICRO = BigInt(100_000); // $0.10 max — safety margin above $0.05
+
+const TRANSIENT_ERROR_PATTERNS = [
+  "missing or invalid parameters",
+  "nonce too low",
+  "replacement transaction underpriced",
+  "already known",
+  "transaction underpriced",
+  "intrinsic gas too low",
+];
 
 export class X402CanaryJob {
   private static intervalId: NodeJS.Timeout | null = null;
   private static consecutiveFailures = 0;
   private static circuitOpen = false;
+  private static circuitOpenAt: Date | null = null;
   private static lastSuccessAt: Date | null = null;
 
   static start(intervalMs: number = CANARY_INTERVAL_MS) {
@@ -85,10 +97,14 @@ export class X402CanaryJob {
   }
 
   static getStatus() {
+    const msOpen = this.circuitOpenAt ? Date.now() - this.circuitOpenAt.getTime() : null;
     return {
       running: this.intervalId !== null,
       circuitOpen: this.circuitOpen,
+      circuitOpenAt: this.circuitOpenAt,
+      autoResetInMs: msOpen !== null ? Math.max(0, CIRCUIT_AUTO_RESET_MS - msOpen) : null,
       consecutiveFailures: this.consecutiveFailures,
+      maxConsecutiveFailures: MAX_CONSECUTIVE_FAILURES,
       lastSuccessAt: this.lastSuccessAt,
     };
   }
@@ -142,10 +158,19 @@ export class X402CanaryJob {
     }
   }
 
-  private static async runCanary(): Promise<void> {
+  private static async runCanary(isRetry = false): Promise<void> {
     if (this.circuitOpen) {
-      console.warn("🕯️  X402CanaryJob: circuit open — skipping run. Restart server to reset.");
-      return;
+      const msOpen = this.circuitOpenAt ? Date.now() - this.circuitOpenAt.getTime() : Infinity;
+      if (msOpen >= CIRCUIT_AUTO_RESET_MS) {
+        console.warn(`🕯️  X402CanaryJob: circuit auto-reset after ${Math.round(msOpen / 60000)}min — retrying`);
+        this.circuitOpen = false;
+        this.circuitOpenAt = null;
+        this.consecutiveFailures = 0;
+      } else {
+        const minsLeft = Math.round((CIRCUIT_AUTO_RESET_MS - msOpen) / 60000);
+        console.warn(`🕯️  X402CanaryJob: circuit open — skipping (auto-reset in ~${minsLeft}min)`);
+        return;
+      }
     }
 
     const privateKey = process.env.X402_BUYER_PRIVATE_KEY || process.env.PLATFORM_EOA_PRIVATE_KEY;
@@ -259,29 +284,37 @@ export class X402CanaryJob {
       if (explorerUrl) console.log(`🕯️  X402CanaryJob: 🔗 ${explorerUrl}`);
     } catch (err: any) {
       const msg: string = err?.message ?? String(err);
-      this.consecutiveFailures++;
+      const msgLower = msg.toLowerCase();
 
       const isInsufficientFunds =
-        msg.toLowerCase().includes("insufficient") ||
-        msg.toLowerCase().includes("balance") ||
-        msg.toLowerCase().includes("funds");
+        msgLower.includes("insufficient") ||
+        msgLower.includes("balance") ||
+        msgLower.includes("funds");
 
       if (isInsufficientFunds) {
         console.warn(`🕯️  X402CanaryJob: ⚠️  insufficient USDC balance — skipping canary. Top up the canary wallet.`);
         await this.recordResult("skipped", undefined, "Insufficient USDC balance");
-        // Don't count insufficient funds toward circuit breaker — it's an ops issue not a code failure
-        this.consecutiveFailures = Math.max(0, this.consecutiveFailures - 1);
         return;
       }
 
-      console.error(`🕯️  X402CanaryJob: ❌ failure #${this.consecutiveFailures} — ${msg}`);
+      // Transient RPC error: wait 90s and retry once before counting as a failure
+      const isTransient = !isRetry && TRANSIENT_ERROR_PATTERNS.some(p => msgLower.includes(p));
+      if (isTransient) {
+        console.warn(`🕯️  X402CanaryJob: ⚠️  transient RPC error — retrying in ${TRANSIENT_RETRY_DELAY_MS / 1000}s: ${msg.substring(0, 120)}`);
+        await new Promise(r => setTimeout(r, TRANSIENT_RETRY_DELAY_MS));
+        return this.runCanary(true);
+      }
+
+      this.consecutiveFailures++;
+      console.error(`🕯️  X402CanaryJob: ❌ failure #${this.consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES} — ${msg}`);
       await this.recordResult("failed", undefined, msg.substring(0, 500));
 
       if (this.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
         this.circuitOpen = true;
+        this.circuitOpenAt = new Date();
         console.error(
           `🕯️  X402CanaryJob: 🔴 CIRCUIT OPEN after ${MAX_CONSECUTIVE_FAILURES} consecutive failures. ` +
-          `Canary suspended. Restart server or call X402CanaryJob.resetCircuit() to resume.`
+          `Will auto-reset in ${CIRCUIT_AUTO_RESET_MS / 3600000}h — or call X402CanaryJob.resetCircuit() to reset now.`
         );
       }
     }
@@ -289,6 +322,7 @@ export class X402CanaryJob {
 
   static resetCircuit() {
     this.circuitOpen = false;
+    this.circuitOpenAt = null;
     this.consecutiveFailures = 0;
     console.log("🕯️  X402CanaryJob: circuit reset — will run at next scheduled interval");
   }
@@ -296,6 +330,7 @@ export class X402CanaryJob {
   static async triggerNow(): Promise<void> {
     console.log("🕯️  X402CanaryJob: manual trigger requested");
     this.circuitOpen = false;
+    this.circuitOpenAt = null;
     this.consecutiveFailures = 0;
     await this.runCanary();
   }

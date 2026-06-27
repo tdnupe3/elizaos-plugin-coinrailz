@@ -1,5 +1,5 @@
 import { app, httpServer, port, markFrontendReady, markStartupComplete } from './index.js';
-import { getVltMarketData } from './services/vltMarketCache';
+import { getVltMarketData, validateAndPush } from './services/vltMarketCache';
 
 export async function initApp() {
 
@@ -3949,6 +3949,72 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     }
   });
   console.log('✅ Admin canary trigger endpoint registered at POST /api/admin/canary/trigger');
+
+  // === VLT PRICE PUSH WEBHOOK ===
+  // Bankroll Network team can POST signed price updates to bypass CoinGecko polling.
+  // HMAC-SHA256 signed with VLT_WEBHOOK_SECRET env var.
+  // Headers: X-VLT-Signature: sha256=<hex>  X-VLT-Timestamp: <unix_seconds>
+  app.post('/api/webhook/vlt-price', express.raw({ type: 'application/json' }), (req, res) => {
+    const rawBody = req.body instanceof Buffer ? req.body.toString('utf8') : String(req.body ?? '');
+    const sig = String(req.headers['x-vlt-signature'] ?? '');
+    const ts  = String(req.headers['x-vlt-timestamp'] ?? '');
+    const result = validateAndPush(rawBody, sig || undefined, ts || undefined);
+    if (!result.ok) {
+      res.status(400).json({ success: false, error: result.error });
+      return;
+    }
+    res.json({ success: true, message: 'VLT cache updated via push' });
+  });
+  console.log('✅ VLT price push webhook registered at POST /api/webhook/vlt-price');
+
+  // === VLT HOLDER CHECK ===
+  // On-chain ERC-20 balanceOf check. Returns whether address holds ≥ threshold VLT.
+  // Used for gating discounted API tiers. Threshold default: 100 VLT (~$32).
+  app.get('/api/vlt/holder-check', async (req, res) => {
+    const { address, threshold = '100' } = req.query as Record<string, string>;
+    if (!address || !/^0x[0-9a-fA-F]{40}$/.test(address)) {
+      res.status(400).json({ success: false, error: 'Valid Ethereum address required' });
+      return;
+    }
+    const minVlt = parseFloat(threshold);
+    if (isNaN(minVlt) || minVlt < 0) {
+      res.status(400).json({ success: false, error: 'threshold must be a non-negative number' });
+      return;
+    }
+    try {
+      const VLT_CONTRACT = '0x6b785a0322126826d8226d77e173d75DAfb84d11';
+      const rpcUrl = `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY || ''}`;
+      // ERC-20 balanceOf(address) selector = 0x70a08231
+      const data = '0x70a08231' + address.slice(2).toLowerCase().padStart(64, '0');
+      const rpcRes = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: VLT_CONTRACT, data }, 'latest'] }),
+        signal: AbortSignal.timeout(8_000),
+      });
+      const json = await rpcRes.json() as any;
+      if (json.error) throw new Error(json.error.message ?? 'RPC error');
+      const rawHex: string = json.result ?? '0x0';
+      const balanceWei = BigInt(rawHex === '0x' ? '0x0' : rawHex);
+      const balanceVlt = Number(balanceWei) / 1e18;
+      const qualifies = balanceVlt >= minVlt;
+      const vlt = getVltMarketData();
+      res.json({
+        success: true,
+        address,
+        balanceVlt: parseFloat(balanceVlt.toFixed(4)),
+        balanceUsd: parseFloat((balanceVlt * vlt.priceUsd).toFixed(2)),
+        threshold: minVlt,
+        qualifies,
+        benefit: qualifies ? '20% discount on Coin Railz API credits' : null,
+        upgradeUrl: qualifies ? null : 'https://app.uniswap.org/swap?outputCurrency=0x6b785a0322126826d8226d77e173d75DAfb84d11',
+        vltPriceUsd: vlt.priceUsd,
+      });
+    } catch (err: any) {
+      res.status(502).json({ success: false, error: 'On-chain balance check failed: ' + (err?.message ?? 'unknown') });
+    }
+  });
+  console.log('✅ VLT holder-check endpoint registered at GET /api/vlt/holder-check');
 
   _lap('pre-serveStatic — all pre-static routes registered');
   

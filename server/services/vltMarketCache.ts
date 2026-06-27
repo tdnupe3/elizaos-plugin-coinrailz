@@ -4,7 +4,12 @@
  * every 5 minutes. Returns the last known good values on failure.
  * All consumers call getVltMarketData() — zero latency for callers
  * because the refresh is always background.
+ *
+ * Push webhook: Bankroll team can call pushUpdate() directly via
+ *   POST /api/webhook/vlt-price (HMAC-signed) to bypass polling entirely.
  */
+
+import crypto from 'crypto';
 
 export interface VltMarketData {
   priceUsd: number;
@@ -15,7 +20,7 @@ export interface VltMarketData {
   supply: number;
   priceChangePercent24h: number;
   updatedAt: Date;
-  source: 'live' | 'seed';
+  source: 'live' | 'seed' | 'push';
 }
 
 // Seed values — updated Jun 27 2026. Only used until first live fetch completes.
@@ -101,6 +106,65 @@ export function getVltMarketData(): VltMarketData {
     fetchLive().catch(() => {});
   }
   return cached;
+}
+
+/**
+ * Direct push from Bankroll team via webhook.
+ * Validates HMAC-SHA256 signature before accepting.
+ * timestamp must be within ±30s of server time.
+ *
+ * Expected headers:
+ *   X-VLT-Signature: sha256=<hex>
+ *   X-VLT-Timestamp: <unix_seconds>
+ *
+ * Payload (all fields optional — only provided fields update the cache):
+ *   { priceUsd, priceEth, liquidityUsd, vol24hUsd, marketCapUsd, priceChangePercent24h }
+ */
+export function validateAndPush(
+  rawBody: string,
+  signature: string | undefined,
+  timestampHeader: string | undefined,
+): { ok: boolean; error?: string } {
+  const secret = process.env.VLT_WEBHOOK_SECRET;
+  if (!secret) {
+    return { ok: false, error: 'VLT_WEBHOOK_SECRET not configured on server' };
+  }
+
+  // Timestamp freshness check (±30s)
+  const ts = Number(timestampHeader ?? '0');
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (!ts || Math.abs(nowSec - ts) > 30) {
+    return { ok: false, error: 'Timestamp missing or outside ±30s window' };
+  }
+
+  // HMAC-SHA256 over timestamp + '.' + body
+  const expected = 'sha256=' + crypto
+    .createHmac('sha256', secret)
+    .update(`${ts}.${rawBody}`)
+    .digest('hex');
+
+  if (!signature || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+    return { ok: false, error: 'Invalid signature' };
+  }
+
+  try {
+    const payload = JSON.parse(rawBody);
+    const next = { ...cached };
+    if (typeof payload.priceUsd === 'number')              next.priceUsd              = payload.priceUsd;
+    if (typeof payload.priceEth === 'number')              next.priceEth              = payload.priceEth;
+    if (typeof payload.liquidityUsd === 'number')          next.liquidityUsd          = payload.liquidityUsd;
+    if (typeof payload.vol24hUsd === 'number')             next.vol24hUsd             = payload.vol24hUsd;
+    if (typeof payload.marketCapUsd === 'number')          next.marketCapUsd          = payload.marketCapUsd;
+    if (typeof payload.priceChangePercent24h === 'number') next.priceChangePercent24h = payload.priceChangePercent24h;
+    next.updatedAt = new Date();
+    next.source = 'push';
+    cached = next;
+    lastFetchAt = Date.now(); // suppress background poll for one TTL window
+    console.log(`[VLT cache] push update — $${next.priceUsd.toFixed(4)} | liq $${Math.round(next.liquidityUsd).toLocaleString()}`);
+    return { ok: true };
+  } catch {
+    return { ok: false, error: 'Invalid JSON body' };
+  }
 }
 
 // Warm the cache immediately on module load (non-blocking)

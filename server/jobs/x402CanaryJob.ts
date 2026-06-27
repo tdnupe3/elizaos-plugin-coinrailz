@@ -446,6 +446,7 @@ export class X402CanaryJob {
     errorMessage?: string,
     explorerUrl?: string | null
   ): Promise<void> {
+    console.log(`🕯️  X402CanaryJob: recording DB result — status=${status} txHash=${txHash ?? "null"}`);
     try {
       await db.insert(x402CanaryPayments).values({
         txHash: txHash ?? null,
@@ -456,8 +457,10 @@ export class X402CanaryJob {
         status,
         errorMessage: errorMessage ?? null,
       });
+      console.log(`🕯️  X402CanaryJob: ✅ DB record written (status=${status})`);
     } catch (dbErr: any) {
-      console.error("🕯️  X402CanaryJob: failed to record result to DB (non-fatal):", dbErr.message);
+      console.error(`🕯️  X402CanaryJob: ❌ DB write failed — ${dbErr?.message ?? String(dbErr)}`);
+      console.error(`🕯️  X402CanaryJob: ❌ DB error stack: ${dbErr?.stack?.substring(0, 400)}`);
     }
   }
 }

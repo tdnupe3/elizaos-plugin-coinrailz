@@ -100,6 +100,23 @@ async function trackBundleUsage(
   }
 }
 
+// ============================================================================
+// ROOT PATH — must be registered BEFORE middleware so it bypasses tracking
+// HEAD /x402 → 200 OK (python-httpx pre-flight health check from known payers)
+// GET  /x402 → 301 redirect to /x402/catalog
+// ============================================================================
+router.head('/', (_req: Request, res: Response) => {
+  res.set({
+    'X-x402-Version': '2',
+    'X-x402-Services': String(getCanonicalServiceCount()),
+    'Content-Type': 'application/json',
+  }).status(200).end();
+});
+
+router.get('/', (_req: Request, res: Response) => {
+  res.redirect(301, '/x402/catalog');
+});
+
 // Apply analytics and interaction tracking to all x402 routes
 router.use(usageAnalyticsMiddleware);
 router.use(x402TrackingMiddleware);

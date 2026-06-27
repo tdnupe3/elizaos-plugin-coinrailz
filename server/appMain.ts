@@ -1,4 +1,5 @@
 import { app, httpServer, port, markFrontendReady, markStartupComplete } from './index.js';
+import { getVltMarketData } from './services/vltMarketCache';
 
 export async function initApp() {
 
@@ -1570,6 +1571,7 @@ app.get('/api/agents/search', (req, res) => {
 });
 
 app.get('/api/dex/tokens', (req, res) => {
+  const vlt = getVltMarketData();
   res.json({
     success: true,
     tokens: [
@@ -1587,16 +1589,22 @@ app.get('/api/dex/tokens', (req, res) => {
         coingeckoId: 'bankroll-vault',
         website: 'https://bankroll.network',
         pool: 'Uniswap V2 VLT/WETH',
-        liquidityUsd: 705000,
-        vol24hUsd: 212000,
-        marketCapUsd: 685000,
-        maxSupply: 1800000,
+        pairAddress: '0x966053Ca4fca049173eb1F27E4cb168CCb794534',
+        priceUsd: vlt.priceUsd,
+        priceEth: vlt.priceEth,
+        liquidityUsd: Math.round(vlt.liquidityUsd),
+        vol24hUsd: Math.round(vlt.vol24hUsd),
+        marketCapUsd: Math.round(vlt.marketCapUsd),
+        priceChangePercent24h: vlt.priceChangePercent24h,
+        maxSupply: vlt.supply,
         riskTier: 'moderate',
         listingType: 'trade-only',
         not_payment_token: true,
         etherscanVerified: true,
         deployedSince: '2020-06-13',
-        notes: 'Fixed supply, burn-only (no mint), protocol-owned Uniswap V2 liquidity. Proof of Liquidity model.'
+        notes: 'Fixed supply, burn-only (no mint), protocol-owned Uniswap V2 liquidity. Proof of Liquidity model.',
+        dataUpdatedAt: vlt.updatedAt.toISOString(),
+        dataSource: vlt.source,
       }
     ]
   });

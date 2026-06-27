@@ -15,6 +15,7 @@ import { peezyService } from './services/peezyIntegrationService';
 import { demoMarketplaceService } from './services/demoMarketplaceService';
 import a2aProtocolService from './services/a2aProtocolService';
 import { requireAuth } from './middleware/requireAuth';
+import { getVltMarketData } from './services/vltMarketCache';
 // Simple rate limiting implementation
 const createRateLimit = (maxRequests: number, windowMs: number) => {
   const store = new Map();
@@ -11823,40 +11824,54 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
     }
   });
 
-  // Shared token list for /api/dex/tokens and /api/dex/supported-tokens
-  const DEX_TOKEN_LIST = [
+  // Static portion of the DEX token list — VLT fields are injected live per-request
+  const DEX_TOKEN_LIST_STATIC = [
     { symbol: 'ETH',   name: 'Ethereum',        address: '0x0000000000000000000000000000000000000000', chain: 'ethereum', decimals: 18, listingType: 'core' },
     { symbol: 'USDC',  name: 'USD Coin',         address: '0xa0b86a33e6ba6fc3f3da9e88d1b0cac7d6f5b8b6', chain: 'ethereum', decimals: 6,  listingType: 'core' },
     { symbol: 'USDT',  name: 'Tether',           address: '0xdac17f958d2ee523a2206206994597c13d831ec7', chain: 'ethereum', decimals: 6,  listingType: 'core' },
     { symbol: 'DAI',   name: 'Dai Stablecoin',   address: '0x6b175474e89094c44da98b954eedeac495271d0f', chain: 'ethereum', decimals: 18, listingType: 'core' },
     { symbol: 'WBTC',  name: 'Wrapped Bitcoin',  address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599', chain: 'ethereum', decimals: 8,  listingType: 'core' },
     { symbol: 'PEEZY', name: 'PEEZY Token',      address: '0x698b1d54E936b9F772b8F58447194bBc82EC1933', chain: 'ethereum', decimals: 18, listingType: 'community' },
-    {
-      symbol: 'VLT',
-      name: 'Bankroll Vault',
-      address: '0x6b785a0322126826d8226d77e173d75DAfb84d11',
-      chain: 'ethereum',
-      decimals: 18,
-      coingeckoId: 'bankroll-vault',
-      website: 'https://bankroll.network',
-      pool: 'Uniswap V2 VLT/WETH',
-      liquidityUsd: 705000,
-      vol24hUsd: 212000,
-      marketCapUsd: 685000,
-      maxSupply: 1800000,
-      riskTier: 'moderate',
-      listingType: 'trade-only',
-      not_payment_token: true,
-      etherscanVerified: true,
-      deployedSince: '2020-06-13',
-      notes: 'Fixed supply, burn-only (no mint), protocol-owned Uniswap V2 liquidity. Proof of Liquidity model.'
-    }
   ];
+
+  function buildDexTokenList() {
+    const vlt = getVltMarketData();
+    return [
+      ...DEX_TOKEN_LIST_STATIC,
+      {
+        symbol: 'VLT',
+        name: 'Bankroll Vault',
+        address: '0x6b785a0322126826d8226d77e173d75DAfb84d11',
+        chain: 'ethereum',
+        decimals: 18,
+        coingeckoId: 'bankroll-vault',
+        website: 'https://bankroll.network',
+        pool: 'Uniswap V2 VLT/WETH',
+        pairAddress: '0x966053Ca4fca049173eb1F27E4cb168CCb794534',
+        priceUsd: vlt.priceUsd,
+        priceEth: vlt.priceEth,
+        liquidityUsd: Math.round(vlt.liquidityUsd),
+        vol24hUsd: Math.round(vlt.vol24hUsd),
+        marketCapUsd: Math.round(vlt.marketCapUsd),
+        priceChangePercent24h: vlt.priceChangePercent24h,
+        maxSupply: vlt.supply,
+        riskTier: 'moderate',
+        listingType: 'trade-only',
+        not_payment_token: true,
+        etherscanVerified: true,
+        deployedSince: '2020-06-13',
+        notes: 'Fixed supply, burn-only (no mint), protocol-owned Uniswap V2 liquidity. Proof of Liquidity model.',
+        dataUpdatedAt: vlt.updatedAt.toISOString(),
+        dataSource: vlt.source,
+      },
+    ];
+  }
 
   // DEX tokens endpoint (expected by audit)
   app.get('/api/dex/tokens', async (req, res) => {
     try {
-      res.json({ success: true, tokens: DEX_TOKEN_LIST, count: DEX_TOKEN_LIST.length });
+      const tokens = buildDexTokenList();
+      res.json({ success: true, tokens, count: tokens.length });
     } catch (error) {
       res.status(500).json({ success: false, error: 'Failed to fetch tokens' });
     }
@@ -11865,7 +11880,8 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
   // DEX supported tokens endpoint (alias for compatibility)
   app.get('/api/dex/supported-tokens', async (req, res) => {
     try {
-      res.json({ success: true, tokens: DEX_TOKEN_LIST, count: DEX_TOKEN_LIST.length });
+      const tokens = buildDexTokenList();
+      res.json({ success: true, tokens, count: tokens.length });
     } catch (error) {
       res.status(500).json({ success: false, error: 'Failed to fetch tokens' });
     }

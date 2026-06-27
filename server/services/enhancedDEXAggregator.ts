@@ -853,12 +853,13 @@ export class EnhancedDEXAggregator {
     }
 
     // Static last-resort fallback — only reached if CoinGecko is down
-    // or the token pair has no CoinGecko ID (e.g. PEEZY)
+    // or the token pair has no CoinGecko ID (e.g. PEEZY).
+    // VLT rates last updated Jun 27 2026 from CoinGecko + DexScreener.
     const staticFallback: Record<string, Record<string, number>> = {
-      'USDC':  { 'ETH': 0.000286, 'WBTC': 0.0000105, 'VLT': 2.63,    'PEEZY': 0.0012  },
-      'ETH':   { 'USDC': 3500,    'WBTC': 0.0368,     'VLT': 9211,    'PEEZY': 0.0006  },
-      'WBTC':  { 'ETH': 27.2,     'USDC': 95000,      'VLT': 250000,  'PEEZY': 0.000034 },
-      'VLT':   { 'ETH': 0.0001086,'USDC': 0.381,      'WBTC': 0.000004, 'PEEZY': 0.000238 },
+      'USDC':  { 'ETH': 0.000286, 'WBTC': 0.0000105, 'VLT': 3.113,   'PEEZY': 0.0012  },
+      'ETH':   { 'USDC': 3500,    'WBTC': 0.0368,     'VLT': 4981,    'PEEZY': 0.0006  },
+      'WBTC':  { 'ETH': 27.2,     'USDC': 95000,      'VLT': 295794,  'PEEZY': 0.000034 },
+      'VLT':   { 'ETH': 0.000201, 'USDC': 0.3212,     'WBTC': 0.0000034, 'PEEZY': 0.000238 },
       'PEEZY': { 'ETH': 1666.67,  'USDC': 833.33,     'WBTC': 0.000029, 'VLT': 4209    },
     };
     return staticFallback[fromToken]?.[toToken] ?? 1;

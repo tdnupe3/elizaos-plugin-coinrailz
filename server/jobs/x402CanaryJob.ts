@@ -243,6 +243,7 @@ export class X402CanaryJob {
         setTimeout(() => reject(new Error(`canary payment timed out after ${PAYMENT_TIMEOUT_MS / 1000}s`)), PAYMENT_TIMEOUT_MS)
       );
 
+      console.log(`🕯️  X402CanaryJob: [step 2/5] sending x402Fetch POST (90s hard cap)`);
       const response = await Promise.race([
         x402Fetch(targetUrl, {
           method: "POST",
@@ -251,6 +252,7 @@ export class X402CanaryJob {
         }),
         paymentTimeout,
       ]);
+      console.log(`🕯️  X402CanaryJob: [step 3/5] x402Fetch returned status=${response.status}`);
 
       if (response.status !== 200) {
         const body = await response.text().catch(() => "");
@@ -262,27 +264,41 @@ export class X402CanaryJob {
 
       // Retrieve the tx hash from x402_payment_intents, scoped to the canary wallet address
       // to prevent organic concurrent payments from being mis-attributed as canary proof.
+      console.log(`🕯️  X402CanaryJob: [step 4/5] querying payment_intents for tx hash`);
       const cutoff = new Date(startedAt.getTime() - 5000); // 5s before we started
       const keyHexForLookup: Hex = privateKey.startsWith("0x") ? (privateKey as Hex) : (`0x${privateKey}` as Hex);
       const canaryAddress = privateKeyToAccount(keyHexForLookup).address.toLowerCase();
 
-      const recentIntent = await db
-        .select({ txHash: x402PaymentIntents.txHash, network: x402PaymentIntents.network })
-        .from(x402PaymentIntents)
-        .where(
-          and(
-            eq(x402PaymentIntents.status, "SUCCEEDED"),
-            eq(x402PaymentIntents.serviceName, CANARY_SERVICE),
-            gte(x402PaymentIntents.createdAt, cutoff),
-            sql`lower(${x402PaymentIntents.payer}) = ${canaryAddress}`
+      const DB_TIMEOUT_MS = 10_000;
+      const dbTimeout = <T>(p: Promise<T>, label: string): Promise<T> =>
+        Promise.race([
+          p,
+          new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error(`DB operation timed out after ${DB_TIMEOUT_MS / 1000}s: ${label}`)), DB_TIMEOUT_MS)
+          ),
+        ]);
+
+      const recentIntent = await dbTimeout(
+        db
+          .select({ txHash: x402PaymentIntents.txHash, network: x402PaymentIntents.network })
+          .from(x402PaymentIntents)
+          .where(
+            and(
+              eq(x402PaymentIntents.status, "SUCCEEDED"),
+              eq(x402PaymentIntents.serviceName, CANARY_SERVICE),
+              gte(x402PaymentIntents.createdAt, cutoff),
+              sql`lower(${x402PaymentIntents.payer}) = ${canaryAddress}`
+            )
           )
-        )
-        .orderBy(desc(x402PaymentIntents.createdAt))
-        .limit(1);
+          .orderBy(desc(x402PaymentIntents.createdAt))
+          .limit(1),
+        "lookup payment_intents"
+      );
 
       const txHash = recentIntent[0]?.txHash ?? null;
       const network = recentIntent[0]?.network ?? "base";
       const explorerUrl = txHash ? buildExplorerUrl(txHash, network) : null;
+      console.log(`🕯️  X402CanaryJob: [step 5/5] calling recordResult (txHash=${txHash ?? "null"})`);
 
       await this.recordResult("succeeded", txHash, undefined, explorerUrl);
 
@@ -440,12 +456,15 @@ export class X402CanaryJob {
    */
   private static async runNormalPathProbe(targetUrl: string): Promise<void> {
     try {
+      console.log(`🕯️  NormalPathProbe: [1/3] sending HEAD → ${targetUrl}`);
       const res = await X402CanaryJob.fetchWithTimeout(targetUrl, { method: "HEAD" }, 30_000);
+      console.log(`🕯️  NormalPathProbe: [2/3] HEAD returned ${res.status}`);
       if (res.status !== 402) {
         console.warn(`🕯️  NormalPathProbe: expected 402, got ${res.status} — probe inconclusive`);
         return;
       }
       // HEAD responses have no body; re-probe with GET to read the challenge JSON
+      console.log(`🕯️  NormalPathProbe: [3/3] sending GET to read 402 body`);
       const res2 = await X402CanaryJob.fetchWithTimeout(targetUrl, { method: "GET" }, 30_000);
       const text = await res2.text().catch(() => "");
       let network: string | undefined;
@@ -480,7 +499,7 @@ export class X402CanaryJob {
   ): Promise<void> {
     console.log(`🕯️  X402CanaryJob: recording DB result — status=${status} txHash=${txHash ?? "null"}`);
     try {
-      await db.insert(x402CanaryPayments).values({
+      const insertPromise = db.insert(x402CanaryPayments).values({
         txHash: txHash ?? null,
         explorerUrl: explorerUrl ?? null,
         amountUsd: CANARY_AMOUNT_USD,
@@ -489,6 +508,14 @@ export class X402CanaryJob {
         status,
         errorMessage: errorMessage ?? null,
       });
+      // Hard 10s timeout on the insert — prevents the canary from hanging on a
+      // stalled DB connection and leaving no trace.
+      await Promise.race([
+        insertPromise,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("DB insert timed out after 10s")), 10_000)
+        ),
+      ]);
       console.log(`🕯️  X402CanaryJob: ✅ DB record written (status=${status})`);
     } catch (dbErr: any) {
       console.error(`🕯️  X402CanaryJob: ❌ DB write failed — ${dbErr?.message ?? String(dbErr)}`);

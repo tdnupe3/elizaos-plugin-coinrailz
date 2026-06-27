@@ -538,7 +538,7 @@ export class CoinbaseCDPService {
    */
   private static readonly RPC_URLS: Record<string, string> = {
     'base-mainnet': 'https://mainnet.base.org',
-    'ethereum-mainnet': process.env.ETHEREUM_RPC_URL || 'https://eth.llamarpc.com',
+    'ethereum-mainnet': process.env.ETHEREUM_RPC_URL || 'https://ethereum.publicnode.com',
     'polygon-mainnet': 'https://polygon-rpc.com',
     'arbitrum-mainnet': 'https://arb1.arbitrum.io/rpc',
     'base-sepolia': 'https://sepolia.base.org',

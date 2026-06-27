@@ -6547,6 +6547,10 @@ export const esportsTransactions = pgTable(
     amountUsd: numeric("amount_usd"),
     amountUsdc: numeric("amount_usdc"),
     feeUsdc: numeric("fee_usdc"),
+    payoutToken: varchar("payout_token", { length: 10 }).default("USDC"),
+    payoutAmountToken: numeric("payout_amount_token"),
+    feeToken: numeric("fee_token"),
+    swapTxHash: varchar("swap_tx_hash", { length: 66 }),
     txHash: varchar("tx_hash", { length: 66 }),
     tournamentId: varchar("tournament_id"),
     playerId: varchar("player_id"),
@@ -6570,6 +6574,31 @@ export const insertEsportsTransactionSchema = createInsertSchema(esportsTransact
 });
 export type EsportsTransaction = typeof esportsTransactions.$inferSelect;
 export type InsertEsportsTransaction = z.infer<typeof insertEsportsTransactionSchema>;
+
+export const esportsPartnerRecipients = pgTable(
+  "esports_partner_recipients",
+  {
+    id: serial("id").primaryKey(),
+    partnerApiKeyHash: varchar("partner_api_key_hash", { length: 64 }).notNull(),
+    walletAddress: varchar("wallet_address", { length: 42 }).notNull(),
+    chain: varchar("chain", { length: 20 }).notNull().default("ethereum"),
+    label: varchar("label", { length: 120 }),
+    perTxLimitUsd: numeric("per_tx_limit_usd").default("500"),
+    dailyLimitUsd: numeric("daily_limit_usd").default("2000"),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_esports_rcpt_partner").on(table.partnerApiKeyHash),
+    index("IDX_esports_rcpt_wallet").on(table.walletAddress),
+    uniqueIndex("UNQ_esports_rcpt_partner_wallet").on(table.partnerApiKeyHash, table.walletAddress),
+  ]
+);
+export const insertEsportsPartnerRecipientSchema = createInsertSchema(esportsPartnerRecipients).omit({
+  id: true,
+  createdAt: true,
+});
+export type EsportsPartnerRecipient = typeof esportsPartnerRecipients.$inferSelect;
 
 // ============= IP BLOCKLIST =============
 export const ipBlocklist = pgTable('ip_blocklist', {

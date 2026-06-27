@@ -496,17 +496,24 @@ export class CoinbaseCDPService {
   };
   
   /**
-   * Token registry for multi-token support
+   * Token registry for multi-token support.
+   * Add any approved ERC-20 here with its contract addresses per chain.
    */
   static readonly TOKEN_REGISTRY: Record<string, Record<string, string>> = {
     'USDC': CoinbaseCDPService.USDC_CONTRACTS,
     'USDT': CoinbaseCDPService.USDT_CONTRACTS,
+    'VLT': {
+      'ethereum-mainnet': '0x6b785a0322126826d8226d77e173d75DAfb84d11',
+    },
   };
+
+  /** Union of all tokens supported for on-chain transfer/payout. */
+  static readonly SUPPORTED_PAYOUT_TOKENS = ['USDC', 'USDT', 'VLT'] as const;
   
   /**
    * Get token contract address for a given chain and token
    */
-  static getTokenAddress(token: 'USDC' | 'USDT', chain: string): string | null {
+  static getTokenAddress(token: string, chain: string): string | null {
     const contracts = CoinbaseCDPService.TOKEN_REGISTRY[token];
     return contracts?.[chain] || null;
   }
@@ -514,14 +521,14 @@ export class CoinbaseCDPService {
   /**
    * Check if a token is supported on a chain
    */
-  static isTokenSupported(token: 'USDC' | 'USDT', chain: string): boolean {
+  static isTokenSupported(token: string, chain: string): boolean {
     return !!CoinbaseCDPService.getTokenAddress(token, chain);
   }
   
   /**
    * Get all supported chains for a token
    */
-  static getSupportedChains(token: 'USDC' | 'USDT'): string[] {
+  static getSupportedChains(token: string): string[] {
     const contracts = CoinbaseCDPService.TOKEN_REGISTRY[token];
     return contracts ? Object.keys(contracts) : [];
   }
@@ -655,7 +662,7 @@ export class CoinbaseCDPService {
   async sendToken(params: {
     toAddress: string;
     amount: string; // In token units (not wei) e.g., "10.50"
-    token: 'USDC' | 'USDT';
+    token: string;  // Any token in TOKEN_REGISTRY: 'USDC', 'USDT', 'VLT', ...
     chain: string;
     memo?: string;
   }): Promise<{ txHash: string; status: 'completed' | 'pending' | 'failed'; error?: string }> {
@@ -728,7 +735,7 @@ export class CoinbaseCDPService {
    * Get stablecoin balance for an address (USDC or USDT)
    * Unified method for multi-token support
    */
-  async getTokenBalance(address: string, token: 'USDC' | 'USDT', chain: string = 'base-mainnet'): Promise<string> {
+  async getTokenBalance(address: string, token: string, chain: string = 'base-mainnet'): Promise<string> {
     try {
       const tokenAddress = CoinbaseCDPService.getTokenAddress(token, chain);
       const rpcUrl = CoinbaseCDPService.RPC_URLS[chain];
@@ -760,7 +767,7 @@ export class CoinbaseCDPService {
    */
   async sweepDepositWallet(params: {
     depositAddress: string;
-    token: 'USDC' | 'USDT';
+    token: string;  // Any token in TOKEN_REGISTRY
     chain: string;
     destinationAddress: string;
     amount?: string; // If not specified, sweeps full balance

@@ -224,7 +224,12 @@ export class X402CanaryJob {
           })
         );
 
-      const x402Fetch = wrapFetchWithPayment(fetch, client);
+      // Use boundFetch (30s per leg) so every HTTP call inside the x402 handshake
+      // is time-bounded. This prevents the canary from hanging indefinitely on a
+      // slow/stalled RPC or server response, which was causing recordResult() to
+      // never be called and leaving no DB trace.
+      const PAYMENT_TIMEOUT_MS = 90_000; // 90s hard cap on the full payment round-trip
+      const x402Fetch = wrapFetchWithPayment(X402CanaryJob.boundFetch(30_000), client);
 
       const startedAt = new Date();
 
@@ -232,13 +237,20 @@ export class X402CanaryJob {
       // that the default 402 challenge emits CAIP-2 and is parseable by @x402/fetch 2.x.
       await X402CanaryJob.runNormalPathProbe(targetUrl);
 
-      const response = await x402Fetch(targetUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: "canary-health-check", isCanary: true }),
-      });
+      // Wrap the entire payment attempt in a hard timeout so a hang can never
+      // prevent recordResult() from running.
+      const paymentTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`canary payment timed out after ${PAYMENT_TIMEOUT_MS / 1000}s`)), PAYMENT_TIMEOUT_MS)
+      );
+
+      const response = await Promise.race([
+        x402Fetch(targetUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: "canary-health-check", isCanary: true }),
+        }),
+        paymentTimeout,
+      ]);
 
       if (response.status !== 200) {
         const body = await response.text().catch(() => "");
@@ -401,6 +413,26 @@ export class X402CanaryJob {
   }
 
   /**
+   * Fetch wrapper that enforces a hard timeout via AbortController.
+   * Signature matches globalThis.fetch so it can be passed to wrapFetchWithPayment.
+   * Prevents any single fetch from hanging indefinitely inside the canary.
+   */
+  private static fetchWithTimeout(url: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 30_000): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
+  }
+
+  /**
+   * Returns a fetch function bound to a fixed timeout — used as the transport
+   * passed to wrapFetchWithPayment so every leg of the x402 handshake is time-bounded.
+   */
+  private static boundFetch(timeoutMs: number): typeof fetch {
+    return (url: RequestInfo | URL, init?: RequestInit) =>
+      X402CanaryJob.fetchWithTimeout(url, init ?? {}, timeoutMs);
+  }
+
+  /**
    * Normal-path probe: fires a raw HEAD request to the target (no payment, no special headers)
    * and validates that the 402 challenge emits CAIP-2 network format ("eip155:8453").
    * Logs a warning if "base" shorthand is detected — that would silently block @x402/fetch 2.x agents.
@@ -408,13 +440,13 @@ export class X402CanaryJob {
    */
   private static async runNormalPathProbe(targetUrl: string): Promise<void> {
     try {
-      const res = await fetch(targetUrl, { method: "HEAD" });
+      const res = await X402CanaryJob.fetchWithTimeout(targetUrl, { method: "HEAD" }, 30_000);
       if (res.status !== 402) {
         console.warn(`🕯️  NormalPathProbe: expected 402, got ${res.status} — probe inconclusive`);
         return;
       }
       // HEAD responses have no body; re-probe with GET to read the challenge JSON
-      const res2 = await fetch(targetUrl, { method: "GET" });
+      const res2 = await X402CanaryJob.fetchWithTimeout(targetUrl, { method: "GET" }, 30_000);
       const text = await res2.text().catch(() => "");
       let network: string | undefined;
       try {

@@ -300,6 +300,16 @@ export class X402CanaryJob {
       const explorerUrl = txHash ? buildExplorerUrl(txHash, network) : null;
       console.log(`🕯️  X402CanaryJob: [step 5/5] calling recordResult (txHash=${txHash ?? "null"})`);
 
+      // Guard: if the server returned 200 but no on-chain tx was found, treat as failure.
+      // This prevents false-positive "succeeded" rows with null tx_hash in the DB.
+      if (!txHash) {
+        throw new Error(
+          "Payment endpoint returned 200 but no confirmed tx_hash found in x402_payment_intents " +
+          `(canary address=${canaryAddress}, cutoff=${cutoff.toISOString()}). ` +
+          "Possible: server returned 200 without processing payment, or DB write raced past the 3s wait."
+        );
+      }
+
       await this.recordResult("succeeded", txHash, undefined, explorerUrl);
 
       this.consecutiveFailures = 0;

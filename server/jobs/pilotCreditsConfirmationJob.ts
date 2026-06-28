@@ -34,7 +34,7 @@ export class PilotCreditsConfirmationJob {
 
   private static readonly RPC_URLS: Record<string, string> = {
     'base-mainnet': 'https://mainnet.base.org',
-    'ethereum-mainnet': 'https://eth.llamarpc.com',
+    'ethereum-mainnet': 'https://ethereum.publicnode.com',
     'polygon-mainnet': 'https://polygon-rpc.com',
     'arbitrum-mainnet': 'https://arb1.arbitrum.io/rpc',
   };

@@ -1910,7 +1910,7 @@ router.post('/topup/onchain', requiredAuth, async (req: Request, res: Response) 
       const ethers = await import('ethers');
       const rpcUrls: Record<string, string> = {
         'base-mainnet': 'https://mainnet.base.org',
-        'ethereum-mainnet': 'https://eth.llamarpc.com',
+        'ethereum-mainnet': 'https://ethereum.publicnode.com',
         'polygon-mainnet': 'https://polygon-rpc.com',
         'arbitrum-mainnet': 'https://arb1.arbitrum.io/rpc',
       };

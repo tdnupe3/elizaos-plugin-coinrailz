@@ -1,3 +1,4 @@
+- [⚠️ CRITICAL — Prod vs Dev DB](prod-vs-dev-db.md) — executeSql defaults to dev snapshot; ALL platform assessments MUST pass environment:"production" or data is wrong
 - [Analytics inventory & health check protocol](analytics-inventory.md) — master file at docs/analytics/analytics-inventory.md; run twice daily; OPTIONS must be excluded; paid=true only; x402_payment_intents is authoritative revenue source
 - [402 body injection architecture](402-injection-architecture.md) — confidenceMetrics must be injected in x402MicroserviceRoutesV2.ts router.use wrapper, NOT in x402ResponseEnricher (which is never registered in appMain)
 - [Canary job pattern](canary-job-pattern.md) — x402CanaryJob fires every 6h in prod; circuit breaker: 5 failures → open, auto-resets after 2h; transient RPC errors get 90s retry before counting as failure

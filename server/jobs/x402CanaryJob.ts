@@ -28,8 +28,8 @@ import { desc, eq, and, gte, sql } from "drizzle-orm";
 import { invalidateCanaryCache } from "../middleware/x402ResponseEnricher";
 
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
-const TOPUP_THRESHOLD_ATOMIC = BigInt(2_000_000);  // $2.00 — trigger top-up below this
-const TOPUP_AMOUNT_ATOMIC     = BigInt(10_000_000); // $10.00 — funds ~200 canary runs
+const TOPUP_THRESHOLD_ATOMIC = BigInt(10_000_000); // $10.00 — trigger top-up below this (50 days runway at $0.05/run)
+const TOPUP_AMOUNT_ATOMIC     = BigInt(10_000_000); // $10.00 — funds ~200 canary runs (~50 days)
 
 const USDC_ABI = [
   { name: "balanceOf", type: "function", inputs: [{ name: "account", type: "address" }], outputs: [{ name: "", type: "uint256" }], stateMutability: "view" },

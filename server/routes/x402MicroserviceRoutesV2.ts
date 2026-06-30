@@ -5545,6 +5545,13 @@ router.post("/earthdata-ocean-color",
     };
 
     if (candidate && normalized !== candidate) {
+      // Item 1: Emit hint headers so HEAD requesters (no body) can still see the correction.
+      const hintBase = process.env.REPLIT_DEPLOYMENT === '1'
+        ? 'https://coinrailz.com'
+        : `${req.protocol}://${req.get('host')}`;
+      res.setHeader('X-Did-You-Mean', candidate);
+      res.setHeader('X-Service-URL', `${hintBase}${serviceUrl}`);
+      res.setHeader('Link', `<${hintBase}${serviceUrl}>; rel="alternate"`);
       body.did_you_mean = candidate;
       body.service_url = serviceUrl;
       body.hint = `Try ${req.method} ${serviceUrl}`;
@@ -5559,26 +5566,50 @@ router.post("/earthdata-ocean-color",
         const publicBase = process.env.PUBLIC_URL ||
           (process.env.REPLIT_DEPLOYMENT === '1' ? 'https://coinrailz.com' :
           `${req.protocol}://${req.get('host')}`);
+
+        // Item 2c: Determine correct payment network based on service type.
+        const SOLANA_NATIVE_SLUGS = ['solana-yield-finder', 'solana-yield-rates', 'solana-yield-deposit'];
+        const isSolanaService = SOLANA_NATIVE_SLUGS.includes(candidate);
+        const SOLANA_PLATFORM_WALLET = process.env.DEXTER_SOLANA_WALLET || 'BmUPzSupHJu2kW4cL27dF7Vc2JaZTwXKzFsRuagPDtL8';
+
+        const accepts = isSolanaService ? [{
+          scheme: 'exact',
+          network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+          maxAmountRequired: String(priceMicro),
+          resource: `${publicBase}/x402/${candidate}`,
+          description: `POST /x402/${candidate} — $${priceUsd} USDC per call`,
+          mimeType: 'application/json',
+          payToAddress: SOLANA_PLATFORM_WALLET,
+          maxTimeoutSeconds: 300,
+        }] : [{
+          scheme: 'exact',
+          network: 'eip155:8453',
+          maxAmountRequired: String(priceMicro),
+          resource: `${publicBase}/x402/${candidate}`,
+          description: `POST /x402/${candidate} — $${priceUsd} USDC per call`,
+          mimeType: 'application/json',
+          payToAddress: process.env.PLATFORM_WALLET_ADDRESS || process.env.EVM_WALLET_ADDRESS || '',
+          maxTimeoutSeconds: 300,
+        }];
+
         const challengeBody = {
           x402Version: 2,
-          accepts: [{
-            scheme: 'exact',
-            network: 'eip155:8453',
-            maxAmountRequired: String(priceMicro),
-            resource: `${publicBase}/x402/${candidate}`,
-            description: `POST /x402/${candidate} — $${priceUsd} USDC per call`,
-            mimeType: 'application/json',
-            payToAddress: process.env.PLATFORM_WALLET_ADDRESS || process.env.EVM_WALLET_ADDRESS || '',
-            maxTimeoutSeconds: 300,
-          }],
+          accepts,
           error: 'PAYMENT_REQUIRED',
           x402_service: candidate,
           service_url: `${publicBase}/x402/${candidate}`,
           catalog_url: `${publicBase}/.well-known/x402.json`,
           note: `Send POST with X-PAYMENT header to /x402/${candidate}`,
         };
+
         res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
         res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
+        res.setHeader('X-Service-Price-USD', String(priceUsd));
+
+        // Item 2c: HEAD requests must not have a body — return status + headers only.
+        if (req.method === 'HEAD') {
+          return res.status(402).end();
+        }
         return res.status(402).json(challengeBody);
       }
     }

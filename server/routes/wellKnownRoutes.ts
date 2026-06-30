@@ -3631,7 +3631,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       {
         id: "solana-yield-finder",
         name: "Solana Yield Finder",
-        description: "Discover top yield opportunities across Solana DeFi protocols. $0.25 per request.",
+        description: "Discover top yield opportunities across Solana DeFi protocols. $0.05 per request.",
         tags: ["solana", "yield", "defi", "x402"],
         inputModes: ["application/json"],
         outputModes: ["application/json"]

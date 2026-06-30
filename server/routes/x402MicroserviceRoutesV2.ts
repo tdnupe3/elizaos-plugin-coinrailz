@@ -338,6 +338,13 @@ router.get('/catalog', async (req: Request, res: Response) => {
   }
 });
 
+// Discovery alias: /x402/discovery → /x402/catalog
+// The Cloudflare worker (2a06:98c0:3600::103) hits /x402/discovery every window expecting
+// the service catalog. The canonical path is /x402/catalog. 302 so we can evolve this later.
+router.all('/discovery', (_req: Request, res: Response) => {
+  res.redirect(302, '/x402/catalog');
+});
+
 // Also handle POST for offer links (in case agent sends POST)
 router.post('/offer/:trackingId', async (req: Request, res: Response) => {
   const { trackingId } = req.params;
@@ -5515,6 +5522,19 @@ router.post("/earthdata-ocean-color",
     try { s = decodeURIComponent(s); } catch {}
     return s.replace(/^\/+/, '').toLowerCase().replace(/[`'"\\]+$/, '').trim();
   }
+
+  // SDK payments redirects: /x402/sdk-payments-evm and /x402/sdk-payments-solana → /x402/first-call
+  // These paths were advertised in the discovery surface and social channels but never had x402 handlers.
+  // 30+ days of 404s from AwarioBot following social referral links to these endpoints.
+  // 301 permanent: the golden path first-call is the correct entry point for SDK-interested agents.
+  router.all('/sdk-payments-evm', (_req: Request, res: Response) => {
+    res.setHeader('X-Redirect-Reason', 'sdk-payments-golden-path');
+    return res.redirect(301, '/x402/first-call');
+  });
+  router.all('/sdk-payments-solana', (_req: Request, res: Response) => {
+    res.setHeader('X-Redirect-Reason', 'sdk-payments-golden-path');
+    return res.redirect(301, '/x402/first-call');
+  });
 
   // Compatibility redirect: /x402/service/:slug → /x402/:slug
   // x402-observer and some validators construct URLs as /x402/service/<slug> instead of /x402/<slug>.

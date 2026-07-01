@@ -117,6 +117,24 @@ router.get('/', (_req: Request, res: Response) => {
   res.redirect(301, '/x402/catalog');
 });
 
+// Typo-path redirect: gas-price-oracle with trailing backtick (%60).
+// Must be a router.use() (not router.all/regex) because Express 4's path-to-regexp
+// normalizes percent-encoded route patterns before regex compilation — string/regex routes
+// registered with '/gas-price-oracle%60' or /regex/ don't reliably match.
+// router.use() gives us req.path directly; Express delivers req.path in the ENCODED form
+// (%60, not backtick), so we test for the encoded form. The backtick branch is a fallback
+// in case any Express version delivers the decoded form.
+// Without this redirect, POST with X-PAYMENT to the typo path hits the catch-all (which
+// never checks for payment headers) and generates a fake 402 — payment loops forever.
+router.use((req: Request, res: Response, next: NextFunction) => {
+  const p = req.path;
+  if (p === '/gas-price-oracle%60' || p === '/gas-price-oracle`') {
+    res.setHeader('X-Redirect-Reason', 'tooling-typo-fix');
+    return res.redirect(301, '/x402/gas-price-oracle');
+  }
+  next();
+});
+
 // Apply analytics and interaction tracking to all x402 routes
 router.use(usageAnalyticsMiddleware);
 router.use(x402TrackingMiddleware);
@@ -344,6 +362,7 @@ router.get('/catalog', async (req: Request, res: Response) => {
 router.all('/discovery', (_req: Request, res: Response) => {
   res.redirect(302, '/x402/catalog');
 });
+
 
 // Also handle POST for offer links (in case agent sends POST)
 router.post('/offer/:trackingId', async (req: Request, res: Response) => {

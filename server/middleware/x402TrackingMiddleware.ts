@@ -27,6 +27,20 @@ interface RetryFingerprint {
   intervals: number[]; // Time between retries in seconds
 }
 
+// Known scanner/trust-monitor UAs — excluded from retry fingerprinting.
+// These tools cycle all services continuously without ever paying. Including them in the retry
+// counter creates log noise (RETRY #12-15) and bloats the fingerprint cache within the 1h TTL.
+// Excluding them gives accurate retry data for real agents/payers only.
+//
+// Known observer IPs (same entities, multiple IPs — documented for future rate-limit grouping):
+//   2.208.198.190  — x402-observer primary scan IP
+//   34.76.109.128  — x402-observer secondary POST cluster IP
+//   decixa.ai ranges — x402-healthbot
+const KNOWN_SCANNER_UAS = [
+  'x402-observer/1.0',
+  'x402-healthbot/1.0',
+];
+
 // In-memory cache for retry fingerprints (cleaned up hourly)
 const retryFingerprintCache = new Map<string, RetryFingerprint>();
 const FINGERPRINT_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -66,6 +80,11 @@ function trackRetryBehavior(
   serviceId: string,
   hasPaymentHeader: boolean
 ): { retryCount: number; retryIntervalSeconds: number | null; isRetry: boolean; retryHeaderChanged: boolean } {
+  // Skip cache write entirely for known scanners — they never pay and would bloat the cache
+  if (userAgent && KNOWN_SCANNER_UAS.some(ua => userAgent.startsWith(ua))) {
+    return { retryCount: 0, retryIntervalSeconds: null, isRetry: false, retryHeaderChanged: false };
+  }
+
   const fingerprint = generateFingerprint(ip, userAgent, serviceId);
   const now = Date.now();
   

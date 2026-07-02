@@ -93,6 +93,19 @@ export const VERIFIED_AGENT_TARGETS: VerifiedAgentTarget[] = [
     verified: true,
     description: 'Agently - Agent-to-agent payment routing, potential integration partner',
     priority: 82
+  },
+
+  // three.ws - 3D AI agent platform, x402-native, IBM/AWS/Alibaba/Google Cloud partner
+  // Verified: agent-card v1.5.1 at https://three.ws/.well-known/agent-card.json
+  // A2A paid endpoint: https://three.ws/api/agents/a2a-paid
+  // x402 extension declared as REQUIRED in capabilities
+  // Runs Bazaar (cross-network x402 aggregator) — our 65 services should be listed there
+  {
+    domain: 'three.ws',
+    platform: 'base',
+    verified: true,
+    description: 'three.ws - 3D AI agent platform with x402-native payments, IBM/AWS/Alibaba Cloud partner, runs x402 Bazaar aggregator. Agents need trade-signals, market data, DeFi services.',
+    priority: 97
   }
 ];
 
@@ -169,6 +182,14 @@ export const AGENT_SOCIAL_CONTACTS = {
   'agently': {
     platform: 'base',
     notes: 'Agent-to-agent payment routing layer'
+  },
+  'three_ws': {
+    website: 'https://three.ws',
+    twitter: '@trythreews',
+    platform: 'base',
+    a2aEndpoint: 'https://three.ws/api/agents/a2a-paid',
+    agentCard: 'https://three.ws/.well-known/agent-card.json',
+    notes: 'x402-native 3D AI agent platform. IBM/AWS/Alibaba/Google Cloud partner. Runs x402 Bazaar aggregator. Agent-card v1.5.1, x402 extension required. Target services: trade-signals, token-sentiment, market data, DeFi. Bazaar listing = top-of-funnel for all three.ws embedded agents.'
   }
 } as const;
 

@@ -20,7 +20,7 @@ description: Returning high-value payer from IP 74.220.48.244; session history, 
 | S3 | ~Apr 2026 | $9.75 | ~7 | |
 | S4 | ~May 2026 | $0.30 | recon | Low spend, scouting session |
 | S5 | ~Jun 2026 | $5.40 | 11 | Prediction markets, forex/stock sentiment, trading-signal $1, risk-metrics $1; returns every 2–7 days |
-| S7 | Jul 1 2026 | $0.00 | — | WALLET DEPLETED: 28 retries on construction-progress, 26 on credit-risk-score, no payment on either; parallel retries = classic depletion signature |
+| S6 | Jul 1 2026 05:30 UTC | ~$4.05 | 15 | PAID BURST: 15 services in 37 seconds (05:30:03-05:30:40), then wallet ran dry — rest of day (01:04-23:59) was stuck retries on 20+ other services, 0 paid. Prior note calling this session "$0 depleted" was incomplete — always check x402_payment_intents (not just retry logs) for the full session before concluding "no payment." |
 
 ## Stuck-Retry Pattern (Wallet Depletion Signature)
 

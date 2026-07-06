@@ -148,9 +148,9 @@ async function sendBaseMessage(recipientAddress: string, message: string): Promi
   console.log(`\n📤 Sending Base on-chain message to ${recipientAddress.slice(0, 10)}...`);
   
   try {
-    const privateKey = process.env.PLATFORM_EOA_PRIVATE_KEY;
+    const privateKey = process.env.EVM_PRIVATE_KEY;
     if (!privateKey) {
-      throw new Error('PLATFORM_EOA_PRIVATE_KEY not configured');
+      throw new Error('EVM_PRIVATE_KEY not configured');
     }
     
     // Load contract config

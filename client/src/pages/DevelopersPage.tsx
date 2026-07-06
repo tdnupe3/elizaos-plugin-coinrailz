@@ -512,8 +512,8 @@ async function safeApiCall(endpoint, payload, txHash) {
             <CardContent className="pt-6">
               <div className="text-center">
                 <Shield className="h-12 w-12 text-blue-600 mx-auto mb-3" />
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">18 APIs</div>
-                <div className="text-gray-600 dark:text-gray-400">Blockchain Services</div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white">66 APIs</div>
+                <div className="text-gray-600 dark:text-gray-400">Curated Data Services</div>
               </div>
             </CardContent>
           </Card>
@@ -1458,7 +1458,7 @@ if (risk.riskScore > 80) {
                       <div>
                         <h4 className="font-semibold mb-2">Scale to More Services</h4>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Swap <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">wallet-risk</code> for any of our 18 services:
+                          Swap <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">wallet-risk</code> for any of our 66 services:
                         </p>
                         <ul className="text-sm text-gray-600 dark:text-gray-400 mt-2 space-y-1">
                           <li>• <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">dex-liquidity</code> — Check pool liquidity</li>
@@ -1473,7 +1473,7 @@ if (risk.riskScore > 80) {
                   <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-500 rounded-lg p-4">
                     <h4 className="font-bold text-green-900 dark:text-green-100 mb-2">🎉 You're Done!</h4>
                     <p className="text-sm text-green-800 dark:text-green-200">
-                      Your AI agent now has on-chain intelligence, paid per call via x402. Same pattern works for all 18 services.
+                      Your AI agent now has on-chain intelligence, paid per call via x402. Same pattern works for all 66 services.
                     </p>
                   </div>
                 </CardContent>

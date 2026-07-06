@@ -18,7 +18,7 @@ async function main() {
   });
 
   elizaLogger.log("✅ Agent initialized with Coin Railz plugin");
-  elizaLogger.log("📊 18 micropayment services available");
+  elizaLogger.log("📊 66 micropayment services available");
   elizaLogger.log("💰 Revenue share: 85% to you, 15% platform fee");
 
   // Example 1: Check multi-chain balance

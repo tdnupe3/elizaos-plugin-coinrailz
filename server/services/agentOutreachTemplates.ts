@@ -106,7 +106,7 @@ Check them out: ${this.baseUrls.services}`,
       subject: `18 x402 Services for ${agentName} - $0.01-$5 per call`,
       body: `Hey ${agentName},
 
-We're Coin Railz - 18 micropayment services for AI agents on x402 protocol.
+We're Coin Railz - 66 micropayment services for AI agents on x402 protocol.
 
 **Popular Services:**
 - Gas Price Oracle ($0.01) - Real-time gas across multiple chains

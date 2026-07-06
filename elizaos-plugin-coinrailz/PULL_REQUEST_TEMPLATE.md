@@ -2,12 +2,12 @@
 
 ## Summary
 
-This PR adds `@elizaos/plugin-coinrailz` to the ElizaOS plugin ecosystem, enabling AI agents to access 18 production-ready micropayment services on Base mainnet using the x402 protocol.
+This PR adds `@elizaos/plugin-coinrailz` to the ElizaOS plugin ecosystem, enabling AI agents to access 66 production-ready micropayment services on Base mainnet using the x402 protocol.
 
 ## What This Adds
 
 ### New Plugin: `@elizaos/plugin-coinrailz`
-- **18 micropayment services** ($0.10-$5.00 USDC on Base)
+- **66 micropayment services** ($0.10-$5.00 USDC on Base)
 - **x402 protocol support** - Standard HTTP 402 Payment Required
 - **Auto-retry logic** - Handles payment and service retries
 - **Revenue sharing** - 85% to agent builders, 15% platform fee

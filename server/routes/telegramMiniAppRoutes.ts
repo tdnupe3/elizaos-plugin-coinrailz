@@ -170,7 +170,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
           "/portfolio - View wallet portfolio\n\n" +
           "*Inside the Mini-App:*\n" +
           "• Chat with AI ($0.10/message)\n" +
-          "• Access 18 blockchain services\n" +
+          "• Access 66 curated data services\n" +
           "• Track your activity & balance\n" +
           "• Share results with friends\n\n" +
           "*Pricing:*\n" +

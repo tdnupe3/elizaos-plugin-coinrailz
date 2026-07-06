@@ -154,11 +154,11 @@ export default function Landing() {
             
             {/* Main Value Proposition */}
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-3 sm:mb-6 leading-tight px-2">
-              Payment Infrastructure<br />for AI Agents
+              Curated Machine-Payable Data<br />for AI Agents
             </h1>
             
             <p className="text-base sm:text-2xl text-gray-600 mb-4 sm:mb-8 px-4 max-w-3xl mx-auto">
-              Let your agents buy DeFi, IoT, satellite data, and prediction market feeds autonomously. API key in ~60 seconds via card — or x402 on-chain USDC for advanced flows.
+              66 pay-per-call APIs for crypto/trading intelligence, satellite & IoT data, and prediction markets — built for autonomous agents. API key in ~60 seconds via card — or x402 on-chain USDC for advanced flows.
             </p>
             
             {/* Trust Badges - Card first, x402 secondary */}

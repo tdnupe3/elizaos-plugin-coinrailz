@@ -2,7 +2,7 @@
 
 ## Overview
 
-Coin Railz provides **18 production-ready x402 micropayment services** ($0.10-$5.00 USDC) on Base mainnet. We offer **three payment methods** for maximum developer flexibility:
+Coin Railz provides **66 production-ready x402 micropayment services** ($0.05-$10.00 USDC) on Base and Solana. We offer **three payment methods** for maximum developer flexibility:
 
 1. **Prepaid Credits with API Keys** (RECOMMENDED) - Easiest integration, highest conversion
 2. **Standard x402 Protocol** - Works with existing x402 tools (AgentKit, x402-fetch, ElizaOS)

@@ -13,7 +13,7 @@ export default function X402DocsPage() {
       "@context": "https://schema.org/",
       "@type": "APIReference",
       "name": "x402 Microservices - Coin Railz",
-      "description": "Production-ready x402 micropayment services for AI agents. 18 microservices including balance checking, gas prices, token data, smart contract audits, and security analysis. Instant USDC payments on Ethereum and Base.",
+      "description": "Production-ready x402 micropayment services for AI agents. 66 microservices including crypto analytics, trading signals, satellite/earth data, IoT sensor feeds, AI inference, prediction markets, balance checking, gas prices, token data, smart contract audits, and security analysis. Instant USDC payments on Base and Solana.",
       "url": "https://coinrailz.com/x402-docs",
       "applicationCategory": "WebAPI",
       "provider": {

@@ -71,7 +71,7 @@ pnpm build
 git add packages/plugin-coinrailz
 git commit -m "feat: add Coin Railz x402 payment plugin
 
-Adds @elizaos/plugin-coinrailz with 18 production micropayment services on Base mainnet.
+Adds @elizaos/plugin-coinrailz with 66 production micropayment services on Base mainnet.
 
 - x402 protocol support for autonomous AI payments
 - 85% revenue share to agent builders

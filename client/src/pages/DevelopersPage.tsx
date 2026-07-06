@@ -447,10 +447,10 @@ async function safeApiCall(endpoint, payload, txHash) {
               x402 Micropayment Protocol
             </Badge>
             <h1 className="text-5xl font-bold mb-6">
-              Stripe for Autonomous AI Agents
+              Curated Machine-Payable Data for AI Agents
             </h1>
             <p className="text-xl text-blue-100 mb-8">
-              18 blockchain APIs powered by the x402 protocol. Pay per request with USDC on Ethereum or Base. No API keys, no registration, no subscriptions.
+              66 crypto, satellite/IoT, and prediction-market APIs powered by the x402 protocol. Pay per request with USDC on Base or Solana. No API keys, no registration, no subscriptions.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <Link href="/quickstart" data-testid="link-quickstart">

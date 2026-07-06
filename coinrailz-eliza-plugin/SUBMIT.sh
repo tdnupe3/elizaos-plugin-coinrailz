@@ -53,14 +53,14 @@ echo "💾 Committing changes..."
 git add packages/plugin-coinrailz
 git commit -m "feat: add Coin Railz x402 payment plugin
 
-Adds @elizaos/plugin-coinrailz with 18 production micropayment services on Base mainnet.
+Adds @elizaos/plugin-coinrailz with 66 production micropayment services on Base mainnet.
 
 Features:
 - x402 protocol support for autonomous AI payments
 - 85% revenue share to agent builders  
 - Zero backend infrastructure required
 - Coinbase CDP and Base L2 integration
-- 18 production-ready services ($0.10-$5.00 USDC)
+- 66 production-ready services ($0.10-$5.00 USDC)
 
 Services include: multi-chain balance, gas prices, token data, wallet analysis, 
 trading signals, contract scanning, and more.

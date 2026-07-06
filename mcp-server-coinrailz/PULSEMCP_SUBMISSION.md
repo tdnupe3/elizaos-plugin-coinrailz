@@ -8,7 +8,7 @@ This guide documents the submission process for registering `coinrailz-mcp` on t
 - [x] PyPI package published (`coinrailz-mcp v1.0.4`)
 - [x] `server.json` validated against MCP schema
 - [x] GitHub repository exists with README
-- [x] 38 production MCP tools documented
+- [x] 66 production MCP tools documented
 - [x] Uses proper stdio transport
 - [x] No security vulnerabilities in code
 
@@ -20,7 +20,7 @@ The `server.json` file is ready at: `mcp-server-coinrailz/server.json`
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
   "name": "io.github.tdnupe3/coinrailz",
-  "description": "38 crypto micropayment services: trading intelligence, DEX analytics, prediction markets, stock/forex sentiment via x402 protocol",
+  "description": "66 crypto micropayment services: trading intelligence, DEX analytics, prediction markets, stock/forex sentiment via x402 protocol",
   "repository": {
     "url": "https://github.com/tdnupe3/mcp-server-coinrailz",
     "source": "github"
@@ -56,7 +56,7 @@ The `server.json` file is ready at: `mcp-server-coinrailz/server.json`
 2. **Enter GitHub URL**: `https://github.com/tdnupe3/mcp-server-coinrailz`
 3. **Fill Details**:
    - Name: `Coin Railz MCP`
-   - Description: `38 crypto micropayment services: trading intelligence, DEX analytics, prediction markets, stock/forex sentiment via x402 protocol on Base Chain`
+   - Description: `66 crypto micropayment services: trading intelligence, DEX analytics, prediction markets, stock/forex sentiment via x402 protocol on Base Chain`
    - Category: `Finance` or `Cryptocurrency`
    - Package: `pip install coinrailz-mcp`
 4. **Submit**: Click submit and wait for review
@@ -68,7 +68,7 @@ The `server.json` file is ready at: `mcp-server-coinrailz/server.json`
    ```json
    {
      "name": "coinrailz",
-     "description": "38 crypto micropayment services via x402 protocol",
+     "description": "66 crypto micropayment services via x402 protocol",
      "pypi": "coinrailz-mcp"
    }
    ```
@@ -76,7 +76,7 @@ The `server.json` file is ready at: `mcp-server-coinrailz/server.json`
 
 ## Key Selling Points (for submission descriptions)
 
-- **38 Production MCP Tools**: Comprehensive crypto/DeFi toolkit
+- **66 Production MCP Tools**: Comprehensive crypto/DeFi toolkit
 - **x402 Protocol Integration**: HTTP 402-based micropayments
 - **Multi-Chain Support**: 7 blockchains (Ethereum, Base, Polygon, BSC, Arbitrum, Optimism, PulseChain)
 - **Categories Covered**:

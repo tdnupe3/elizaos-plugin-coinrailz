@@ -502,5 +502,5 @@ See `/examples/eliza/` for ElizaOS agent integration examples.
 - Initial release
 - Credits system with Stripe + USDC
 - API key authentication
-- 18 micropayment services
+- 66 micropayment services
 - TypeScript, Python, ElizaOS SDKs

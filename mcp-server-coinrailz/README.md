@@ -5,11 +5,11 @@
 [![PyPI version](https://badge.fury.io/py/coinrailz-mcp.svg)](https://pypi.org/project/coinrailz-mcp/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A Model Context Protocol (MCP) server exposing **63 Coin Railz x402 micropayment services** to Claude and other LLMs. Access blockchain analytics, trading signals, satellite/earth data (NASA & ESA), IoT sensor feeds, AI inference, prediction markets, and more — all paid with USDC credits or native x402 on-chain payments.
+A Model Context Protocol (MCP) server exposing **66 Coin Railz x402 micropayment services** to Claude and other LLMs. Access blockchain analytics, trading signals, satellite/earth data (NASA & ESA), IoT sensor feeds, AI inference, prediction markets, and more — all paid with USDC credits or native x402 on-chain payments.
 
 ## Features
 
-- **63 Tools for Claude**: Complete coverage across 14 service categories
+- **66 Tools for Claude**: Complete coverage across 14 service categories
 - **First-Call Free**: `gas-price-oracle` and `token-metadata` are FREE for first-time users
 - **API Key Authentication**: Simple prepaid credits system — no blockchain knowledge required
 - **x402 Protocol Support**: Native USDC micropayments on Base for crypto-native agents
@@ -54,7 +54,7 @@ Add to your Claude Desktop configuration:
 
 **Free Trial**: `gas-price-oracle` and `token-metadata` are FREE for your first call!
 
-## Available Tools (63)
+## Available Tools (66)
 
 ### Category 1: Discovery & Testing (1)
 | Tool | Description | Price |

@@ -113,8 +113,9 @@ Disallow: /transactions
 Disallow: /portfolio
 Disallow: /credits
 
-# JSON config files
-Disallow: /openapi*.json
+# OpenAPI spec - explicitly allowed for AI agent/crawler discovery
+Allow: /openapi.json
+Allow: /openapi*.json
 
 # Crawl-delay for respectful crawling
 Crawl-delay: 1

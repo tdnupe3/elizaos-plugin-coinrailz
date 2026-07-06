@@ -24,11 +24,11 @@ const TARGETS = {
     address: 'rgPyefcNqJCsJj1wrWhdQqHVphVWFXLqU5wtiFStBEN',
     chain: 'solana',
     name: 'Truth Terminal (Andy Ayrey)',
-    message: `🤖 AI AGENT PAYMENT INFRASTRUCTURE
+    message: `🤖 CURATED MACHINE-PAYABLE DATA FOR AI AGENTS
 
 Coin Railz offers x402 micropayment APIs for AI agents:
-• 38 services: trading signals, market intel, predictions
-• Pay-per-call with Base USDC (0.001-0.50 per request)
+• 66 services: crypto, satellite/IoT, prediction markets, trading signals
+• Pay-per-call with USDC on Base or Solana (0.001-5.00 per request)
 • A2A protocol compatible
 
 🎯 FOR AGENTS: GET /x402/service/ping returns 402 challenge
@@ -41,11 +41,11 @@ Reply or visit: coinrailz.com`
     address: '0x97cF38bB06Da57b6418083998b09976eC40A90a3',
     chain: 'base',
     name: 'Virtuals Protocol Deployer',
-    message: `🤝 PARTNERSHIP PROPOSAL: AI Agent Payment Rails
+    message: `🤝 PARTNERSHIP PROPOSAL: Curated Data Rails for Virtuals Agents
 
 Coin Railz provides x402 payment infrastructure for Virtuals agents:
-• 38 micropayment APIs (trading, intel, predictions)
-• Native Base USDC integration
+• 66 micropayment APIs (crypto, satellite/IoT, prediction markets, trading intel)
+• Native Base + Solana USDC integration
 • ERC-6551 agent wallet compatible
 
 INTEGRATION: Your agents can call our APIs autonomously
@@ -59,7 +59,7 @@ REVENUE: Revenue share for referred agent usage
 // MEV Bot outreach message
 const MEV_BOT_MESSAGE = `⚡ MEV BOT OPERATORS: Premium Trading Intelligence
 
-Coin Railz x402 APIs offer real-time:
+Coin Railz x402 APIs (66 total) offer real-time:
 • DEX liquidity analysis across 7 chains
 • Gas price predictions & optimization
 • Whale movement alerts

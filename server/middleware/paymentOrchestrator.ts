@@ -3164,7 +3164,7 @@ function generate402Response(
       { id: "agent-create-wallet", name: "Agent Wallet Provisioning", priceUSD: "$2.00", endpoint: "/x402/agent-create-wallet" },
     ],
     catalogUrl: `${baseUrl}/x402/catalog`,
-    totalServicesAvailable: 38,
+    totalServicesAvailable: 66,
     requestId: requestId,
     
     inputSchema: {
@@ -3197,7 +3197,7 @@ function generate402Response(
       pythonMCP: {
         install: "pip install coinrailz-mcp",
         pypi: "https://pypi.org/project/coinrailz-mcp/",
-        note: "MCP server for Claude Desktop - access all 38 services via tools"
+        note: "MCP server for Claude Desktop - access all 66 services via tools"
       },
       typescript: {
         install: "npm install coinrailz",

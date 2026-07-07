@@ -103,7 +103,7 @@ Check them out: ${this.baseUrls.services}`,
     const agentName = agent.name || 'AI Agent';
     
     return {
-      subject: `18 x402 Services for ${agentName} - $0.01-$5 per call`,
+      subject: `66 x402 Services for ${agentName} - $0.01-$5 per call`,
       body: `Hey ${agentName},
 
 We're Coin Railz - 66 micropayment services for AI agents on x402 protocol.
@@ -121,7 +121,7 @@ We're Coin Railz - 66 micropayment services for AI agents on x402 protocol.
 ✅ Pay-per-call, no subscriptions
 
 Browse: ${this.baseUrls.services}`,
-      callToAction: `View all 18 services: ${this.baseUrls.services}`,
+      callToAction: `View all 66 services: ${this.baseUrls.services}`,
     };
   }
 
@@ -130,12 +130,12 @@ Browse: ${this.baseUrls.services}`,
     const hasHighScore = (agent.metadata?.score || 0) > 20;
     
     if (hasHighScore) {
-      return `@${agentName} - Built 18 x402 services specifically for AI agents like yours. Premium infrastructure: instant Circle MPC wallets ($1), ERC-8004 on-chain identity ($5), CCTP chain bridge ($2). All on Base with CDP facilitator.
+      return `@${agentName} - Built 66 x402 services specifically for AI agents like yours. Premium infrastructure: instant Circle MPC wallets ($1), ERC-8004 on-chain identity ($5), CCTP chain bridge ($2). All on Base with CDP facilitator.
 
 Try: https://coinrailz.com/x402/service/instant-agent-wallet`;
     }
     
-    return `@${agentName} - 18 x402 micropayment services for AI agents. From $0.01 gas oracles to $5 verified identity. All Base USDC with Coinbase CDP facilitator.
+    return `@${agentName} - 66 x402 micropayment services for AI agents. From $0.01 gas oracles to $5 verified identity. All Base USDC with Coinbase CDP facilitator.
 
 Browse: https://coinrailz.com/x402/service
 
@@ -147,7 +147,7 @@ Search 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91 on x402scan`;
     
     return `Hey ${agentName} team! 👋
 
-I'm from Coin Railz - we built 18 x402 micropayment services for AI agents on Base Chain.
+I'm from Coin Railz - we built 66 x402 micropayment services for AI agents on Base Chain.
 
 **Quick value prop:**
 - $0.01-$5 per call (no subscriptions)
@@ -166,14 +166,14 @@ Happy to answer questions or set up a demo!`;
     
     return `Hey ${agentName}! 
 
-Coin Railz here - we provide 18 x402 micropayment services for AI agents on Base Chain.
+Coin Railz here - we provide 66 x402 micropayment services for AI agents on Base Chain.
 
 Premium infrastructure:
 • Instant Agent Wallet ($1) - Circle MPC wallets
 • Verified Agent Identity ($5) - ERC-8004 on-chain reputation
 • Seamless Chain Bridge ($2) - Circle CCTP routing
 
-Plus 15 more: gas oracles, token pricing, DeFi infrastructure, trade signals.
+Plus 63 more: gas oracles, token pricing, DeFi infrastructure, trade signals, satellite data, IoT payments, AI inference, and more.
 
 All Coinbase CDP-integrated. Pay-per-call with USDC.
 
@@ -221,7 +221,7 @@ Worth a look?`,
 
 This is my last follow-up about Coin Railz x402 services.
 
-We're live on x402scan with 18 services. Search: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
+We're live on x402scan with 66 services. Search: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 
 If you need infrastructure (wallets, identity, pricing, gas, DeFi tools) - we're here.
 

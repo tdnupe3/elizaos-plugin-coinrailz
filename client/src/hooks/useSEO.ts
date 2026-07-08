@@ -125,9 +125,9 @@ export const seoConfigs = {
         "priceCurrency": "USD",
         "lowPrice": "0.03",
         "highPrice": "100.00",
-        "description": "60 pay-per-call APIs from $0.03/call. Get an API key in ~60 seconds via card, or pay on-chain with USDC via x402."
+        "description": "69 pay-per-call APIs from $0.03/call. Get an API key in ~60 seconds via card, or pay on-chain with USDC via x402."
       },
-      "description": "60 pay-per-call APIs for AI agents across DeFi, IoT, satellite data, and prediction markets. Get an API key in ~60 seconds via card, or pay on-chain with USDC via x402.",
+      "description": "69 pay-per-call APIs for AI agents across DeFi, IoT, satellite data, and prediction markets. Get an API key in ~60 seconds via card, or pay on-chain with USDC via x402.",
       "provider": {
         "@type": "Organization",
         "name": "Kellogg Holdings LLC",

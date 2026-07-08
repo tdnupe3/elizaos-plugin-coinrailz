@@ -17,6 +17,12 @@ import {
   fetchRobinhoodPoolData,
   fetchRobinhoodTrendingTokens,
 } from "./microservices/robinhoodData";
+// B20 Native Token Standard services — Base Beryl hardfork (July 8, 2026)
+import {
+  b20TokenInfoService,
+  b20TransferCheckService,
+  b20ComplianceScanService,
+} from "./microservices/b20Data";
 
 const router = Router();
 
@@ -65,6 +71,10 @@ const SERVICE_PRICING = {
   "arbitrage-scanner": 0.75,           // 750,000 micro-USDC
   "correlation-matrix": 0.50,          // 500,000 micro-USDC
   "risk-metrics": 0.60,                // 600,000 micro-USDC
+  // B20 Native Token Standard Services (Base Beryl, July 8 2026)
+  "b20-token-info": 0.05,              // 50,000 micro-USDC
+  "b20-transfer-check": 0.10,          // 100,000 micro-USDC
+  "b20-compliance-scan": 0.25,         // 250,000 micro-USDC
 };
 
 // Cache helper functions
@@ -2403,6 +2413,65 @@ router.get("/health/robinhood-chain", async (req: Request, res: Response) => {
   res.status(allPassed ? 200 : 503).json({ success: allPassed, data: results });
 });
 
+// ── B20 Native Token Standard ─────────────────────────────────────────────────
+
+router.post("/b20-token-info", async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  const serviceId = "b20-token-info";
+  try {
+    const { tokenAddress } = req.body;
+    if (!tokenAddress) {
+      return res.status(400).json({ success: false, error: "tokenAddress is required" });
+    }
+    const result = await b20TokenInfoService(tokenAddress);
+    const responseTime = Date.now() - startTime;
+    await trackRequest(serviceId, req.body, result, responseTime, SERVICE_PRICING[serviceId], req.ip || "unknown");
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    await trackRequest(serviceId, req.body, null, responseTime, SERVICE_PRICING[serviceId], req.ip || "unknown", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post("/b20-transfer-check", async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  const serviceId = "b20-transfer-check";
+  try {
+    const { tokenAddress, from, to, amount } = req.body;
+    if (!tokenAddress || !from || !to) {
+      return res.status(400).json({ success: false, error: "tokenAddress, from, and to are required" });
+    }
+    const result = await b20TransferCheckService(tokenAddress, from, to, amount || "0");
+    const responseTime = Date.now() - startTime;
+    await trackRequest(serviceId, req.body, result, responseTime, SERVICE_PRICING[serviceId], req.ip || "unknown");
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    await trackRequest(serviceId, req.body, null, responseTime, SERVICE_PRICING[serviceId], req.ip || "unknown", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post("/b20-compliance-scan", async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  const serviceId = "b20-compliance-scan";
+  try {
+    const { address, tokens } = req.body;
+    if (!address) {
+      return res.status(400).json({ success: false, error: "address is required" });
+    }
+    const result = await b20ComplianceScanService(address, Array.isArray(tokens) ? tokens : []);
+    const responseTime = Date.now() - startTime;
+    await trackRequest(serviceId, req.body, result, responseTime, SERVICE_PRICING[serviceId], req.ip || "unknown");
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    await trackRequest(serviceId, req.body, null, responseTime, SERVICE_PRICING[serviceId], req.ip || "unknown", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Operational monitoring endpoint for circuit breaker health
 router.get("/health/circuit-breakers", async (req: Request, res: Response) => {
   const { getCircuitBreakerStats } = await import('../utils/resilienceWrapper');
@@ -2445,6 +2514,10 @@ export {
   // Robinhood Chain Uniswap V3 helpers — exported for reuse in arbitrage scanner
   fetchRobinhoodPoolData,
   normalizeRobinhoodChainSlug,
+  // B20 Native Token Standard services
+  b20TokenInfoService,
+  b20TransferCheckService,
+  b20ComplianceScanService,
 };
 
 // Export vertical expansion service modules

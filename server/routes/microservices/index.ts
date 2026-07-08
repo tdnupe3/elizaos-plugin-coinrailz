@@ -35,6 +35,13 @@ export {
   forexSentimentService
 } from "./markets";
 
+// Export B20 Native Token Standard services (Base Beryl, July 8 2026)
+export {
+  b20TokenInfoService,
+  b20TransferCheckService,
+  b20ComplianceScanService,
+} from "./b20Data";
+
 // Updated pricing configuration with new services
 export const NEW_SERVICE_PRICING = {
   // Real Estate Services

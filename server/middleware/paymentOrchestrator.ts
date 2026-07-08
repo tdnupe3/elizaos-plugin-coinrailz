@@ -3264,7 +3264,7 @@ function generate402Response(
       pythonMCP: {
         install: "pip install coinrailz-mcp",
         pypi: "https://pypi.org/project/coinrailz-mcp/",
-        note: "MCP server for Claude Desktop - access all 66 services via tools"
+        note: "MCP server for Claude Desktop - access all 69 services via tools"
       },
       typescript: {
         install: "npm install coinrailz",

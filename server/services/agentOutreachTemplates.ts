@@ -121,7 +121,7 @@ We're Coin Railz - 66 micropayment services for AI agents on x402 protocol.
 ✅ Pay-per-call, no subscriptions
 
 Browse: ${this.baseUrls.services}`,
-      callToAction: `View all 66 services: ${this.baseUrls.services}`,
+      callToAction: `View all 69 services: ${this.baseUrls.services}`,
     };
   }
 
@@ -221,7 +221,7 @@ Worth a look?`,
 
 This is my last follow-up about Coin Railz x402 services.
 
-We're live on x402scan with 66 services. Search: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
+We're live on x402scan with 69 services. Search: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 
 If you need infrastructure (wallets, identity, pricing, gas, DeFi tools) - we're here.
 

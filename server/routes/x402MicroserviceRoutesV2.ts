@@ -74,6 +74,7 @@ import { buildBazaarDiscoveryMetadata } from "../discovery/officialBazaarIntegra
 import { dialectMarketsService } from "../services/dialectMarketsService";
 import { satelliteDataService } from '../services/satelliteDataService';
 import { earthdataService } from '../services/earthdataService';
+import { b20TokenInfoService, b20TransferCheckService, b20ComplianceScanService } from './microservices/b20Data';
 
 const router = Router();
 
@@ -5487,6 +5488,76 @@ router.post("/earthdata-ocean-color",
 );
 
 // ============================================================
+// BASE NATIVE — B20 Token Standard (Base Beryl, July 8 2026)
+// Three services: token-info ($0.05), transfer-check ($0.10), compliance-scan ($0.25)
+// All use Base RPC as the authoritative source — on-chain truth only.
+// Graceful degradation: plain ERC-20 tokens return { b20_compatible: false }.
+// ============================================================
+
+router.post("/b20-token-info",
+  createPaymentOrchestrator("b20-token-info", SERVICE_PRICING_MICRO["b20-token-info"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const { tokenAddress } = req.body;
+      if (!tokenAddress || typeof tokenAddress !== "string") {
+        return res.status(400).json({ success: false, error: "tokenAddress is required (ERC-20/B20 contract address on Base)" });
+      }
+      const result = await b20TokenInfoService({ tokenAddress });
+      const responseTime = Date.now() - startTime;
+      await trackRequest("b20-token-info", req.body, result, responseTime, SERVICE_PRICING_USD["b20-token-info"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "b20-token-info", { tokenAddress });
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("b20-token-info", req.body, null, responseTime, SERVICE_PRICING_USD["b20-token-info"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/b20-transfer-check",
+  createPaymentOrchestrator("b20-transfer-check", SERVICE_PRICING_MICRO["b20-transfer-check"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const { tokenAddress, from, to, amount } = req.body;
+      if (!tokenAddress || !from || !to) {
+        return res.status(400).json({ success: false, error: "tokenAddress, from, and to are required" });
+      }
+      const result = await b20TransferCheckService({ tokenAddress, from, to, amount });
+      const responseTime = Date.now() - startTime;
+      await trackRequest("b20-transfer-check", req.body, result, responseTime, SERVICE_PRICING_USD["b20-transfer-check"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "b20-transfer-check", { tokenAddress, from, to });
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("b20-transfer-check", req.body, null, responseTime, SERVICE_PRICING_USD["b20-transfer-check"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/b20-compliance-scan",
+  createPaymentOrchestrator("b20-compliance-scan", SERVICE_PRICING_MICRO["b20-compliance-scan"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const { walletAddress, tokenAddresses } = req.body;
+      if (!walletAddress || typeof walletAddress !== "string") {
+        return res.status(400).json({ success: false, error: "walletAddress is required" });
+      }
+      const result = await b20ComplianceScanService({ walletAddress, tokenAddresses });
+      const responseTime = Date.now() - startTime;
+      await trackRequest("b20-compliance-scan", req.body, result, responseTime, SERVICE_PRICING_USD["b20-compliance-scan"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "b20-compliance-scan", { walletAddress });
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("b20-compliance-scan", req.body, null, responseTime, SERVICE_PRICING_USD["b20-compliance-scan"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+// ============================================================
 // UNKNOWN-SERVICE CATCH-ALL — must be the LAST route in this router
 // Returns machine-readable JSON 404 with did_you_mean for malformed
 // paths (e.g. gas-price-oracle%60 → suggests gas-price-oracle).
@@ -5507,7 +5578,8 @@ router.post("/earthdata-ocean-color",
     'kalshi-markets','kalshi-odds','kalshi-search','prediction-market-spread',
     'agent-create-wallet','stock-sentiment','instant-api-key','forex-sentiment',
     'solana-yield-finder','fire-alerts','weather-imagery','vegetation',
-    'flood-detection','air-quality','land-use','fleet-telematics',
+    'flood-detection','air-quality','land-use','b20-token-info','b20-transfer-check','b20-compliance-scan',
+    'fleet-telematics',
     'weather-station-data','iot-sensor-reading','iot-device-stream','iot-bulk-data',
     'earthdata-sst','earthdata-soil-moisture','earthdata-ocean-color',
     'catalog','openapi.json','payment-status','payment-docs',

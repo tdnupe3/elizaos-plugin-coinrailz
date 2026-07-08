@@ -95,7 +95,11 @@ export type ServiceName =
   | "ai-inference"
   // Solana USDC Yield Portal (Kamino)
   | "solana-yield-rates"
-  | "solana-yield-deposit";
+  | "solana-yield-deposit"
+  // Base Native — B20 Token Standard (Base Beryl, July 8 2026)
+  | "b20-token-info"
+  | "b20-transfer-check"
+  | "b20-compliance-scan";
 
 /**
  * Type guard to check if a string is a valid ServiceName
@@ -194,6 +198,11 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   // Solana USDC Yield Portal (Kamino Lending v1)
   "solana-yield-rates":   50000,       // $0.05 - Live Kamino APY + reserve health
   "solana-yield-deposit": 100000,      // $0.10 - Build unsigned deposit VersionedTx
+
+  // BASE NATIVE — B20 Token Standard (Base Beryl, July 8 2026)
+  "b20-token-info": 50000,             // $0.05 - ERC-20 metadata + B20 compliance mode/freeze state
+  "b20-transfer-check": 100000,        // $0.10 - Simulate transfer given live freeze/blocklist/allowlist
+  "b20-compliance-scan": 250000,       // $0.25 - Multi-issuer compliance scan for a wallet address
   
   // SATELLITE DATA SERVICES (NASA Earthdata + ESA Copernicus)
   "fire-alerts": 50000,                // $0.05 - NASA FIRMS active fire detection
@@ -298,6 +307,11 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   // Solana USDC Yield Portal (Kamino)
   "solana-yield-rates":   0.05,
   "solana-yield-deposit": 0.10,
+
+  // Base Native — B20 Token Standard (Base Beryl, July 8 2026)
+  "b20-token-info": 0.05,
+  "b20-transfer-check": 0.10,
+  "b20-compliance-scan": 0.25,
   
   // Satellite Data Services (NASA Earthdata + ESA Copernicus)
   "fire-alerts": 0.05,

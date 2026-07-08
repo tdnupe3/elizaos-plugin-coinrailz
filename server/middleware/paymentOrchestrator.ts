@@ -921,12 +921,26 @@ const USDT_ETHEREUM = "0xdAC17F958D2ee523a2206206994597C13D831ec7" as const;
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
 const USDT_BASE = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2" as const; // Bridged USDT on Base
 
+// Robinhood Chain (eip155:4663, Arbitrum Orbit L2) — launched July 1, 2026
+// CCTP domain: NOT YET ASSIGNED by Circle. Watch: https://developers.circle.com/stablecoins/cctp-protocol-contract
+// USDC address: set USDC_ROBINHOOD_ADDRESS env var once Circle publishes native USDC for eip155:4663
+// Enable payments: set ROBINHOOD_CHAIN_CCTP_ENABLED=true once CCTP domain is confirmed
+const ROBINHOOD_CHAIN_CCTP_ENABLED = process.env.ROBINHOOD_CHAIN_CCTP_ENABLED === 'true';
+const USDC_ROBINHOOD = (process.env.USDC_ROBINHOOD_ADDRESS || "") as string;
+// CCTP_DOMAIN_ROBINHOOD: placeholder — update with uint32 assigned by Circle for eip155:4663
+const CCTP_DOMAIN_ROBINHOOD: number | null = process.env.CCTP_DOMAIN_ROBINHOOD
+  ? parseInt(process.env.CCTP_DOMAIN_ROBINHOOD, 10)
+  : null;
+
 // Solana SPL token mints
 const USDC_SOLANA = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const USDT_SOLANA = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 
 // Accepted stablecoins for x402 payments (EVM)
-const ACCEPTED_STABLECOINS = [USDC_BASE, USDT_BASE, USDC_ETHEREUM, USDT_ETHEREUM];
+const ACCEPTED_STABLECOINS = [
+  USDC_BASE, USDT_BASE, USDC_ETHEREUM, USDT_ETHEREUM,
+  ...(ROBINHOOD_CHAIN_CCTP_ENABLED && USDC_ROBINHOOD ? [USDC_ROBINHOOD] : [])
+];
 // Accepted stablecoins for Solana
 const ACCEPTED_SOLANA_TOKENS = [USDC_SOLANA, USDT_SOLANA];
 
@@ -1606,7 +1620,7 @@ export function createPaymentOrchestrator(
     }
 
     let txHash: string | null = null;
-    let paymentChain: 'base' | 'ethereum' | 'arbitrum' | 'solana' | null = null;
+    let paymentChain: 'base' | 'ethereum' | 'arbitrum' | 'robinhood' | 'solana' | null = null;
 
     // Case 1: Raw EVM transaction hash (0x prefixed, 66 chars)
     // No default chain — agents MUST specify network in JSON payload.
@@ -1847,6 +1861,7 @@ export function createPaymentOrchestrator(
             if (n === 'eip155:8453' || n === 'base' || n === 'base-mainnet') paymentChain = 'base';
             else if (n === 'eip155:1' || n === 'ethereum' || n === 'ethereum-mainnet') paymentChain = 'ethereum';
             else if (n === 'eip155:42161' || n === 'arbitrum' || n === 'arbitrum-mainnet' || n === 'arb') paymentChain = 'arbitrum';
+            else if (n === 'eip155:4663' || n === 'robinhood' || n === 'robinhood-mainnet') paymentChain = 'robinhood';
             else if (n.startsWith('solana:') || n === 'solana' || n === 'solana-mainnet') paymentChain = 'solana';
             if (paymentChain) console.log(`🔐 Orchestrator: Chain inferred from Dexter accepted.network: ${accNetwork} -> ${paymentChain}`);
           }
@@ -1862,6 +1877,17 @@ export function createPaymentOrchestrator(
             paymentChain = 'base';
           } else if (n === 'arbitrum' || n === 'eip155:42161' || n === 'arbitrum-mainnet' || n === 'arb') {
             paymentChain = 'arbitrum';
+          } else if (n === 'robinhood' || n === 'eip155:4663' || n === 'robinhood-mainnet') {
+            if (!ROBINHOOD_CHAIN_CCTP_ENABLED) {
+              console.log(`❌ Orchestrator: Robinhood Chain payments not yet enabled (CCTP domain pending Circle assignment)`);
+              return res.status(400).json({
+                error: "Payment network not yet supported",
+                message: "Robinhood Chain (eip155:4663) USDC payments are pending Circle CCTP domain assignment. Use Base (eip155:8453) or Solana instead.",
+                supportedNetworks: ["base", "eip155:8453", "ethereum", "eip155:1", "arbitrum", "eip155:42161", "solana"],
+                comingSoon: { network: "eip155:4663", name: "Robinhood Chain", status: "Awaiting Circle CCTP domain assignment" }
+              });
+            }
+            paymentChain = 'robinhood';
           } else if (n.startsWith('solana:') || n === 'solana' || n === 'solana-mainnet') {
             // Solana handled in its own path below — do not reject here
           } else {
@@ -2331,7 +2357,13 @@ export function createPaymentOrchestrator(
         // For raw 0x hashes with no explicit network: try Base first (most traffic),
         // then Ethereum, then Arbitrum. This prevents silent wrong-chain rejection
         // while preserving the common-case fast path.
-        const explicitChain = (paymentChain === 'ethereum' || paymentChain === 'base' || paymentChain === 'arbitrum') ? paymentChain : null;
+        // Robinhood Chain (eip155:4663) is explicit-only — never used as a fallback.
+        const explicitChain = (
+          paymentChain === 'ethereum' ||
+          paymentChain === 'base' ||
+          paymentChain === 'arbitrum' ||
+          (paymentChain === 'robinhood' && ROBINHOOD_CHAIN_CCTP_ENABLED)
+        ) ? paymentChain : null;
         const evmChain = explicitChain || 'base';
         let verificationResult = await verifyTransactionPayment(
           txHash,
@@ -2339,7 +2371,8 @@ export function createPaymentOrchestrator(
           requiredAmount,
           evmChain
         );
-        // If Base failed and no explicit chain was specified, try Ethereum then Arbitrum
+        // If Base failed and no explicit chain was specified, try Ethereum then Arbitrum.
+        // Do NOT fallback-probe Robinhood Chain — it must be explicit via network field.
         if (!verificationResult.verified && !explicitChain) {
           console.log(`🔄 Orchestrator: Base verification failed for raw hash, trying Ethereum...`);
           verificationResult = await verifyTransactionPayment(txHash, serviceName, requiredAmount, 'ethereum');
@@ -2922,6 +2955,7 @@ function generate402Response(
   const solanaFeePayer = (req.headers['x-solana-wallet'] as string | undefined)?.trim() || null;
 
   // Multi-chain accepts array: Base/USDC, Base/USDT, Solana/USDC, Solana/USDT
+  // Robinhood Chain (eip155:4663) entry appended when ROBINHOOD_CHAIN_CCTP_ENABLED=true
   const acceptsArray = [
     // Base Chain - USDC (primary)
     {
@@ -3028,7 +3062,34 @@ function generate402Response(
         ...(solanaFeePayer ? { feePayer: solanaFeePayer } : {})
       },
       discoverable: false
-    }
+    },
+    // Robinhood Chain (eip155:4663) - USDC
+    // Gated by ROBINHOOD_CHAIN_CCTP_ENABLED=true + USDC_ROBINHOOD_ADDRESS env vars
+    // Activate once Circle assigns a CCTP domain to eip155:4663 and publishes native USDC address
+    ...(ROBINHOOD_CHAIN_CCTP_ENABLED && USDC_ROBINHOOD ? [{
+      scheme: "exact",
+      network: "robinhood",
+      networkLegacy: "robinhood",
+      x402Network: "eip155:4663",
+      amount: requiredAmount.toString(),
+      maxAmountRequired: requiredAmount.toString(),
+      maxAmountRequiredUSD: priceUsd,
+      resource: resource,
+      description: baseDescription,
+      mimeType: "application/json",
+      payTo: PLATFORM_WALLET,
+      maxTimeoutSeconds: 60,
+      asset: USDC_ROBINHOOD,
+      extra: {
+        name: "USD Coin",
+        version: "2",
+        decimals: 6,
+        chainId: 4663,
+        chainName: "Robinhood Chain",
+        ...(CCTP_DOMAIN_ROBINHOOD !== null ? { cctpDomain: CCTP_DOMAIN_ROBINHOOD } : {})
+      },
+      discoverable: true
+    }] : [])
   ];
   
   const bazaarInput = {
@@ -3152,6 +3213,9 @@ function generate402Response(
         usage: "X-PAYMENT: <transaction-hash> (0x... for EVM, base58 for Solana)",
         platformWallets: {
           base: PLATFORM_WALLET,
+          ethereum: PLATFORM_WALLET,
+          arbitrum: PLATFORM_WALLET,
+          ...(ROBINHOOD_CHAIN_CCTP_ENABLED ? { robinhood: PLATFORM_WALLET } : {}),
           solana: SOLANA_PLATFORM_WALLET
         }
       }

@@ -32,6 +32,15 @@ const USDT_ETH = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 const USDC_ARB = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
 const USDT_ARB = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
 
+// Robinhood Chain (eip155:4663, Arbitrum Orbit L2) — public RPC, no Alchemy support
+// USDC address: placeholder — update when Circle publishes native USDC via CCTP for eip155:4663
+// CCTP domain: not yet assigned by Circle (watch https://developers.circle.com/stablecoins/cctp-protocol-contract)
+const ROBINHOOD_RPC_URL = "https://rpc.mainnet.chain.robinhood.com";
+const robinhoodProvider = new ethers.JsonRpcProvider(ROBINHOOD_RPC_URL);
+// TODO: Replace with Circle-published native USDC address once CCTP domain eip155:4663 is assigned
+const USDC_ROBINHOOD = process.env.USDC_ROBINHOOD_ADDRESS || "";
+const USDT_ROBINHOOD = process.env.USDT_ROBINHOOD_ADDRESS || "";
+
 // Accepted stablecoins per chain
 const ACCEPTED_STABLECOINS_BASE = [
   { address: USDC_BASE, symbol: "USDC", name: "USD Coin" },
@@ -48,19 +57,27 @@ const ACCEPTED_STABLECOINS_ARB = [
   { address: USDT_ARB, symbol: "USDT", name: "Tether USD" }
 ];
 
+// Robinhood Chain stablecoins — populated only when CCTP_ENABLED and addresses are set
+const ACCEPTED_STABLECOINS_ROBINHOOD = [
+  ...(USDC_ROBINHOOD ? [{ address: USDC_ROBINHOOD, symbol: "USDC", name: "USD Coin" }] : []),
+  ...(USDT_ROBINHOOD ? [{ address: USDT_ROBINHOOD, symbol: "USDT", name: "Tether USD" }] : []),
+];
+
 const ACCEPTED_STABLECOINS = ACCEPTED_STABLECOINS_BASE;
 
-type EvmChain = 'base' | 'ethereum' | 'arbitrum';
+type EvmChain = 'base' | 'ethereum' | 'arbitrum' | 'robinhood';
 
 function getProviderForChain(chain: EvmChain): ethers.JsonRpcProvider {
   if (chain === 'ethereum') return ethereumProvider;
   if (chain === 'arbitrum') return arbitrumProvider;
+  if (chain === 'robinhood') return robinhoodProvider;
   return baseProvider;
 }
 
 function getStablecoinsForChain(chain: EvmChain) {
   if (chain === 'ethereum') return ACCEPTED_STABLECOINS_ETH;
   if (chain === 'arbitrum') return ACCEPTED_STABLECOINS_ARB;
+  if (chain === 'robinhood') return ACCEPTED_STABLECOINS_ROBINHOOD;
   return ACCEPTED_STABLECOINS_BASE;
 }
 
@@ -77,6 +94,7 @@ function parseNetworkToChain(network?: string): EvmChain | null {
   if (n === 'ethereum' || n === 'eip155:1' || n === 'ethereum-mainnet') return 'ethereum';
   if (n === 'base' || n === 'eip155:8453' || n === 'base-mainnet') return 'base';
   if (n === 'arbitrum' || n === 'eip155:42161' || n === 'arbitrum-one' || n === 'arb') return 'arbitrum';
+  if (n === 'robinhood' || n === 'eip155:4663' || n === 'robinhood-mainnet') return 'robinhood';
   return null;
 }
 
@@ -526,7 +544,7 @@ export async function verifyTransactionPayment(
 
     const chainProvider = getProviderForChain(chain);
     const chainStablecoins = getStablecoinsForChain(chain);
-    const chainId = chain === 'ethereum' ? 1 : chain === 'arbitrum' ? 42161 : 8453;
+    const chainId = chain === 'ethereum' ? 1 : chain === 'arbitrum' ? 42161 : chain === 'robinhood' ? 4663 : 8453;
     console.log(`🔍 Verifying tx on ${chain} (chainId: ${chainId})`);
 
     for (let attempt = 1; attempt <= RECEIPT_MAX_RETRIES; attempt++) {
@@ -652,7 +670,7 @@ export async function verifyTransactionPayment(
       await db.insert(x402PaymentIntents).values({
         id: intentId,
         txHash,
-        network: chain === 'ethereum' ? "eip155:1" : chain === 'arbitrum' ? "eip155:42161" : "eip155:8453",
+        network: chain === 'ethereum' ? "eip155:1" : chain === 'arbitrum' ? "eip155:42161" : chain === 'robinhood' ? "eip155:4663" : "eip155:8453",
         serviceName,
         payer: senderAddress,
         amount: (paymentAmount / 1e6).toString(),

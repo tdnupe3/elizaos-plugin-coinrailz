@@ -4927,6 +4927,9 @@ router.get('/.well-known/agent-registration.json', (req: Request, res: Response)
         { id: 'eip155:1', name: 'Ethereum', token: 'USDC', contractAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' },
         { id: 'eip155:137', name: 'Polygon', token: 'USDC', contractAddress: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' },
         { id: 'eip155:42161', name: 'Arbitrum', token: 'USDC', contractAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' },
+        process.env.ROBINHOOD_CHAIN_CCTP_ENABLED === 'true'
+          ? { id: 'eip155:4663', name: 'Robinhood Chain', token: 'USDC', contractAddress: process.env.USDC_ROBINHOOD_ADDRESS || '', cctpDomain: process.env.CCTP_DOMAIN_ROBINHOOD ? parseInt(process.env.CCTP_DOMAIN_ROBINHOOD, 10) : undefined }
+          : { id: 'eip155:4663', name: 'Robinhood Chain', token: 'USDC', contractAddress: null, status: 'pending_cctp', note: 'Awaiting Circle CCTP domain assignment for eip155:4663. Set ROBINHOOD_CHAIN_CCTP_ENABLED=true + USDC_ROBINHOOD_ADDRESS to activate.' },
         { id: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', name: 'Solana', token: 'USDC', contractAddress: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' },
       ],
       facilitators: {

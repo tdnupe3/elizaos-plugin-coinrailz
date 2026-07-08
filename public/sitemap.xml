@@ -303,4 +303,26 @@
   <priority>0.6</priority>
 </url>
 
+<!-- Robinhood Chain DEX Data Services -->
+<url>
+  <loc>https://coinrailz.com/x402/robinhood-token-price</loc>
+  <lastmod>2026-07-08</lastmod>
+  <changefreq>daily</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/x402/robinhood-dex-pools</loc>
+  <lastmod>2026-07-08</lastmod>
+  <changefreq>daily</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/x402/robinhood-chain-stats</loc>
+  <lastmod>2026-07-08</lastmod>
+  <changefreq>daily</changefreq>
+  <priority>0.8</priority>
+</url>
+
 </urlset>

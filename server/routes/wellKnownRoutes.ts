@@ -3769,6 +3769,30 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         tags: ["b20", "base", "compliance", "scan", "beryl", "x402"],
         inputModes: ["application/json"],
         outputModes: ["application/json"]
+      },
+      {
+        id: "robinhood-token-price",
+        name: "Robinhood Chain Token Price",
+        description: "Real-time token price on Robinhood Chain sourced from the highest-liquidity DEX pool. Returns best price, 24h change, volume, liquidity, pool breakdown, and confidence score. $0.60 per request.",
+        tags: ["robinhood", "dex", "price", "trading", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "robinhood-dex-pools",
+        name: "Robinhood Chain DEX Pools",
+        description: "Top DEX liquidity pools on Robinhood Chain, optionally filtered by token. Returns fee tier, 24h volume, TVL, price, and pair details — ideal for routing and arbitrage agents. $1.25 per request.",
+        tags: ["robinhood", "dex", "liquidity", "pools", "trading", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "robinhood-chain-stats",
+        name: "Robinhood Chain Stats",
+        description: "Live chain-wide statistics for Robinhood Chain: block number, gas price in Gwei, total DEX pools, 24h trading volume, total liquidity, and top tokens by volume. $0.75 per request.",
+        tags: ["robinhood", "chain", "stats", "analytics", "defi", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
       }
     ],
     

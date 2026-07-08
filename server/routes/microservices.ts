@@ -842,7 +842,7 @@ async function fetchRobinhoodTrendingTokens(limit: number = 20): Promise<any[]> 
     { timeout: 10000 }
   );
   const all: any[] = dsResp.data || [];
-  const robinhoodTokens = all.filter((t: any) => t.chainId?.toLowerCase() === "robinhood");
+  const robinhoodTokens = all.filter((t: any) => normalizeRobinhoodChainSlug(t.chainId || "") === "robinhood");
 
   const enriched: any[] = [];
   for (const token of robinhoodTokens.slice(0, Math.min(limit * 2, 40))) {
@@ -851,7 +851,7 @@ async function fetchRobinhoodTrendingTokens(limit: number = 20): Promise<any[]> 
         `https://api.dexscreener.com/latest/dex/tokens/${token.tokenAddress}`,
         { timeout: 5000 }
       );
-      const pair = pairResp.data.pairs?.find((p: any) => p.chainId?.toLowerCase() === "robinhood")
+      const pair = pairResp.data.pairs?.find((p: any) => normalizeRobinhoodChainSlug(p.chainId || "") === "robinhood")
         || pairResp.data.pairs?.[0];
       if (!pair) continue;
       const priceChange = parseFloat(pair.priceChange?.h24 || "0");
@@ -878,10 +878,20 @@ async function fetchRobinhoodTrendingTokens(limit: number = 20): Promise<any[]> 
 
 // Fetch pool data for a specific token from Robinhood Chain's Uniswap v3.
 // Falls back to DexScreener with chainId="robinhood" if subgraph unavailable.
+// Normalize Robinhood Chain aliases: "robinhood" | "robinhoodchain" | "4663" → "robinhood"
+function normalizeRobinhoodChainSlug(chain: string): string {
+  const lower = chain.toLowerCase().replace(/[-_\s]/g, "");
+  if (lower === "robinhoodchain" || lower === "4663") return "robinhood";
+  return lower;
+}
+
 async function fetchRobinhoodPoolData(tokenAddress: string): Promise<any[]> {
   const addr = tokenAddress.toLowerCase();
 
   // Primary: Uniswap v3 subgraph
+  // Include id on token0/token1 so we can compare addresses (not symbols) to
+  // determine which side of the pool the requested token occupies, then select
+  // the correct price field (token0Price = price of token0 in token1 units).
   try {
     const data = await queryRobinhoodSubgraph(`
       {
@@ -892,8 +902,8 @@ async function fetchRobinhoodPoolData(tokenAddress: string): Promise<any[]> {
           first: 10
         ) {
           id
-          token0 { symbol }
-          token1 { symbol }
+          token0 { id symbol }
+          token1 { id symbol }
           feeTier
           totalValueLockedUSD
           volumeUSD
@@ -910,17 +920,22 @@ async function fetchRobinhoodPoolData(tokenAddress: string): Promise<any[]> {
 
     const pools = data.pools || [];
     return pools.map((p: any) => {
-      const isToken0 = p.token0.symbol.toLowerCase() === addr || true;
+      // Determine which side the requested token is on by address comparison
+      const isToken0 = p.token0.id.toLowerCase() === addr;
       const volume24h = parseFloat(p.poolDayData?.[0]?.volumeUSD || "0");
       const liquidity = parseFloat(p.totalValueLockedUSD || "0");
+      // token0Price = amount of token1 per token0; token1Price = amount of token0 per token1.
+      // We want the USD-equivalent price of the *requested* token:
+      // - if requested token is token0, price = token0Price (expressed in token1 units)
+      // - if requested token is token1, price = token1Price (expressed in token0 units)
       const priceUSD = isToken0
         ? parseFloat(p.token0Price || "0")
         : parseFloat(p.token1Price || "0");
       return {
         dex: "Uniswap V3",
         pairAddress: p.id,
-        baseToken: p.token0.symbol,
-        quoteToken: p.token1.symbol,
+        baseToken: isToken0 ? p.token0.symbol : p.token1.symbol,
+        quoteToken: isToken0 ? p.token1.symbol : p.token0.symbol,
         feeTier: `${parseInt(p.feeTier) / 10000}%`,
         liquidity,
         liquidityUSD: `$${liquidity.toLocaleString()}`,
@@ -936,14 +951,14 @@ async function fetchRobinhoodPoolData(tokenAddress: string): Promise<any[]> {
     console.warn(`[Robinhood] Pool subgraph unavailable (${subgraphErr.message}), falling back to DexScreener`);
   }
 
-  // Fallback: DexScreener
+  // Fallback: DexScreener — filter by any known Robinhood Chain slug
   const dsResp = await axios.get(
     `https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`,
     { timeout: 5000 }
   );
   const pairs: any[] = dsResp.data.pairs || [];
   return pairs
-    .filter((p: any) => p.chainId?.toLowerCase() === "robinhood")
+    .filter((p: any) => normalizeRobinhoodChainSlug(p.chainId || "") === "robinhood")
     .map((p: any) => ({
       dex: p.dexId || "Unknown",
       pairAddress: p.pairAddress,
@@ -968,7 +983,7 @@ async function trendingTokensFeedService(timeframe: string = "24h", chain: strin
 
   try {
     // Robinhood Chain: use dedicated Uniswap v3 subgraph + DexScreener fallback
-    if (chain.toLowerCase() === "robinhood") {
+    if (normalizeRobinhoodChainSlug(chain) === "robinhood") {
       const tokens = await fetchRobinhoodTrendingTokens(limit);
       const gainers = tokens.filter(t => t.priceChangePct > 0)
         .sort((a, b) => b.priceChangePct - a.priceChangePct).slice(0, 10);
@@ -1142,7 +1157,7 @@ async function dexLiquidityMonitorService(tokenAddress: string, chain: string = 
     let liquidityPools: any[] = [];
 
     // Robinhood Chain: use dedicated Uniswap v3 subgraph + DexScreener fallback
-    if (chain.toLowerCase() === "robinhood") {
+    if (normalizeRobinhoodChainSlug(chain) === "robinhood") {
       const robinhoodPools = await fetchRobinhoodPoolData(tokenAddress);
       if (robinhoodPools.length === 0) {
         throw new Error("No liquidity pools found for this token on Robinhood Chain");
@@ -1188,8 +1203,8 @@ async function dexLiquidityMonitorService(tokenAddress: string, chain: string = 
     const result = {
       token: tokenAddress,
       chain: chain === "all" ? "multi-chain" : chain,
-      chainId: chain.toLowerCase() === "robinhood" ? "eip155:4663" : undefined,
-      dex: chain.toLowerCase() === "robinhood" ? "Uniswap V3" : undefined,
+      chainId: normalizeRobinhoodChainSlug(chain) === "robinhood" ? "eip155:4663" : undefined,
+      dex: normalizeRobinhoodChainSlug(chain) === "robinhood" ? "Uniswap V3" : undefined,
       totalPools: liquidityPools.length,
       totalLiquidity: `$${totalLiquidity.toLocaleString()}`,
       totalVolume24h: `$${totalVolume24h.toLocaleString()}`,
@@ -1483,7 +1498,7 @@ async function tradeSignalsService(params: {
 
   // Resolve token symbol for DexScreener lookup
   const tokenSymbol = token.replace(/\/USDT|\/USD|\/USDC/i, "").trim();
-  const chainSlug = chain.toLowerCase() === "robinhood" ? "robinhood" : chain.toLowerCase();
+  const chainSlug = normalizeRobinhoodChainSlug(chain);
 
   // Fetch real market data from DexScreener
   let marketData: any = null;

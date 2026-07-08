@@ -151,11 +151,131 @@ function buildTaskResponse(taskId: string, artifacts: Array<{ parts: Array<{ typ
   };
 }
 
+// Stop words that are too generic to be meaningful match signals
+const STOP_WORDS = new Set([
+  'the','and','for','any','all','are','not','can','you','this','that','with',
+  'have','has','from','its','use','get','set','run','via','per','see','how',
+  'pay','our','your','new','but','was','had','they','their','them','will',
+  'out','one','two','her','his','him','may','way','who','yet','did','its',
+  'what','when','where','which','who','why','both','each','few','more','most',
+  'other','some','such','than','then','these','they','this','those','very',
+  'just','also','into','here','been','only','same','want','make','sure',
+  'ready','need','could','would','should','about','there','deploy','deployed',
+]);
+
+// Semantic patterns: high-confidence query intent → target service(s)
+// Applied BEFORE keyword scoring to prevent generic word frequency from dominating
+const SEMANTIC_PATTERNS: Array<{ pattern: RegExp; services: string[]; boost: number }> = [
+  // Smart contract security / audit
+  {
+    pattern: /\b(solidity|solidity contract|smart contract)\b.*\b(vulnerabilit|security|audit|scan|safe|exploit|reentrancy|overflow|access control)\b/i,
+    services: ['contract-scan', 'smart-contract-audit'],
+    boost: 20
+  },
+  {
+    pattern: /\b(vulnerabilit|security (issue|flaw|bug|risk|audit|scan)|exploit|reentrancy|overflow)\b.*\b(contract|solidity|mainnet|deploy)\b/i,
+    services: ['contract-scan', 'smart-contract-audit'],
+    boost: 20
+  },
+  {
+    pattern: /\b(scan|audit|check|review)\b.{0,30}\b(contract|solidity|smart contract|evm)\b/i,
+    services: ['contract-scan', 'smart-contract-audit'],
+    boost: 15
+  },
+  // Gas price
+  {
+    pattern: /\b(gas price|gas fee|gas cost|gwei|current gas)\b/i,
+    services: ['gas-price-oracle'],
+    boost: 20
+  },
+  // Whale / large transfers
+  {
+    pattern: /\b(whale alert|large transfer|large tx|whale movement|whale wallet)\b/i,
+    services: ['whale-alerts'],
+    boost: 20
+  },
+  // Agent identity / verification
+  {
+    pattern: /\b(verify|verif(y|ication)).{0,20}\b(agent|identity|wallet|address)\b/i,
+    services: ['verified-agent-identity'],
+    boost: 20
+  },
+  {
+    pattern: /\b(agent identity|on-chain identity|erc-8004|agent.*register|register.*agent)\b/i,
+    services: ['verified-agent-identity'],
+    boost: 20
+  },
+  // Portfolio / wallet balance
+  {
+    pattern: /\b(portfolio|wallet balance|my wallet|my portfolio|holdings|total value)\b/i,
+    services: ['portfolio-tracker', 'multi-chain-balance'],
+    boost: 15
+  },
+  // DEX / liquidity / swap routing
+  {
+    pattern: /\b(dex|liquidity|swap route|best (price|rate|swap)|slippage|uniswap|curve|balancer)\b/i,
+    services: ['dex-liquidity', 'arbitrage-scanner'],
+    boost: 15
+  },
+  // Prediction markets
+  {
+    pattern: /\b(polymarket|kalshi|prediction market|event market|bet(ting)?|odds)\b/i,
+    services: ['polymarket-events', 'polymarket-search'],
+    boost: 20
+  },
+  // Satellite / NASA / ESA
+  {
+    pattern: /\b(satellite|nasa|esa|earthdata|ndvi|land cover|imagery|remote sensing|copernicus)\b/i,
+    services: ['satellite-earthdata', 'satellite-weather-imagery', 'satellite-data-bundle'],
+    boost: 20
+  },
+  // AI inference
+  {
+    pattern: /\b(ai inference|llm|gpt|language model|ai model|run (ai|inference)|prompt)\b/i,
+    services: ['ai-inference'],
+    boost: 20
+  },
+  // Compliance / regulatory
+  {
+    pattern: /\b(compliance|regulatory|kyc|aml|sanctions|ofac|regulatory risk)\b/i,
+    services: ['compliance-check', 'compliance-consultation'],
+    boost: 15
+  },
+  // Trading signals
+  {
+    pattern: /\b(trading signal|buy signal|sell signal|entry point|exit point|trade recommendation)\b/i,
+    services: ['trading-signal', 'trade-signals'],
+    boost: 20
+  },
+  // Token sentiment
+  {
+    pattern: /\b(token sentiment|market sentiment|social sentiment|twitter sentiment|fear.{0,10}greed)\b/i,
+    services: ['token-sentiment', 'sentiment-analysis'],
+    boost: 20
+  },
+  // Risk / credit
+  {
+    pattern: /\b(credit risk|risk score|default risk|defi risk|protocol risk)\b/i,
+    services: ['credit-risk-score'],
+    boost: 20
+  },
+  // First call / onboarding
+  {
+    pattern: /\b(first (call|payment)|onboard(ing)?|getting started|first x402|try.*payment)\b/i,
+    services: ['first-call'],
+    boost: 20
+  },
+];
+
 function kwMatches(text: string, kw: string): boolean {
-  if (kw.length <= 3) {
+  // Skip stop words — they create false score inflation
+  if (STOP_WORDS.has(kw.toLowerCase())) return false;
+  // Skip very short or purely punctuation tokens
+  if (kw.length <= 2 || /^[^a-z0-9]+$/i.test(kw)) return false;
+  if (kw.length <= 4) {
     return new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text);
   }
-  return text.includes(kw);
+  return text.toLowerCase().includes(kw.toLowerCase());
 }
 
 /**
@@ -175,32 +295,42 @@ function toServiceEntry(entry: any): ServiceEntry {
 function matchServices(text: string): ServiceEntry[] {
   const lower = text.toLowerCase();
   
+  // Build semantic boost map from high-confidence intent patterns
+  // These fire before keyword scoring to prevent stop-word noise from winning
+  const semanticBoosts = new Map<string, number>();
+  for (const { pattern, services, boost } of SEMANTIC_PATTERNS) {
+    if (pattern.test(text)) {
+      for (const svcId of services) {
+        semanticBoosts.set(svcId, (semanticBoosts.get(svcId) ?? 0) + boost);
+      }
+    }
+  }
+
   // Use the canonical serviceCatalogService which has 60+ services
   const fullCatalog = serviceCatalogService.getCatalog().services;
   
   const scored = fullCatalog.map(entry => {
-    let hits = 0;
+    // Start with any semantic boost for this service
+    let hits = semanticBoosts.get(entry.id) ?? 0;
     
-    // Convert ServiceCatalogEntry to a temporary keywords list for matching
+    // Build keyword list — description split into tokens, capabilities as-is
     const kws = [
       ...(entry.capabilities || []),
       entry.id,
       entry.name.toLowerCase(),
       entry.category.toLowerCase(),
       ...entry.description.toLowerCase().split(/\s+/)
-    ].filter(k => k.length > 2);
+    ].filter(k => k.length > 2 && !STOP_WORDS.has(k.toLowerCase()));
 
     for (const kw of kws) {
       if (kwMatches(lower, kw)) hits++;
     }
     
-    // Exact matches on ID or Name get massive boost
+    // Exact ID or name match gets an additional boost
     if (lower.includes(entry.id)) hits += 5;
     if (lower.includes(entry.name.toLowerCase())) hits += 5;
     
-    // Map back to ServiceEntry for the existing router logic
     const service = toServiceEntry(entry);
-
     return { service, hits };
   }).filter(s => s.hits > 0).sort((a, b) => b.hits - a.hits);
 

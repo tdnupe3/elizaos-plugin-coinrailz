@@ -9,7 +9,7 @@ description: Status of all agent/MCP registry submissions for Coin Railz as of J
 |---|---|---|
 | **Smithery** | ✅ Live | `travis-kellogg1/coinrailz-mcp` — 96/100 score, SUCCESS in 5s, 99.36% uptime |
 | **a2aregistry.org** | ✅ Live | id=`0136e410-6621-4f8b-bba7-8ea58fc46db7`; 66 skills; auto-crawls agent-card every 30min |
-| **mcp.so** | ⏳ Pending user | Manual form at mcp.so/submit — Name: "Coin Railz", URL: https://coinrailz.com/mcp, Config: `{"mcpServers":{"coinrailz":{"url":"https://coinrailz.com/mcp"}}}` |
+| **mcp.so** | ✅ Live | Name: `coin-railz`, Title: "Coin Railz", Author: Travis Kellogg, Type: server, Status: created — submitted 2026-07-08 |
 | **a2a-registry.org (GlobalA2ARegistry)** | ✅ Live | Published (github_verified) via `github.com/tdnupe3/coinrailz-agent` (agent-card.json, 66 services); also a "Website Agent" entry for `com.coinrailz` in Draft |
 
 ## GitHub Repo for a2a-registry.org

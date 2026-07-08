@@ -139,6 +139,112 @@ export async function fetchRobinhoodPoolData(tokenAddress: string): Promise<any[
 }
 
 /**
+ * Fetch top DEX pools on Robinhood Chain without requiring a specific token address.
+ * Uses DexScreener search filtered to Robinhood Chain, sorted by liquidity.
+ */
+export async function fetchRobinhoodTopPools(minLiquidity: number = 0, limit: number = 20): Promise<any[]> {
+  const resp = await axios.get(
+    `https://api.dexscreener.com/latest/dex/search?q=USDC`,
+    { timeout: 8000 }
+  );
+  const pairs: any[] = resp.data.pairs || [];
+  return pairs
+    .filter((p: any) => normalizeRobinhoodChainSlug(p.chainId || "") === "robinhood")
+    .filter((p: any) => parseFloat(p.liquidity?.usd || "0") >= minLiquidity)
+    .sort((a: any, b: any) => parseFloat(b.liquidity?.usd || "0") - parseFloat(a.liquidity?.usd || "0"))
+    .slice(0, limit)
+    .map((p: any) => ({
+      dex: p.dexId || "Unknown",
+      pairAddress: p.pairAddress,
+      baseToken: p.baseToken?.symbol || "UNKNOWN",
+      quoteToken: p.quoteToken?.symbol || "UNKNOWN",
+      liquidity: parseFloat(p.liquidity?.usd || "0"),
+      liquidityUSD: `$${parseFloat(p.liquidity?.usd || "0").toLocaleString()}`,
+      volume24h: `$${parseFloat(p.volume?.h24 || "0").toLocaleString()}`,
+      priceUSD: `$${parseFloat(p.priceUsd || "0").toFixed(6)}`,
+      priceChange24h: `${parseFloat(p.priceChange?.h24 || "0").toFixed(2)}%`,
+      txns24h: (p.txns?.h24?.buys || 0) + (p.txns?.h24?.sells || 0),
+      chain: "robinhood",
+      source: "dexscreener",
+    }));
+}
+
+/**
+ * Fetch chain-level health metrics for Robinhood Chain (chain ID 4663).
+ * Uses Robinhood Chain RPC for block/gas data + DexScreener for DEX activity.
+ */
+export async function fetchRobinhoodChainStats(): Promise<{
+  chainId: number;
+  chainName: string;
+  latestBlock: number | null;
+  gasPriceGwei: string | null;
+  totalPools: number;
+  totalVolume24hUSD: string;
+  totalLiquidityUSD: string;
+  topTokens: string[];
+  source: string;
+  asOf: string;
+  confidence: string;
+  rpcNote: string;
+}> {
+  const ROBINHOOD_RPC = "https://rpc.mainnet.chain.robinhood.com";
+  const asOf = new Date().toISOString();
+
+  let latestBlock: number | null = null;
+  let gasPriceGwei: string | null = null;
+  let rpcNote = "ok";
+
+  try {
+    const [blockResp, gasResp] = await Promise.all([
+      axios.post(ROBINHOOD_RPC, { jsonrpc: "2.0", method: "eth_blockNumber", params: [], id: 1 }, { timeout: 5000 }),
+      axios.post(ROBINHOOD_RPC, { jsonrpc: "2.0", method: "eth_gasPrice", params: [], id: 2 }, { timeout: 5000 }),
+    ]);
+    latestBlock = parseInt(blockResp.data.result || "0x0", 16) || null;
+    const gasWei = parseInt(gasResp.data.result || "0x0", 16);
+    gasPriceGwei = gasWei > 0 ? (gasWei / 1e9).toFixed(4) : null;
+  } catch (rpcErr: any) {
+    rpcNote = `rpc-unavailable: ${rpcErr.message}`;
+  }
+
+  let totalPools = 0;
+  let totalVolume24h = 0;
+  let totalLiquidity = 0;
+  const topTokenSymbols: string[] = [];
+
+  try {
+    const dsResp = await axios.get(
+      `https://api.dexscreener.com/latest/dex/search?q=USDC`,
+      { timeout: 8000 }
+    );
+    const pairs: any[] = (dsResp.data.pairs || []).filter(
+      (p: any) => normalizeRobinhoodChainSlug(p.chainId || "") === "robinhood"
+    );
+    totalPools = pairs.length;
+    for (const p of pairs) {
+      totalVolume24h += parseFloat(p.volume?.h24 || "0");
+      totalLiquidity += parseFloat(p.liquidity?.usd || "0");
+      const sym = p.baseToken?.symbol;
+      if (sym && !topTokenSymbols.includes(sym) && topTokenSymbols.length < 5) topTokenSymbols.push(sym);
+    }
+  } catch {}
+
+  return {
+    chainId: 4663,
+    chainName: "Robinhood Chain",
+    latestBlock,
+    gasPriceGwei,
+    totalPools,
+    totalVolume24hUSD: `$${totalVolume24h.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    totalLiquidityUSD: `$${totalLiquidity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    topTokens: topTokenSymbols,
+    source: latestBlock ? "dexscreener+rpc" : "dexscreener",
+    asOf,
+    confidence: totalPools > 0 ? "medium" : "low",
+    rpcNote,
+  };
+}
+
+/**
  * Fetch top trending tokens from Robinhood Chain's Uniswap v3 subgraph.
  * Falls back to DexScreener with chainId="robinhood" if subgraph is unavailable.
  */

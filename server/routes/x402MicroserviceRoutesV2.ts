@@ -75,6 +75,7 @@ import { dialectMarketsService } from "../services/dialectMarketsService";
 import { satelliteDataService } from '../services/satelliteDataService';
 import { earthdataService } from '../services/earthdataService';
 import { b20TokenInfoService, b20TransferCheckService, b20ComplianceScanService } from './microservices/b20Data';
+import { fetchRobinhoodPoolData, fetchRobinhoodTopPools, fetchRobinhoodChainStats } from './microservices/robinhoodData';
 
 const router = Router();
 
@@ -5558,6 +5559,131 @@ router.post("/b20-compliance-scan",
 );
 
 // ============================================================
+// ROBINHOOD CHAIN DEX DATA (eip155:4663, Arbitrum Orbit L2, July 8 2026)
+// Three services — all beta, DexScreener-backed until Uniswap V3 subgraph deploys.
+// Responses include source/asOf/confidence fields so agents know data quality.
+// robinhood-token-price: $0.60 | robinhood-dex-pools: $1.25 | robinhood-chain-stats: $0.75
+// ============================================================
+
+router.post("/robinhood-token-price",
+  createPaymentOrchestrator("robinhood-token-price", SERVICE_PRICING_MICRO["robinhood-token-price"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const { address } = req.body;
+      if (!address || typeof address !== "string") {
+        return res.status(400).json({ success: false, error: "address is required (token contract address on Robinhood Chain, 0x...)" });
+      }
+      const asOf = new Date().toISOString();
+      const pools = await fetchRobinhoodPoolData(address);
+      if (pools.length === 0) {
+        const result = {
+          success: true,
+          chain: "robinhood",
+          chainId: 4663,
+          address,
+          price: null,
+          priceChange24h: null,
+          volume24hUSD: null,
+          liquidityUSD: null,
+          pools: [],
+          confidence: "none",
+          source: "dexscreener",
+          asOf,
+          beta: true,
+          note: "No pools found for this token on Robinhood Chain. Token may not be listed yet.",
+        };
+        const responseTime = Date.now() - startTime;
+        await trackRequest("robinhood-token-price", req.body, result, responseTime, SERVICE_PRICING_USD["robinhood-token-price"], req.ip || "unknown");
+        await trackBundleUsage(req, res, "robinhood-token-price", { address });
+        return res.json(result);
+      }
+      const best = pools.sort((a: any, b: any) => b.liquidity - a.liquidity)[0];
+      const responseTime = Date.now() - startTime;
+      const result = {
+        success: true,
+        chain: "robinhood",
+        chainId: 4663,
+        address,
+        symbol: best.baseToken,
+        price: best.priceUSD,
+        priceChange24h: best.priceChange24h,
+        volume24hUSD: best.volume24h,
+        liquidityUSD: best.liquidityUSD,
+        poolCount: pools.length,
+        topPool: best,
+        confidence: best.liquidity > 10000 ? "medium" : "low",
+        source: best.source,
+        asOf,
+        beta: true,
+        note: "Day-1 Robinhood Chain data — DexScreener source. Confidence improves as ecosystem matures.",
+      };
+      await trackRequest("robinhood-token-price", req.body, result, responseTime, SERVICE_PRICING_USD["robinhood-token-price"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "robinhood-token-price", { address });
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("robinhood-token-price", req.body, null, responseTime, SERVICE_PRICING_USD["robinhood-token-price"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/robinhood-dex-pools",
+  createPaymentOrchestrator("robinhood-dex-pools", SERVICE_PRICING_MICRO["robinhood-dex-pools"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const { token, minLiquidity = 0, limit = 20 } = req.body;
+      const asOf = new Date().toISOString();
+      let pools: any[];
+      if (token && typeof token === "string") {
+        const raw = await fetchRobinhoodPoolData(token);
+        pools = raw.filter((p: any) => p.liquidity >= Number(minLiquidity));
+      } else {
+        pools = await fetchRobinhoodTopPools(Number(minLiquidity), Math.min(Number(limit), 50));
+      }
+      const responseTime = Date.now() - startTime;
+      const result = {
+        success: true,
+        chain: "robinhood",
+        chainId: 4663,
+        poolCount: pools.length,
+        pools: pools.slice(0, Math.min(Number(limit), 50)),
+        confidence: pools.length > 0 ? (pools[0]?.liquidity > 10000 ? "medium" : "low") : "none",
+        source: "dexscreener",
+        asOf,
+        beta: true,
+        note: "Day-1 Robinhood Chain data — DexScreener source. Uniswap V3 subgraph pending deployment.",
+      };
+      await trackRequest("robinhood-dex-pools", req.body, result, responseTime, SERVICE_PRICING_USD["robinhood-dex-pools"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "robinhood-dex-pools", { token });
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("robinhood-dex-pools", req.body, null, responseTime, SERVICE_PRICING_USD["robinhood-dex-pools"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/robinhood-chain-stats",
+  createPaymentOrchestrator("robinhood-chain-stats", SERVICE_PRICING_MICRO["robinhood-chain-stats"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const stats = await fetchRobinhoodChainStats();
+      const responseTime = Date.now() - startTime;
+      const result = { success: true, ...stats };
+      await trackRequest("robinhood-chain-stats", req.body, result, responseTime, SERVICE_PRICING_USD["robinhood-chain-stats"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "robinhood-chain-stats", {});
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("robinhood-chain-stats", req.body, null, responseTime, SERVICE_PRICING_USD["robinhood-chain-stats"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+// ============================================================
 // UNKNOWN-SERVICE CATCH-ALL — must be the LAST route in this router
 // Returns machine-readable JSON 404 with did_you_mean for malformed
 // paths (e.g. gas-price-oracle%60 → suggests gas-price-oracle).
@@ -5579,6 +5705,7 @@ router.post("/b20-compliance-scan",
     'agent-create-wallet','stock-sentiment','instant-api-key','forex-sentiment',
     'solana-yield-finder','fire-alerts','weather-imagery','vegetation',
     'flood-detection','air-quality','land-use','b20-token-info','b20-transfer-check','b20-compliance-scan',
+    'robinhood-token-price','robinhood-dex-pools','robinhood-chain-stats',
     'fleet-telematics',
     'weather-station-data','iot-sensor-reading','iot-device-stream','iot-bulk-data',
     'earthdata-sst','earthdata-soil-moisture','earthdata-ocean-color',

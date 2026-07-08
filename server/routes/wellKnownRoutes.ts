@@ -2984,7 +2984,7 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
  * Main platform agent card - describes Coin Railz as a service provider
  * Discoverable by ChatGPT, Google AI, x402 indexers, A2A Registry, and other A2A platforms
  * 
- * UPDATED: Jul 8 2026 - Now includes all 69 x402 services with correct pricing
+ * UPDATED: Jul 8 2026 - Now includes all 72 x402 services with correct pricing
  */
 router.get('/.well-known/agent-card.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);

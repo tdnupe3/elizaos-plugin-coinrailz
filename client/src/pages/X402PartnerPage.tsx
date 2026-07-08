@@ -7,14 +7,14 @@ import { ArrowRight, Globe, Zap, Shield, BarChart3, Mail } from "lucide-react";
 export default function X402PartnerPage() {
   useSEO({
     title: "x402 Ecosystem Partner | Coin Railz",
-    description: "Join the x402 ecosystem. 69 services, 14 categories, 6 NASA/ESA satellite data products. Cross-promote, integrate, and grow together.",
+    description: "Join the x402 ecosystem. 72 services, 14 categories, 6 NASA/ESA satellite data products. Cross-promote, integrate, and grow together.",
     keywords: "x402, partner, ecosystem, AI agent payments, Coinbase Bazaar, USDC micropayments",
     ogTitle: "x402 Ecosystem Partner — Coin Railz",
-    ogDescription: "69 pay-per-call APIs across 14 categories. Let's cross-promote and grow the agent economy together.",
+    ogDescription: "72 pay-per-call APIs across 14 categories. Let's cross-promote and grow the agent economy together.",
   });
 
   const stats = [
-    { label: "Pay-Per-Call APIs", value: "69", sub: "across 14 categories" },
+    { label: "Pay-Per-Call APIs", value: "72", sub: "across 14 categories" },
     { label: "Satellite APIs", value: "6", sub: "NASA + ESA data" },
     { label: "Agents Discovered", value: "2,800+", sub: "via Bazaar indexing" },
     { label: "x402 Challenges", value: "23K+", sub: "402 responses served" },
@@ -55,7 +55,7 @@ export default function X402PartnerPage() {
               Let's Grow the Agent Economy Together
             </h1>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-              Coin Railz runs 69 pay-per-call APIs on Base and Ethereum. We found your services on Bazaar and think there's an opportunity to collaborate.
+              Coin Railz runs 72 pay-per-call APIs on Base and Ethereum. We found your services on Bazaar and think there's an opportunity to collaborate.
             </p>
           </div>
 

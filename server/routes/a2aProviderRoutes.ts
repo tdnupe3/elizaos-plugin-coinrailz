@@ -50,7 +50,7 @@ export function createProviderRouter(provider: ProviderType): Router {
     // Return enriched agent card with Coin Railz integration details
     const enrichedCard = {
       name: `Coin Railz x402 API (via ${provider})`,
-      description: `Access Coin Railz x402 micropayment services through ${provider}. 69 curated APIs for crypto/trading intelligence, satellite & IoT data, and prediction markets.`,
+      description: `Access Coin Railz x402 micropayment services through ${provider}. 72 curated APIs for crypto/trading intelligence, satellite & IoT data, and prediction markets.`,
       version: "2.0.0",
       provider_bridge: provider,
       

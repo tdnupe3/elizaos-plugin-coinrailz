@@ -99,7 +99,11 @@ export type ServiceName =
   // Base Native — B20 Token Standard (Base Beryl, July 8 2026)
   | "b20-token-info"
   | "b20-transfer-check"
-  | "b20-compliance-scan";
+  | "b20-compliance-scan"
+  // Robinhood Chain DEX Data (eip155:4663, Arbitrum Orbit L2, launched July 8 2026)
+  | "robinhood-token-price"
+  | "robinhood-dex-pools"
+  | "robinhood-chain-stats";
 
 /**
  * Type guard to check if a string is a valid ServiceName
@@ -203,6 +207,11 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   "b20-token-info": 50000,             // $0.05 - ERC-20 metadata + B20 compliance mode/freeze state
   "b20-transfer-check": 100000,        // $0.10 - Simulate transfer given live freeze/blocklist/allowlist
   "b20-compliance-scan": 250000,       // $0.25 - Multi-issuer compliance scan for a wallet address
+
+  // ROBINHOOD CHAIN DEX DATA (eip155:4663, Arbitrum Orbit L2, launched July 8 2026)
+  "robinhood-token-price": 600000,     // $0.60 - Day-1 exclusivity premium: token price + pool data on Robinhood Chain
+  "robinhood-dex-pools": 1250000,      // $1.25 - Top DEX liquidity pools on Robinhood Chain (trading/routing data)
+  "robinhood-chain-stats": 750000,     // $0.75 - Chain health: block, gas, total DEX volume, active pools
   
   // SATELLITE DATA SERVICES (NASA Earthdata + ESA Copernicus)
   "fire-alerts": 50000,                // $0.05 - NASA FIRMS active fire detection
@@ -312,6 +321,11 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   "b20-token-info": 0.05,
   "b20-transfer-check": 0.10,
   "b20-compliance-scan": 0.25,
+
+  // Robinhood Chain DEX Data (eip155:4663, Arbitrum Orbit L2, launched July 8 2026)
+  "robinhood-token-price": 0.60,
+  "robinhood-dex-pools": 1.25,
+  "robinhood-chain-stats": 0.75,
   
   // Satellite Data Services (NASA Earthdata + ESA Copernicus)
   "fire-alerts": 0.05,

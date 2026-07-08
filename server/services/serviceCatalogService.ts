@@ -247,11 +247,11 @@ export class ServiceCatalogService {
       {
         id: 'arbitrage-scanner',
         name: 'Cross-Chain Arbitrage Scanner',
-        description: 'Identify arbitrage opportunities across 7 blockchains',
+        description: 'Identify arbitrage opportunities across Ethereum, Base, Polygon, Arbitrum, and Robinhood Chain (eip155:4663). Real prices sourced from DexScreener including Robinhood Chain Uniswap V3. Returns opportunities with estimated profit, required capital, and execution path.',
         endpoint: '/x402/arbitrage-scanner',
         network: 'eip155:8453',
         category: 'trading-intelligence',
-        capabilities: ['arbitrage', 'cross-chain', 'opportunity-detection'],
+        capabilities: ['arbitrage', 'cross-chain', 'opportunity-detection', 'robinhood-chain'],
         x402Compatible: true,
         stripeCompatible: true
       },

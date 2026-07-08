@@ -5241,6 +5241,7 @@ export const arbitrageScannerInputSchema = z.object({
   maxGasPrice: z.number().positive().optional(),
   chains: z.array(z.string()).optional(),
   includeGasCosts: z.boolean().optional(),
+  capitalUSD: z.number().positive().optional(),
 });
 
 export const correlationMatrixInputSchema = z.object({

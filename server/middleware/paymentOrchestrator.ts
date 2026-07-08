@@ -2607,7 +2607,7 @@ function generate402Response(
     "portfolio-optimization": "MPT rebalancing for any EVM wallet. Optimal target weights, projected Sharpe ratio improvement, estimated rebalance cost. Pass { address } or { holdings }.",
     "correlation-matrix": "Asset correlation matrix analysis",
     "risk-metrics": "VaR, Sharpe ratio, and risk metrics",
-    "arbitrage-scanner": "Cross-chain arbitrage opportunity detection",
+    "arbitrage-scanner": "Cross-chain arbitrage opportunity scanner including Robinhood Chain (eip155:4663). Fetches real prices from DexScreener across Ethereum, Base, Polygon, Arbitrum, and Robinhood Chain's Uniswap V3. Returns opportunities with estimated profit, required capital, and step-by-step execution path. Pass { assets, chains, minProfitPercent, capitalUSD }.",
     "polymarket-events": "Trending prediction market events",
     "polymarket-odds": "Current odds for prediction markets",
     "polymarket-search": "Search prediction markets by keyword",
@@ -2677,8 +2677,11 @@ function generate402Response(
       milestones: [{ name: "foundation", complete: true }, { name: "framing", complete: true }, { name: "roofing", complete: false }]
     },
     "arbitrage-scanner": {
-      opportunities: [{ pair: "ETH/USDC", buyOn: "base", sellOn: "arbitrum", spread: 0.18, estimatedProfit: "$1.80 per $1000" }],
-      count: 2, timestamp: "2026-03-17T12:00:00Z"
+      opportunities: [
+        { asset: "WETH", buyChain: "Robinhood Chain", sellChain: "Base", buyPriceUSD: 3481.22, sellPriceUSD: 3498.67, profitPercentage: 0.50, estimatedProfit: 38.20, requiredCapital: 10000, executionPath: ["Buy WETH on Uniswap V3 (Robinhood Chain) at $3481.22", "Bridge via Robinhood Chain Bridge (Arbitrum Orbit)", "Sell WETH on Uniswap V3 (Base) at $3498.67"] }
+      ],
+      totalOpportunities: 1, robinhoodChainIncluded: true, robinhoodChainId: "eip155:4663",
+      timestamp: "2026-07-08T12:00:00Z"
     },
     "contract-scan": {
       address: "0x...", risk: "low", issues: [], verified: true, auditScore: 94,

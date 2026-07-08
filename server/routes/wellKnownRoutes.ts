@@ -149,36 +149,48 @@ router.get('/.well-known/mcp-server.json', async (req: Request, res: Response) =
  * and the canonical nested path defined in the spec.
  */
 function buildServerCard(baseUrl: string) {
+  const services = getCanonicalServices();
+
+  const tools = services.map(s => {
+    const price = s.priceUsd > 0 ? `$${s.priceUsd.toFixed(2)} USDC` : 'free';
+    const inputSchema = (s.inputSchema ?? { type: 'object', properties: {}, required: [] }) as Record<string, unknown>;
+    return {
+      name: `coinrailz_${s.id.replace(/-/g, '_')}`,
+      description: `[${price}] ${s.name} — ${s.description}. Price: ${price}`,
+      inputSchema,
+    };
+  });
+
   return {
-    $schema: "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-    name: "coinrailz/x402-payment-infrastructure",
+    serverInfo: {
+      name: "coinrailz/x402-payment-infrastructure",
+      version: "1.1.0",
+    },
     title: "Coin Railz x402 Payment Infrastructure",
-    description: `Production-grade x402 USDC payment infrastructure for AI agents. Coinbase AgentKit compatible. ${getCanonicalServiceCount()} paid services across 8 blockchains (7 EVM + Solana) — Crypto Intelligence, Trading, Market Intelligence, Satellite Data (NASA/ESA), IoT/DePIN, AI Inference, and more. Settle in USDC with no accounts or API keys required.`,
-    version: "1.0.0",
-    protocolVersion: "2024-11-05",
-    serverUrl: `${baseUrl}/mcp/tools/call`,
+    description: `Production-grade x402 USDC payment infrastructure for AI agents. Coinbase AgentKit compatible. ${services.length} paid services across 8 blockchains (7 EVM + Solana). Categories: Crypto Intelligence, Trading Signals, Market Intelligence, Prediction Markets (Kalshi/Polymarket), Satellite Data (NASA Earthdata + ESA Sentinel), IoT & DePIN, AI Inference (GPT-4o-mini), Real Estate, Banking, and Compliance. Prices $0.05–$10.00 per call. Free $5 trial key at /api/m2m/credits/trial. AP2 v0.1, A2A 0.3.0, x402 v2.12 compatible.`,
     iconUrl: `${baseUrl}/attached_assets/Coin%20Railz%20Logo%20No%20BG.png`,
     documentationUrl: `${baseUrl}/mcp-integration-guide`,
+    homepage: "https://coinrailz.com",
+    contact: "support@coinrailz.com",
     transport: {
-      type: "http",
-      endpoint: "/mcp/tools/call",
-      listEndpoint: "/mcp/tools/list"
-    },
-    capabilities: {
-      tools: { listChanged: false },
-      resources: false,
-      prompts: false
-    },
-    tools: "dynamic",
-    payment: {
-      href: `${baseUrl}/.well-known/x402.json`,
-      rel: "payment-policy",
-      rails: ["x402"]
+      type: "streamable-http",
+      endpoint: `${baseUrl}/mcp`,
+      listEndpoint: `${baseUrl}/mcp/tools/list`,
     },
     authentication: {
       required: false,
-      note: "Services are pay-per-call via x402 USDC on Base. Free trial key available at /api/m2m/credits/trial."
-    }
+      note: "No auth required for tool discovery. Individual tool calls are pay-per-call via x402 USDC on Base, or prepaid credits via X-API-KEY header. Free $5 trial key: GET https://coinrailz.com/api/m2m/credits/trial",
+    },
+    payment: {
+      href: `${baseUrl}/.well-known/x402.json`,
+      rel: "payment-policy",
+      rails: ["x402", "stripe"],
+      settlementToken: "USDC",
+      settlementChains: ["base", "solana"],
+    },
+    tools,
+    resources: [],
+    prompts: [],
   };
 }
 

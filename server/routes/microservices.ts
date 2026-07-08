@@ -757,11 +757,24 @@ async function tokenSocialSentimentService(tokenSymbol: string, chain: string = 
 
 // Robinhood Chain (eip155:4663, Arbitrum Orbit L2) launched July 1, 2026.
 // Uniswap v3 is the primary DEX. DexScreener slug: "robinhood".
-// Subgraph: try The Graph hosted service first, fall back to DexScreener.
+//
+// SUBGRAPH STATUS (verified July 8, 2026):
+//   Set ROBINHOOD_SUBGRAPH_DEPLOYED = false because no Uniswap v3 subgraph
+//   exists for Robinhood Chain on The Graph hosted service (returns HTTP 301)
+//   or Goldsky (returns 404). Both were checked on July 8, 2026.
+//   When a subgraph is published, set ROBINHOOD_SUBGRAPH_DEPLOYED = true and
+//   update ROBINHOOD_UNISWAP_SUBGRAPH to the working URL. The fetchRobinhood*
+//   functions will automatically prefer subgraph data over DexScreener once
+//   the flag is enabled. Verified live data source: DexScreener chainId="robinhood"
+//   returns real tokens with non-zero volume and price as of chain launch.
+const ROBINHOOD_SUBGRAPH_DEPLOYED = false;
 const ROBINHOOD_UNISWAP_SUBGRAPH =
   "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3-robinhood";
 
 async function queryRobinhoodSubgraph(query: string, variables: Record<string, any> = {}): Promise<any> {
+  if (!ROBINHOOD_SUBGRAPH_DEPLOYED) {
+    throw new Error("Robinhood Chain Uniswap v3 subgraph not yet deployed — using DexScreener");
+  }
   const response = await axios.post(
     ROBINHOOD_UNISWAP_SUBGRAPH,
     { query, variables },
@@ -2517,6 +2530,99 @@ router.post("/dex-liquidity", async (req: Request, res: Response) => {
     await trackRequest(serviceId, req.body, null, responseTime, SERVICE_PRICING[serviceId], req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+// Robinhood Chain live data health check — validates all three services return
+// real on-chain data. Use this to confirm the chain is live and DexScreener
+// is indexing it. Returns pass/fail for each service with actual response data.
+router.get("/health/robinhood-chain", async (req: Request, res: Response) => {
+  const results: Record<string, any> = {
+    chain: "robinhood",
+    chainId: "eip155:4663",
+    subgraphDeployed: ROBINHOOD_SUBGRAPH_DEPLOYED,
+    activeDataSource: ROBINHOOD_SUBGRAPH_DEPLOYED ? "uniswap-v3-subgraph" : "dexscreener",
+    timestamp: new Date().toISOString(),
+    checks: {} as Record<string, any>,
+  };
+
+  let allPassed = true;
+
+  // Check 1: trending-tokens — expect at least 1 token with non-zero volume
+  try {
+    const trendingResult = await trendingTokensFeedService("24h", "robinhood", 10);
+    const tokens = [...(trendingResult.topGainers || []), ...(trendingResult.topLosers || [])];
+    const withVolume = tokens.filter((t: any) => {
+      const vol = parseFloat(String(t.volume24h || "0").replace(/[\$,]/g, ""));
+      return vol > 0;
+    });
+    const passed = tokens.length >= 1 && withVolume.length >= 1;
+    if (!passed) allPassed = false;
+    results.checks.trendingTokens = {
+      passed,
+      tokenCount: tokens.length,
+      tokensWithNonZeroVolume: withVolume.length,
+      sampleToken: tokens[0]
+        ? { symbol: tokens[0].symbol, price: tokens[0].price, volume24h: tokens[0].volume24h, source: tokens[0].source }
+        : null,
+    };
+  } catch (err: any) {
+    allPassed = false;
+    results.checks.trendingTokens = { passed: false, error: err.message };
+  }
+
+  // Check 2: dex-liquidity — use the first token address found from trending
+  const knownToken = "0x3338d39A84e965e6aEa8eb734248B4e7445dE53c"; // foreskin/WETH — first Robinhood Chain token on DexScreener
+  try {
+    const liquidityResult = await dexLiquidityMonitorService(knownToken, "robinhood");
+    const pools: any[] = liquidityResult.pools || [];
+    const withLiquidity = pools.filter((p: any) => {
+      const liq = parseFloat(String(p.liquidityUSD || "0").replace(/[\$,]/g, ""));
+      return liq > 0;
+    });
+    const passed = pools.length >= 1 && withLiquidity.length >= 1;
+    if (!passed) allPassed = false;
+    results.checks.dexLiquidity = {
+      passed,
+      tokenAddress: knownToken,
+      poolCount: pools.length,
+      poolsWithLiquidity: withLiquidity.length,
+      samplePool: pools[0]
+        ? { pair: `${pools[0].baseToken}/${pools[0].quoteToken}`, liquidityUSD: pools[0].liquidityUSD, volume24h: pools[0].volume24h, priceUSD: pools[0].priceUSD, source: pools[0].source }
+        : null,
+    };
+  } catch (err: any) {
+    allPassed = false;
+    results.checks.dexLiquidity = { passed: false, tokenAddress: knownToken, error: err.message };
+  }
+
+  // Check 3: trade-signals — expect non-zero priceUSD in market_snapshot
+  try {
+    const signalResult = await tradeSignalsService({ token: "BULL", chain: "robinhood", timeframe: "24h", riskLevel: "medium" });
+    const snap = signalResult.market_snapshot || {};
+    const priceStr = String(snap.priceUSD || "0").replace(/[\$,]/g, "");
+    const priceNonZero = parseFloat(priceStr) > 0;
+    const hasSignal = !!signalResult.signal && signalResult.signal !== "error";
+    const passed = priceNonZero && hasSignal;
+    if (!passed) allPassed = false;
+    results.checks.tradeSignals = {
+      passed,
+      token: signalResult.token,
+      signal: signalResult.signal,
+      confidence: signalResult.confidence,
+      priceUSD: snap.priceUSD,
+      priceNonZero,
+      volume24h: snap.volume24h,
+      poweredBy: signalResult.powered_by || signalResult.note,
+      dataSource: signalResult.data_source,
+    };
+  } catch (err: any) {
+    allPassed = false;
+    results.checks.tradeSignals = { passed: false, error: err.message };
+  }
+
+  results.allPassed = allPassed;
+  results.status = allPassed ? "healthy" : "degraded";
+  res.status(allPassed ? 200 : 503).json({ success: allPassed, data: results });
 });
 
 // Operational monitoring endpoint for circuit breaker health

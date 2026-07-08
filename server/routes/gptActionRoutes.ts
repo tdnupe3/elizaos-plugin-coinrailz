@@ -4,6 +4,7 @@ import { creditsService } from '../services/creditsService';
 import { SERVICE_PRICING_USD, ServiceName, isServiceName } from '@shared/pricing';
 import gptCreditsRoutes from './gptCreditsRoutes';
 import { getAuthContext, getRealUserId, gptAuthMiddleware, isAuthenticated, isProvisional, resolveOrCreateSessionUser, hasValidSession } from '../services/gptAuthResolver';
+import { arbitrageScannerService } from './microservices/intelligence';
 
 const router = Router();
 
@@ -852,19 +853,19 @@ router.post('/arbitrage-scanner', async (req: Request, res: Response) => {
   }
   
   try {
-    const opportunities = [
-      { buyDex: 'Uniswap V3', sellDex: 'SushiSwap', spread: '0.45%', potentialProfit: '$45', gasEstimate: '$12' },
-      { buyDex: 'Curve', sellDex: 'Balancer', spread: '0.32%', potentialProfit: '$32', gasEstimate: '$8' },
-      { buyDex: 'PancakeSwap', sellDex: 'TraderJoe', spread: '0.28%', potentialProfit: '$28', gasEstimate: '$5' }
-    ];
-    
+    const { assets, minProfitPercent, maxGasPrice, chains, includeGasCosts, capitalUSD } = req.body;
+    const result = await arbitrageScannerService({
+      assets: assets || [token],
+      minProfitPercent,
+      maxGasPrice,
+      chains,
+      includeGasCosts,
+      capitalUSD,
+    });
+
     res.json({
-      success: true,
-      token,
-      opportunities,
-      timestamp: new Date().toISOString(),
+      ...result,
       creditsCharged: validation.chargedAmount,
-      disclaimer: 'Opportunities are time-sensitive and may no longer exist. Always verify before executing.'
     });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });

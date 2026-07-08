@@ -142,7 +142,7 @@ router.get("/metrics", async (_req: Request, res: Response) => {
       campaigns: campaignStats.rows ?? [],
       narrative: {
         positioning: "First-mover in x402 micropayment infrastructure for AI agents",
-        circleAlignment: "USDC-native settlement across 8 chains, x402 protocol adoption",
+        circleAlignment: "USDC-native settlement across 9 chains, x402 protocol adoption",
         traction: `${onChainTxs.rows?.[0]?.count ?? 103} on-chain messages, ${directApiSuccesses.rows?.[0]?.count ?? 2967} API contacts, 242 agents discovered`,
         ask: "Circle partnership for CCTP integration and co-marketing to x402 ecosystem"
       }

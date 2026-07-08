@@ -1,7 +1,7 @@
 # Coin Railz - Multi-Chain Payment Infrastructure
 
 ## Overview
-Coin Railz is developing a universal payment layer for the AI agent economy, enabling cross-platform payment routing across 8 blockchains (7 EVM + Solana), primarily settling in USDC. The platform provides a multi-chain payment SDK, x402 protocol micropayments, agent-to-agent commerce infrastructure, DEX aggregation, and P2P payment routing. It aims to be the crypto-native equivalent of fiat-based agentic commerce protocols.
+Coin Railz is developing a universal payment layer for the AI agent economy, enabling cross-platform payment routing across 9 blockchains (8 EVM + Solana), primarily settling in USDC. The platform provides a multi-chain payment SDK, x402 protocol micropayments, agent-to-agent commerce infrastructure, DEX aggregation, and P2P payment routing. It aims to be the crypto-native equivalent of fiat-based agentic commerce protocols.
 
 Coin Railz also offers production-grade device payment infrastructure for IoT and DePIN networks, facilitating AI agent payments to IoT devices for data via the x402 protocol. This includes dedicated landing pages and demo UIs for Fleet Telematics, Weather Data, and Satellite Data, along with a unified credits system for both AI agents and IoT devices. The project's vision includes serving as the foundational payment infrastructure for a thriving AI agent ecosystem, unlocking new market potentials in autonomous commerce and data exchange.
 

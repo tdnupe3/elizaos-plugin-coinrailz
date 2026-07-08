@@ -219,7 +219,7 @@ export class A2AOutreachService {
       serviceName: 'Gas Price Oracle',
       endpoint: 'https://coinrailz.com/x402/gas-price-oracle',
       price: '$0.03/request',
-      relevanceReason: 'real-time gas pricing across 8 chains'
+      relevanceReason: 'real-time gas pricing across 9 chains'
     };
   }
 
@@ -319,7 +319,7 @@ export class A2AOutreachService {
             parts: [
               {
                 type: 'text',
-                text: 'Coin Railz — 60 pay-per-call data services across 8 chains. Machine-readable catalog at https://coinrailz.com/x402/catalog. Free probe: GET https://coinrailz.com/x402/ping. Requesting directory placement for AI agent discovery.'
+                text: 'Coin Railz — 60 pay-per-call data services across 9 chains. Machine-readable catalog at https://coinrailz.com/x402/catalog. Free probe: GET https://coinrailz.com/x402/ping. Requesting directory placement for AI agent discovery.'
               },
               {
                 type: 'data',
@@ -337,7 +337,7 @@ export class A2AOutreachService {
                     url: 'https://coinrailz.com/x402/ping',
                     method: 'GET',
                     cost: 'free',
-                    returns: 'live gas prices across 8 chains'
+                    returns: 'live gas prices across 9 chains'
                   },
                   verified_payment: {
                     first_call_endpoint: 'https://coinrailz.com/x402/first-call',
@@ -569,7 +569,7 @@ export class A2AOutreachService {
     } else {
       // Agent may not have x402 payment client — start them on the free endpoint.
       // Clear path: try /x402/ping (free) → see real data → upgrade to paid calls.
-      primaryMessage = `Free data endpoint: GET https://coinrailz.com/x402/ping — returns live gas prices across 8 chains. No API key, no payment required. Paid tier: ${ service.price} for ${ service.serviceName} via x402 USDC on Base.`;
+      primaryMessage = `Free data endpoint: GET https://coinrailz.com/x402/ping — returns live gas prices across 9 chains. No API key, no payment required. Paid tier: ${ service.price} for ${ service.serviceName} via x402 USDC on Base.`;
       trialData = {
         type: 'x402_trial',
         action: 'call_endpoint',
@@ -578,7 +578,7 @@ export class A2AOutreachService {
           url: 'https://coinrailz.com/x402/ping',
           method: 'GET',
           cost: 'free',
-          what_you_get: 'Live gas prices across 8 chains (Ethereum, Base, Polygon, Arbitrum, BSC, Optimism, Solana, Avalanche)'
+          what_you_get: 'Live gas prices across 9 chains (Ethereum, Base, Polygon, Arbitrum, BSC, Optimism, Solana, Avalanche, Robinhood Chain)'
         },
         paid_endpoint: {
           url: service.endpoint,

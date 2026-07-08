@@ -236,7 +236,7 @@ export class ServiceCatalogService {
       {
         id: 'multi-chain-balance',
         name: 'Multi-Chain Balance',
-        description: 'USDC, ETH, and top-token balances for any wallet across 7 EVM chains + Solana. Returns USD-denominated totals aggregated in one call. Pass { address } — no chain parameter needed.',
+        description: 'USDC, ETH, and top-token balances for any wallet across 8 EVM chains + Solana (incl. Robinhood Chain). Returns USD-denominated totals aggregated in one call. Pass { address } — no chain parameter needed.',
         endpoint: '/x402/multi-chain-balance',
         network: 'eip155:8453',
         category: 'trading-intelligence',
@@ -326,7 +326,7 @@ export class ServiceCatalogService {
       {
         id: 'payment-processing',
         name: 'Payment Processing',
-        description: 'Route any USDC or stablecoin payment across 7 EVM chains + Solana. Returns optimal network for lowest fees, estimated on-chain confirmation time, and payment receipt with txHash.',
+        description: 'Route any USDC or stablecoin payment across 8 EVM chains + Solana (incl. Robinhood Chain). Returns optimal network for lowest fees, estimated on-chain confirmation time, and payment receipt with txHash.',
         endpoint: '/x402/payment-processing',
         network: 'eip155:8453',
         category: 'premium',

@@ -129,7 +129,7 @@ export class OnChainX402Outreach {
     const message =
       `CRZ/1 ${jsonHeader}\n\n` +
       'Try it: GET https://coinrailz.com/x402/ping\n' +
-      'Returns live gas prices across 8 chains. Free.\n\n' +
+      'Returns live gas prices across 9 chains. Free.\n\n' +
       'Paid tier: GET https://coinrailz.com/x402/gas-price-oracle\n' +
       '$0.03 USDC via x402 on Base. No API key, no signup.\n\n' +
       '60 endpoints: DeFi, satellite data, prediction markets,\n' +

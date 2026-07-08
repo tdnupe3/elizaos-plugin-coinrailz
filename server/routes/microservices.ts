@@ -100,6 +100,7 @@ const rpcUrls = {
   bnb: "https://bsc-dataseed1.binance.org",
   avalanche: "https://api.avax.network/ext/bc/C/rpc",
   optimism: "https://mainnet.optimism.io",
+  robinhood: "https://rpc.mainnet.chain.robinhood.com", // Chain ID 4663, Arbitrum Orbit L2
 };
 
 // Helper: Track request in database
@@ -204,8 +205,8 @@ async function multiChainBalanceService(walletAddress: string, chains?: string[]
       // Check if Alchemy-supported chain
       const alchemy = alchemyConfigs[chain as keyof typeof alchemyConfigs];
       
-      // For BNB and Avalanche, use direct RPC calls
-      if (!alchemy && (chain === "bnb" || chain === "avalanche")) {
+      // For BNB, Avalanche, and Robinhood Chain, use direct RPC calls
+      if (!alchemy && (chain === "bnb" || chain === "avalanche" || chain === "robinhood")) {
         const rpcUrl = rpcUrls[chain as keyof typeof rpcUrls];
         const response = await axios.post(rpcUrl, {
           jsonrpc: "2.0",
@@ -216,17 +217,20 @@ async function multiChainBalanceService(walletAddress: string, chains?: string[]
         
         const balance = parseInt(response.data.result, 16);
         const balanceEth = balance / 1e18;
-        const ethPrice = await getEthPrice(); // Approximate - BNB and AVAX prices similar range
-        const nativeUSD = balanceEth * ethPrice * (chain === "bnb" ? 0.15 : 0.08); // Rough price ratios
+        const ethPrice = await getEthPrice();
+        // BNB/AVAX have their own price; Robinhood Chain uses ETH as gas token
+        const priceRatio = chain === "bnb" ? 0.15 : chain === "avalanche" ? 0.08 : 1.0;
+        const nativeUSD = balanceEth * ethPrice * priceRatio;
 
         results.totalValueUSD += nativeUSD;
 
+        const nativeSymbol = chain === "bnb" ? "BNB" : chain === "avalanche" ? "AVAX" : "ETH";
         return {
           chain,
           data: {
-            native: `${balanceEth.toFixed(6)} ${chain === "bnb" ? "BNB" : "AVAX"}`,
+            native: `${balanceEth.toFixed(6)} ${nativeSymbol}`,
             nativeUSD: `$${nativeUSD.toFixed(2)}`,
-            tokens: [], // Token balance not supported for these chains yet
+            tokens: [],
           },
         };
       }
@@ -298,8 +302,8 @@ async function gasPriceOracleService(chains: string[]) {
       // Check if Alchemy-supported chain
       const alchemy = alchemyConfigs[chain as keyof typeof alchemyConfigs];
       
-      // For BNB, Avalanche, and Optimism use direct public RPC calls
-      if (!alchemy && (chain === "bnb" || chain === "avalanche" || chain === "optimism")) {
+      // For BNB, Avalanche, Optimism, and Robinhood Chain use direct public RPC calls
+      if (!alchemy && (chain === "bnb" || chain === "avalanche" || chain === "optimism" || chain === "robinhood")) {
         const rpcUrl = rpcUrls[chain as keyof typeof rpcUrls];
         const response = await axios.post(rpcUrl, {
           jsonrpc: "2.0",

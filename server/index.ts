@@ -153,7 +153,7 @@ app.get('/.well-known/x402.json', (req, res, next) => {
     facilitatorUrl: CDP_FACILITATOR_URL,
     payTo: PLATFORM_PAY_TO,
     facilitator: CDP_FACILITATOR_URL,
-    description: 'Coin Railz - Universal payment infrastructure for AI agents. Multi-chain USDC across 8 networks (7 EVM + Solana).',
+    description: 'Coin Railz - Universal payment infrastructure for AI agents. Multi-chain USDC across 9 networks (8 EVM + Solana).',
     version: 'x402-2.3',
     updated: '2026-05-05T00:00:00Z',
     platformUrl: 'https://coinrailz.com',

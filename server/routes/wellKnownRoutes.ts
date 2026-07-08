@@ -104,7 +104,7 @@ router.get('/.well-known/mcp.json', async (req: Request, res: Response) => {
   res.status(200).json({
     mcp_version: "1.0.0",
     name: "Coin Railz MCP Server",
-    description: `Multi-chain x402 USDC payment infrastructure for AI agents. Coinbase AgentKit compatible. ${getCanonicalServiceCount()} services across 8 blockchains.`,
+    description: `Multi-chain x402 USDC payment infrastructure for AI agents. Coinbase AgentKit compatible. ${getCanonicalServiceCount()} services across 9 blockchains.`,
     version: "1.0.0",
     url: baseUrl,
     endpoints: {
@@ -167,7 +167,7 @@ function buildServerCard(baseUrl: string) {
       version: "1.1.0",
     },
     title: "Coin Railz x402 Payment Infrastructure",
-    description: `Production-grade x402 USDC payment infrastructure for AI agents. Coinbase AgentKit compatible. ${services.length} paid services across 8 blockchains (7 EVM + Solana). Categories: Crypto Intelligence, Trading Signals, Market Intelligence, Prediction Markets (Kalshi/Polymarket), Satellite Data (NASA Earthdata + ESA Sentinel), IoT & DePIN, AI Inference (GPT-4o-mini), Real Estate, Banking, and Compliance. Prices $0.05–$10.00 per call. Free $5 trial key at /api/m2m/credits/trial. AP2 v0.1, A2A 0.3.0, x402 v2.12 compatible.`,
+    description: `Production-grade x402 USDC payment infrastructure for AI agents. Coinbase AgentKit compatible. ${services.length} paid services across 9 blockchains (8 EVM + Solana). Categories: Crypto Intelligence, Trading Signals, Market Intelligence, Prediction Markets (Kalshi/Polymarket), Satellite Data (NASA Earthdata + ESA Sentinel), IoT & DePIN, AI Inference (GPT-4o-mini), Real Estate, Banking, and Compliance. Prices $0.05–$10.00 per call. Free $5 trial key at /api/m2m/credits/trial. AP2 v0.1, A2A 0.3.0, x402 v2.12 compatible.`,
     iconUrl: `${baseUrl}/attached_assets/Coin%20Railz%20Logo%20No%20BG.png`,
     documentationUrl: `${baseUrl}/mcp-integration-guide`,
     homepage: "https://coinrailz.com",
@@ -217,8 +217,8 @@ router.get('/.well-known/ai-plugin.json', async (req: Request, res: Response) =>
     schema_version: "v1",
     name_for_human: "Coin Railz Payments",
     name_for_model: "coin_railz_payments",
-    description_for_human: `${getCanonicalServiceCount()}-service x402 USDC payment infrastructure for AI agents across 8 blockchains.`,
-    description_for_model: `Production-grade x402 micropayment infrastructure for AI agents. ${getCanonicalServiceCount()} services across 8 blockchains (7 EVM + Solana), settling in USDC. Categories: Crypto Intelligence, Trading, Market Intelligence, Prediction Markets (Kalshi/Polymarket), Satellite Intelligence (NASA/ESA), IoT & DePIN (fleet telematics, weather stations, sensor data), AI Inference (GPT-4o-mini at $0.05/call), Real Estate, Banking, and Compliance. Pricing: $0.05–$10.00 per call. Free $5 trial key available at /api/m2m/credits/trial. Supports API-key prepaid credits and native x402 on-chain USDC payments.`,
+    description_for_human: `${getCanonicalServiceCount()}-service x402 USDC payment infrastructure for AI agents across 9 blockchains.`,
+    description_for_model: `Production-grade x402 micropayment infrastructure for AI agents. ${getCanonicalServiceCount()} services across 9 blockchains (8 EVM + Solana), settling in USDC. Categories: Crypto Intelligence, Trading, Market Intelligence, Prediction Markets (Kalshi/Polymarket), Satellite Intelligence (NASA/ESA), IoT & DePIN (fleet telematics, weather stations, sensor data), AI Inference (GPT-4o-mini at $0.05/call), Real Estate, Banking, and Compliance. Pricing: $0.05–$10.00 per call. Free $5 trial key available at /api/m2m/credits/trial. Supports API-key prepaid credits and native x402 on-chain USDC payments.`,
     auth: {
       type: "none"
     },
@@ -244,7 +244,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
   
   const a2aAgentCard = {
     name: "Coin Railz Multi-Chain Payment Infrastructure",
-    description: `Production-grade blockchain infrastructure for AI agents. ${getCanonicalServiceCount()} x402 micropayment services across 8 chains (7 EVM + Solana) + Native Coinbase Agentic Wallet support + OWS (Open Wallet Standard) compatible + MoonPay Agents compatible + NASA Earthdata Intelligence (5 services, $0.25/call) + ESA Satellite Data + AI Inference Gateway (GPT-4o-mini, $0.05/call) + IoT/DePIN data + SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker) + Real Estate + Banking + Trading + Market Intelligence + Prediction Markets. Processing fee: 1.5% + $0.01 per transaction.`,
+    description: `Production-grade blockchain infrastructure for AI agents. ${getCanonicalServiceCount()} x402 micropayment services across 9 chains (8 EVM + Solana) + Native Coinbase Agentic Wallet support + OWS (Open Wallet Standard) compatible + MoonPay Agents compatible + NASA Earthdata Intelligence (5 services, $0.25/call) + ESA Satellite Data + AI Inference Gateway (GPT-4o-mini, $0.05/call) + IoT/DePIN data + SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker) + Real Estate + Banking + Trading + Market Intelligence + Prediction Markets. Processing fee: 1.5% + $0.01 per transaction.`,
     version: "0.6.1",
     x402ManifestVersion: "x402-2.3",
     agentId: "coinrailz-x402-infrastructure",
@@ -423,7 +423,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "multi_chain_balance",
         name: "Multi-Chain Balance Checker",
-        description: "Check wallet balances across 7 EVM chains in one API call. Use when user asks 'what's my balance', 'check wallet on multiple chains', 'show my assets', 'balance on Ethereum', 'balance on Base', or 'balance on Polygon'.",
+        description: "Check wallet balances across 8 EVM chains in one API call. Use when user asks 'what's my balance', 'check wallet on multiple chains', 'show my assets', 'balance on Ethereum', 'balance on Base', 'balance on Robinhood Chain', or 'balance on Polygon'.",
         inputSchema: {
           type: "object",
           title: "Multi-Chain Balance Request",
@@ -4002,7 +4002,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     name: "Coin Railz",
     homepage: "https://coinrailz.com",
     contact: "support@coinrailz.com",
-    description: "AI agent marketplace with x402 autonomous payment endpoints, native Coinbase Agentic Wallet support, A2A 2.0 discovery, SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker), satellite data APIs (NASA/ESA), and multi-chain support across 8 networks (7 EVM + Solana). Processing fee: 1.5% + $0.01 per transaction.",
+    description: "AI agent marketplace with x402 autonomous payment endpoints, native Coinbase Agentic Wallet support, A2A 2.0 discovery, SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker), satellite data APIs (NASA/ESA), and multi-chain support across 9 networks (8 EVM + Solana). Processing fee: 1.5% + $0.01 per transaction.",
     version: "x402-2.12",
     specVersion: "2.12.0",
     x402Version: 2,
@@ -4852,7 +4852,7 @@ router.get('/.well-known/agent-registration.json', (req: Request, res: Response)
 
   res.status(200).json({
     specVersion: 'coinrailz-agent-registration/1.0',
-    description: `Register your AI agent with Coin Railz to access ${getCanonicalServiceCount()} x402 micropayment services across 8 chains.`,
+    description: `Register your AI agent with Coin Railz to access ${getCanonicalServiceCount()} x402 micropayment services across 9 chains.`,
 
     service: {
       name: 'Coin Railz',
@@ -5265,7 +5265,7 @@ router.get('/.well-known/mpp.json', (req: Request, res: Response) => {
     provider: {
       name: "Coin Railz",
       url: baseUrl,
-      description: `Multi-chain AI agent payment infrastructure. ${getCanonicalServiceCount()} services across 8 blockchains. Pay with pathUSD via Tempo or USDC via x402.`,
+      description: `Multi-chain AI agent payment infrastructure. ${getCanonicalServiceCount()} services across 9 blockchains. Pay with pathUSD via Tempo or USDC via x402.`,
       contact: "support@coinrailz.com",
     },
     protocol: "mpp",
@@ -5388,7 +5388,7 @@ router.get('/.well-known/webmcp.json', (req: Request, res: Response) => {
     schema: "https://webmcp.dev/schema/manifest.json",
     schemaVersion: "1.0",
     name: "Coin Railz x402 Payment Infrastructure",
-    description: `Production-grade multi-chain payment infrastructure for AI agents and MCP servers. ${getCanonicalServiceCount()} services across 8 blockchains. Pay-per-call via USDC/x402 or prepaid API-key credits. Includes USDC Yield Vault (ERC-4626 on Base, auto-routing across Aave v3/Compound v3/Morpho Blue), NASA Earthdata Intelligence, AI Inference, IoT/DePIN, Prediction Markets, and more. No account required for trial.`,
+    description: `Production-grade multi-chain payment infrastructure for AI agents and MCP servers. ${getCanonicalServiceCount()} services across 9 blockchains. Pay-per-call via USDC/x402 or prepaid API-key credits. Includes USDC Yield Vault (ERC-4626 on Base, auto-routing across Aave v3/Compound v3/Morpho Blue), NASA Earthdata Intelligence, AI Inference, IoT/DePIN, Prediction Markets, and more. No account required for trial.`,
     version: "1.0.0",
     provider: {
       name: "Coin Railz",
@@ -5459,7 +5459,7 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
     id: "coinrailz-x402-infrastructure",
     name: "Coin Railz",
     canonicalUrl: baseUrl,
-    description: `Universal payment rail for the AI agent economy. ${getCanonicalServiceCount()} pay-per-call services across 8 blockchains (7 EVM + Solana): financial data, satellite intelligence (NASA Earthdata), AI inference, DeFi analytics, IoT/DePIN, prediction markets, and more. Includes USDC Yield Vault (ERC-4626 on Base, auto-routing across Aave v3/Compound v3/Morpho Blue) — earn yield on idle USDC with no lockup. Settles in USDC. API-key credits path requires no crypto wallet.`,
+    description: `Universal payment rail for the AI agent economy. ${getCanonicalServiceCount()} pay-per-call services across 9 blockchains (8 EVM + Solana): financial data, satellite intelligence (NASA Earthdata), AI inference, DeFi analytics, IoT/DePIN, prediction markets, and more. Includes USDC Yield Vault (ERC-4626 on Base, auto-routing across Aave v3/Compound v3/Morpho Blue) — earn yield on idle USDC with no lockup. Settles in USDC. API-key credits path requires no crypto wallet.`,
     version_platform: "2.3.0",
     protocols: ["x402", "WebMCP", "A2A", "MPP", "OpenAPI"],
     capabilities: [
@@ -5711,7 +5711,7 @@ router.get('/.well-known/agent-directory.json', (req: Request, res: Response) =>
     platform: {
       name: 'Coin Railz',
       url: baseUrl,
-      description: `Multi-chain AI agent payment infrastructure. ${getCanonicalServiceCount()} x402 micropayment services across 8 blockchains (7 EVM + Solana), settling in USDC.`,
+      description: `Multi-chain AI agent payment infrastructure. ${getCanonicalServiceCount()} x402 micropayment services across 9 blockchains (8 EVM + Solana), settling in USDC.`,
       contact: 'support@coinrailz.com',
       agentCard: `${baseUrl}/.well-known/agent.json`,
       x402Manifest: `${baseUrl}/.well-known/x402.json`,
@@ -5721,7 +5721,7 @@ router.get('/.well-known/agent-directory.json', (req: Request, res: Response) =>
       {
         id: 'coinrailz-payment-infrastructure',
         name: 'Coin Railz Multi-Chain Payment Infrastructure',
-        description: `Production-grade x402 USDC payment infrastructure for AI agents. ${getCanonicalServiceCount()} micropayment services across 8 blockchains (Base, Ethereum, Polygon, Arbitrum, Optimism, BSC, Avalanche + Solana). Categories: Crypto Intelligence, Trading, Market Intelligence, Prediction Markets (Kalshi/Polymarket), Satellite Intelligence (NASA/ESA), IoT/DePIN, AI Inference, Real Estate, Banking, Compliance.`,
+        description: `Production-grade x402 USDC payment infrastructure for AI agents. ${getCanonicalServiceCount()} micropayment services across 9 blockchains (Base, Ethereum, Polygon, Arbitrum, Optimism, BSC, Avalanche, Robinhood Chain + Solana). Categories: Crypto Intelligence, Trading, Market Intelligence, Prediction Markets (Kalshi/Polymarket), Satellite Intelligence (NASA/ESA), IoT/DePIN, AI Inference, Real Estate, Banking, Compliance.`,
         url: baseUrl,
         endpoint: `${baseUrl}/a2a/v1/message/send`,
         agentCard: `${baseUrl}/.well-known/agent.json`,
@@ -5917,7 +5917,7 @@ router.get('/.well-known/api-catalog', (req: Request, res: Response) => {
   res.status(200).json({
     catalog_version: '1.0',
     platform: 'Coin Railz',
-    description: 'Multi-chain x402 USDC micropayment infrastructure for AI agents. Pay-per-call across 8 blockchains with no accounts required.',
+    description: 'Multi-chain x402 USDC micropayment infrastructure for AI agents. Pay-per-call across 9 blockchains with no accounts required.',
     openapi: `${baseUrl}/openapi.json`,
     services_total: catalog.services.length,
     x402_services: catalog.services.filter(s => s.x402Compatible).length,

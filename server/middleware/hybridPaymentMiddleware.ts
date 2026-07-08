@@ -74,7 +74,7 @@ function getProviderForChain(chain: EvmChain): ethers.JsonRpcProvider {
   return baseProvider;
 }
 
-function getStablecoinsForChain(chain: EvmChain) {
+export function getStablecoinsForChain(chain: EvmChain) {
   if (chain === 'ethereum') return ACCEPTED_STABLECOINS_ETH;
   if (chain === 'arbitrum') return ACCEPTED_STABLECOINS_ARB;
   if (chain === 'robinhood') return ACCEPTED_STABLECOINS_ROBINHOOD;
@@ -88,7 +88,7 @@ function getStablecoinsForChain(chain: EvmChain) {
  * which would return receipt-not-found and mis-report a valid payment as failed.
  * Returns null for unknown networks; callers must handle the null case.
  */
-function parseNetworkToChain(network?: string): EvmChain | null {
+export function parseNetworkToChain(network?: string): EvmChain | null {
   if (!network) return 'base';
   const n = network.toLowerCase().trim();
   if (n === 'ethereum' || n === 'eip155:1' || n === 'ethereum-mainnet') return 'ethereum';

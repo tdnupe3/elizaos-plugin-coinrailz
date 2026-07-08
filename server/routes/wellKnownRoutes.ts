@@ -3745,6 +3745,30 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         tags: ["iot", "bulk", "data", "depin", "x402"],
         inputModes: ["application/json"],
         outputModes: ["application/json"]
+      },
+      {
+        id: "b20-token-info",
+        name: "B20 Token Info",
+        description: "ERC-20 metadata plus B20 Native Token Standard compliance fields (freeze state, compliance mode, transfer memo requirement) for any token on Base mainnet. Activated post-Beryl hardfork. $0.05 per request.",
+        tags: ["b20", "base", "compliance", "token", "beryl", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "b20-transfer-check",
+        name: "B20 Transfer Check",
+        description: "Simulate whether a B20 token transfer will succeed given current freeze/blocklist/allowlist state on Base mainnet. Returns blockers and warnings. On-chain truth only. $0.10 per request.",
+        tags: ["b20", "base", "compliance", "transfer", "beryl", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "b20-compliance-scan",
+        name: "B20 Compliance Scan",
+        description: "Deep compliance scan of a wallet across multiple B20 token issuers on Base mainnet. Returns per-token freeze/blocklist status, frozen-until timestamps, and overall risk level. $0.25 per request.",
+        tags: ["b20", "base", "compliance", "scan", "beryl", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
       }
     ],
     

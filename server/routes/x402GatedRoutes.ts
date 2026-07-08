@@ -576,7 +576,7 @@ router.post('/token-price-lookup',
 
 // ============================================================================
 // DYNAMIC CATCH-ALL HANDLER FOR ALL x402 SERVICES
-// This ensures ALL 66 services work at /x402/service/<slug> URL pattern
+// This ensures ALL 69 services work at /x402/service/<slug> URL pattern
 // Services are defined in shared/pricing.ts as the single source of truth
 // ============================================================================
 

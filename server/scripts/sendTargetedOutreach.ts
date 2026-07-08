@@ -27,7 +27,7 @@ const TARGETS = {
     message: `🤖 CURATED MACHINE-PAYABLE DATA FOR AI AGENTS
 
 Coin Railz offers x402 micropayment APIs for AI agents:
-• 66 services: crypto, satellite/IoT, prediction markets, trading signals
+• 69 services: crypto, satellite/IoT, prediction markets, trading signals
 • Pay-per-call with USDC on Base or Solana (0.001-5.00 per request)
 • A2A protocol compatible
 
@@ -44,7 +44,7 @@ Reply or visit: coinrailz.com`
     message: `🤝 PARTNERSHIP PROPOSAL: Curated Data Rails for Virtuals Agents
 
 Coin Railz provides x402 payment infrastructure for Virtuals agents:
-• 66 micropayment APIs (crypto, satellite/IoT, prediction markets, trading intel)
+• 69 micropayment APIs (crypto, satellite/IoT, prediction markets, trading intel)
 • Native Base + Solana USDC integration
 • ERC-6551 agent wallet compatible
 

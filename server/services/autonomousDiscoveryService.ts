@@ -183,6 +183,10 @@ class AutonomousDiscoveryService {
         '/x402/iot-sensor-reading',
         '/x402/iot-device-stream',
         '/x402/iot-bulk-data',
+        // B20 Native Token Standard services (Base Beryl, Jul 8 2026)
+        '/x402/b20-token-info',
+        '/x402/b20-transfer-check',
+        '/x402/b20-compliance-scan',
         // NASA Earthdata Intelligence API endpoints (Mar 2026)
         '/api/satellite/earthdata/catalog',
         '/api/satellite/earthdata/granules',

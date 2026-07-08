@@ -5589,6 +5589,27 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
         chainId: 8453,
       },
       {
+        id: "robinhood-token-price",
+        name: "Robinhood Chain Token Price",
+        description: "Real-time token price on Robinhood Chain from the highest-liquidity DEX pool. Best price, 24h change, pool breakdown. $0.60/call.",
+        endpoint: `${baseUrl}/x402/robinhood-token-price`,
+        price: "$0.60 USDC",
+      },
+      {
+        id: "robinhood-dex-pools",
+        name: "Robinhood Chain DEX Pools",
+        description: "Top DEX liquidity pools on Robinhood Chain. Fee tier, 24h volume, TVL, price. Ideal for routing and arbitrage agents. $1.25/call.",
+        endpoint: `${baseUrl}/x402/robinhood-dex-pools`,
+        price: "$1.25 USDC",
+      },
+      {
+        id: "robinhood-chain-stats",
+        name: "Robinhood Chain Stats",
+        description: "Live chain-wide stats: block, gas price, total DEX pools, 24h volume, liquidity, top tokens. $0.75/call.",
+        endpoint: `${baseUrl}/x402/robinhood-chain-stats`,
+        price: "$0.75 USDC",
+      },
+      {
         id: "catalog",
         name: "Full Service Catalog",
         description: `${getCanonicalServiceCount()} services with pricing, schemas, and endpoints.`,

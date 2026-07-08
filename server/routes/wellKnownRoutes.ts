@@ -3799,7 +3799,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       paymentRails: ["x402-USDC", "stripe", "sdk-payments", "agentic-wallet"],  // Available payment methods
       totalServicesAvailable: getCanonicalServiceCount(),
       agenticWalletCompatible: true,    // Native Coinbase Agentic Wallet support
-      networksSupported: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"],   // Primary blockchain networks (CAIP-2 format)
+      networksSupported: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "eip155:4663", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"],   // Primary blockchain networks (CAIP-2 format)
       networkSupported: "eip155:8453",   // Primary blockchain network (CAIP-2 format) - kept for backwards compatibility
       paymentAsset: "USDC",              // Primary payment token
       sdkPackages: {
@@ -4044,7 +4044,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       docker: "tdnupe3/agent-payments",
       processingFee: "1.5% + $0.01"
     },
-    networks: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"],
+    networks: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "eip155:4663", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"],
     walletProviders: ["coinbase-cdp", "moonpay-agents", "any-evm"],
     categories: ["Execution", "Treasury Management", "Market Intelligence", "Prediction Markets", "Satellite Intelligence", "IoT & DePIN", "AI Inference", "Real Estate", "Identity"],
     facilitators: [
@@ -4140,7 +4140,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       },
     },
     blockchain: {
-      supported_chains: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"],
+      supported_chains: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain", "robinhood"],
       supported_tokens: ["USDC", "USDT", "ETH", "DAI"],
       primary_chain: "base"
     }
@@ -5005,7 +5005,7 @@ router.get('/.well-known/agent-registration.json', (req: Request, res: Response)
             catalogUrl: `${baseUrl}/x402/catalog`,
             docsUrl: `${baseUrl}/.well-known/agent-instructions.json`,
             recommendedFundingToken: 'USDC',
-            supportedChains: ['Base', 'Ethereum', 'Polygon', 'Arbitrum', 'Solana'],
+            supportedChains: ['Base', 'Ethereum', 'Polygon', 'Arbitrum', 'Robinhood Chain', 'Solana'],
           },
         },
       },

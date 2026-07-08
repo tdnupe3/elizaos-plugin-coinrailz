@@ -115,7 +115,7 @@ export class ServiceCatalogService {
       {
         id: 'trade-signals',
         name: 'AI Trade Signals',
-        description: 'AI-generated BUY/SELL/HOLD signal for any token with confidence score (0–100), price targets, stop-loss level, and multi-timeframe technical summary. GPT-4o powered. Pass { symbol } or { address }.',
+        description: 'GPT-4o powered BUY/SELL/HOLD signal with real live market data (price, volume, buy/sell pressure, liquidity) from DexScreener. Supports all EVM chains + Robinhood Chain (eip155:4663). Pass { token, chain?, timeframe?, riskLevel? }.',
         endpoint: '/x402/trade-signals',
         network: 'eip155:8453',
         category: 'trading-intelligence',
@@ -159,7 +159,7 @@ export class ServiceCatalogService {
       {
         id: 'trending-tokens',
         name: 'Trending Tokens Scanner',
-        description: 'Top trending tokens by volume momentum across Base, Ethereum, Arbitrum, and Polygon. Returns price change %, volume spike ratio, social velocity score, and DEX trade count in the last 1h/24h.',
+        description: 'Top trending tokens by volume momentum across Base, Ethereum, Arbitrum, Polygon, and Robinhood Chain (eip155:4663, Uniswap v3). Returns price change %, volume spike ratio, and DEX trade count. Pass { chain? } — use "robinhood" for Robinhood Chain data.',
         endpoint: '/x402/trending-tokens',
         network: 'eip155:8453',
         category: 'trading-intelligence',
@@ -181,7 +181,7 @@ export class ServiceCatalogService {
       {
         id: 'dex-liquidity',
         name: 'DEX Liquidity Analysis',
-        description: 'Liquidity depth at ±2% and ±5% slippage bands across Uniswap v3, Curve, Balancer, and Aerodrome. Returns best execution venue, estimated price impact, and available liquidity in USD per pool.',
+        description: 'Liquidity depth across Uniswap v3, Curve, Balancer, and Aerodrome. Now includes Robinhood Chain (eip155:4663) via Uniswap v3 subgraph with fee-tier breakdown. Returns best execution venue and available liquidity in USD per pool. Pass { tokenAddress, chain } — use "robinhood" for Robinhood Chain.',
         endpoint: '/x402/dex-liquidity',
         network: 'eip155:8453',
         category: 'trading-intelligence',

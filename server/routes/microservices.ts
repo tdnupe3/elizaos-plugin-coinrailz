@@ -6,6 +6,7 @@ import { Alchemy, Network } from "alchemy-sdk";
 import axios from "axios";
 import { eq, and, sql } from "drizzle-orm";
 import { withResilience } from '../utils/resilienceWrapper';
+import OpenAI from "openai";
 
 const router = Router();
 
@@ -752,13 +753,241 @@ async function tokenSocialSentimentService(tokenSymbol: string, chain: string = 
   }
 }
 
-// Service 7: Trending Tokens Feed
+// ============= ROBINHOOD CHAIN UNISWAP V3 HELPERS =============
+
+// Robinhood Chain (eip155:4663, Arbitrum Orbit L2) launched July 1, 2026.
+// Uniswap v3 is the primary DEX. DexScreener slug: "robinhood".
+// Subgraph: try The Graph hosted service first, fall back to DexScreener.
+const ROBINHOOD_UNISWAP_SUBGRAPH =
+  "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3-robinhood";
+
+async function queryRobinhoodSubgraph(query: string, variables: Record<string, any> = {}): Promise<any> {
+  const response = await axios.post(
+    ROBINHOOD_UNISWAP_SUBGRAPH,
+    { query, variables },
+    { timeout: 8000, headers: { "Content-Type": "application/json" } }
+  );
+  if (response.data.errors) {
+    throw new Error(`Subgraph error: ${JSON.stringify(response.data.errors)}`);
+  }
+  return response.data.data;
+}
+
+// Fetch top trending tokens from Robinhood Chain's Uniswap v3 subgraph.
+// Falls back to DexScreener with chainId="robinhood" if subgraph is unavailable.
+async function fetchRobinhoodTrendingTokens(limit: number = 20): Promise<any[]> {
+  // Primary: Uniswap v3 subgraph
+  try {
+    const data = await queryRobinhoodSubgraph(`
+      {
+        tokens(
+          first: ${Math.min(limit * 2, 50)},
+          orderBy: volumeUSD,
+          orderDirection: desc,
+          where: { volumeUSD_gt: "0" }
+        ) {
+          id
+          symbol
+          name
+          decimals
+          derivedETH
+          volumeUSD
+          totalLiquidity
+          txCount
+          tokenDayData(first: 2, orderBy: date, orderDirection: desc) {
+            priceUSD
+            dailyVolumeUSD
+            date
+          }
+        }
+        bundles(first: 1) {
+          ethPriceUSD
+        }
+      }
+    `);
+
+    const ethPrice = parseFloat(data.bundles?.[0]?.ethPriceUSD || "0");
+    const tokens = data.tokens || [];
+
+    return tokens.map((t: any) => {
+      const today = t.tokenDayData?.[0];
+      const yesterday = t.tokenDayData?.[1];
+      const priceUSD = parseFloat(today?.priceUSD || "0") || (parseFloat(t.derivedETH || "0") * ethPrice);
+      const prevPrice = parseFloat(yesterday?.priceUSD || "0") || priceUSD;
+      const priceChange = prevPrice > 0 ? ((priceUSD - prevPrice) / prevPrice) * 100 : 0;
+      const volume24h = parseFloat(today?.dailyVolumeUSD || "0");
+      const liquidity = parseFloat(t.totalLiquidity || "0") * priceUSD;
+      return {
+        symbol: t.symbol,
+        name: t.name,
+        address: t.id,
+        chain: "robinhood",
+        price: `$${priceUSD.toFixed(6)}`,
+        priceChange24h: `${priceChange.toFixed(2)}%`,
+        priceChangePct: priceChange,
+        volume24h: `$${volume24h.toLocaleString()}`,
+        liquidity: `$${liquidity.toLocaleString()}`,
+        marketCap: "N/A",
+        txns24h: parseInt(t.txCount || "0"),
+        source: "uniswap-v3-subgraph",
+      };
+    });
+  } catch (subgraphErr: any) {
+    console.warn(`[Robinhood] Uniswap subgraph unavailable (${subgraphErr.message}), falling back to DexScreener`);
+  }
+
+  // Fallback: DexScreener with chainId filter
+  const dsResp = await axios.get(
+    `https://api.dexscreener.com/token-profiles/latest/v1`,
+    { timeout: 10000 }
+  );
+  const all: any[] = dsResp.data || [];
+  const robinhoodTokens = all.filter((t: any) => t.chainId?.toLowerCase() === "robinhood");
+
+  const enriched: any[] = [];
+  for (const token of robinhoodTokens.slice(0, Math.min(limit * 2, 40))) {
+    try {
+      const pairResp = await axios.get(
+        `https://api.dexscreener.com/latest/dex/tokens/${token.tokenAddress}`,
+        { timeout: 5000 }
+      );
+      const pair = pairResp.data.pairs?.find((p: any) => p.chainId?.toLowerCase() === "robinhood")
+        || pairResp.data.pairs?.[0];
+      if (!pair) continue;
+      const priceChange = parseFloat(pair.priceChange?.h24 || "0");
+      enriched.push({
+        symbol: pair.baseToken?.symbol || "UNKNOWN",
+        name: pair.baseToken?.name || "Unknown",
+        address: token.tokenAddress,
+        chain: "robinhood",
+        price: `$${parseFloat(pair.priceUsd || "0").toFixed(6)}`,
+        priceChange24h: `${priceChange.toFixed(2)}%`,
+        priceChangePct: priceChange,
+        volume24h: `$${parseFloat(pair.volume?.h24 || "0").toLocaleString()}`,
+        liquidity: `$${parseFloat(pair.liquidity?.usd || "0").toLocaleString()}`,
+        marketCap: `$${parseFloat(pair.fdv || "0").toLocaleString()}`,
+        txns24h: (pair.txns?.h24?.buys || 0) + (pair.txns?.h24?.sells || 0),
+        source: "dexscreener",
+      });
+    } catch {
+      continue;
+    }
+  }
+  return enriched;
+}
+
+// Fetch pool data for a specific token from Robinhood Chain's Uniswap v3.
+// Falls back to DexScreener with chainId="robinhood" if subgraph unavailable.
+async function fetchRobinhoodPoolData(tokenAddress: string): Promise<any[]> {
+  const addr = tokenAddress.toLowerCase();
+
+  // Primary: Uniswap v3 subgraph
+  try {
+    const data = await queryRobinhoodSubgraph(`
+      {
+        pools(
+          where: { or: [{ token0: "${addr}" }, { token1: "${addr}" }] },
+          orderBy: totalValueLockedUSD,
+          orderDirection: desc,
+          first: 10
+        ) {
+          id
+          token0 { symbol }
+          token1 { symbol }
+          feeTier
+          totalValueLockedUSD
+          volumeUSD
+          txCount
+          token0Price
+          token1Price
+          poolDayData(first: 1, orderBy: date, orderDirection: desc) {
+            volumeUSD
+            feesUSD
+          }
+        }
+      }
+    `);
+
+    const pools = data.pools || [];
+    return pools.map((p: any) => {
+      const isToken0 = p.token0.symbol.toLowerCase() === addr || true;
+      const volume24h = parseFloat(p.poolDayData?.[0]?.volumeUSD || "0");
+      const liquidity = parseFloat(p.totalValueLockedUSD || "0");
+      const priceUSD = isToken0
+        ? parseFloat(p.token0Price || "0")
+        : parseFloat(p.token1Price || "0");
+      return {
+        dex: "Uniswap V3",
+        pairAddress: p.id,
+        baseToken: p.token0.symbol,
+        quoteToken: p.token1.symbol,
+        feeTier: `${parseInt(p.feeTier) / 10000}%`,
+        liquidity,
+        liquidityUSD: `$${liquidity.toLocaleString()}`,
+        volume24h: `$${volume24h.toLocaleString()}`,
+        priceUSD: `$${priceUSD.toFixed(6)}`,
+        priceChange24h: "N/A",
+        txns24h: parseInt(p.txCount || "0"),
+        chain: "robinhood",
+        source: "uniswap-v3-subgraph",
+      };
+    });
+  } catch (subgraphErr: any) {
+    console.warn(`[Robinhood] Pool subgraph unavailable (${subgraphErr.message}), falling back to DexScreener`);
+  }
+
+  // Fallback: DexScreener
+  const dsResp = await axios.get(
+    `https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`,
+    { timeout: 5000 }
+  );
+  const pairs: any[] = dsResp.data.pairs || [];
+  return pairs
+    .filter((p: any) => p.chainId?.toLowerCase() === "robinhood")
+    .map((p: any) => ({
+      dex: p.dexId || "Unknown",
+      pairAddress: p.pairAddress,
+      baseToken: p.baseToken?.symbol || "UNKNOWN",
+      quoteToken: p.quoteToken?.symbol || "UNKNOWN",
+      liquidity: parseFloat(p.liquidity?.usd || "0"),
+      liquidityUSD: `$${parseFloat(p.liquidity?.usd || "0").toLocaleString()}`,
+      volume24h: `$${parseFloat(p.volume?.h24 || "0").toLocaleString()}`,
+      priceUSD: `$${parseFloat(p.priceUsd || "0").toFixed(6)}`,
+      priceChange24h: `${parseFloat(p.priceChange?.h24 || "0").toFixed(2)}%`,
+      txns24h: (p.txns?.h24?.buys || 0) + (p.txns?.h24?.sells || 0),
+      chain: "robinhood",
+      source: "dexscreener",
+    }));
+}
+
+// ============= SERVICE 7: Trending Tokens Feed =============
 async function trendingTokensFeedService(timeframe: string = "24h", chain: string = "all", limit: number = 20) {
   const cacheKey = `trending-tokens-${timeframe}-${chain}-${limit}`;
   const cached = getCachedData(cacheKey);
   if (cached) return cached;
 
   try {
+    // Robinhood Chain: use dedicated Uniswap v3 subgraph + DexScreener fallback
+    if (chain.toLowerCase() === "robinhood") {
+      const tokens = await fetchRobinhoodTrendingTokens(limit);
+      const gainers = tokens.filter(t => t.priceChangePct > 0)
+        .sort((a, b) => b.priceChangePct - a.priceChangePct).slice(0, 10);
+      const losers = tokens.filter(t => t.priceChangePct < 0)
+        .sort((a, b) => a.priceChangePct - b.priceChangePct).slice(0, 10);
+      const result = {
+        timeframe,
+        chain: "robinhood",
+        chainId: "eip155:4663",
+        dex: "Uniswap V3",
+        topGainers: gainers,
+        topLosers: losers,
+        totalAnalyzed: tokens.length,
+        timestamp: new Date().toISOString(),
+      };
+      setCachedData(cacheKey, result, 300000);
+      return result;
+    }
+
     const response = await axios.get(
       `https://api.dexscreener.com/token-profiles/latest/v1`,
       { timeout: 10000 }
@@ -910,33 +1139,44 @@ async function dexLiquidityMonitorService(tokenAddress: string, chain: string = 
   if (cached) return cached;
 
   try {
-    const response = await axios.get(
-      `https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`,
-      { timeout: 5000 }
-    );
+    let liquidityPools: any[] = [];
 
-    const pairs = response.data.pairs || [];
-    if (pairs.length === 0) {
-      throw new Error("No liquidity pools found for this token");
+    // Robinhood Chain: use dedicated Uniswap v3 subgraph + DexScreener fallback
+    if (chain.toLowerCase() === "robinhood") {
+      const robinhoodPools = await fetchRobinhoodPoolData(tokenAddress);
+      if (robinhoodPools.length === 0) {
+        throw new Error("No liquidity pools found for this token on Robinhood Chain");
+      }
+      liquidityPools = robinhoodPools;
+    } else {
+      const response = await axios.get(
+        `https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`,
+        { timeout: 5000 }
+      );
+
+      const pairs = response.data.pairs || [];
+      if (pairs.length === 0) {
+        throw new Error("No liquidity pools found for this token");
+      }
+
+      const filteredPairs = chain === "all"
+        ? pairs
+        : pairs.filter((p: any) => p.chainId?.toLowerCase() === chain.toLowerCase());
+
+      liquidityPools = filteredPairs.map((pair: any) => ({
+        dex: pair.dexId || "Unknown",
+        pairAddress: pair.pairAddress,
+        baseToken: pair.baseToken?.symbol || "UNKNOWN",
+        quoteToken: pair.quoteToken?.symbol || "UNKNOWN",
+        liquidity: parseFloat(pair.liquidity?.usd || "0"),
+        liquidityUSD: `$${parseFloat(pair.liquidity?.usd || "0").toLocaleString()}`,
+        volume24h: `$${parseFloat(pair.volume?.h24 || "0").toLocaleString()}`,
+        priceUSD: `$${parseFloat(pair.priceUsd || "0").toFixed(6)}`,
+        priceChange24h: `${parseFloat(pair.priceChange?.h24 || "0").toFixed(2)}%`,
+        txns24h: (pair.txns?.h24?.buys || 0) + (pair.txns?.h24?.sells || 0),
+        chain: pair.chainId || chain,
+      }));
     }
-
-    const filteredPairs = chain === "all" 
-      ? pairs 
-      : pairs.filter((p: any) => p.chainId?.toLowerCase() === chain.toLowerCase());
-
-    const liquidityPools = filteredPairs.map((pair: any) => ({
-      dex: pair.dexId || "Unknown",
-      pairAddress: pair.pairAddress,
-      baseToken: pair.baseToken?.symbol || "UNKNOWN",
-      quoteToken: pair.quoteToken?.symbol || "UNKNOWN",
-      liquidity: parseFloat(pair.liquidity?.usd || "0"),
-      liquidityUSD: `$${parseFloat(pair.liquidity?.usd || "0").toLocaleString()}`,
-      volume24h: `$${parseFloat(pair.volume?.h24 || "0").toLocaleString()}`,
-      priceUSD: `$${parseFloat(pair.priceUsd || "0").toFixed(6)}`,
-      priceChange24h: `${parseFloat(pair.priceChange?.h24 || "0").toFixed(2)}%`,
-      txns24h: (pair.txns?.h24?.buys || 0) + (pair.txns?.h24?.sells || 0),
-      chain: pair.chainId || chain,
-    }));
 
     liquidityPools.sort((a: any, b: any) => b.liquidity - a.liquidity);
 
@@ -948,6 +1188,8 @@ async function dexLiquidityMonitorService(tokenAddress: string, chain: string = 
     const result = {
       token: tokenAddress,
       chain: chain === "all" ? "multi-chain" : chain,
+      chainId: chain.toLowerCase() === "robinhood" ? "eip155:4663" : undefined,
+      dex: chain.toLowerCase() === "robinhood" ? "Uniswap V3" : undefined,
       totalPools: liquidityPools.length,
       totalLiquidity: `$${totalLiquidity.toLocaleString()}`,
       totalVolume24h: `$${totalVolume24h.toLocaleString()}`,
@@ -1219,39 +1461,192 @@ router.post("/wallet-risk", async (req: Request, res: Response) => {
   }
 });
 
-// Trade Signals Service - AI-powered crypto trading signals
-async function tradeSignalsService(params: { token?: string; timeframe?: string; riskLevel?: string }): Promise<any> {
-  const { token = "BTC/USDT", timeframe = "15m", riskLevel = "medium" } = params;
+// Trade Signals Service - GPT-4o powered with real market data from DexScreener
+const _openaiForTradeSignals = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
 
-  // Simulated trading signal (in production, this would connect to real AI models)
-  const signals = {
-    high: { win_rate: 0.72, signal_strength: 0.85, entry: 42500, target: 44000, stop: 41800 },
-    medium: { win_rate: 0.68, signal_strength: 0.72, entry: 42500, target: 43500, stop: 42000 },
-    low: { win_rate: 0.62, signal_strength: 0.58, entry: 42500, target: 43000, stop: 42200 },
-  };
+async function tradeSignalsService(params: {
+  token?: string;
+  timeframe?: string;
+  riskLevel?: string;
+  chain?: string;
+}): Promise<any> {
+  const {
+    token = "BTC/USDT",
+    timeframe = "15m",
+    riskLevel = "medium",
+    chain = "all",
+  } = params;
 
-  const signal = signals[riskLevel as keyof typeof signals] || signals.medium;
+  const cacheKey = `trade-signals-${chain}-${token}-${timeframe}-${riskLevel}`;
+  const cached = getCachedData(cacheKey);
+  if (cached) return cached;
 
-  return {
-    token,
-    timeframe,
-    riskLevel,
-    signal: "BUY",
-    confidence: (signal.signal_strength * 100).toFixed(1) + "%",
-    entry_price: signal.entry,
-    target_price: signal.target,
-    stop_loss: signal.stop,
-    potential_profit: (((signal.target - signal.entry) / signal.entry) * 100).toFixed(2) + "%",
-    win_rate_historical: (signal.win_rate * 100).toFixed(1) + "%",
-    timestamp: new Date().toISOString(),
-    indicators: {
-      rsi: 62.5,
-      macd: "bullish",
-      volume: "above_average",
-      trend: "upward",
-    },
-    recommendation: "Enter position at current levels. Set stop loss at " + signal.stop + ". Take profit at " + signal.target + ".",
-  };
+  // Resolve token symbol for DexScreener lookup
+  const tokenSymbol = token.replace(/\/USDT|\/USD|\/USDC/i, "").trim();
+  const chainSlug = chain.toLowerCase() === "robinhood" ? "robinhood" : chain.toLowerCase();
+
+  // Fetch real market data from DexScreener
+  let marketData: any = null;
+  let dataSource = "dexscreener";
+  try {
+    const searchResp = await axios.get(
+      `https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(tokenSymbol)}`,
+      { timeout: 6000 }
+    );
+    const pairs: any[] = searchResp.data.pairs || [];
+    const filtered = chainSlug === "all"
+      ? pairs
+      : pairs.filter((p: any) => p.chainId?.toLowerCase() === chainSlug);
+    const top = filtered.sort((a: any, b: any) =>
+      parseFloat(b.volume?.h24 || "0") - parseFloat(a.volume?.h24 || "0")
+    )[0];
+
+    if (top) {
+      marketData = {
+        symbol: top.baseToken?.symbol || tokenSymbol,
+        name: top.baseToken?.name || tokenSymbol,
+        chain: top.chainId || chainSlug,
+        priceUSD: parseFloat(top.priceUsd || "0"),
+        priceChange1h: parseFloat(top.priceChange?.h1 || "0"),
+        priceChange6h: parseFloat(top.priceChange?.h6 || "0"),
+        priceChange24h: parseFloat(top.priceChange?.h24 || "0"),
+        volume24h: parseFloat(top.volume?.h24 || "0"),
+        volumeChange: parseFloat(top.volume?.h6 || "0"),
+        liquidity: parseFloat(top.liquidity?.usd || "0"),
+        txns24h: (top.txns?.h24?.buys || 0) + (top.txns?.h24?.sells || 0),
+        buyTxns24h: top.txns?.h24?.buys || 0,
+        sellTxns24h: top.txns?.h24?.sells || 0,
+        marketCap: parseFloat(top.fdv || "0"),
+        dex: top.dexId || "Unknown",
+        pairAddress: top.pairAddress,
+      };
+    }
+  } catch (dsErr: any) {
+    console.warn(`[TradeSignals] DexScreener error: ${dsErr.message}`);
+  }
+
+  // If no market data found, provide a graceful not-found response
+  if (!marketData) {
+    return {
+      token: tokenSymbol,
+      chain: chainSlug,
+      timeframe,
+      riskLevel,
+      error: `No market data found for ${tokenSymbol} on ${chainSlug === "all" ? "any chain" : chainSlug}`,
+      suggestion: chain.toLowerCase() === "robinhood"
+        ? "Robinhood Chain launched July 1, 2026. Token may not have sufficient liquidity yet."
+        : "Try a different token symbol or chain.",
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  // Build GPT-4o prompt with real market data
+  const prompt = `You are an elite quantitative analyst. Analyze this REAL live market data and generate an actionable trading signal.
+
+Token: ${marketData.symbol} (${marketData.name})
+Chain: ${marketData.chain}${marketData.chain === "robinhood" ? " (Robinhood Chain, eip155:4663, Arbitrum Orbit L2, Uniswap v3 DEX)" : ""}
+DEX: ${marketData.dex}
+Current Price: $${marketData.priceUSD.toFixed(6)}
+Price Changes: 1h=${marketData.priceChange1h.toFixed(2)}%, 6h=${marketData.priceChange6h.toFixed(2)}%, 24h=${marketData.priceChange24h.toFixed(2)}%
+Volume 24h: $${marketData.volume24h.toLocaleString()}
+Liquidity: $${marketData.liquidity.toLocaleString()}
+Transactions 24h: ${marketData.txns24h} (${marketData.buyTxns24h} buys / ${marketData.sellTxns24h} sells)
+Market Cap (FDV): $${marketData.marketCap.toLocaleString()}
+Timeframe: ${timeframe}
+Risk Level: ${riskLevel}
+
+Respond with ONLY valid JSON (no markdown) in this exact structure:
+{
+  "signal": "BUY" | "SELL" | "HOLD",
+  "confidence": <number 0-100>,
+  "entry_price": <number>,
+  "target_price": <number>,
+  "stop_loss": <number>,
+  "potential_profit_pct": <number>,
+  "risk_reward_ratio": <number>,
+  "reasoning": "<2-3 sentence analysis based on the real data above>",
+  "indicators": {
+    "momentum": "<STRONG_BULLISH|BULLISH|NEUTRAL|BEARISH|STRONG_BEARISH>",
+    "volume_trend": "<HIGH|MODERATE|LOW>",
+    "buy_sell_pressure": "<BUY_DOMINATED|BALANCED|SELL_DOMINATED>",
+    "liquidity_rating": "<DEEP|MODERATE|THIN>"
+  },
+  "key_levels": {
+    "support": <number>,
+    "resistance": <number>
+  }
+}`;
+
+  try {
+    const completion = await _openaiForTradeSignals.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+      max_tokens: 600,
+    });
+
+    const raw = completion.choices[0]?.message?.content || "{}";
+    const cleaned = raw.replace(/```json\n?|\n?```/g, "").trim();
+    const analysis = JSON.parse(cleaned);
+
+    const result = {
+      token: marketData.symbol,
+      name: marketData.name,
+      chain: marketData.chain,
+      chainId: marketData.chain === "robinhood" ? "eip155:4663" : undefined,
+      dex: marketData.dex,
+      pairAddress: marketData.pairAddress,
+      timeframe,
+      riskLevel,
+      signal: analysis.signal || "HOLD",
+      confidence: `${analysis.confidence || 50}%`,
+      entry_price: analysis.entry_price || marketData.priceUSD,
+      target_price: analysis.target_price,
+      stop_loss: analysis.stop_loss,
+      potential_profit: `${(analysis.potential_profit_pct || 0).toFixed(2)}%`,
+      risk_reward_ratio: analysis.risk_reward_ratio,
+      reasoning: analysis.reasoning,
+      indicators: analysis.indicators,
+      key_levels: analysis.key_levels,
+      market_snapshot: {
+        priceUSD: `$${marketData.priceUSD.toFixed(6)}`,
+        priceChange24h: `${marketData.priceChange24h.toFixed(2)}%`,
+        volume24h: `$${marketData.volume24h.toLocaleString()}`,
+        liquidity: `$${marketData.liquidity.toLocaleString()}`,
+        txns24h: marketData.txns24h,
+      },
+      data_source: dataSource,
+      powered_by: "GPT-4o",
+      timestamp: new Date().toISOString(),
+    };
+
+    setCachedData(cacheKey, result, 120000); // 2 min cache
+    return result;
+  } catch (aiErr: any) {
+    console.error("[TradeSignals] GPT-4o error:", aiErr.message);
+    // Return raw market data with a basic heuristic signal if GPT fails
+    const priceChange24h = marketData.priceChange24h;
+    const buyRatio = marketData.buyTxns24h / Math.max(marketData.txns24h, 1);
+    const heuristicSignal = priceChange24h > 5 && buyRatio > 0.55 ? "BUY"
+      : priceChange24h < -5 && buyRatio < 0.45 ? "SELL" : "HOLD";
+    return {
+      token: marketData.symbol,
+      chain: marketData.chain,
+      timeframe,
+      riskLevel,
+      signal: heuristicSignal,
+      confidence: "40%",
+      market_snapshot: {
+        priceUSD: `$${marketData.priceUSD.toFixed(6)}`,
+        priceChange24h: `${priceChange24h.toFixed(2)}%`,
+        volume24h: `$${marketData.volume24h.toLocaleString()}`,
+        liquidity: `$${marketData.liquidity.toLocaleString()}`,
+      },
+      note: "GPT-4o analysis unavailable; heuristic signal based on price momentum and buy/sell ratio.",
+      data_source: dataSource,
+      timestamp: new Date().toISOString(),
+    };
+  }
 }
 
 // Trade signals endpoint
@@ -1260,9 +1655,9 @@ router.post("/trade-signals", async (req: Request, res: Response) => {
   const serviceId = "trade-signals";
 
   try {
-    const { token, timeframe, riskLevel } = req.body;
+    const { token, timeframe, riskLevel, chain } = req.body;
 
-    const result = await tradeSignalsService({ token, timeframe, riskLevel });
+    const result = await tradeSignalsService({ token, timeframe, riskLevel, chain });
 
     const responseTime = Date.now() - startTime;
     result.queryTime = `${(responseTime / 1000).toFixed(1)}s`;

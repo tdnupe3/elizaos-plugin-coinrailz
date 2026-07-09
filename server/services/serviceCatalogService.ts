@@ -849,6 +849,63 @@ export class ServiceCatalogService {
         capabilities: ['llm', 'text-generation', 'gpt-4o-mini', 'x402-native'],
         x402Compatible: true,
         stripeCompatible: false
+      },
+      // B20 Token Services
+      {
+        id: 'b20-token-info',
+        name: 'B20 Token Info',
+        description: 'ERC-20 metadata and B20 compliance mode/freeze state for any B20-compatible token. Returns symbol, decimals, total supply, transfer freeze status, compliance mode, and issuer-set restrictions. Pass { tokenAddress }.',
+        endpoint: '/x402/b20-token-info',
+        network: 'eip155:8453',
+        category: 'trading-intelligence',
+        capabilities: ['b20', 'token-metadata', 'freeze-state', 'compliance-mode', 'erc20', 'token-info', 'supply', 'decimals'],
+        x402Compatible: true,
+        stripeCompatible: false
+      },
+      {
+        id: 'b20-transfer-check',
+        name: 'B20 Transfer Check',
+        description: 'Simulate whether a B20 token transfer is permitted given live freeze/blocklist/allowlist state. Returns allowed/blocked with reason (frozen, restricted sender, restricted recipient, allowlist mismatch). Pass { tokenAddress, from, to, amount }.',
+        endpoint: '/x402/b20-transfer-check',
+        network: 'eip155:8453',
+        category: 'trading-intelligence',
+        capabilities: ['b20', 'transfer-check', 'transfer-simulation', 'allowlist', 'blocklist', 'freeze-check', 'send-check', 'transfer-allowed', 'wallet-restriction'],
+        x402Compatible: true,
+        stripeCompatible: false
+      },
+      {
+        id: 'b20-compliance-scan',
+        name: 'B20 Compliance Scan',
+        description: 'Multi-issuer compliance scan for a wallet address across all B20 tokens it holds. Returns per-token compliance flags: frozen accounts, blocklisted wallets, allowlist membership, and issuer sanctions. Pass { walletAddress }.',
+        endpoint: '/x402/b20-compliance-scan',
+        network: 'eip155:8453',
+        category: 'trading-intelligence',
+        capabilities: ['b20', 'compliance-scan', 'aml', 'sanctions', 'blocklist', 'frozen', 'wallet-compliance', 'multi-token', 'regulatory'],
+        x402Compatible: true,
+        stripeCompatible: false
+      },
+      // Robinhood Chain Services
+      {
+        id: 'rh-stock-price',
+        name: 'RH Chain Stock Price',
+        description: 'Real-time stock and crypto prices from Chainlink price feeds deployed on Robinhood Chain (eip155:4663). Covers 35+ symbols: AAPL, NVDA, SPY, BTC, ETH, TSLA, MSFT, GOOGL, AMZN, META and more. Pass { symbol }.',
+        endpoint: '/x402/rh-stock-price',
+        network: 'eip155:4663',
+        category: 'traditional-markets',
+        capabilities: ['stock-price', 'chainlink', 'robinhood-chain', 'price-feed', 'real-time', 'equities', 'crypto-price', 'aapl', 'nvda', 'spy', 'btc', 'eth'],
+        x402Compatible: true,
+        stripeCompatible: false
+      },
+      {
+        id: 'rh-bridge-usdc',
+        name: 'RH Chain USDC Bridge',
+        description: 'Bootstrap USDC bridge from Base to Robinhood Chain via Across Protocol. Transfers treasury USDC to fund new agent wallets on Robinhood Chain. Supports USDG and USDC. Pass { amount } in USDC (max $50).',
+        endpoint: '/x402/rh-bridge-usdc',
+        network: 'eip155:4663',
+        category: 'execution',
+        capabilities: ['bridge', 'usdc', 'robinhood-chain', 'across-protocol', 'base-to-rh', 'cross-chain', 'usdg', 'transfer', 'liquidity'],
+        x402Compatible: true,
+        stripeCompatible: false
       }
     ];
 

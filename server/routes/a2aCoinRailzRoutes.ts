@@ -265,6 +265,62 @@ const SEMANTIC_PATTERNS: Array<{ pattern: RegExp; services: string[]; boost: num
     services: ['first-call'],
     boost: 20
   },
+  // B20 token transfer / send — must match BEFORE general B20 catch-all
+  {
+    pattern: /\bB20\b.{0,60}\b(transfer|send|move|can i (transfer|send)|sending)\b/i,
+    services: ['b20-transfer-check'],
+    boost: 30
+  },
+  {
+    pattern: /\b(transfer|send|move)\b.{0,60}\bB20\b/i,
+    services: ['b20-transfer-check'],
+    boost: 30
+  },
+  {
+    pattern: /\b(check|can i|simulate|verify|test).{0,30}\b(transfer|send).{0,30}\bB20\b/i,
+    services: ['b20-transfer-check'],
+    boost: 30
+  },
+  // B20 compliance / freeze / blocklist / allowlist
+  {
+    pattern: /\bB20\b.{0,60}\b(freeze|frozen|blocklist|block(ed)?|allowlist|allowed|compliance|restricted|sanction|regulatory)\b/i,
+    services: ['b20-compliance-scan'],
+    boost: 28
+  },
+  {
+    pattern: /\b(freeze|blocklist|allowlist|compliance|sanction).{0,60}\bB20\b/i,
+    services: ['b20-compliance-scan'],
+    boost: 28
+  },
+  // B20 token info / metadata / price
+  {
+    pattern: /\bB20\b.{0,60}\b(info|metadata|supply|decimals|symbol|price|market|cap|holders)\b/i,
+    services: ['b20-token-info'],
+    boost: 25
+  },
+  // B20 general catch-all — low boost, fires only if no specific pattern matched higher
+  {
+    pattern: /\bB20\b/i,
+    services: ['b20-token-info', 'b20-transfer-check'],
+    boost: 10
+  },
+  // Robinhood Chain stock / price feeds
+  {
+    pattern: /\b(robinhood chain|rh chain|eip155:4663|rh-stock|chainlink.*(stock|equity|price feed))\b/i,
+    services: ['rh-stock-price', 'rh-bridge-usdc'],
+    boost: 25
+  },
+  {
+    pattern: /\b(stock price|equity price|share price|aapl|nvda|spy|tsla|msft|googl|amzn|meta).{0,40}\b(chain|on-chain|chainlink|robinhood)\b/i,
+    services: ['rh-stock-price'],
+    boost: 25
+  },
+  // Robinhood Chain bridge / USDC bridging
+  {
+    pattern: /\b(bridge|cross-chain|base to robinhood|usdc.*robinhood|usdg)\b/i,
+    services: ['rh-bridge-usdc'],
+    boost: 25
+  },
 ];
 
 function kwMatches(text: string, kw: string): boolean {

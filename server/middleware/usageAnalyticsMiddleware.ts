@@ -101,7 +101,7 @@ export function usageAnalyticsMiddleware(req: Request, res: Response, next: Next
         clientIp,
         paymentAttempted,
         sourceGateway,
-        paymentStatus: statusCode === 200 ? 'completed' : statusCode === 402 ? 'pending' : 'failed',
+        paymentStatus: statusCode === 200 ? 'completed' : statusCode === 402 ? 'pending' : statusCode >= 300 && statusCode < 400 ? 'redirect' : 'failed',
         walletAddress: analyticsContext.walletAddress || null,
         error: statusCode >= 400 && statusCode !== 402 ? `HTTP ${statusCode}` : null,
       });

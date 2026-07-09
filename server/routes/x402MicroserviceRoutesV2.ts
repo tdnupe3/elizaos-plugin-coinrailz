@@ -360,11 +360,41 @@ router.get('/catalog', async (req: Request, res: Response) => {
   }
 });
 
-// Discovery alias: /x402/discovery → /x402/catalog
-// The Cloudflare worker (2a06:98c0:3600::103) hits /x402/discovery every window expecting
-// the service catalog. The canonical path is /x402/catalog. 302 so we can evolve this later.
-router.all('/discovery', (_req: Request, res: Response) => {
-  res.redirect(302, '/x402/catalog');
+// Discovery alias: /x402/discovery — serves catalog data directly (no redirect)
+// The Cloudflare worker (2a06:98c0:3600::103) hits /x402/discovery expecting the service catalog.
+// Serving data directly avoids 302 → analytics 'failed' classification and redirect overhead.
+router.all('/discovery', async (_req: Request, res: Response) => {
+  try {
+    const allServices = getCanonicalServices();
+    const featured = allServices.filter(s => s.featured);
+    const standard = allServices.filter(s => !s.featured);
+    const filteredServices = [
+      ...featured.sort((a, b) => a.priceUsd - b.priceUsd),
+      ...standard.sort((a, b) => a.priceUsd - b.priceUsd),
+    ];
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Content-Type', 'application/json');
+    res.json({
+      x402Version: 2,
+      catalogUrl: `${PUBLIC_BASE_URL}/x402/catalog`,
+      facilitatorUrl: getFacilitatorUrl(),
+      totalServices: allServices.length,
+      services: filteredServices.map(service => ({
+        id: service.id,
+        name: service.name,
+        description: service.description,
+        endpoint: service.endpoint,
+        method: service.method,
+        priceUSD: service.priceUsd,
+        priceMicro: Math.round(service.priceUsd * 1_000_000),
+        category: service.category,
+        discoverable: true,
+      })),
+    });
+  } catch (error: any) {
+    console.error('Failed to serve discovery catalog:', error);
+    res.status(500).json({ error: 'Failed to retrieve service catalog' });
+  }
 });
 
 

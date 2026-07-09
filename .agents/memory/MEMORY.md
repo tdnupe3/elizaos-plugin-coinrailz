@@ -1,3 +1,4 @@
+- [RH Chain Chainlink feeds + Bootstrap Bridge](rh-chainlink-bridge.md) — rh-stock-price ($0.05, 35+ symbols, viem readContract) + rh-bridge-usdc ($0.75, Across depositV3, treasury-funded); platform now 74 services
 - [⚠️ CRITICAL — Prod vs Dev DB](prod-vs-dev-db.md) — executeSql defaults to dev snapshot; ALL platform assessments MUST pass environment:"production" or data is wrong
 - [Analytics inventory & health check protocol](analytics-inventory.md) — master file at docs/analytics/analytics-inventory.md; run twice daily; OPTIONS must be excluded; paid=true only; x402_payment_intents is authoritative revenue source
 - [402 body injection architecture](402-injection-architecture.md) — confidenceMetrics must be injected in x402MicroserviceRoutesV2.ts router.use wrapper, NOT in x402ResponseEnricher (which is never registered in appMain)

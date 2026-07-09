@@ -103,7 +103,10 @@ export type ServiceName =
   // Robinhood Chain DEX Data (eip155:4663, Arbitrum Orbit L2, launched July 8 2026)
   | "robinhood-token-price"
   | "robinhood-dex-pools"
-  | "robinhood-chain-stats";
+  | "robinhood-chain-stats"
+  // Robinhood Chain — Chainlink Price Feeds + Bootstrap Bridge (July 2026)
+  | "rh-stock-price"
+  | "rh-bridge-usdc";
 
 /**
  * Type guard to check if a string is a valid ServiceName
@@ -212,7 +215,11 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   "robinhood-token-price": 600000,     // $0.60 - Day-1 exclusivity premium: token price + pool data on Robinhood Chain
   "robinhood-dex-pools": 1250000,      // $1.25 - Top DEX liquidity pools on Robinhood Chain (trading/routing data)
   "robinhood-chain-stats": 750000,     // $0.75 - Chain health: block, gas, total DEX volume, active pools
-  
+
+  // ROBINHOOD CHAIN — CHAINLINK FEEDS + BOOTSTRAP BRIDGE (July 2026)
+  "rh-stock-price": 50000,            // $0.05 - Live Chainlink price feed for RH stock tokens (AAPL/NVDA/SPY/etc) — on-chain truth
+  "rh-bridge-usdc": 750000,           // $0.75 - Bridge 0.50 USDC (Base) → USDG (Robinhood Chain) via Across Protocol
+
   // SATELLITE DATA SERVICES (NASA Earthdata + ESA Copernicus)
   "fire-alerts": 50000,                // $0.05 - NASA FIRMS active fire detection
   "weather-imagery": 50000,            // $0.05 - NASA GIBS satellite imagery
@@ -326,7 +333,11 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   "robinhood-token-price": 0.60,
   "robinhood-dex-pools": 1.25,
   "robinhood-chain-stats": 0.75,
-  
+
+  // Robinhood Chain — Chainlink Feeds + Bootstrap Bridge (July 2026)
+  "rh-stock-price": 0.05,
+  "rh-bridge-usdc": 0.75,
+
   // Satellite Data Services (NASA Earthdata + ESA Copernicus)
   "fire-alerts": 0.05,
   "weather-imagery": 0.05,

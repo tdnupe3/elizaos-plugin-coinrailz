@@ -76,6 +76,8 @@ import { satelliteDataService } from '../services/satelliteDataService';
 import { earthdataService } from '../services/earthdataService';
 import { b20TokenInfoService, b20TransferCheckService, b20ComplianceScanService } from './microservices/b20Data';
 import { fetchRobinhoodPoolData, fetchRobinhoodTopPools, fetchRobinhoodChainStats } from './microservices/robinhoodData';
+import { rhStockPriceService, SUPPORTED_SYMBOLS as RH_STOCK_SYMBOLS } from './microservices/rhStockPrice';
+import { rhBridgeService } from './microservices/rhBridgeService';
 
 const router = Router();
 
@@ -1300,6 +1302,86 @@ const x402Routes = {
     }
   },
   
+  // === ROBINHOOD CHAIN — CHAINLINK FEEDS + BOOTSTRAP BRIDGE ===
+  "POST /rh-stock-price": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["rh-stock-price"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/rh-stock-price`,
+      name: "Robinhood Chain Stock Price Feed",
+      description: "Live Chainlink SVR price feeds for 35+ stock tokens (AAPL, NVDA, SPY, TSLA, META, AMZN, MSFT, GOOGL, etc.) read directly on-chain from Robinhood Chain (chainId 4663). 8-decimal precision, ~24h heartbeat, 0.5% deviation threshold. Batch up to 10 symbols per call.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 30,
+      inputSchema: {
+        bodyFields: {
+          symbol:  { type: "string", description: "Single symbol (e.g. 'AAPL')" },
+          symbols: { type: "array", items: { type: "string" }, description: "Batch lookup — max 10 symbols (e.g. ['AAPL','NVDA','SPY'])" },
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            symbol:  { type: "string",  description: "Single stock/ETF/crypto symbol" },
+            symbols: { type: "array",   description: "Batch symbols — max 10", items: { type: "string" } },
+          }
+        },
+        output: {
+          type: "object",
+          properties: {
+            prices:    { type: "array",  description: "Array of price results with priceUSD, updatedAt, staleSeconds" },
+            fulfilled: { type: "number", description: "Number of symbols successfully resolved" },
+            errors:    { type: "array",  description: "Any symbols that failed with error message" },
+            source:    { type: "string", description: "chainlink-onchain" },
+            chainId:   { type: "number", description: "4663 (Robinhood Chain)" },
+          }
+        }
+      }
+    }
+  },
+
+  "POST /rh-bridge-usdc": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["rh-bridge-usdc"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/rh-bridge-usdc`,
+      name: "Robinhood Chain Bootstrap Bridge",
+      description: "Bridge 0.50 USDC from Base → USDG on Robinhood Chain (chainId 4663) via Across Protocol. Pay $0.75 on Base, receive ~0.47 USDG in your specified RH Chain wallet within ~30 seconds. Ideal for AI agents bootstrapping a Robinhood Chain presence. Treasury-funded, no pre-approval needed.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 120,
+      inputSchema: {
+        bodyFields: {
+          recipient: { type: "string", description: "0x wallet address on Robinhood Chain to receive USDG", required: true },
+          note:      { type: "string", description: "Optional memo for your records" },
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          required: ["recipient"],
+          properties: {
+            recipient: { type: "string", description: "Valid 0x EVM address on Robinhood Chain (chainId 4663)" },
+            note:      { type: "string", description: "Optional memo" },
+          }
+        },
+        output: {
+          type: "object",
+          properties: {
+            success:             { type: "boolean" },
+            depositTx:           { type: "string",  description: "Base tx hash of the Across deposit" },
+            recipient:           { type: "string",  description: "Destination wallet on Robinhood Chain" },
+            amountBridgedUSDC:   { type: "string",  description: "USDC amount sent from Base treasury" },
+            estimatedUSDGOutput: { type: "string",  description: "Estimated USDG arriving on RH Chain" },
+            estimatedFillTimeSec:{ type: "number",  description: "Seconds until fill completes" },
+            baseScan:            { type: "string",  description: "Link to Base tx on basescan.org" },
+          }
+        }
+      }
+    }
+  },
+
   // === ENTERPRISE GATED SERVICES ===
   // NOTE: Enterprise services (smart-contract-audit, payment-processing, compliance-consultation)
   // are handled by x402GatedRoutes.ts with premium pricing ($1000, $50, $500)
@@ -5684,6 +5766,45 @@ router.post("/robinhood-chain-stats",
 );
 
 // ============================================================
+// ROBINHOOD CHAIN — CHAINLINK STOCK PRICE FEED + BOOTSTRAP BRIDGE (July 2026)
+// rh-stock-price: $0.05 | rh-bridge-usdc: $0.75
+// ============================================================
+
+router.post("/rh-stock-price",
+  createPaymentOrchestrator("rh-stock-price", SERVICE_PRICING_MICRO["rh-stock-price"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = await rhStockPriceService(req.body);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("rh-stock-price", req.body, result, responseTime, SERVICE_PRICING_USD["rh-stock-price"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "rh-stock-price", { symbols: req.body.symbols ?? req.body.symbol });
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("rh-stock-price", req.body, null, responseTime, SERVICE_PRICING_USD["rh-stock-price"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/rh-bridge-usdc",
+  createPaymentOrchestrator("rh-bridge-usdc", SERVICE_PRICING_MICRO["rh-bridge-usdc"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = await rhBridgeService(req.body);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("rh-bridge-usdc", req.body, result, responseTime, SERVICE_PRICING_USD["rh-bridge-usdc"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "rh-bridge-usdc", { recipient: req.body.recipient });
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("rh-bridge-usdc", req.body, null, responseTime, SERVICE_PRICING_USD["rh-bridge-usdc"], req.ip || "unknown", error.message);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  })
+);
+
+// ============================================================
 // UNKNOWN-SERVICE CATCH-ALL — must be the LAST route in this router
 // Returns machine-readable JSON 404 with did_you_mean for malformed
 // paths (e.g. gas-price-oracle%60 → suggests gas-price-oracle).
@@ -5706,6 +5827,7 @@ router.post("/robinhood-chain-stats",
     'solana-yield-finder','fire-alerts','weather-imagery','vegetation',
     'flood-detection','air-quality','land-use','b20-token-info','b20-transfer-check','b20-compliance-scan',
     'robinhood-token-price','robinhood-dex-pools','robinhood-chain-stats',
+    'rh-stock-price','rh-bridge-usdc',
     'fleet-telematics',
     'weather-station-data','iot-sensor-reading','iot-device-stream','iot-bulk-data',
     'earthdata-sst','earthdata-soil-moisture','earthdata-ocean-color',

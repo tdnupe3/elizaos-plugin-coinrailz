@@ -398,6 +398,111 @@ router.all('/discovery', async (_req: Request, res: Response) => {
 });
 
 
+// ============================================================================
+// PAYMENT MANIFEST — /x402/payment-manifest.json
+// Single structured file: all service IDs, USDC amounts, payment addresses,
+// network IDs, challenge format examples. Unblocks integration-phase actors
+// who have collected 402 challenges and need a machine-readable payment table.
+// ============================================================================
+router.get('/payment-manifest.json', async (_req: Request, res: Response) => {
+  try {
+    const allServices = getCanonicalServices();
+    const sorted = [...allServices].sort((a, b) => a.priceUsd - b.priceUsd);
+
+    const services = sorted.map(s => ({
+      id: s.id,
+      name: s.name,
+      description: s.description,
+      endpoint: `${PUBLIC_BASE_URL}${s.endpoint}`,
+      method: s.method || 'POST',
+      priceUSDC: s.priceUsd,
+      priceMicro: Math.round(s.priceUsd * 1_000_000),
+      category: s.category || 'general',
+    }));
+
+    const manifest = {
+      x402Version: 2,
+      manifestVersion: '1.0',
+      generated: new Date().toISOString(),
+      platformUrl: PUBLIC_BASE_URL,
+      totalServices: services.length,
+
+      // ── Payment addresses ───────────────────────────────────────────────
+      paymentAddresses: {
+        base:     { wallet: PLATFORM_WALLETS.base,     caip2: 'eip155:8453',  chainId: 8453,  token: 'USDC', tokenAddress: USDC_BASE_ADDRESS,     tokenDecimals: 6 },
+        ethereum: { wallet: PLATFORM_WALLETS.ethereum, caip2: 'eip155:1',     chainId: 1,     token: 'USDC', tokenAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', tokenDecimals: 6 },
+        arbitrum: { wallet: PLATFORM_WALLETS.arbitrum, caip2: 'eip155:42161', chainId: 42161, token: 'USDC', tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', tokenDecimals: 6 },
+        solana:   { wallet: PLATFORM_WALLETS.solana,   network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', token: 'USDC', tokenMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', tokenDecimals: 6 },
+      },
+
+      // ── Challenge format guide ──────────────────────────────────────────
+      challengeFormat: {
+        overview: 'Send exact USDC amount to paymentAddresses[chain].wallet, then retry with X-PAYMENT header containing the tx hash.',
+        evmRawHash: {
+          step1: 'Send priceMicro / 1_000_000 USDC to paymentAddresses.base.wallet on Base (chainId 8453)',
+          step2: 'Wait for transaction confirmation (~2 seconds on Base)',
+          step3: 'Set header: X-PAYMENT: <0x-prefixed-66-char-tx-hash>',
+          step4: 'Retry the POST request with the X-PAYMENT header',
+          example: 'X-PAYMENT: 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12',
+        },
+        eip3009Authorization: {
+          description: 'Sign an EIP-3009 transferWithAuthorization — no prior on-chain tx needed',
+          step1: 'Build EIP-3009 auth: { from, to: paymentAddresses.base.wallet, value: priceMicro, validAfter: 0, validBefore: Math.floor(Date.now()/1000)+300, nonce: <random bytes32> }',
+          step2: 'Sign with EIP-712 using USDC domain on Base (chainId 8453)',
+          step3: 'Base64-encode JSON: { scheme:"exact", network:"eip155:8453", payload:{ authorization: { from,to,value,validAfter,validBefore,nonce,v,r,s } } }',
+          step4: 'Set header: X-PAYMENT: <base64-encoded-string>',
+          sdkRecommendation: 'Use x402-fetch npm package — handles EIP-3009 signing automatically',
+          sdkInstall: 'npm install x402-fetch',
+        },
+        solanaTransaction: {
+          step1: 'Send priceMicro / 1_000_000 USDC to paymentAddresses.solana.wallet on Solana mainnet',
+          step2: 'Wait for confirmation',
+          step3: 'Set header: X-PAYMENT: <base58-transaction-signature>',
+          step4: 'Retry the POST request',
+          facilitator: 'https://x402.dexter.cash',
+        },
+        apiKey: {
+          description: 'Card-based API key — no crypto wallet needed. Works on all services.',
+          getFreeTrialKey: `GET ${PUBLIC_BASE_URL}/api/m2m/credits/trial`,
+          purchaseKey: `POST ${PUBLIC_BASE_URL}/api/m2m/credits/purchase`,
+          usage: 'X-API-KEY: cr_live_...',
+          note: 'Free $5 trial key available instantly — no payment required',
+        },
+      },
+
+      // ── Error codes reference ───────────────────────────────────────────
+      errorCodes: {
+        PAYMENT_HEADER_MISSING:      'No X-PAYMENT header provided — add it and retry',
+        PAYMENT_DECODE_FAILED:       'X-PAYMENT header could not be parsed — check format (raw 0x hash, base64 JSON, or base58 Solana sig)',
+        PAYMENT_VERIFICATION_FAILED: 'Transaction not found or does not transfer the required amount to the platform wallet',
+        PAYMENT_AMOUNT_INSUFFICIENT: 'Transaction amount is below priceMicro — send exact amount or check decimals (USDC has 6 decimals)',
+        SOLANA_VERIFICATION_FAILED:  'Solana transaction not found or insufficient amount — wait for confirmation then retry',
+        SOLANA_REPLAY_REJECTED:      'This Solana signature was already used — generate a new transaction',
+        PAYMENT_EXPIRED:             'Payment authorization expired — validBefore timestamp passed; re-sign with a fresh timestamp',
+      },
+
+      // ── Quick-start examples ────────────────────────────────────────────
+      quickStart: {
+        cheapestService: services[0] ? { id: services[0].id, endpoint: services[0].endpoint, priceUSDC: services[0].priceUSDC } : null,
+        trialKeyEndpoint: `GET ${PUBLIC_BASE_URL}/api/m2m/credits/trial`,
+        catalogEndpoint: `${PUBLIC_BASE_URL}/x402/catalog`,
+        docsEndpoint: `${PUBLIC_BASE_URL}/docs/x402-quick-start`,
+        sdkInstall: 'npm install x402-fetch   # handles payment signing automatically',
+      },
+
+      // ── Full service table ──────────────────────────────────────────────
+      services,
+    };
+
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Content-Type', 'application/json');
+    res.json(manifest);
+  } catch (error: any) {
+    console.error('Failed to serve payment manifest:', error);
+    res.status(500).json({ error: 'Failed to generate payment manifest' });
+  }
+});
+
 // Also handle POST for offer links (in case agent sends POST)
 router.post('/offer/:trackingId', async (req: Request, res: Response) => {
   const { trackingId } = req.params;

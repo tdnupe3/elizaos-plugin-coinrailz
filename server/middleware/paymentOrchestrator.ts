@@ -174,6 +174,22 @@ function generatePaymentErrorResponse(
   if (options?.expectedFormat) {
     response.error.expectedFormat = options.expectedFormat;
   }
+
+  // Surface last_error_reason at top level so agents can parse exactly why
+  // their payment attempt failed without unwrapping error.* or inspecting httpStatus.
+  // Cover both 402 (re-issued challenge after bad payment) and payment-related 400s
+  // (decode failures, format errors) — in all cases the agent sent X-PAYMENT and it failed.
+  const isPaymentAttemptFailure = httpStatus === 402 ||
+    (httpStatus === 400 && (code.startsWith('PAYMENT_') || code.startsWith('SOLANA_')));
+  if (isPaymentAttemptFailure) {
+    (response as any).last_error_reason = {
+      code,
+      message: humanMessage,
+      hint: agentHint,
+      recoverable: options?.recoverable ?? true,
+      telemetryId
+    };
+  }
   
   console.log(`🔴 Payment error [${code}]: ${humanMessage} (telemetryId: ${telemetryId})`);
   
@@ -2030,6 +2046,12 @@ export function createPaymentOrchestrator(
                 x402Version: 2,
                 error: "insufficient_balance",
                 hint: "Agent wallet has insufficient USDC to complete payment",
+                last_error_reason: {
+                  code: "PAYMENT_AMOUNT_INSUFFICIENT",
+                  message: "Agent wallet has insufficient USDC balance to cover the required payment amount.",
+                  hint: `Fund your wallet with at least $${SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD] || 1.00} USDC on Base (eip155:8453), then retry with the same X-PAYMENT header.`,
+                  recoverable: true
+                },
                 service: serviceName,
                 requiredAmount: requiredAmount,
                 requiredAmountUsd: priceUsd,
@@ -2566,7 +2588,8 @@ function generate402Response(
   serviceName: string, 
   requiredAmount: number,
   knownAgent: { isKnown: boolean; name: string; partnerOffer: boolean } = { isKnown: false, name: 'unknown', partnerOffer: false },
-  requestId?: string
+  requestId?: string,
+  lastErrorReason?: { code: string; message: string; hint: string; recoverable: boolean }
 ) {
   const priceUsd = microToUSD(requiredAmount);
   const endpoint = req.originalUrl || `/x402/${serviceName}`;
@@ -3280,6 +3303,12 @@ function generate402Response(
       }
     }
   };
+
+  // Inject last_error_reason when a previous payment attempt failed.
+  // Lets agents see exactly why their X-PAYMENT was rejected without a separate call.
+  if (lastErrorReason) {
+    response.last_error_reason = lastErrorReason;
+  }
 
   // Golden Path: inject dual-track payment recipe for first-call endpoint
   if (serviceName === 'first-call') {

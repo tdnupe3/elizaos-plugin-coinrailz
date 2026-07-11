@@ -321,6 +321,25 @@ const SEMANTIC_PATTERNS: Array<{ pattern: RegExp; services: string[]; boost: num
     services: ['rh-bridge-usdc'],
     boost: 25
   },
+  // Crypto asset price queries — handles natural-language variants:
+  // "How much is 1 BTC", "bitcoin price today", "what is ETH worth",
+  // "what's the price of bitcoin", "BTC/USD quote", etc.
+  {
+    pattern: /\b(how much is|price of|value of|current price of|what is|what'?s|how much does).{0,25}\b(bitcoin|btc|ethereum|eth|solana|sol|bnb|matic|polygon|xrp|ripple|crypto)\b/i,
+    services: ['rh-stock-price'],
+    boost: 30
+  },
+  {
+    pattern: /\b(bitcoin|btc|ethereum|eth|solana|sol|bnb|xrp|matic)\b.{0,25}\b(price|today|usd|worth|value|cost|rate|quote|now)\b/i,
+    services: ['rh-stock-price'],
+    boost: 30
+  },
+  // Seeded from confirmed miss: "How much is bitcoin today", "one bitcoin" variants
+  {
+    pattern: /\b(bitcoin|btc|ethereum|eth|solana|sol)\b.{0,10}\b(up|down|market|cap|24h)\b/i,
+    services: ['rh-stock-price'],
+    boost: 25
+  },
 ];
 
 function kwMatches(text: string, kw: string): boolean {
@@ -349,13 +368,20 @@ function toServiceEntry(entry: any): ServiceEntry {
 }
 
 function matchServices(text: string): ServiceEntry[] {
-  const lower = text.toLowerCase();
-  
+  // Normalise number words → digits so "one bitcoin" matches the same as "1 bitcoin"
+  const normalizedText = text
+    .replace(/\bone\b/gi, '1')
+    .replace(/\btwo\b/gi, '2')
+    .replace(/\bthree\b/gi, '3')
+    .replace(/\bfive\b/gi, '5')
+    .replace(/\bten\b/gi, '10');
+  const lower = normalizedText.toLowerCase();
+
   // Build semantic boost map from high-confidence intent patterns
   // These fire before keyword scoring to prevent stop-word noise from winning
   const semanticBoosts = new Map<string, number>();
   for (const { pattern, services, boost } of SEMANTIC_PATTERNS) {
-    if (pattern.test(text)) {
+    if (pattern.test(normalizedText)) {
       for (const svcId of services) {
         semanticBoosts.set(svcId, (semanticBoosts.get(svcId) ?? 0) + boost);
       }
@@ -381,8 +407,8 @@ function matchServices(text: string): ServiceEntry[] {
     for (const kw of kws) {
       if (kwMatches(lower, kw)) hits++;
     }
-    
-    // Exact ID or name match gets an additional boost
+
+    // Exact ID or name match gets an additional boost (against normalizedText)
     if (lower.includes(entry.id)) hits += 5;
     if (lower.includes(entry.name.toLowerCase())) hits += 5;
     

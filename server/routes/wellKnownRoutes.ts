@@ -2998,7 +2998,8 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
     url: `${baseUrl}/a2a/v1`,
     version: "3.1.0",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
-    
+    payment_manifest: `${baseUrl}/x402/payment-manifest.json`,
+
     capabilities: {
       streaming: false,
       pushNotifications: false,
@@ -4060,6 +4061,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     updated: "2026-05-19T00:00:00Z",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
     agent_instructions: `${baseUrl}/.well-known/agent-instructions.json`,
+    payment_manifest: `${baseUrl}/x402/payment-manifest.json`,
     registrationEndpoint: `${baseUrl}/.well-known/agent-registration.json`,
     quickstart: {
       summary: "Three paths to start using Coin Railz services. Fastest: free trial key in one GET request.",

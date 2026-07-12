@@ -24,12 +24,19 @@ function hashIP(ip: string | undefined): string | undefined {
   return crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16);
 }
 
-type A2AIntentType = 'peer_discovery_greeting' | 'peer_offer_clawpay_v1' | 'ownership_claim_verify' | 'service_query' | 'no_text' | 'unknown';
+type A2AIntentType = 'peer_discovery_greeting' | 'peer_offer_clawpay_v1' | 'peer_offer_x402' | 'ownership_claim_verify' | 'service_query' | 'no_text' | 'unknown';
 
 function classifyA2AIntent(text: string): A2AIntentType {
   if (!text) return 'no_text';
   const t = text.trim();
   if (/^CLAWPAY_V1\s/i.test(t)) return 'peer_offer_clawpay_v1';
+  // Peer agent advertising their own x402 service (contains pricing + payment terms)
+  // Catches messages like "0.10 USDC/query via x402" or "49 USDC/month" with a service pitch
+  if (
+    (/\bUSdc\b|\bUSDC\b/i.test(t)) &&
+    (/\/query\b|\/month\b|per (call|request|query)\b/i.test(t)) &&
+    (/\b(x402|free trial|paid:|integrate|mcp|api)\b/i.test(t))
+  ) return 'peer_offer_x402';
   // solved.earth + any registry claim/ownership verification probe
   if (
     /\baccept\b/i.test(t) ||
@@ -166,19 +173,30 @@ const STOP_WORDS = new Set([
 // Semantic patterns: high-confidence query intent → target service(s)
 // Applied BEFORE keyword scoring to prevent generic word frequency from dominating
 const SEMANTIC_PATTERNS: Array<{ pattern: RegExp; services: string[]; boost: number }> = [
-  // Smart contract security / audit
+  // Smart contract security / audit — order-independent: security keyword anywhere near contract keyword
   {
-    pattern: /\b(solidity|solidity contract|smart contract)\b.*\b(vulnerabilit|security|audit|scan|safe|exploit|reentrancy|overflow|access control)\b/i,
+    pattern: /\b(solidity|smart contract)\b.*\b(vulnerabilit|security|audit|scan|safe|exploit|reentrancy|overflow|access control|cve|nvd)\b/i,
     services: ['contract-scan', 'smart-contract-audit'],
-    boost: 20
+    boost: 25
   },
   {
-    pattern: /\b(vulnerabilit|security (issue|flaw|bug|risk|audit|scan)|exploit|reentrancy|overflow)\b.*\b(contract|solidity|mainnet|deploy)\b/i,
+    pattern: /\b(vulnerabilit|security.{0,20}scan|security.{0,20}audit|exploit|reentrancy|overflow|cve|nvd)\b.*\b(contract|solidity|evm|mainnet|deploy)\b/i,
     services: ['contract-scan', 'smart-contract-audit'],
-    boost: 20
+    boost: 25
+  },
+  // Reverse order: security/CVE/NVD first, then smart contract mention anywhere in message
+  {
+    pattern: /\b(cve|nvd|vulnerabilit|security scanning|security scan|web3 security)\b/i,
+    services: ['contract-scan', 'smart-contract-audit'],
+    boost: 22
   },
   {
-    pattern: /\b(scan|audit|check|review)\b.{0,30}\b(contract|solidity|smart contract|evm)\b/i,
+    pattern: /\b(scan|audit|check|review)\b.{0,60}\b(contract|solidity|smart contract|evm)\b/i,
+    services: ['contract-scan', 'smart-contract-audit'],
+    boost: 15
+  },
+  {
+    pattern: /\b(contract|solidity|smart contract|evm)\b.{0,60}\b(scan|audit|check|review|secur)\b/i,
     services: ['contract-scan', 'smart-contract-audit'],
     boost: 15
   },
@@ -532,6 +550,26 @@ function handleMessageSend(req: Request, res: Response) {
     const latencyMs = Date.now() - startTime;
     trackA2AHit(req, { resourceId: 'a2a-claim-verify', statusCode: 200, responseTimeMs: latencyMs, matched: false, queryText: text, requestId: taskId });
     logA2AInteraction({ requestId: taskId, latencyMs, statusCode: 200, matched: false, resourceId: 'a2a-claim-verify', matchCount: 0, intentType, queryText: text, clientIpHash, userAgent, trackingId });
+    return;
+  }
+
+  // Peer agent advertising their own x402 service — respond with mutual acknowledgment
+  if (intentType === 'peer_offer_x402') {
+    res.status(200).json(buildTaskResponse(taskId, [{
+      parts: [{
+        type: 'text',
+        text: `Thanks for reaching out! Coin Railz received your service offer.\n\nWe run ${catalog.totalServices}+ pay-per-call APIs on x402 — crypto analytics, smart contract audits, satellite data, prediction markets, IoT payments, and more.\n\nIf your service is useful to AI agents querying our platform, we're open to peer integrations. You can also list your service in our A2A catalog by sending a structured offer:\n\nCLAWPAY_V1 <service-name> | <endpoint> | <price-usdc> | <description>\n\nFull catalog: ${BASE_URL}/x402/catalog\nA2A card: ${BASE_URL}/.well-known/agent-card.json\nIntegration guide: ${BASE_URL}/.well-known/agent-instructions.json`
+      }]
+    }], {
+      intentType: 'peer_offer_x402',
+      acknowledged: true,
+      agentId: 'coinrailz-x402-agent',
+      catalogUrl: `${BASE_URL}/x402/catalog`,
+      agentCard: `${BASE_URL}/.well-known/agent-card.json`
+    }));
+    const latencyMs = Date.now() - startTime;
+    trackA2AHit(req, { resourceId: 'a2a-peer-offer', statusCode: 200, responseTimeMs: latencyMs, matched: false, queryText: text, requestId: taskId });
+    logA2AInteraction({ requestId: taskId, latencyMs, statusCode: 200, matched: false, resourceId: 'a2a-peer-offer', matchCount: 0, intentType, queryText: text, clientIpHash, userAgent, trackingId });
     return;
   }
 

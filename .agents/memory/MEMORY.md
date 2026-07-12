@@ -43,3 +43,4 @@
 - [A2A routing — semantic pre-boost layer](a2a-routing-semantic.md) — matchServices() scores ONLY services in serviceCatalogService.ts catalog; missing services = invisible to A2A; SEMANTIC_PATTERNS boost by service ID; B20+RH services added Jul 9 2026
 - [Registry submissions — status](registry-submissions.md) — ALL 4 DONE: Smithery ✅ 96/100; a2aregistry.org ✅ id=0136e410; a2a-registry.org ✅ github_verified (69 svcs as of Jul 8 2026); mcp.so ✅ coin-railz created 2026-07-08
 - [Discovery surface completeness checklist](discovery-surface-checklist.md) — 6 surfaces need updates when adding new x402 services; awi.json capabilities array is hardcoded and missed by count-only checks
+- [A2A peer offer pattern + routing fixes](a2a-peer-offer-pattern.md) — peer_offer_x402 intent (Jul 12); MetaVision CVE Oracle is first known x402 peer agent; ip_address column EXISTS in a2a_interactions (prior query failures = sandbox issue not schema)

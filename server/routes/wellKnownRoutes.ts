@@ -5612,6 +5612,27 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
         price: "$0.75 USDC",
       },
       {
+        id: "fleet-telematics",
+        name: "Fleet Telematics",
+        description: "Real-time GPS, fuel, speed, and diagnostics for IoT-connected vehicle fleets. $0.10/call.",
+        endpoint: `${baseUrl}/x402/fleet-telematics`,
+        price: "$0.10 USDC",
+      },
+      {
+        id: "iot-sensor-reading",
+        name: "IoT Sensor Reading",
+        description: "Single-sensor telemetry from registered IoT devices: temperature, humidity, pressure, CO2, motion. $0.05/call.",
+        endpoint: `${baseUrl}/x402/iot-sensor-reading`,
+        price: "$0.05 USDC",
+      },
+      {
+        id: "iot-bulk-data",
+        name: "IoT Bulk Data Export",
+        description: "Historical bulk export of sensor readings with time-range filtering across device fleets. $0.25/call.",
+        endpoint: `${baseUrl}/x402/iot-bulk-data`,
+        price: "$0.25 USDC",
+      },
+      {
         id: "catalog",
         name: "Full Service Catalog",
         description: `${getCanonicalServiceCount()} services with pricing, schemas, and endpoints.`,

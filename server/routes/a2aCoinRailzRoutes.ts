@@ -477,6 +477,36 @@ router.get('/a2a/v1', (req: Request, res: Response) => {
 router.post('/a2a/v1', handleMessageSend);
 
 /**
+ * GET|HEAD /a2a/v1/message/send — Census/discovery handler
+ * Census bots and crawlers (e.g. AgentsCensusBot/agent-highway) probe POST endpoints
+ * via GET or HEAD before attempting POST. Return the same catalog summary as GET /a2a/v1
+ * so they index Coin Railz as a functioning A2A agent rather than recording a 404/405.
+ */
+function handleCensusGet(req: Request, res: Response) {
+  const startTime = Date.now();
+  const catalog = serviceCatalogService.getCatalog();
+  const body = {
+    id: 'coinrailz-x402-agent',
+    name: 'Coin Railz',
+    description: `Multi-chain x402 micropayment infrastructure for AI agents. ${catalog.totalServices}+ pay-per-call API services across crypto analytics, trading signals, security audits, satellite data, prediction markets, and more.`,
+    version: '3.1.0',
+    protocolVersion: '0.3.0',
+    skillCount: catalog.totalServices,
+    documentationUrl: `${BASE_URL}/.well-known/agent-instructions.json`,
+    agentCard: `${BASE_URL}/.well-known/agent-card.json`,
+    paymentProtocol: 'x402',
+    supportedChains: ['ethereum', 'base', 'polygon', 'arbitrum', 'solana'],
+    priceRange: '$0.05 – $10.00 USDC per request',
+    interactionEndpoint: `${BASE_URL}/a2a/v1/message/send`,
+    usage: 'POST /a2a/v1/message/send with { "message": { "parts": [{ "text": "your request" }] } }'
+  };
+  res.json(body);
+  trackA2AHit(req, { resourceId: 'a2a-catalog', statusCode: 200, responseTimeMs: Date.now() - startTime });
+}
+router.get('/a2a/v1/message/send', handleCensusGet);
+router.head('/a2a/v1/message/send', handleCensusGet);
+
+/**
  * POST /a2a/v1/message/send — Main A2A interaction handler
  * Accept natural language request → match x402 service → return task response with payment instructions
  */

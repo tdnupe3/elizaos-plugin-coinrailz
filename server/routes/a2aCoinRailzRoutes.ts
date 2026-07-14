@@ -526,35 +526,25 @@ function handleMessageSend(req: Request, res: Response) {
   const text = parts.map((p: any) => p.text || '').join(' ').trim() || (body.text || '');
 
   if (!text) {
-    res.status(400).json({
-      id: taskId,
-      status: { state: 'failed', message: 'Request must include a query message.' },
-      artifacts: [],
-      metadata: {
-        hint: 'Send a JSON body with the following structure:',
-        expectedSchema: {
-          message: {
-            parts: [
-              { type: 'text', text: 'string (your request)' }
-            ]
-          }
-        },
-        examplePayload: {
-          message: {
-            parts: [
-              { type: 'text', text: 'I need to verify an agent identity' }
-            ]
-          }
-        },
-        alternateFormat: {
-          text: 'I need to verify an agent identity'
-        },
-        documentationUrl: `${BASE_URL}/.well-known/agent-instructions.json`
-      }
-    });
+    const catalog = serviceCatalogService.getCatalog();
     const latencyMs = Date.now() - startTime;
-    trackA2AHit(req, { resourceId: 'a2a-no-text', statusCode: 400, responseTimeMs: latencyMs, matched: false, requestId: taskId });
-    logA2AInteraction({ requestId: taskId, latencyMs, statusCode: 400, matched: false, resourceId: 'a2a-no-text', matchCount: 0, intentType: 'no_text', queryText: '', clientIpHash, userAgent, trackingId });
+    res.status(200).json({
+      id: 'coinrailz-x402-agent',
+      name: 'Coin Railz',
+      description: `Multi-chain x402 micropayment infrastructure for AI agents. ${catalog.totalServices}+ pay-per-call API services across crypto analytics, trading signals, security audits, satellite data, prediction markets, and more.`,
+      version: '3.1.0',
+      protocolVersion: '0.3.0',
+      skillCount: catalog.totalServices,
+      documentationUrl: `${BASE_URL}/.well-known/agent-instructions.json`,
+      agentCard: `${BASE_URL}/.well-known/agent-card.json`,
+      paymentProtocol: 'x402',
+      supportedChains: ['ethereum', 'base', 'polygon', 'arbitrum', 'solana'],
+      priceRange: '$0.05 – $10.00 USDC per request',
+      interactionEndpoint: `${BASE_URL}/a2a/v1/message/send`,
+      usage: 'POST /a2a/v1/message/send with { "message": { "parts": [{ "text": "your request" }] } }'
+    });
+    trackA2AHit(req, { resourceId: 'a2a-catalog', statusCode: 200, responseTimeMs: latencyMs, matched: false, requestId: taskId });
+    logA2AInteraction({ requestId: taskId, latencyMs, statusCode: 200, matched: false, resourceId: 'a2a-census-post', matchCount: 0, intentType: 'no_text', queryText: '', clientIpHash, userAgent, trackingId });
     return;
   }
 

@@ -133,7 +133,6 @@ class AutonomousDiscoveryService {
         '/x402/seamless-chain-bridge',
         '/x402/verified-agent-identity',
         '/x402/smart-contract-audit',
-        '/x402/payment-processing',
         '/x402/compliance-consultation',
         // New 12 vertical expansion services
         '/x402/property-valuation',

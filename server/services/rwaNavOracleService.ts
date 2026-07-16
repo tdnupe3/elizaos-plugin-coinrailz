@@ -60,11 +60,11 @@ export interface RwaNavOracleOutput {
     chain: string;
   };
   nav_estimate: {
-    value_usd: number;
-    value_per_token_usd: number | null;
-    confidence_score: number;
+    total_fund_nav_usd: number;     // Total fund/protocol NAV — NOT per-token price
+    per_token_price_usd: number | null; // Individual token market price (e.g. ~$1.00 for USDY)
+    confidence_score: number;           // Hard ceiling: 85
     confidence_label: "low" | "medium" | "high";
-    valuation_range: { low: number; high: number };
+    valuation_range: { low: number; high: number }; // Range for total_fund_nav_usd
     methodology: string;
   };
   market_context: {
@@ -88,20 +88,26 @@ const SYSTEM_PROMPT = `You are an expert RWA (Real World Asset) financial analys
 Produce a SYNTHETIC, MARKET-BASED NAV estimate using publicly available market data and comparable analysis.
 
 CRITICAL: This is informational only — NOT a verified title search, audited financials, or regulatory-compliant appraisal.
-Always acknowledge data limitations and use conservative confidence scores unless strong market comparables exist.
+Always use conservative confidence scores. The hard ceiling is 85 — never exceed it regardless of data quality.
+
+IMPORTANT FIELD DEFINITIONS — read carefully:
+- "total_fund_nav_usd": The TOTAL fund/protocol NAV in USD (e.g., for Ondo USDY with $1.1B TVL, this is 1100000000). NOT the per-token price.
+- "per_token_price_usd": The MARKET PRICE per individual token (e.g., for USDY which is a stablecoin pegged to ~$1.00, this is ~1.00).
+  These are distinct: a stablecoin can have per_token_price_usd=1.00 AND total_fund_nav_usd=1100000000 simultaneously.
+  Always attempt to estimate total_fund_nav_usd from TVL data, market cap, or comparable fund sizes.
 
 Return valid JSON with this exact structure:
 {
-  "value_usd": number (total estimated NAV in USD, use best estimate from market data),
-  "value_per_token_usd": number or null (per-token price if token context provided),
-  "confidence_score": number 0-100 (be conservative: 20-40 for opaque assets, 50-70 for tokenized treasuries with public data, 70-85 for exchange-listed RWA tokens),
+  "total_fund_nav_usd": number (TOTAL protocol/fund NAV in USD — not per-token),
+  "per_token_price_usd": number or null (market price per individual token),
+  "confidence_score": number 0-85 HARD CEILING (be conservative: 20-40 for opaque/private assets, 45-65 for tokenized treasuries with public data, 65-85 for well-known exchange-listed tokens with strong comparables),
   "confidence_label": "low" | "medium" | "high",
-  "valuation_range": { "low": number, "high": number },
-  "methodology": "string explaining approach (e.g. 'market-implied from DEX price', 'comparable yield-adjusted', 'protocol-reported NAV')",
-  "comparable_yields": ["array of comparable yield benchmarks with percentages"],
-  "risk_factors": ["list of key risk factors"],
-  "liquidity_assessment": "string: illiquid / restricted / semi-liquid / liquid",
-  "market_sentiment": "string: bullish / neutral / cautious / uncertain"
+  "valuation_range": { "low": number, "high": number } (range for total_fund_nav_usd),
+  "methodology": "string explaining approach (e.g. 'protocol-reported NAV from public dashboard', 'comparable yield-adjusted DCF', 'DeFi Llama TVL-implied')",
+  "comparable_yields": ["array of comparable yield benchmarks with percentages, e.g. '3-month T-bill: 4.8%'"],
+  "risk_factors": ["list of 3-5 key risk factors specific to this asset type"],
+  "liquidity_assessment": "illiquid" | "restricted" | "semi-liquid" | "liquid",
+  "market_sentiment": "bullish" | "neutral" | "cautious" | "uncertain"
 }`;
 
 export async function rwaNavOracleService(
@@ -112,7 +118,9 @@ export async function rwaNavOracleService(
   const chain = input.chain || "base";
   const includeSignature = input.include_signature !== false;
 
-  const cacheKey = `rwa-nav:${assetName}:${assetType}:${chain}`;
+  // Cache key includes context and signature flag — different params → different cached shapes
+  const contextHash = input.context ? Buffer.from(input.context).toString("base64").slice(0, 16) : "none";
+  const cacheKey = `rwa-nav:${assetName}:${assetType}:${chain}:${contextHash}:${includeSignature}`;
   const cached = getCachedData(cacheKey);
   if (cached) return cached;
 
@@ -142,8 +150,10 @@ Be explicit about data limitations in your methodology description.`;
 
   const raw = JSON.parse(response.choices[0].message.content || "{}");
 
-  const confidenceScore = Math.min(100, Math.max(0, raw.confidence_score || 30));
-  const syntheticNavUsdCents = Math.round((raw.value_usd || 0) * 100);
+  // Hard ceiling: 85 — no synthetic NAV estimate ever warrants higher confidence
+  const confidenceScore = Math.min(85, Math.max(0, raw.confidence_score || 30));
+  const totalFundNavUsd = raw.total_fund_nav_usd || raw.value_usd || 0; // value_usd backward-compat fallback
+  const syntheticNavUsdCents = Math.round(totalFundNavUsd * 100);
   const timestamp = Math.floor(Date.now() / 1000);
   const methodology = raw.methodology || "synthetic-market-based";
 
@@ -198,8 +208,8 @@ Be explicit about data limitations in your methodology description.`;
       chain,
     },
     nav_estimate: {
-      value_usd: raw.value_usd || 0,
-      value_per_token_usd: raw.value_per_token_usd ?? null,
+      total_fund_nav_usd: totalFundNavUsd,
+      per_token_price_usd: raw.per_token_price_usd ?? null,
       confidence_score: confidenceScore,
       confidence_label:
         confidenceScore >= 65 ? "high" : confidenceScore >= 40 ? "medium" : "low",

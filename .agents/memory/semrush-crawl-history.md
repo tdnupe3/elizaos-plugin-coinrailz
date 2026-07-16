@@ -5,11 +5,11 @@ description: SemrushBot has crawled Coin Railz since December 2024, not since Ju
 
 ## Correction
 
-SemrushBot (`Mozilla/5.0 (compatible; SemrushBot/7~bl; +http://www.semrush.com/bot.html)`) has been crawling Coin Railz across at least **8 distinct crawl waves** dating back to **December 2024**:
+SemrushBot (`Mozilla/5.0 (compatible; SemrushBot/7~bl; +http://www.semrush.com/bot.html)`) has been crawling Coin Railz across at least **8 distinct crawl waves** dating back to **December 2025** (earliest confirmed hit: 2025-12-04; 414 total hits as of Jul 2026):
 
 | Wave | Date | Services hit |
 |---|---|---|
-| 1 | Dec 2024 | payment-processing, whale-alerts, contract-scan, polymarket, portfolio, trending, token-metadata, transaction-builder, compliance-check, construction-progress, instant-agent-wallet, token-price, gas-price-oracle, verified-agent-identity, batch-quote, dex-liquidity, token-sentiment, fraud-detection, polymarket-odds, trading-signal, risk-metrics, correlation-matrix, wallet-risk, portfolio-optimization, property-valuation, credit-risk-score, lease-analysis, arbitrage-scanner, sentiment-analysis, seamless-chain-bridge, approval-manager |
+| 1 | Dec 2025 | payment-processing, whale-alerts, contract-scan, polymarket, portfolio, trending, token-metadata, transaction-builder, compliance-check, construction-progress, instant-agent-wallet, token-price, gas-price-oracle, verified-agent-identity, batch-quote, dex-liquidity, token-sentiment, fraud-detection, polymarket-odds, trading-signal, risk-metrics, correlation-matrix, wallet-risk, portfolio-optimization, property-valuation, credit-risk-score, lease-analysis, arbitrage-scanner, sentiment-analysis, seamless-chain-bridge, approval-manager |
 | 2 | Jan 2026 | Full catalog sweep |
 | 3 | Feb 2026 | Full catalog sweep + satellite vertical |
 | 4 | Mar 2026 | kalshi, compliance, trading, sentiment, satellite, first-call |

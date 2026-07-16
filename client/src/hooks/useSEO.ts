@@ -123,11 +123,11 @@ export const seoConfigs = {
       "offers": {
         "@type": "AggregateOffer",
         "priceCurrency": "USD",
-        "lowPrice": "0.03",
-        "highPrice": "100.00",
-        "description": "69 pay-per-call APIs from $0.03/call. Get an API key in ~60 seconds via card, or pay on-chain with USDC via x402."
+        "lowPrice": "0.05",
+        "highPrice": "10.00",
+        "description": "76 pay-per-call APIs from $0.05/call. Get an API key in ~60 seconds via card, or pay on-chain with USDC via x402."
       },
-      "description": "69 pay-per-call APIs for AI agents across DeFi, IoT, satellite data, and prediction markets. Get an API key in ~60 seconds via card, or pay on-chain with USDC via x402.",
+      "description": "76 pay-per-call APIs for AI agents across DeFi, IoT, satellite data, prediction markets, and RWA tokenization. Get an API key in ~60 seconds via card, or pay on-chain with USDC via x402.",
       "provider": {
         "@type": "Organization",
         "name": "Kellogg Holdings LLC",
@@ -153,7 +153,7 @@ export const seoConfigs = {
           }
         }
       ],
-      "serviceType": ["AI Agent Micropayments", "x402 Protocol", "Stripe Prepaid Credits", "Stock Sentiment API", "Forex Sentiment API", "DEX Aggregator", "Multi-Chain Swap"],
+      "serviceType": ["AI Agent Micropayments", "x402 Protocol", "Stripe Prepaid Credits", "RWA NAV Oracle", "Tokenized Yield Comparison", "Stock Sentiment API", "Forex Sentiment API", "DEX Aggregator", "Satellite Data API", "IoT Device Payments", "Multi-Chain Swap"],
       "areaServed": "Worldwide"
     }
   },
@@ -282,13 +282,13 @@ export const seoConfigs = {
   // SDK Landing Page - 2026 Agentic Commerce Market ($1.7T by 2030)
   sdk: {
     title: 'AI Agent Payments SDK - Non-Custodial Payment Processing for Autonomous Agents | Coin Railz',
-    description: 'Add payment capabilities to any AI agent in 3 lines of code. NPM, Python, Docker SDKs for ElizaOS, AgentKit, MCP. 1.5% + $0.01 fee. Multi-chain: Base, Ethereum, Polygon, Solana. Competing with Visa Intelligent Commerce, Mastercard Agent Pay, Google AP2.',
+    description: 'Add payment capabilities to any AI agent in 3 lines of code. NPM, Python, Docker SDKs for ElizaOS, AgentKit, MCP. 1.5% + $0.01 fee. Multi-chain: Base, Ethereum, Polygon, Solana. 76 bundled microservices: DeFi, IoT, satellite data, RWA NAV oracle, tokenized yields.',
     keywords: 'AI agent payments SDK, agentic commerce, autonomous agent payments, agent-to-agent payments, ElizaOS payments, AgentKit integration, MCP payments, x402 protocol, AI payments infrastructure, non-custodial payments, autonomous payments SDK, agentic AI payments, programmable money SDK, agent payment rails 2026',
     canonical: 'https://coinrailz.com/sdk',
     ogTitle: 'AI Agent Payments SDK - 3 Lines of Code to Enable Autonomous Payments',
     ogDescription: 'NPM, Python, Docker SDKs for AI agent payments. Multi-chain support (7 EVM + Solana). 1.5% + $0.01 fee. ElizaOS, AgentKit, MCP compatible.',
     twitterTitle: 'AI Agent Payments SDK | Coin Railz',
-    twitterDescription: 'Add payment capabilities to any AI agent. NPM: @coinrailz/agent-payments. Python: coinrailz. 43 bundled microservices.',
+    twitterDescription: 'Add payment capabilities to any AI agent. NPM: @coinrailz/agent-payments. Python: coinrailz. 76 bundled microservices across DeFi, IoT, satellite data, and RWA.',
     structuredData: {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
@@ -305,7 +305,7 @@ export const seoConfigs = {
       "featureList": [
         "Non-custodial USDC payments",
         "Multi-chain support (Base, Ethereum, Polygon, Arbitrum, BSC, Optimism, Solana)",
-        "43 bundled intelligence microservices",
+        "76 bundled pay-per-call microservices (DeFi, IoT, satellite data, RWA, prediction markets)",
         "ElizaOS plugin compatibility",
         "AgentKit tool integration",
         "MCP server implementation",

@@ -158,7 +158,7 @@ export default function Landing() {
             </h1>
             
             <p className="text-base sm:text-2xl text-gray-600 mb-4 sm:mb-8 px-4 max-w-3xl mx-auto">
-              69 pay-per-call APIs for crypto/trading intelligence, satellite & IoT data, and prediction markets — built for autonomous agents. API key in ~60 seconds via card — or x402 on-chain USDC for advanced flows.
+              76 pay-per-call APIs for crypto/trading intelligence, satellite & IoT data, RWA tokenization, and prediction markets — built for autonomous agents. API key in ~60 seconds via card — or x402 on-chain USDC for advanced flows.
             </p>
             
             {/* Trust Badges - Card first, x402 secondary */}

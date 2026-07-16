@@ -1486,27 +1486,39 @@ export class A2AOutreachService {
       if (taskResult.success) {
         stats.sent++;
 
-        // Record outreach in database
-        await db.insert(a2aOutreachLogs).values({
-          agentId: agent.id,
-          agentUrl: agent.url,
-          agentName: agentName,
-          campaignId: campaignId,
-          taskId: taskResult.taskId,
-          contextId: taskResult.contextId,
-          status: 'sent',
-          taskStatus: taskResult.status,
-          trialCreditsOffered: 50, // $50 trial credits offer
-          sentAt: new Date()
-        });
+        // Record outreach in database — wrapped in try/catch so a DB failure
+        // never silently kills the campaign loop (async middleware safety rule)
+        try {
+          await db.insert(a2aOutreachLogs).values({
+            agentId: agent.id,
+            agentUrl: agent.url,
+            agentName: agentName,
+            campaignId: campaignId,
+            taskId: taskResult.taskId,
+            contextId: taskResult.contextId,
+            status: 'sent',
+            taskStatus: taskResult.status,
+            trialCreditsOffered: 50, // $50 trial credits offer
+            sentAt: new Date()
+          });
+          console.log(`📝 [a2a-outreach] DB row written: agent=${agentName} campaign=${campaignId} taskId=${taskResult.taskId}`);
+        } catch (dbErr: any) {
+          console.error(`❌ [a2a-outreach] DB INSERT failed for agent ${agentName} (id=${agent.id}): ${dbErr.message}`);
+          // Do NOT rethrow — the task was sent successfully; a log failure
+          // must not be counted as a send failure or kill the loop.
+        }
 
-        // Update agent last contact time
-        await db.update(discoveredAgents)
-          .set({ 
-            lastContactAt: new Date(),
-            attempts: sql`${discoveredAgents.attempts} + 1`
-          })
-          .where(eq(discoveredAgents.id, agent.id));
+        // Update agent last contact time — also wrapped
+        try {
+          await db.update(discoveredAgents)
+            .set({ 
+              lastContactAt: new Date(),
+              attempts: sql`${discoveredAgents.attempts} + 1`
+            })
+            .where(eq(discoveredAgents.id, agent.id));
+        } catch (updateErr: any) {
+          console.warn(`⚠️ [a2a-outreach] Failed to update lastContactAt for agent ${agent.id}: ${updateErr.message}`);
+        }
 
       } else {
         stats.errors++;

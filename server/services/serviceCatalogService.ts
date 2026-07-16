@@ -367,7 +367,7 @@ export class ServiceCatalogService {
         x402Compatible: true,
         stripeCompatible: true
       },
-      // Real Estate (3)
+      // Real Estate & RWA (5)
       {
         id: 'property-valuation',
         name: 'AI Property Valuation',
@@ -375,7 +375,7 @@ export class ServiceCatalogService {
         endpoint: '/x402/property-valuation',
         network: 'eip155:8453',
         category: 'real-estate',
-        capabilities: ['property-value', 'tokenization', 'market-analysis'],
+        capabilities: ['property-value', 'tokenization', 'market-analysis', 'rwa', 'defi'],
         x402Compatible: true,
         stripeCompatible: true
       },
@@ -386,7 +386,7 @@ export class ServiceCatalogService {
         endpoint: '/x402/lease-analysis',
         network: 'eip155:8453',
         category: 'real-estate',
-        capabilities: ['lease-review', 'term-analysis', 'optimization'],
+        capabilities: ['lease-review', 'term-analysis', 'optimization', 'rwa', 'tokenization', 'defi'],
         x402Compatible: true,
         stripeCompatible: true
       },
@@ -397,9 +397,31 @@ export class ServiceCatalogService {
         endpoint: '/x402/construction-progress',
         network: 'eip155:8453',
         category: 'real-estate',
-        capabilities: ['progress-tracking', 'milestone-verification', 'reporting'],
+        capabilities: ['progress-tracking', 'milestone-verification', 'reporting', 'rwa', 'tokenization', 'defi'],
         x402Compatible: true,
         stripeCompatible: true
+      },
+      {
+        id: 'rwa-nav-oracle',
+        name: 'RWA Synthetic NAV Oracle',
+        description: 'Synthetic market-based NAV estimate for RWA tokens (real estate, private credit, tokenized treasuries). EIP-712 signed attestation. Informational only — not audited.',
+        endpoint: '/x402/rwa-nav-oracle',
+        network: 'eip155:8453',
+        category: 'rwa-tokenization',
+        capabilities: ['rwa', 'nav-oracle', 'tokenization', 'defi', 'eip712-attestation', 'real-estate', 'private-credit'],
+        x402Compatible: true,
+        stripeCompatible: false
+      },
+      {
+        id: 'tokenized-yield-compare',
+        name: 'Tokenized Treasury Yield Comparison',
+        description: 'Live APY comparison across tokenized RWA protocols: Ondo (USDY), Backed (bIB01), Superstate (USTB), Mountain Protocol (USDM), OpenEden (TBILL), Hashnote (USYC), Maple Finance.',
+        endpoint: '/x402/tokenized-yield-compare',
+        network: 'eip155:8453',
+        category: 'rwa-tokenization',
+        capabilities: ['rwa', 'yield-comparison', 'tokenization', 'defi', 'treasury', 'ondo', 'superstate', 'backed'],
+        x402Compatible: true,
+        stripeCompatible: false
       },
       // Banking & Finance (3)
       {

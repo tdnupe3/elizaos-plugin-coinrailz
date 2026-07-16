@@ -106,7 +106,10 @@ export type ServiceName =
   | "robinhood-chain-stats"
   // Robinhood Chain — Chainlink Price Feeds + Bootstrap Bridge (July 2026)
   | "rh-stock-price"
-  | "rh-bridge-usdc";
+  | "rh-bridge-usdc"
+  // RWA & Tokenization vertical (July 2026)
+  | "rwa-nav-oracle"
+  | "tokenized-yield-compare";
 
 /**
  * Type guard to check if a string is a valid ServiceName
@@ -245,6 +248,10 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   
   // AI INFERENCE SERVICES (pay-per-call LLM access via x402)
   "ai-inference": 50000,               // $0.05 - GPT-4o-mini default (competitive with ecosystem avg $0.12)
+
+  // RWA & TOKENIZATION VERTICAL (July 2026)
+  "rwa-nav-oracle": 500000,            // $0.50 - Synthetic market-based NAV estimate + EIP-712 attestation
+  "tokenized-yield-compare": 250000,   // $0.25 - Live yield comparison: Ondo/Backed/Superstate/Mountain/OpenEden
 };
 
 /**
@@ -363,6 +370,10 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   
   // AI Inference Services
   "ai-inference": 0.05,  // $0.05 for gpt-4o-mini (competitive with ecosystem avg $0.12)
+
+  // RWA & Tokenization vertical (July 2026)
+  "rwa-nav-oracle": 0.50,
+  "tokenized-yield-compare": 0.25,
 };
 
 /**

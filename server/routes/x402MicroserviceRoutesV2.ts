@@ -78,6 +78,8 @@ import { b20TokenInfoService, b20TransferCheckService, b20ComplianceScanService 
 import { fetchRobinhoodPoolData, fetchRobinhoodTopPools, fetchRobinhoodChainStats } from './microservices/robinhoodData';
 import { rhStockPriceService, SUPPORTED_SYMBOLS as RH_STOCK_SYMBOLS } from './microservices/rhStockPrice';
 import { rhBridgeService } from './microservices/rhBridgeService';
+import { rwaNavOracleService } from '../services/rwaNavOracleService';
+import { tokenizedYieldCompareService } from '../services/tokenizedYieldCompareService';
 
 const router = Router();
 
@@ -1559,6 +1561,32 @@ const x402Routes = {
       maxTimeoutSeconds: 240,
     },
   },
+
+  // === RWA & TOKENIZATION SERVICES ===
+  "POST /rwa-nav-oracle": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["rwa-nav-oracle"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/rwa-nav-oracle`,
+      name: "RWA Synthetic NAV Oracle",
+      description: "Synthetic market-based NAV estimate for real-world asset tokens (real estate, private credit, tokenized treasuries). EIP-712 signed attestation by Coin Railz platform wallet on Base. INFORMATIONAL ONLY — not audited or title-verified.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 30,
+    },
+  },
+  "POST /tokenized-yield-compare": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["tokenized-yield-compare"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/tokenized-yield-compare`,
+      name: "Tokenized Treasury Yield Comparison",
+      description: "Live APY comparison across tokenized RWA protocols: Ondo (USDY), Backed (bIB01), Superstate (USTB), Mountain Protocol (USDM), OpenEden (TBILL), Hashnote (USYC), Maple Finance. Sourced from DeFi Llama yields API with 60-second cache.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 15,
+    },
+  },
   
   // === VERTICAL EXPANSION: BANKING/FINANCE SERVICES ===
   "POST /credit-risk-score": {
@@ -2567,6 +2595,7 @@ const serviceEndpoints = [
   "dex-liquidity", "transaction-builder", "token-metadata", "approval-manager", "batch-quote",
   "portfolio-tracker", "instant-agent-wallet", "verified-agent-identity", "seamless-chain-bridge",
   "property-valuation", "lease-analysis", "construction-progress",
+  "rwa-nav-oracle", "tokenized-yield-compare",
   "credit-risk-score", "fraud-detection", "compliance-check",
   "trading-signal", "portfolio-optimization", "sentiment-analysis",
   "arbitrage-scanner", "correlation-matrix", "risk-metrics",
@@ -4210,6 +4239,41 @@ router.post("/construction-progress",
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
       await trackRequest("construction-progress", req.body, null, responseTime, SERVICE_PRICING_USD["construction-progress"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+// RWA & TOKENIZATION SERVICES
+router.post("/rwa-nav-oracle",
+  createPaymentOrchestrator("rwa-nav-oracle", SERVICE_PRICING_MICRO["rwa-nav-oracle"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = await rwaNavOracleService(req.body || {});
+      const responseTime = Date.now() - startTime;
+      await trackRequest("rwa-nav-oracle", req.body, result, responseTime, SERVICE_PRICING_USD["rwa-nav-oracle"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "rwa-nav-oracle", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("rwa-nav-oracle", req.body, null, responseTime, SERVICE_PRICING_USD["rwa-nav-oracle"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/tokenized-yield-compare",
+  createPaymentOrchestrator("tokenized-yield-compare", SERVICE_PRICING_MICRO["tokenized-yield-compare"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = await tokenizedYieldCompareService(req.body || {});
+      const responseTime = Date.now() - startTime;
+      await trackRequest("tokenized-yield-compare", req.body, result, responseTime, SERVICE_PRICING_USD["tokenized-yield-compare"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "tokenized-yield-compare", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("tokenized-yield-compare", req.body, null, responseTime, SERVICE_PRICING_USD["tokenized-yield-compare"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   })
@@ -5953,7 +6017,8 @@ router.post("/rh-bridge-usdc",
     'approval-manager','batch-quote','portfolio-tracker','instant-agent-wallet',
     'verified-agent-identity','seamless-chain-bridge','ai-inference',
     'smart-contract-audit','payment-processing','compliance-consultation',
-    'property-valuation','lease-analysis','construction-progress','credit-risk-score',
+    'property-valuation','lease-analysis','construction-progress',
+    'rwa-nav-oracle','tokenized-yield-compare','credit-risk-score',
     'fraud-detection','compliance-check','trading-signal','portfolio-optimization',
     'sentiment-analysis','arbitrage-scanner','correlation-matrix','risk-metrics',
     'polymarket-events','polymarket-odds','polymarket-search','prediction-market-odds',

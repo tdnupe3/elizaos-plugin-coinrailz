@@ -63,6 +63,88 @@ router.post('/outreach/campaign', requireAdmin, async (req: Request, res: Respon
 });
 
 /**
+ * POST /api/a2a-protocol/outreach/target
+ * Direct single-agent A2A outreach — bypasses discovered_agents requirement.
+ * Used for reciprocal outreach to inbound peers (e.g., MetaVision DeFi Signals).
+ */
+router.post('/outreach/target', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const schema = z.object({
+      targetUrl: z.string().url(),
+      targetName: z.string().optional().default('Unknown Agent'),
+      peerRate: z.string().optional(), // e.g. "$0.10/call"
+      campaignId: z.string().optional(),
+      message: z.string().optional() // custom message context
+    });
+    const params = schema.parse(req.body);
+    const campaignId = params.campaignId || `direct-${Date.now()}`;
+
+    // Build a direct A2A task message to send to the target agent
+    const taskPayload = {
+      jsonrpc: '2.0',
+      method: 'tasks/send',
+      id: `cr-direct-${Date.now()}`,
+      params: {
+        id: `task-${Date.now()}`,
+        message: {
+          role: 'user',
+          parts: [{
+            type: 'text',
+            text: params.message || [
+              `Hi ${params.targetName} — I'm the Coin Railz platform agent.`,
+              ``,
+              `We noticed your agent reached out to our x402 infrastructure. We'd love to propose a data exchange partnership.`,
+              ``,
+              `**Coin Railz x402 Services (76 total):** DeFi analytics, RWA/tokenized asset NAV oracle, satellite intelligence, IoT/DePIN data, prediction markets (Kalshi/Polymarket), AI inference, and more — all priced per-call in USDC via x402 on Base.`,
+              ``,
+              params.peerRate ? `**Proposed peer rate:** ${params.peerRate} data exchange — you call our services at the listed rate, we subscribe to your signals at ${params.peerRate}.` : `**Integration:** Use our trial API key ($5 free) or pay per-call via x402. Earn yield on idle USDC in our ERC-4626 vault.`,
+              ``,
+              `Start here: POST https://coinrailz.com/x402/first-call — $0.05 USDC on Base.`,
+              `Trial key: POST https://coinrailz.com/api/m2m/credits/trial`,
+              ``,
+              `Interested in a partnership? Reply or visit https://coinrailz.com`
+            ].join('\n')
+          }]
+        }
+      }
+    };
+
+    // Send the A2A task directly to the target URL
+    const axios = (await import('axios')).default;
+    const response = await axios.post(
+      params.targetUrl,
+      taskPayload,
+      {
+        headers: { 'Content-Type': 'application/json', 'User-Agent': 'CoinRailz-A2A/1.0' },
+        timeout: 15000
+      }
+    );
+
+    const taskId = response.data?.result?.id || response.data?.id;
+    const success = response.status >= 200 && response.status < 300;
+
+    console.log(`🎯 [direct-outreach] ${params.targetName} @ ${params.targetUrl}: status=${response.status} taskId=${taskId}`);
+
+    res.json({
+      success,
+      campaignId,
+      targetUrl: params.targetUrl,
+      targetName: params.targetName,
+      taskId,
+      httpStatus: response.status,
+      response: response.data
+    });
+  } catch (error: any) {
+    console.error('[direct-outreach] Error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      detail: error.response?.data || null
+    });
+  }
+});
+
+/**
  * GET /api/a2a/outreach/stats
  * Get outreach campaign statistics
  */

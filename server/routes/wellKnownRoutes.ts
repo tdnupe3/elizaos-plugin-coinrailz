@@ -4096,7 +4096,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     },
     networks: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "eip155:4663", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"],
     walletProviders: ["coinbase-cdp", "moonpay-agents", "any-evm"],
-    categories: ["Execution", "Treasury Management", "Market Intelligence", "Prediction Markets", "Satellite Intelligence", "IoT & DePIN", "AI Inference", "Real Estate", "Identity"],
+    categories: ["Execution", "Treasury Management", "Market Intelligence", "Prediction Markets", "Satellite Intelligence", "IoT & DePIN", "AI Inference", "Real Estate", "RWA & Tokenization", "Identity"],
     facilitators: [
       "https://api.cdp.coinbase.com/platform/v2/x402",
       "https://x402.dexter.cash"
@@ -4155,7 +4155,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     },
     commerce: {
       total_services: getCanonicalServiceCount(),
-      categories: ["discovery", "trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence", "prediction-markets", "traditional-markets", "satellite-data", "ai-inference", "iot", "yield"],
+      categories: ["discovery", "trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "rwa-tokenization", "banking", "trading", "intelligence", "prediction-markets", "traditional-markets", "satellite-data", "ai-inference", "iot", "yield"],
       platform_commission: 15,
       minimum_payment: 0.10,
       maximum_payment: 10000
@@ -5630,6 +5630,20 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
         name: "IoT Bulk Data Export",
         description: "Historical bulk export of sensor readings with time-range filtering across device fleets. $0.25/call.",
         endpoint: `${baseUrl}/x402/iot-bulk-data`,
+        price: "$0.25 USDC",
+      },
+      {
+        id: "rwa-nav-oracle",
+        name: "RWA Synthetic NAV Oracle",
+        description: "Synthetic market-based NAV estimate for RWA tokens (real estate, private credit, tokenized treasuries). EIP-712 signed attestation on Base. Informational only. $0.50/call.",
+        endpoint: `${baseUrl}/x402/rwa-nav-oracle`,
+        price: "$0.50 USDC",
+      },
+      {
+        id: "tokenized-yield-compare",
+        name: "Tokenized Treasury Yield Comparison",
+        description: "Live APY comparison across tokenized RWA protocols: Ondo (USDY), Backed (bIB01), Superstate (USTB), Mountain Protocol (USDM), OpenEden (TBILL), Hashnote (USYC), Maple Finance. DeFi Llama sourced. $0.25/call.",
+        endpoint: `${baseUrl}/x402/tokenized-yield-compare`,
         price: "$0.25 USDC",
       },
       {

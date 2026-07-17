@@ -1323,9 +1323,16 @@ export function createPaymentOrchestrator(
     }
 
     const xPayment = (req.headers["x-payment"] || req.headers["payment-signature"]) as string | undefined;
+    // Detect MPP Authorization: Payment credential on the /x402/* path.
+    // Agents routing through Cloudflare Workers/WARP often strip User-Agent but retain
+    // Authorization headers. When hasMppCredential is true the agent is attempting to pay
+    // (not claim a free trial), so the UA guard is irrelevant — bypass it.
+    const hasMppCredential = /^Payment\s+/.test((req.headers["authorization"] ?? '') as string);
 
     // FIRST-CALL FREE: Check if eligible for free call on cheapest services
-    if (!xPayment && FIRST_CALL_FREE_SERVICES.includes(serviceName)) {
+    // Skip when hasMppCredential — let the orchestrator issue a protocol-mismatch 402 below
+    // so the agent receives clear guidance on the correct endpoint rather than a silent denial.
+    if (!xPayment && !hasMppCredential && FIRST_CALL_FREE_SERVICES.includes(serviceName)) {
       const eligible = await isEligibleForFirstCallFree(ipAddress, userAgent);
       
       if (eligible) {
@@ -1371,6 +1378,34 @@ export function createPaymentOrchestrator(
           // Continue to 402 on error
         }
       }
+    }
+
+    // PROTOCOL-MISMATCH: Agent submitted Authorization: Payment (MPP credential) on /x402/* path.
+    // x402 requires X-PAYMENT header; MPP credential belongs on /mpp/* endpoints.
+    // Return a clear 402 with routing guidance instead of a silent 402 challenge.
+    if (hasMppCredential && !xPayment) {
+      const baseUrl = getPublicBaseUrl(req);
+      console.log(`[x402] MPP credential on /x402/* — protocol-mismatch 402: service=${serviceName} IP=${ipAddress} ua=${userAgent || 'none'} hasMppCredential=true hasXPayment=false`);
+      return res.status(402).json({
+        error: 'PROTOCOL_MISMATCH',
+        message: 'Authorization: Payment header detected (MPP protocol). The /x402/* path requires an X-PAYMENT header instead.',
+        resolution: {
+          option_a: {
+            description: 'Use the /mpp/* endpoint with your existing Authorization: Payment credential',
+            endpoint: `${baseUrl}/mpp/${serviceName}`,
+            method: 'POST',
+            headers: { 'Authorization': 'Payment <your-credential>' },
+          },
+          option_b: {
+            description: 'Send USDC on-chain then resubmit to /x402/* with the tx hash in X-PAYMENT',
+            endpoint: `${baseUrl}/x402/${serviceName}`,
+            method: 'POST',
+            headers: { 'X-PAYMENT': '<base64-encoded-payment-proof>' },
+          },
+        },
+        docs: `${baseUrl}/openapi.json`,
+        x402Version: 2,
+      });
     }
 
     // PREPAID CREDITS: Check for GPT session or API key authentication

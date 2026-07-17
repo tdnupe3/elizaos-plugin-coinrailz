@@ -1327,7 +1327,7 @@ export function createPaymentOrchestrator(
     // Agents routing through Cloudflare Workers/WARP often strip User-Agent but retain
     // Authorization headers. When hasMppCredential is true the agent is attempting to pay
     // (not claim a free trial), so the UA guard is irrelevant — bypass it.
-    const hasMppCredential = /^Payment\s+/.test((req.headers["authorization"] ?? '') as string);
+    const hasMppCredential = /^Payment\s+/i.test((req.headers["authorization"] ?? '') as string);
 
     // FIRST-CALL FREE: Check if eligible for free call on cheapest services
     // Skip when hasMppCredential — let the orchestrator issue a protocol-mismatch 402 below

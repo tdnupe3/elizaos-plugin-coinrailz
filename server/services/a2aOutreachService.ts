@@ -262,7 +262,7 @@ export class A2AOutreachService {
             parts: [
               {
                 type: 'text',
-                text: 'Coin Railz acknowledges your inter-agent commerce offers (received June 2026). We operate on the same x402/USDC rails. Proposing service swap: your compute/auth services available to our agents; our 60 data services (satellite, DeFi, IoT, AI inference) available to yours. Review our catalog and initiate at your preferred tier.'
+                text: 'Coin Railz acknowledges your inter-agent commerce offers (received June 2026). We operate on the same x402/USDC rails. Proposing service swap: your compute/auth services available to our agents; our 76 data services (satellite, DeFi, IoT, AI inference, RWA/NAV oracle, Robinhood Chain DEX) available to yours. Review our catalog and initiate at your preferred tier: https://coinrailz.com/x402/catalog'
               },
               {
                 type: 'data',
@@ -319,7 +319,7 @@ export class A2AOutreachService {
             parts: [
               {
                 type: 'text',
-                text: 'Coin Railz — 69 pay-per-call data services across 9 chains. Machine-readable catalog at https://coinrailz.com/x402/catalog. Free probe: GET https://coinrailz.com/x402/ping. Requesting directory placement for AI agent discovery.'
+                text: 'Coin Railz — 76 pay-per-call data services across 9 chains. Machine-readable catalog at https://coinrailz.com/x402/catalog. Free probe: GET https://coinrailz.com/x402/ping. Requesting directory placement for AI agent discovery.'
               },
               {
                 type: 'data',
@@ -328,8 +328,8 @@ export class A2AOutreachService {
                   from: 'coinrailz',
                   agent_card: 'https://coinrailz.com/.well-known/agent.json',
                   catalog_manifest: 'https://coinrailz.com/x402/catalog',
-                  service_count: 60,
-                  chains_supported: 8,
+                  service_count: 76,
+                  chains_supported: 9,
                   settlement: 'USDC on Base, Solana, Ethereum, Polygon, Arbitrum',
                   protocol: 'x402 v2 + A2A 0.3',
                   categories: ['satellite_data', 'defi_data', 'prediction_markets', 'iot_data', 'ai_inference', 'gas_oracle', 'portfolio', 'wallet_management'],
@@ -381,7 +381,7 @@ export class A2AOutreachService {
             parts: [
               {
                 type: 'text',
-                text: 'Please register Coin Railz in your public directory. Coin Railz is multi-chain AI agent payment infrastructure — 60+ x402 pay-per-call services (satellite data, AI inference, DeFi data, IoT payments) payable in USDC on Base and Solana. A2A endpoint: https://coinrailz.com/a2a/v1/message/send. Agent card: https://coinrailz.com/.well-known/agent.json. Catalog: https://coinrailz.com/x402/catalog. First paid call: https://coinrailz.com/x402/first-call ($0.05 USDC, no signup).'
+                text: 'Please register Coin Railz in your public directory. Coin Railz is multi-chain AI agent payment infrastructure — 76 x402 pay-per-call services (satellite data, AI inference, DeFi data, RWA/NAV oracle, IoT payments) payable in USDC on Base and Solana. Full catalog: https://coinrailz.com/x402/catalog. A2A endpoint: https://coinrailz.com/a2a/v1/message/send. Agent card: https://coinrailz.com/.well-known/agent.json. First paid call: https://coinrailz.com/x402/first-call ($0.05 USDC, no signup).'
               },
               {
                 type: 'data',
@@ -389,16 +389,16 @@ export class A2AOutreachService {
                   type: 'agent_registration_request',
                   from: 'coinrailz',
                   agent_name: 'Coin Railz',
-                  description: 'Multi-chain AI agent payment infrastructure. Universal payment layer for the AI agent economy — 60+ x402 pay-per-call services across DeFi data, satellite imagery, IoT sensors, AI inference, and prediction markets.',
+                  description: 'Multi-chain AI agent payment infrastructure. Universal payment layer for the AI agent economy — 76 x402 pay-per-call services across DeFi data, satellite imagery, IoT sensors, AI inference, RWA/NAV oracle, and prediction markets.',
                   url: 'https://coinrailz.com',
                   a2a_endpoint: 'https://coinrailz.com/a2a/v1/message/send',
                   agent_card: 'https://coinrailz.com/.well-known/agent.json',
                   catalog: 'https://coinrailz.com/x402/catalog',
                   payment_protocol: 'x402 v2',
-                  service_count: 60,
+                  service_count: 76,
                   price_range: '$0.03 – $10.00 USDC',
                   chains: ['eip155:8453', 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'],
-                  categories: ['payment-infrastructure', 'x402', 'satellite-data', 'ai-inference', 'defi-data', 'iot-payments'],
+                  categories: ['payment-infrastructure', 'x402', 'satellite-data', 'ai-inference', 'defi-data', 'iot-payments', 'rwa-oracle'],
                   opt_out: 'Reply with {"action":"opt_out"} to decline'
                 }
               }
@@ -437,7 +437,7 @@ export class A2AOutreachService {
             parts: [
               {
                 type: 'text',
-                text: 'Fellow x402 agent here — Coin Railz. We offer 69 pay-per-call data services your agent can consume directly over HTTP 402: satellite imagery ($0.05–$0.25), DeFi analytics ($0.03–$0.10), AI inference ($0.05/call), prediction market data ($0.05), fire/flood alerts ($0.05). All settle in USDC on Base. Your x402 client can call them today — no API key. Start here: GET https://coinrailz.com/x402/first-call ($0.05). Full catalog: https://coinrailz.com/x402/catalog'
+                text: 'Fellow x402 agent here — Coin Railz. We offer 76 pay-per-call data services your agent can consume directly over HTTP 402: satellite imagery ($0.05–$0.25), DeFi analytics ($0.03–$0.10), AI inference ($0.05/call), prediction market data ($0.05), RWA/NAV oracle ($0.10), Robinhood Chain DEX data ($0.05). All settle in USDC on Base. Your x402 client can call them today — no API key. Start here: GET https://coinrailz.com/x402/first-call ($0.05). Full catalog: https://coinrailz.com/x402/catalog'
               },
               {
                 type: 'data',
@@ -494,7 +494,7 @@ export class A2AOutreachService {
             parts: [
               {
                 type: 'text',
-                text: 'Coin Railz — 69 x402 pay-per-call services for AI agents. Catalog: https://coinrailz.com/x402/catalog. Covers DeFi data, satellite imagery, IoT sensors, AI inference, prediction markets. USDC on Base/Solana. No signup. Free probe: GET https://coinrailz.com/x402/ping'
+                text: 'Coin Railz — 76 x402 pay-per-call services for AI agents. Catalog: https://coinrailz.com/x402/catalog. Covers DeFi data, satellite imagery, IoT sensors, AI inference, RWA/NAV oracle, prediction markets. USDC on Base/Solana. No signup. Free probe: GET https://coinrailz.com/x402/ping'
               },
               {
                 type: 'data',
@@ -503,7 +503,7 @@ export class A2AOutreachService {
                   from: 'coinrailz',
                   catalog_url: 'https://coinrailz.com/x402/catalog',
                   agent_card: 'https://coinrailz.com/.well-known/agent.json',
-                  service_count: 60,
+                  service_count: 76,
                   price_range: '$0.03 – $10.00 USDC',
                   payment_protocol: 'x402 v2',
                   chains: ['eip155:8453', 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'],

@@ -3072,25 +3072,34 @@ const firstCallHandler = async (req: Request, res: Response) => {
       },
       nextServices: [
         {
+          id: "trade-signals",
+          name: "AI Trade Signals",
+          price: "$0.75 USDC",
+          priceUsd: 0.75,
+          endpoint: "/x402/trade-signals",
+          endpointUrl: "https://coinrailz.com/x402/trade-signals",
+          description: "AI BUY/SELL/HOLD signal with confidence score, price targets, and stop-loss. GPT-4o powered.",
+          curl: "curl -X POST https://coinrailz.com/x402/trade-signals -H 'X-PAYMENT: <tx_hash>' -H 'Content-Type: application/json' -d '{\"symbol\":\"ETH\"}'"
+        },
+        {
+          id: "multi-chain-balance",
+          name: "Multi-Chain Balance",
+          price: "$1.00 USDC",
+          priceUsd: 1.00,
+          endpoint: "/x402/multi-chain-balance",
+          endpointUrl: "https://coinrailz.com/x402/multi-chain-balance",
+          description: "Wallet balances across Base, Ethereum, Polygon, Arbitrum, and Solana in a single call.",
+          curl: "curl -X POST https://coinrailz.com/x402/multi-chain-balance -H 'X-PAYMENT: <tx_hash>' -H 'Content-Type: application/json' -d '{\"address\":\"0xYourWalletAddress\"}'"
+        },
+        {
           id: "gas-price-oracle",
           name: "Gas Price Oracle",
-          price: "$0.10",
+          price: "$0.10 USDC",
+          priceUsd: 0.10,
           endpoint: "/x402/gas-price-oracle",
+          endpointUrl: "https://coinrailz.com/x402/gas-price-oracle",
+          description: "Real-time gas prices across 8 EVM chains. Lowest-cost entry point to the platform.",
           curl: "curl -X POST https://coinrailz.com/x402/gas-price-oracle -H 'X-PAYMENT: <tx_hash>' -H 'Content-Type: application/json' -d '{\"chains\":[\"base\",\"ethereum\"]}'"
-        },
-        {
-          id: "ai-inference",
-          name: "AI Inference (GPT-4o-mini)",
-          price: "$0.05",
-          endpoint: "/x402/ai-inference",
-          curl: "curl -X POST https://coinrailz.com/x402/ai-inference -H 'X-PAYMENT: <tx_hash>' -H 'Content-Type: application/json' -d '{\"prompt\":\"Hello\",\"model\":\"gpt-4o-mini\"}'"
-        },
-        {
-          id: "token-metadata",
-          name: "Token Metadata",
-          price: "$0.10",
-          endpoint: "/x402/token-metadata",
-          curl: "curl -X POST https://coinrailz.com/x402/token-metadata -H 'X-PAYMENT: <tx_hash>' -H 'Content-Type: application/json' -d '{\"contractAddress\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"chainId\":8453}'"
         }
       ],
       catalog: "https://coinrailz.com/x402/catalog",
@@ -6085,6 +6094,15 @@ router.post("/rh-bridge-usdc",
     const target = `/x402/${slug}`;
     res.setHeader('X-Redirect-Reason', 'canonical-path-alias');
     return res.redirect(308, target);
+  });
+
+  // Handle /x402/service (no slug) — agents that POST to the base /service path with no slug.
+  // These 14 POST attempts per 12h window are real payment intent going to a dead path.
+  // Redirect to /x402/catalog so agents can discover the correct service endpoints.
+  router.all('/service', (_req: Request, res: Response) => {
+    res.setHeader('X-Redirect-Reason', 'service-base-path-catalog-redirect');
+    res.setHeader('X-Service-List', 'https://coinrailz.com/.well-known/x402.json');
+    return res.redirect(308, '/x402/catalog');
   });
 
   router.all('*', (req: Request, res: Response, next) => {

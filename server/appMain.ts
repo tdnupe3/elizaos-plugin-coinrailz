@@ -1071,6 +1071,14 @@ console.log('🔒 Mounting /x402 routes (V2 microservices + enterprise services)
 app.use('/x402', x402Limiter); // 🛡️ Rate limit: 200 req/min per identity (wallet > api-key > IP), internal IPs exempt
 app.use('/x402', x402MicroserviceRoutes);
 
+// Root-level /discovery alias — serves x402 catalog data directly.
+// Some agents (notably IPv6 Cloudflare workers) request GET /discovery (no /x402 prefix).
+// Without this, the Vite SPA catch-all intercepts the request and returns HTML (wrong content type).
+// This redirect fires before Vite is registered, so it wins cleanly.
+app.get('/discovery', (_req, res) => {
+  res.redirect(301, '/x402/discovery');
+});
+
 // === MPP (Machine Payments Protocol) ROUTES ===
 // Third payment lane: pathUSD via Tempo (alongside x402 and API-key credits)
 // See server/middleware/mppPaymentMiddleware.ts for implementation status

@@ -362,6 +362,58 @@ router.get('/catalog', async (req: Request, res: Response) => {
   }
 });
 
+// /x402/discovery/resources — compact machine-readable resource index for payment-readiness checkers.
+// The IPv6 agent (2a06:98c0:3600::103 — Cloudflare worker) has requested this sub-path every ~5 hours
+// since July 15, always receiving 404. It hits /x402/discovery (catalog) AND /resources in the same
+// sweep cycle, indicating it expects a distinct, payment-execution-optimized resource list.
+// Schema: x402Version:2, kind:"resource-list", resources[]{id,resource,path,method,priceMicro,
+//         priceUsd,network(CAIP-2),asset,payTo,category,firstCallFree}
+router.get('/discovery/resources', async (_req: Request, res: Response) => {
+  try {
+    const allServices = getCanonicalServices();
+    const sorted = [...allServices].sort((a, b) => a.priceUsd - b.priceUsd);
+    const firstCallFreeIds = new Set(['gas-price-oracle', 'token-metadata']);
+
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Content-Type', 'application/json');
+    res.json({
+      x402Version: 2,
+      kind: 'resource-list',
+      generatedAt: new Date().toISOString(),
+      totalResources: sorted.length,
+      links: {
+        discovery: `${PUBLIC_BASE_URL}/x402/discovery`,
+        catalog: `${PUBLIC_BASE_URL}/x402/catalog`,
+        paymentManifest: `${PUBLIC_BASE_URL}/x402/payment-manifest.json`,
+      },
+      paymentDefaults: {
+        network: 'eip155:8453',
+        asset: 'USDC',
+        assetAddress: USDC_BASE_ADDRESS,
+        payTo: PLATFORM_WALLETS.base,
+        facilitatorUrl: getFacilitatorUrl(),
+        decimals: 6,
+      },
+      resources: sorted.map(s => ({
+        id: s.id,
+        resource: `${PUBLIC_BASE_URL}${s.endpoint}`,
+        path: s.endpoint,
+        method: s.method || 'POST',
+        priceMicro: Math.round(s.priceUsd * 1_000_000),
+        priceUsd: s.priceUsd,
+        network: 'eip155:8453',
+        asset: USDC_BASE_ADDRESS,
+        payTo: PLATFORM_WALLETS.base,
+        category: s.category,
+        firstCallFree: firstCallFreeIds.has(s.id),
+      })),
+    });
+  } catch (error: any) {
+    console.error('Failed to serve discovery resources:', error);
+    res.status(500).json({ error: 'Failed to retrieve discovery resources' });
+  }
+});
+
 // Discovery alias: /x402/discovery — serves catalog data directly (no redirect)
 // The Cloudflare worker (2a06:98c0:3600::103) hits /x402/discovery expecting the service catalog.
 // Serving data directly avoids 302 → analytics 'failed' classification and redirect overhead.
@@ -379,8 +431,14 @@ router.all('/discovery', async (_req: Request, res: Response) => {
     res.json({
       x402Version: 2,
       catalogUrl: `${PUBLIC_BASE_URL}/x402/catalog`,
+      resourcesUrl: `${PUBLIC_BASE_URL}/x402/discovery/resources`,
       facilitatorUrl: getFacilitatorUrl(),
       totalServices: allServices.length,
+      links: {
+        catalog: `${PUBLIC_BASE_URL}/x402/catalog`,
+        resources: `${PUBLIC_BASE_URL}/x402/discovery/resources`,
+        paymentManifest: `${PUBLIC_BASE_URL}/x402/payment-manifest.json`,
+      },
       services: filteredServices.map(service => ({
         id: service.id,
         name: service.name,

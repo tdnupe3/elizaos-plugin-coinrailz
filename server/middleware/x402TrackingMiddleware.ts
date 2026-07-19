@@ -342,6 +342,7 @@ function extractServiceId(path: string): string | null {
   // Path patterns: /multi-chain-balance (req.path) or /x402/multi-chain-balance (req.originalUrl)
   // Also handles satellite/IoT endpoints: /api/satellite/fire-alerts, /api/iot/catalog
   const patterns = [
+    /\/x402\/service\/([^\/\?]+)/, // Redirect path: /x402/service/trade-signals → extract "trade-signals"
     /\/x402\/([^\/\?]+)/, // Full path: /x402/multi-chain-balance
     /\/api\/satellite\/([^\/\?]+)/, // Satellite endpoints: /api/satellite/fire-alerts
     /\/api\/iot\/([^\/\?]+)/, // IoT endpoints: /api/iot/catalog

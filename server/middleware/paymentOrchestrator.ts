@@ -2743,9 +2743,10 @@ function generate402Response(
       sources: ["coingecko", "coinbase", "binance"], confidence: 0.99, timestamp: "2026-03-17T12:00:00Z"
     },
     "token-metadata": {
-      symbol: "USDC", name: "USD Coin", decimals: 6,
-      address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-      totalSupply: 24800000000, verified: true, chain: "ethereum"
+      address: "0x6b785a0322126826d8226d77e173d75DAfb84d11",
+      chain: "ethereum", name: "Bankroll Vault", symbol: "VLT",
+      decimals: 18, totalSupply: "1800000", verified: true,
+      _note: "Required fields: tokenAddress (contract address) + chain (ethereum|base|polygon|arbitrum)"
     },
     "transaction-builder": {
       tx: { to: "0x...", value: "0", data: "0x...", gasLimit: 65000 },
@@ -3040,17 +3041,6 @@ function generate402Response(
       current: { temp_c: 14.8, humidity_pct: 72, wind_kph: 18, precip_mm_1h: 0.0, visibility_km: 16 },
       forecast6h: { temp_c: 13.2, precip_prob: 0.15 },
       dataSource: "ground_station", timestamp: "2026-04-16T12:00:00Z"
-    },
-    "token-metadata": {
-      address: "0x6b785a0322126826d8226d77e173d75DAfb84d11",
-      chain: "ethereum",
-      name: "Bankroll Vault",
-      symbol: "VLT",
-      decimals: 18,
-      totalSupply: "1800000",
-      verified: true,
-      timestamp: "2026-04-16T12:00:00Z",
-      _sample_note: "Example: VLT (Bankroll Vault) on Ethereum. Required fields: tokenAddress + chain."
     },
   };
   const sampleOutput = sampleOutputs[serviceName] || _extraSamples[serviceName] || { success: true, data: {}, service: serviceName, timestamp: new Date().toISOString() };

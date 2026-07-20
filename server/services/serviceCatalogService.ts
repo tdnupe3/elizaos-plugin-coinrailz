@@ -928,6 +928,50 @@ export class ServiceCatalogService {
         capabilities: ['bridge', 'usdc', 'robinhood-chain', 'across-protocol', 'base-to-rh', 'cross-chain', 'usdg', 'transfer', 'liquidity'],
         x402Compatible: true,
         stripeCompatible: false
+      },
+      {
+        id: 'instant-api-key',
+        name: 'Instant API Key',
+        description: 'Frictionless API key provisioning via USDC payment. Pay once, receive a prepaid credits key instantly — no sign-up, no OAuth, no email. Ideal for AI agents and automated pipelines that need programmatic access to Coin Railz services.',
+        endpoint: '/x402/instant-api-key',
+        network: 'eip155:8453',
+        category: 'sdk-payments',
+        capabilities: ['api-key', 'instant', 'no-signup', 'credits', 'programmatic', 'agent-onboarding'],
+        x402Compatible: true,
+        stripeCompatible: false
+      },
+      {
+        id: 'robinhood-token-price',
+        name: 'Robinhood Chain Token Price',
+        description: 'Real-time token price and pool data for any token on Robinhood Chain (eip155:4663, Arbitrum Orbit L2). Returns best price across all DEX pools, 24h volume, liquidity depth, and pool address. Pass { tokenAddress }.',
+        endpoint: '/x402/robinhood-token-price',
+        network: 'eip155:4663',
+        category: 'traditional-markets',
+        capabilities: ['token-price', 'robinhood-chain', 'dex', 'real-time', 'liquidity', 'pool-data', 'arbitrum-orbit'],
+        x402Compatible: true,
+        stripeCompatible: false
+      },
+      {
+        id: 'robinhood-dex-pools',
+        name: 'Robinhood Chain DEX Pools',
+        description: 'Top DEX liquidity pools on Robinhood Chain. Pass a token address to get pools for that token, or omit for chain-wide top pools by TVL. Returns pool address, token pair, TVL, 24h volume, and fee tier.',
+        endpoint: '/x402/robinhood-dex-pools',
+        network: 'eip155:4663',
+        category: 'traditional-markets',
+        capabilities: ['dex-pools', 'robinhood-chain', 'liquidity', 'tvl', 'volume', 'pool-routing', 'arbitrum-orbit'],
+        x402Compatible: true,
+        stripeCompatible: false
+      },
+      {
+        id: 'robinhood-chain-stats',
+        name: 'Robinhood Chain Health Stats',
+        description: 'Chain-level health metrics for Robinhood Chain (eip155:4663): current block, gas price in Gwei, total active DEX pools, 24h on-chain volume, and sequencer status. No parameters required.',
+        endpoint: '/x402/robinhood-chain-stats',
+        network: 'eip155:4663',
+        category: 'traditional-markets',
+        capabilities: ['chain-stats', 'robinhood-chain', 'gas-price', 'block-height', 'sequencer', 'health-check', 'dex-volume'],
+        x402Compatible: true,
+        stripeCompatible: false
       }
     ];
 

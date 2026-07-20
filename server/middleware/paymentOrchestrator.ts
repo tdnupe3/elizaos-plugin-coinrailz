@@ -1343,6 +1343,38 @@ export function createPaymentOrchestrator(
         try {
           await handler(req, res);
           
+          const actualStatus = res.statusCode;
+          
+          if (actualStatus >= 400) {
+            // Handler rejected the request (malformed input etc.) — do NOT burn the free trial.
+            // Actor can retry with a valid request body and still get their complimentary call.
+            console.log(`⚠️ First-call-free NOT granted for ${serviceName}: handler returned ${actualStatus} (trial preserved for retry)`);
+            await x402InteractionTracker.trackInteraction({
+              serviceId: serviceName,
+              ipAddress,
+              userAgent,
+              requestPath: req.originalUrl,
+              requestMethod: req.method,
+              responseStatus: actualStatus,
+              paid: false,
+              amount: 0,
+              interactionType: 'payment',
+              requestId,
+              eventType: 'first-call-free-rejected',
+              serviceName,
+              latencyMs: Date.now() - startTime,
+              paymentReceived: false,
+              paymentAmount: 0,
+              offerTrackingId,
+              metadata: {
+                freeGrantOutcome: 'failed-validation',
+                knownAgent: knownAgent.name,
+                originalPrice: SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD]
+              }
+            });
+            return;
+          }
+
           // Track the free call for future eligibility checks
           await x402InteractionTracker.trackInteraction({
             serviceId: serviceName,
@@ -1350,7 +1382,7 @@ export function createPaymentOrchestrator(
             userAgent,
             requestPath: req.originalUrl,
             requestMethod: req.method,
-            responseStatus: 200,
+            responseStatus: actualStatus,
             paid: false,
             amount: 0,
             interactionType: 'payment',
@@ -1362,7 +1394,8 @@ export function createPaymentOrchestrator(
             paymentAmount: 0,
             offerTrackingId,
             metadata: { 
-              first_call_free: 'granted', 
+              first_call_free: 'granted',
+              freeGrantOutcome: 'success',
               knownAgent: knownAgent.name,
               originalPrice: SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD]
             }
@@ -3008,6 +3041,17 @@ function generate402Response(
       forecast6h: { temp_c: 13.2, precip_prob: 0.15 },
       dataSource: "ground_station", timestamp: "2026-04-16T12:00:00Z"
     },
+    "token-metadata": {
+      address: "0x6b785a0322126826d8226d77e173d75DAfb84d11",
+      chain: "ethereum",
+      name: "Bankroll Vault",
+      symbol: "VLT",
+      decimals: 18,
+      totalSupply: "1800000",
+      verified: true,
+      timestamp: "2026-04-16T12:00:00Z",
+      _sample_note: "Example: VLT (Bankroll Vault) on Ethereum. Required fields: tokenAddress + chain."
+    },
   };
   const sampleOutput = sampleOutputs[serviceName] || _extraSamples[serviceName] || { success: true, data: {}, service: serviceName, timestamp: new Date().toISOString() };
 
@@ -3153,11 +3197,17 @@ function generate402Response(
     }] : [])
   ];
   
+  const serviceExampleBodies: Record<string, any> = {
+    "token-metadata": { tokenAddress: "0x6b785a0322126826d8226d77e173d75DAfb84d11", chain: "ethereum" },
+    "gas-price-oracle": { chain: "base" },
+    "wallet-risk": { address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
+    "approval-manager": { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", spender: "0x...", amount: "unlimited", chain: "base" },
+  };
   const bazaarInput = {
     type: "http" as const,
     method: "POST" as const,
     bodyType: "json" as const,
-    body: { query: "example parameter" },
+    body: serviceExampleBodies[serviceName] || { query: "example parameter" },
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
   };
   const bazaarOutput = {

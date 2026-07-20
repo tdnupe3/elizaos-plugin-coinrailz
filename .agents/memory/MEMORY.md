@@ -53,3 +53,4 @@
 - [SEO surface audit — service count sources](seo-service-counts.md) — 6 sources must all show same count: openapi paths, KNOWN_SLUGS, catalog API, sitemap, x402.json service_count, useSEO.ts/index.html structured data
 - [MPP credential UA guard bypass](mpp-ua-guard-bypass.md) — hasMppCredential skips free-tier UA check; PROTOCOL_MISMATCH 402 routes MPP agents to /mpp/*; trial guard on m2mCreditsRoutes unchanged
 - [discovery/resources endpoint](discovery-resources-endpoint.md) — IPv6 agent (2a06:98c0:3600::103) needs GET /x402/discovery/resources distinct from /x402/discovery; implemented Jul 19 2026
+- [Free-trial grant gating on handler status](free-trial-status-gate.md) — first-call-free grant must only persist if res.statusCode < 400 after await handler(); malformed requests returned 400 but burned the trial before this fix; eventType='first-call-free-rejected' + freeGrantOutcome:'failed-validation' for 4xx outcomes

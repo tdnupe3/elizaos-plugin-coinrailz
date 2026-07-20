@@ -5452,8 +5452,8 @@ router.get('/.well-known/webmcp.json', (req: Request, res: Response) => {
     mcpServers: {
       coinrailz: {
         type: "http",
-        url: `${baseUrl}/mcp/services`,
-        description: `MCP-compatible service discovery. Returns ${getCanonicalServiceCount()} paid services with schemas, pricing, and endpoint URLs.`,
+        url: `${baseUrl}/mcp`,
+        description: `MCP JSON-RPC 2.0 transport. Handles initialize, tools/list, tools/call for ${getCanonicalServiceCount()} paid services. Pay-per-call via USDC/x402 or prepaid API-key credits.`,
         authentication: {
           modes: ["x-api-key", "x402"],
           trialKey: {

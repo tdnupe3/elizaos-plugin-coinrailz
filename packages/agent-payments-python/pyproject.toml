@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "coinrailz"
-version = "1.1.0"
-description = "Non-custodial USDC payment SDK for AI agents with 66 bundled x402 intelligence services across Base and Solana. Official ElizaOS support."
+version = "1.2.0"
+description = "Non-custodial USDC payment SDK for AI agents with 76 bundled x402 intelligence services across Base and Solana. Official ElizaOS support."
 readme = "README.md"
 license = {text = "MIT"}
 authors = [

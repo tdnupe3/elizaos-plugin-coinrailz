@@ -27,7 +27,7 @@ import type {
   ServiceCatalog,
 } from './types.js';
 
-export const SDK_VERSION = '1.0.4';
+export const SDK_VERSION = '1.2.0';
 
 const FREE_TIER_SERVICES = new Set(['gas-price-oracle', 'token-metadata']);
 
@@ -408,10 +408,97 @@ export class CoinRailzClient {
   }
 
   /**
-   * Get prediction market analysis
+   * Prediction market spread — cross-platform arbitrage between Polymarket and Kalshi
+   * $0.25 per request
    */
-  async predictionAnalysis(params: { marketId: string }): Promise<ServiceResponse<unknown>> {
-    return this.request('prediction-analysis', params);
+  async predictionMarketSpread(params?: { market?: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('prediction-market-spread', params);
+  }
+
+  // ==================== Robinhood Chain ====================
+
+  /**
+   * Robinhood Chain token price — live price + pool data
+   * $0.60 per request (day-1 exclusivity premium)
+   */
+  async robinhoodTokenPrice(params: { token: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('robinhood-token-price', params);
+  }
+
+  /**
+   * Robinhood Chain DEX pools — top liquidity pools for trading/routing
+   * $1.25 per request
+   */
+  async robinhoodDexPools(params?: { limit?: number }): Promise<ServiceResponse<unknown>> {
+    return this.request('robinhood-dex-pools', params);
+  }
+
+  /**
+   * Robinhood Chain stats — block, gas, total DEX volume, active pools
+   * $0.75 per request
+   */
+  async robinhoodChainStats(): Promise<ServiceResponse<unknown>> {
+    return this.request('robinhood-chain-stats');
+  }
+
+  /**
+   * RH stock price — live Chainlink price feed for RH stock tokens (AAPL, NVDA, SPY, etc)
+   * $0.05 per request
+   */
+  async rhStockPrice(params: { symbol: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('rh-stock-price', params);
+  }
+
+  /**
+   * RH USDC bridge — bridge USDC (Base) to USDG (Robinhood Chain) via Across Protocol
+   * $0.75 per request
+   */
+  async rhBridgeUsdc(params: { amount: number; recipient?: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('rh-bridge-usdc', params);
+  }
+
+  // ==================== B20 Token Compliance ====================
+
+  /**
+   * B20 token info — ERC-20 metadata + compliance mode/freeze state
+   * $0.05 per request
+   */
+  async b20TokenInfo(params: { address: string; chain?: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('b20-token-info', params);
+  }
+
+  /**
+   * B20 transfer check — simulate transfer against live freeze/blocklist/allowlist
+   * $0.10 per request
+   */
+  async b20TransferCheck(params: { token: string; from: string; to: string; amount: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('b20-transfer-check', params);
+  }
+
+  /**
+   * B20 compliance scan — multi-issuer compliance scan for a wallet address
+   * $0.25 per request
+   */
+  async b20ComplianceScan(params: { address: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('b20-compliance-scan', params);
+  }
+
+  // ==================== RWA & Tokenized Assets ====================
+
+  /**
+   * RWA NAV oracle — synthetic market-based NAV estimate + EIP-712 attestation
+   * $0.50 per request
+   */
+  async rwaNavOracle(params: { asset: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('rwa-nav-oracle', params);
+  }
+
+  /**
+   * Tokenized yield compare — live yield comparison: Ondo/Backed/Superstate/Mountain/OpenEden
+   * $0.25 per request
+   */
+  async tokenizedYieldCompare(params?: { minApy?: number }): Promise<ServiceResponse<unknown>> {
+    return this.request('tokenized-yield-compare', params);
   }
 
   // ==================== Agent Infrastructure ====================

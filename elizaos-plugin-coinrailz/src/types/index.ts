@@ -533,33 +533,6 @@ export const COIN_RAILZ_SERVICES: CoinRailzService[] = [
 
   // ─── NASA Earthdata Intelligence ────────────────────────────────────────────
   {
-    id: 'satellite-earthdata',
-    name: 'NASA Earthdata Gateway',
-    description: 'Authenticated NASA EOSDIS gateway — granules, precipitation, SST, soil moisture, ocean color',
-    price: '0.25',
-    endpoint: '/x402/satellite-earthdata',
-    network: 'base',
-    category: 'nasa-earthdata'
-  },
-  {
-    id: 'earthdata-granules',
-    name: 'Earthdata Granule Search',
-    description: 'CMR granule search across 1B+ NASA science data granules',
-    price: '0.25',
-    endpoint: '/x402/earthdata-granules',
-    network: 'base',
-    category: 'nasa-earthdata'
-  },
-  {
-    id: 'earthdata-precipitation',
-    name: 'Earthdata Precipitation',
-    description: 'GPM IMERG real-time rain rate via NASA OPeNDAP point query',
-    price: '0.25',
-    endpoint: '/x402/earthdata-precipitation',
-    network: 'base',
-    category: 'nasa-earthdata'
-  },
-  {
     id: 'earthdata-sst',
     name: 'Earthdata Sea Surface Temperature',
     description: 'MUR multi-scale ultra-high resolution sea surface temperature via OPeNDAP',
@@ -643,5 +616,112 @@ export const COIN_RAILZ_SERVICES: CoinRailzService[] = [
     endpoint: '/x402/ai-inference',
     network: 'base',
     category: 'ai'
+  },
+
+  // ─── Robinhood Chain ─────────────────────────────────────────────────────────
+  {
+    id: 'robinhood-token-price',
+    name: 'Robinhood Chain Token Price',
+    description: 'Live token price + pool data on Robinhood Chain — day-1 exclusivity',
+    price: '0.60',
+    endpoint: '/x402/robinhood-token-price',
+    network: 'base',
+    category: 'robinhood-chain'
+  },
+  {
+    id: 'robinhood-dex-pools',
+    name: 'Robinhood Chain DEX Pools',
+    description: 'Top DEX liquidity pools on Robinhood Chain for trading and routing',
+    price: '1.25',
+    endpoint: '/x402/robinhood-dex-pools',
+    network: 'base',
+    category: 'robinhood-chain'
+  },
+  {
+    id: 'robinhood-chain-stats',
+    name: 'Robinhood Chain Stats',
+    description: 'Chain health: block height, gas, total DEX volume, active pools',
+    price: '0.75',
+    endpoint: '/x402/robinhood-chain-stats',
+    network: 'base',
+    category: 'robinhood-chain'
+  },
+  {
+    id: 'rh-stock-price',
+    name: 'RH Stock Price (Chainlink)',
+    description: 'Live Chainlink price feed for RH tokenized stocks: AAPL, NVDA, SPY, and more',
+    price: '0.05',
+    endpoint: '/x402/rh-stock-price',
+    network: 'base',
+    category: 'robinhood-chain'
+  },
+  {
+    id: 'rh-bridge-usdc',
+    name: 'RH USDC Bridge',
+    description: 'Bridge USDC (Base) to USDG (Robinhood Chain) via Across Protocol',
+    price: '0.75',
+    endpoint: '/x402/rh-bridge-usdc',
+    network: 'base',
+    category: 'robinhood-chain'
+  },
+
+  // ─── B20 Token Compliance ────────────────────────────────────────────────────
+  {
+    id: 'b20-token-info',
+    name: 'B20 Token Info',
+    description: 'ERC-20 metadata + B20 compliance mode and freeze state',
+    price: '0.05',
+    endpoint: '/x402/b20-token-info',
+    network: 'base',
+    category: 'compliance'
+  },
+  {
+    id: 'b20-transfer-check',
+    name: 'B20 Transfer Check',
+    description: 'Simulate a transfer against live freeze/blocklist/allowlist rules',
+    price: '0.10',
+    endpoint: '/x402/b20-transfer-check',
+    network: 'base',
+    category: 'compliance'
+  },
+  {
+    id: 'b20-compliance-scan',
+    name: 'B20 Compliance Scan',
+    description: 'Multi-issuer compliance scan for a wallet address across B20 tokens',
+    price: '0.25',
+    endpoint: '/x402/b20-compliance-scan',
+    network: 'base',
+    category: 'compliance'
+  },
+
+  // ─── RWA & Tokenized Assets ──────────────────────────────────────────────────
+  {
+    id: 'rwa-nav-oracle',
+    name: 'RWA NAV Oracle',
+    description: 'Synthetic market-based NAV estimate with EIP-712 attestation for tokenized real-world assets',
+    price: '0.50',
+    endpoint: '/x402/rwa-nav-oracle',
+    network: 'base',
+    category: 'rwa'
+  },
+  {
+    id: 'tokenized-yield-compare',
+    name: 'Tokenized Yield Compare',
+    description: 'Live yield comparison across Ondo, Backed, Superstate, Mountain, and OpenEden',
+    price: '0.25',
+    endpoint: '/x402/tokenized-yield-compare',
+    network: 'base',
+    category: 'rwa'
+  },
+
+  // ─── Prediction Markets ──────────────────────────────────────────────────────
+  {
+    id: 'prediction-market-spread',
+    name: 'Prediction Market Spread',
+    description: 'Cross-platform arbitrage spread between Polymarket and Kalshi for the same event',
+    price: '0.25',
+    endpoint: '/x402/prediction-market-spread',
+    network: 'base',
+    category: 'prediction-markets'
   }
 ];

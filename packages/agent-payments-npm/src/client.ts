@@ -174,22 +174,83 @@ export class CoinRailz {
   }
 
   /**
-   * Call an intelligence service (x402 microservice)
-   * Requires enableIntelligence: true or +0.35% bundle subscription
+   * Call any Coin Railz x402 intelligence service directly.
+   * Calls /x402/{service} with your API key — credits are deducted per service price.
+   * See the full service catalog at https://coinrailz.com/x402/catalog
    */
   async intelligence<T = any>(
     service: string,
     params?: Record<string, any>
   ): Promise<ApiResponse<IntelligenceServiceResult<T>>> {
-    if (!this.enableIntelligence) {
+    const url = `${this.baseUrl}/x402/${service}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'X-SDK-Version': SDK_VERSION,
+          'User-Agent': `@coinrailz/agent-payments/${SDK_VERSION}`,
+        },
+        body: params ? JSON.stringify(params) : JSON.stringify({}),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.status === 402) {
+        const challenge = await response.json().catch(() => ({})) as Record<string, unknown>;
+        return {
+          success: false,
+          error: 'PAYMENT_REQUIRED',
+          message: `Service '${service}' requires payment. Add credits at https://coinrailz.com/credits`,
+          ...(challenge as object),
+        } as ApiError;
+      }
+
+      if (response.status === 404) {
+        return {
+          success: false,
+          error: 'SERVICE_NOT_FOUND',
+          message: `No x402 service found at /x402/${service}. See catalog: https://coinrailz.com/x402/catalog`,
+        } as ApiError;
+      }
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({})) as Record<string, unknown>;
+        return {
+          success: false,
+          error: 'SERVICE_ERROR',
+          message: (errBody.message as string) || `HTTP ${response.status}`,
+        } as ApiError;
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        service,
+        result: data as T,
+        timestamp: new Date().toISOString(),
+      } as IntelligenceServiceResult<T>;
+
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        return {
+          success: false,
+          error: 'TIMEOUT',
+          message: `Intelligence request timed out after ${this.timeout}ms`,
+        } as ApiError;
+      }
       return {
         success: false,
-        error: 'INTELLIGENCE_NOT_ENABLED',
-        message: 'Enable intelligence bundle with enableIntelligence: true or subscribe at $79/mo'
+        error: 'NETWORK_ERROR',
+        message: error.message || 'Network request failed',
       } as ApiError;
     }
-
-    return this.request<IntelligenceServiceResult<T>>('POST', `/intelligence/${service}`, params);
   }
 
   /**

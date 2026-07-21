@@ -21,7 +21,7 @@ export interface SendPaymentParams {
 export interface SendPaymentResult {
   success: boolean;
   transactionId: string;
-  status: 'pending' | 'confirmed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed';
   amount: number;
   fee: number;
   netAmount: number;

@@ -606,28 +606,76 @@ router.get('/pricing', async (req: Request, res: Response) => {
 
 /**
  * POST /api/sdk/intelligence/:service
- * Call x402 intelligence service (proxies to existing x402 endpoints)
+ * Proxies to the real /x402/:service endpoint using the caller's API key.
+ * SDK v1.2.0+ calls /x402/:service directly — this route is a compatibility shim
+ * for older SDK versions and direct API consumers.
  */
 router.post('/intelligence/:service', requireSdkApiKey, async (req: Request, res: Response) => {
   try {
     const { service } = req.params;
     const payload = req.body;
-    
-    // Proxy to existing x402 endpoint
-    const x402Url = `${process.env.BASE_URL || 'http://localhost:5000'}/x402/${service}`;
-    
-    console.log(`🧠 SDK Intelligence: ${service}`);
-    
-    // In production: call the actual x402 endpoint
-    // For now: return a placeholder indicating the service
+
+    // Strict slug validation — only alphanumeric and hyphens, reasonable length
+    if (!/^[a-z0-9-]{2,64}$/.test(service)) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_SERVICE',
+        message: `Invalid service identifier '${service}'. Use a valid x402 service slug.`,
+        catalog: 'https://coinrailz.com/x402/catalog'
+      });
+    }
+
+    const apiKey = req.headers['authorization']?.replace('Bearer ', '') || req.headers['x-api-key'] as string;
+    const baseUrl = process.env.PUBLIC_BASE_URL || process.env.BASE_URL || 'https://coinrailz.com';
+    const x402Url = `${baseUrl}/x402/${service}`;
+
+    console.log(`🧠 SDK Intelligence → /x402/${service}`);
+
+    const upstream = await fetch(x402Url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'sdk-intelligence-shim/1.2.0',
+      },
+      body: JSON.stringify(payload || {}),
+    });
+
+    const upstreamBody = await upstream.json().catch(() => ({}));
+
+    if (upstream.status === 402) {
+      return res.status(402).json({
+        success: false,
+        error: 'PAYMENT_REQUIRED',
+        message: `Service '${service}' requires payment or credits. Top up at https://coinrailz.com/credits`,
+        ...upstreamBody,
+      });
+    }
+
+    if (upstream.status === 404) {
+      return res.status(404).json({
+        success: false,
+        error: 'SERVICE_NOT_FOUND',
+        message: `No x402 service found for '${service}'.`,
+        catalog: 'https://coinrailz.com/x402/catalog'
+      });
+    }
+
+    if (!upstream.ok) {
+      return res.status(upstream.status).json({
+        success: false,
+        error: 'SERVICE_ERROR',
+        message: (upstreamBody as any)?.message || `Upstream returned HTTP ${upstream.status}`,
+      });
+    }
+
     return res.status(200).json({
       success: true,
       service,
-      message: `Intelligence service '${service}' called successfully`,
-      result: null,
-      timestamp: new Date().toISOString()
+      result: upstreamBody,
+      timestamp: new Date().toISOString(),
     });
-    
+
   } catch (error: any) {
     return res.status(500).json({
       success: false,

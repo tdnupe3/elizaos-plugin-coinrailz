@@ -397,6 +397,8 @@ export function createMppPaymentMiddleware(serviceName: string, amountUsd: numbe
 
     // If agent declared evm.transfer but provided a malformed or missing tx hash, reject clearly
     if (isBaseUsdcAttempt && !isBaseTxHash(txHash)) {
+      console.log(`[MPP] ❌ Malformed evm.transfer credential for ${serviceName} | ip=${ip} | txHash="${(txHash ?? '').slice(0, 20)}"`);
+      logMppPaymentEvent(serviceName, ip, ua, txHash || "malformed-evm-transfer", amountUsd, undefined, "mpp-verification-failed");
       const challengeId = credential?.challengeId || `mpp_${nanoid(12)}`;
       const { header, body } = buildMppChallenge(serviceName, amountUsd, challengeId);
       res.setHeader("WWW-Authenticate", header);
@@ -456,6 +458,7 @@ export function createMppPaymentMiddleware(serviceName: string, amountUsd: numbe
     console.log(
       `[MPP] Tempo credential received for ${serviceName} | ip=${ip} | verification pending`
     );
+    logMppPaymentEvent(serviceName, ip, ua, credential?.transaction || credential?.hash || "tempo-pending", amountUsd, undefined, "mpp-verification-failed");
 
     const challengeId = credential?.challengeId || `mpp_${nanoid(12)}`;
     const { header, body } = buildMppChallenge(serviceName, amountUsd, challengeId);

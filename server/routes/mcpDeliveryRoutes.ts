@@ -153,6 +153,21 @@ router.post('/', async (req: Request, res: Response) => {
 
   const { jsonrpc, id, method, params } = req.body ?? {};
 
+  // Analytics — log every MCP probe: method, client fingerprint, auth mode (never credential values)
+  const mcpIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+    || req.ip
+    || (req.socket as any)?.remoteAddress
+    || 'unknown';
+  const mcpAuthMode = req.headers['x-api-key'] ? 'api-key'
+    : req.headers['authorization'] ? 'bearer'
+    : 'none';
+  const mcpToolName = method === 'tools/call' ? ((params as any)?.name ?? 'unknown') : undefined;
+  console.log(
+    `[MCP] POST /mcp | method=${method ?? 'none'} | ip=${mcpIp}` +
+    ` | ua=${(req.get('user-agent') ?? 'none').slice(0, 60)}` +
+    ` | auth=${mcpAuthMode}${mcpToolName ? ` | tool=${mcpToolName}` : ''}`
+  );
+
   if (jsonrpc !== '2.0' || !method) {
     return res.status(400).json({
       jsonrpc: '2.0',

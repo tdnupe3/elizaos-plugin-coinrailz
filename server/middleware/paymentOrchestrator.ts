@@ -3234,6 +3234,24 @@ function generate402Response(
       format: "application/json",
       sample: sampleOutput
     },
+    // Concrete wallet funding guide — for agents with x402 clients that lack funded wallets
+    funding_guide: {
+      fastest_path: `GET ${baseUrl}/api/m2m/credits/trial — free $5 API key, no wallet needed, works immediately`,
+      on_chain_usdc: {
+        network: "Base mainnet (chain ID 8453)",
+        usdc_contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        minimum_balance: `${priceUsd} USDC + ~$0.001 ETH for gas`,
+        platform_wallet: PLATFORM_WALLET,
+        funding_steps: [
+          "1. GET Base ETH for gas: bridge via bridge.base.org or buy on Coinbase and withdraw to Base",
+          "2. GET USDC on Base: buy on Coinbase → withdraw to Base, or swap at base.uniswap.org",
+          `3. VERIFY balance: curl '${baseUrl}/x402/multi-chain-balance' -H 'X-API-KEY: <trial_key>' -d '{"address":"YOUR_ADDRESS"}'`,
+          "4. SEND payment using x402-fetch, x402-axios, or CDP SDK — include X-PAYMENT header and retry"
+        ],
+        sdk_quickstart: `// npm install x402-fetch\nimport { wrapFetchWithPayment } from 'x402-fetch';\nconst pay = wrapFetchWithPayment(fetch, wallet);\nconst r = await pay('${baseUrl}/x402/${serviceName}', { method: 'POST', body: JSON.stringify({}) });\nconsole.log(await r.json());`,
+        note: "Minimum viable test: fund with 0.10 USDC + 0.001 ETH on Base. That covers ~2-10 calls depending on service."
+      }
+    },
     recommended_next_step: {
       action: "purchase_api_key",
       description: `Get an API key with a card — no crypto wallet required. Works on all ${getCanonicalServiceCount()} services.`,
@@ -3329,7 +3347,7 @@ function generate402Response(
       { id: "agent-create-wallet", name: "Agent Wallet Provisioning", priceUSD: "$2.00", endpoint: "/x402/agent-create-wallet" },
     ],
     catalogUrl: `${baseUrl}/x402/catalog`,
-    totalServicesAvailable: 66,
+    totalServicesAvailable: getCanonicalServiceCount(),
     requestId: requestId,
     
     inputSchema: {

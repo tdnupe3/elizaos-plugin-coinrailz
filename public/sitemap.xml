@@ -325,4 +325,12 @@
   <priority>0.8</priority>
 </url>
 
+<!-- Bankroll Network vltUSDC Vault -->
+<url>
+  <loc>https://coinrailz.com/x402/vlt-usdc-deposit</loc>
+  <lastmod>2026-07-22</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
 </urlset>

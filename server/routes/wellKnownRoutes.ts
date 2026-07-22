@@ -3794,6 +3794,14 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         tags: ["robinhood", "chain", "stats", "analytics", "defi", "x402"],
         inputModes: ["application/json"],
         outputModes: ["application/json"]
+      },
+      {
+        id: "vlt-usdc-deposit",
+        name: "vltUSDC Vault Deposit Calldata",
+        description: "Unsigned ERC-4626 approve + deposit calldata for the Bankroll Network vltUSDC vault on Ethereum mainnet. Pay $0.50 on Base, deposit USDC stays in your wallet, sign 2 Ethereum transactions to enter vault. Vault zaps USDC into VLT/WETH LP and mints vltUSDC shares. $0.50 per request.",
+        tags: ["defi", "yield", "vault", "bankroll", "vlt", "usdc", "ethereum", "erc4626", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
       }
     ],
     
@@ -5646,6 +5654,13 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
         description: "Live APY comparison across tokenized RWA protocols: Ondo (USDY), Backed (bIB01), Superstate (USTB), Mountain Protocol (USDM), OpenEden (TBILL), Hashnote (USYC), Maple Finance. DeFi Llama sourced. $0.25/call.",
         endpoint: `${baseUrl}/x402/tokenized-yield-compare`,
         price: "$0.25 USDC",
+      },
+      {
+        id: "vlt-usdc-deposit",
+        name: "vltUSDC Vault Deposit (Bankroll Network)",
+        description: "Unsigned ERC-4626 calldata for the Bankroll Network vltUSDC vault on Ethereum. Pay $0.50 on Base, vault zaps USDC into VLT/WETH LP, mints vltUSDC shares. Builder Pattern — zero custody. $0.50/call.",
+        endpoint: `${baseUrl}/x402/vlt-usdc-deposit`,
+        price: "$0.50 USDC",
       },
       {
         id: "catalog",

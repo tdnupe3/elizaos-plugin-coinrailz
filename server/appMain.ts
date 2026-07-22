@@ -1,5 +1,6 @@
 import { app, httpServer, port, markFrontendReady, markStartupComplete } from './index.js';
 import { getVltMarketData, validateAndPush } from './services/vltMarketCache';
+import { getVltUsdcStatsFresh, getVltUsdcStats } from './services/vltUsdcVaultService';
 
 export async function initApp() {
 
@@ -3974,6 +3975,25 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     res.json({ success: true, message: 'VLT cache updated via push' });
   });
   console.log('✅ VLT price push webhook registered at POST /api/webhook/vlt-price');
+
+  // === vltUSDC VAULT STATS ===
+  // Live stats for Bankroll Network vltUSDC vault on Ethereum mainnet.
+  // Reads VLT/WETH Uniswap V2 pair reserves + vltUSDC totalSupply to compute TVL.
+  // Cached 2 minutes. Used by YieldPortal UI and agents discovering Ethereum yield.
+  app.get('/api/vlt-usdc/stats', async (req, res) => {
+    try {
+      const cached = getVltUsdcStats();
+      if (cached) {
+        res.json({ success: true, ...cached });
+        return;
+      }
+      const stats = await getVltUsdcStatsFresh();
+      res.json({ success: true, ...stats });
+    } catch (err: any) {
+      res.status(502).json({ success: false, error: 'vltUSDC stats fetch failed: ' + (err?.message ?? 'unknown') });
+    }
+  });
+  console.log('✅ vltUSDC stats registered at GET /api/vlt-usdc/stats');
 
   // === VLT HOLDER CHECK ===
   // On-chain ERC-20 balanceOf check. Returns whether address holds ≥ threshold VLT.

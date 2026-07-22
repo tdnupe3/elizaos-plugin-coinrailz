@@ -78,6 +78,7 @@ import { b20TokenInfoService, b20TransferCheckService, b20ComplianceScanService 
 import { fetchRobinhoodPoolData, fetchRobinhoodTopPools, fetchRobinhoodChainStats } from './microservices/robinhoodData';
 import { rhStockPriceService, SUPPORTED_SYMBOLS as RH_STOCK_SYMBOLS } from './microservices/rhStockPrice';
 import { rhBridgeService } from './microservices/rhBridgeService';
+import { buildVltUsdcDeposit } from '../services/vltUsdcDepositService';
 import { rwaNavOracleService } from '../services/rwaNavOracleService';
 import { tokenizedYieldCompareService } from '../services/tokenizedYieldCompareService';
 
@@ -1571,6 +1572,49 @@ const x402Routes = {
             estimatedUSDGOutput: { type: "string",  description: "Estimated USDG arriving on RH Chain" },
             estimatedFillTimeSec:{ type: "number",  description: "Seconds until fill completes" },
             baseScan:            { type: "string",  description: "Link to Base tx on basescan.org" },
+          }
+        }
+      }
+    }
+  },
+
+  // === BANKROLL NETWORK — vltUSDC (Ethereum LP Yield, July 2026) ===
+  "POST /vlt-usdc-deposit": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["vlt-usdc-deposit"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/vlt-usdc-deposit`,
+      name: "vltUSDC Deposit Builder",
+      description: "Builder Pattern: pay $0.50 USDC on Base, receive unsigned calldata to deposit USDC into the Bankroll Network vltUSDC vault on Ethereum mainnet. Step 1: USDC approve. Step 2: ERC-4626 deposit. Agent signs and broadcasts both transactions on Ethereum. Zero custody — funds never leave your wallet until you submit. Vault converts USDC to VLT/WETH Uniswap V2 LP and issues vltUSDC shares.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 30,
+      inputSchema: {
+        bodyFields: {
+          amountUsdc: { type: "string", description: "USDC amount to deposit (e.g. '100' for 100 USDC)", required: true },
+          recipient:  { type: "string", description: "Ethereum mainnet wallet address to receive vltUSDC shares", required: true },
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          required: ["amountUsdc", "recipient"],
+          properties: {
+            amountUsdc: { type: "string", description: "USDC deposit amount (positive number as string)" },
+            recipient:  { type: "string", description: "0x Ethereum address that receives vltUSDC shares" },
+          }
+        },
+        output: {
+          type: "object",
+          properties: {
+            success:        { type: "boolean" },
+            amountUsdc:     { type: "string",  description: "USDC amount with 6-decimal precision" },
+            recipient:      { type: "string",  description: "Recipient Ethereum address" },
+            network:        { type: "string",  description: "Always 'Ethereum Mainnet'" },
+            chainId:        { type: "number",  description: "Always 1 (Ethereum)" },
+            steps:          { type: "array",   description: "Two unsigned transactions to sign and broadcast in order" },
+            vaultStats:     { type: "object",  description: "Current vault TVL, L/share, APR display" },
+            agentInstructions: { type: "string", description: "Plain-English step-by-step instructions for agent" },
           }
         }
       }
@@ -6071,6 +6115,33 @@ router.post("/rh-bridge-usdc",
 );
 
 // ============================================================
+// BANKROLL NETWORK — vltUSDC Deposit Builder (Ethereum LP Yield, July 2026)
+// vlt-usdc-deposit: $0.50 — Builder Pattern, returns calldata only, no execution
+// ============================================================
+
+router.post("/vlt-usdc-deposit",
+  createPaymentOrchestrator("vlt-usdc-deposit", SERVICE_PRICING_MICRO["vlt-usdc-deposit"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const { amountUsdc, recipient } = req.body as { amountUsdc?: string; recipient?: string };
+      if (!amountUsdc || !recipient) {
+        res.status(400).json({ success: false, error: 'amountUsdc and recipient are required' });
+        return;
+      }
+      const result = await buildVltUsdcDeposit(amountUsdc, recipient);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("vlt-usdc-deposit", req.body, result, responseTime, SERVICE_PRICING_USD["vlt-usdc-deposit"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "vlt-usdc-deposit", { amountUsdc, recipient });
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("vlt-usdc-deposit", req.body, null, responseTime, SERVICE_PRICING_USD["vlt-usdc-deposit"], req.ip || "unknown", error.message);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  })
+);
+
+// ============================================================
 // UNKNOWN-SERVICE CATCH-ALL — must be the LAST route in this router
 // Returns machine-readable JSON 404 with did_you_mean for malformed
 // paths (e.g. gas-price-oracle%60 → suggests gas-price-oracle).
@@ -6095,6 +6166,7 @@ router.post("/rh-bridge-usdc",
     'flood-detection','air-quality','land-use','b20-token-info','b20-transfer-check','b20-compliance-scan',
     'robinhood-token-price','robinhood-dex-pools','robinhood-chain-stats',
     'rh-stock-price','rh-bridge-usdc',
+    'vlt-usdc-deposit',
     'fleet-telematics',
     'weather-station-data','iot-sensor-reading','iot-device-stream','iot-bulk-data',
     'earthdata-sst','earthdata-soil-moisture','earthdata-ocean-color',

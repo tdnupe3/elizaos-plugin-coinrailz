@@ -412,7 +412,7 @@ router.get('/wallet-balance', requirePartnerKey, async (_req: any, res: Response
           valueUsd: (vltAmt * vlt.priceUsd).toFixed(2),
           priceUsd: vlt.priceUsd,
           chain: 'ethereum',
-          note: vltAmt < 5000 ? '⚠️ Low — consider topping up. Send VLT to platform wallet.' : '✅ Healthy',
+          note: vltAmt < 1000 ? '⚠️ Low — consider topping up. Send VLT to platform wallet.' : '✅ Healthy',
         },
         USDC: {
           amount: usdcAmt.toFixed(2),

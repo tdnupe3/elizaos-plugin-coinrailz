@@ -6,10 +6,20 @@ import { Input } from "@/components/ui/input";
 import {
   Shield, Zap, RefreshCw, Code, Copy, CheckCircle,
   ExternalLink, AlertCircle, Activity, Lock, BarChart3,
-  ArrowRight, ChevronRight, TrendingUp, LogOut
+  ArrowRight, ChevronRight, TrendingUp, LogOut, Layers
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+
+interface VltUsdcStatsResponse {
+  success: boolean;
+  vault: { address: string; shareToken: string; shareTokenAddress: string; underlyingPair: string; pairAddress: string; network: string };
+  stats: { tvlUsd: number; vltInVault: number; wethInVault: number; wethUsd: number; totalSharesVltUsdc: string; lPerShare: number; aprPct: number | null; aprDisplay: string; vltPriceUsd: number; ethPriceUsd: number; poolVltTotal: number; poolWethTotal: number };
+  deposit: { acceptedToken: string; usdcAddress: string; vaultAddress: string; network: string; chainId: number };
+  x402Service: { endpoint: string; price: string; description: string };
+  source: string;
+  updatedAt: string;
+}
 
 interface RatesResponse {
   success: boolean;
@@ -436,6 +446,139 @@ function ProtocolCard({ name, apy, isBest, status }: { name: string; apy: number
   );
 }
 
+// ── vltUSDC Ethereum Section ──────────────────────────────────────────────────
+
+function VltUsdcSection() {
+  const { data, isLoading } = useQuery<VltUsdcStatsResponse>({
+    queryKey: ['/api/vlt-usdc/stats'],
+    refetchInterval: 120_000,
+  });
+
+  const stats  = data?.stats;
+  const vault  = data?.vault;
+  const x402   = data?.x402Service;
+  const tvl    = stats?.tvlUsd ? `$${stats.tvlUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : null;
+  const vaultAddr = vault?.address ?? '0x348A57b1dc6E3dCAa645DE6e4E864924B410525D';
+
+  return (
+    <section>
+      <div className="flex items-center gap-3 mb-5">
+        <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+          <Layers className="w-4 h-4 text-amber-400" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-white">Ethereum Yield — vltUSDC</h2>
+          <p className="text-sm text-slate-400">
+            Bankroll Network LP vault · VLT/WETH Uniswap V2 · Ethereum mainnet
+          </p>
+        </div>
+        <Badge className="ml-auto bg-amber-500/15 text-amber-400 border border-amber-500/30 text-xs">
+          ✦ New
+        </Badge>
+      </div>
+
+      <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-950/20 via-black/40 to-black/40 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+
+          {/* TVL card */}
+          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
+            <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider mb-2">Vault TVL</div>
+            {isLoading ? (
+              <div className="h-8 w-24 rounded bg-white/5 animate-pulse" />
+            ) : (
+              <div className="text-3xl font-bold text-white">{tvl ?? '—'}</div>
+            )}
+            <div className="text-xs text-slate-500 mt-0.5">VLT + WETH pool value</div>
+            {stats && stats.tvlUsd > 0 && (
+              <div className="mt-2 pt-2 border-t border-white/8 space-y-0.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400">VLT in vault</span>
+                  <span className="text-white font-mono">{stats.vltInVault.toLocaleString('en-US', { maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400">WETH in vault</span>
+                  <span className="text-white font-mono">{stats.wethInVault.toFixed(4)} ETH</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400">VLT price</span>
+                  <span className="text-slate-300">${stats.vltPriceUsd.toFixed(4)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* APR card */}
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+            <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider mb-2">LP APR</div>
+            <div className="text-3xl font-bold text-amber-400">
+              {stats ? stats.aprDisplay : <span className="h-8 w-16 rounded bg-white/5 animate-pulse inline-block" />}
+            </div>
+            <div className="text-xs text-slate-500 mt-0.5">Trading fees accrued to LP</div>
+            <div className="mt-2 pt-2 border-t border-amber-500/15 text-xs text-slate-400 leading-relaxed">
+              Vault launched July 22, 2026. APR calculated after 24h of fee data.
+              Earn from <strong className="text-amber-300">VLT/WETH swap fees</strong> automatically.
+            </div>
+          </div>
+
+          {/* How to deposit */}
+          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
+            <div className="text-[10px] font-bold text-white uppercase tracking-wider mb-2">How to Deposit</div>
+            <div className="space-y-2">
+              {[
+                { n: '1', text: 'Call POST /x402/vlt-usdc-deposit ($0.50 on Base)' },
+                { n: '2', text: 'Receive USDC approve + ERC-4626 deposit calldata' },
+                { n: '3', text: 'Sign & broadcast 2 txs on Ethereum mainnet' },
+                { n: '4', text: 'Receive vltUSDC shares — LP fees accrue automatically' },
+              ].map(({ n, text }) => (
+                <div key={n} className="flex gap-2 text-xs">
+                  <span className="w-4 h-4 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-[9px] font-bold text-amber-400 shrink-0">{n}</span>
+                  <span className="text-slate-400">{text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer row */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-white/8">
+          <div className="flex flex-wrap gap-4 text-xs text-slate-500">
+            <span>Vault: <code className="text-slate-300 font-mono">{vaultAddr.slice(0,10)}…{vaultAddr.slice(-4)}</code></span>
+            <span>Share token: <code className="text-slate-300 font-mono">vltUSDC</code></span>
+            <span>Chain: <span className="text-amber-400">Ethereum mainnet</span></span>
+            {stats && (
+              <span>L/share: <code className="text-slate-300 font-mono">{stats.lPerShare.toFixed(4)}</code></span>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <a href={`https://etherscan.io/address/${vaultAddr}`} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-amber-400 hover:underline">
+              Etherscan <ExternalLink className="w-3 h-3" />
+            </a>
+            <a href="https://app.uniswap.org/#/pool?chainId=1" target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-blue-400 hover:underline">
+              Uniswap V2 pool <ExternalLink className="w-3 h-3" />
+            </a>
+            <a href="/api/vlt-usdc/stats" target="_blank"
+              className="inline-flex items-center gap-1 text-xs text-slate-400 hover:underline">
+              JSON stats <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+        </div>
+
+        {/* x402 Agent note */}
+        {x402 && (
+          <div className="mt-4 rounded-lg border border-blue-500/15 bg-blue-500/5 px-4 py-3 text-xs text-slate-400">
+            <strong className="text-blue-300">AI Agent access:</strong>{' '}
+            {x402.description}{' '}
+            <code className="text-blue-300 ml-1">{x402.endpoint}</code>{' · '}
+            <span className="text-blue-400 font-semibold">{x402.price}</span>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function YieldPortal() {
@@ -698,6 +841,9 @@ export default function YieldPortal() {
             <strong className="text-white">Auto-routing:</strong> Vault moves to highest-APY protocol when improvement exceeds 0.5% (50bps). Rebalances every 24h. Zero cost to depositors.
           </div>
         </section>
+
+        {/* ── Ethereum Yield — vltUSDC (Bankroll Network) ───────────────── */}
+        <VltUsdcSection />
 
         {/* ── Position Checker ──────────────────────────────────────────── */}
         <section>

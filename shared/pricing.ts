@@ -107,6 +107,8 @@ export type ServiceName =
   // Robinhood Chain — Chainlink Price Feeds + Bootstrap Bridge (July 2026)
   | "rh-stock-price"
   | "rh-bridge-usdc"
+  // Bankroll Network — vltUSDC Ethereum Yield (July 2026)
+  | "vlt-usdc-deposit"
   // RWA & Tokenization vertical (July 2026)
   | "rwa-nav-oracle"
   | "tokenized-yield-compare";
@@ -222,6 +224,9 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   // ROBINHOOD CHAIN — CHAINLINK FEEDS + BOOTSTRAP BRIDGE (July 2026)
   "rh-stock-price": 50000,            // $0.05 - Live Chainlink price feed for RH stock tokens (AAPL/NVDA/SPY/etc) — on-chain truth
   "rh-bridge-usdc": 750000,           // $0.75 - Bridge 0.50 USDC (Base) → USDG (Robinhood Chain) via Across Protocol
+
+  // BANKROLL NETWORK — vltUSDC (Ethereum LP Yield, July 2026)
+  "vlt-usdc-deposit": 500000,         // $0.50 - Builder Pattern: returns USDC approve + ERC-4626 deposit calldata for Ethereum mainnet
 
   // SATELLITE DATA SERVICES (NASA Earthdata + ESA Copernicus)
   "fire-alerts": 50000,                // $0.05 - NASA FIRMS active fire detection
@@ -344,6 +349,9 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   // Robinhood Chain — Chainlink Feeds + Bootstrap Bridge (July 2026)
   "rh-stock-price": 0.05,
   "rh-bridge-usdc": 0.75,
+
+  // Bankroll Network — vltUSDC (Ethereum LP Yield, July 2026)
+  "vlt-usdc-deposit": 0.50,
 
   // Satellite Data Services (NASA Earthdata + ESA Copernicus)
   "fire-alerts": 0.05,

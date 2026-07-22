@@ -25,8 +25,8 @@ import { getCanonicalServiceCount } from '../utils/serviceCount';
 import { stripe } from '../services/stripeClient';
 import { creditsService } from '../services/creditsService.js';
 import { db } from '../db.js';
-import { paymentIntentTracking, apiKeys, freeCreditsClaimLog, endpointHits } from '../../shared/schema.js';
-import { eq, gt, and } from 'drizzle-orm';
+import { paymentIntentTracking, apiKeys, freeCreditsClaimLog, endpointHits, sdkInstalls } from '../../shared/schema.js';
+import { eq, gt, and, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 import { emitFirstContactAsync, emitFunnelEventAsync } from '../services/funnelHelper.js';
 import { provisionCreditsAndKey } from '../services/m2mProvisioningService.js';
@@ -782,6 +782,45 @@ function trackTrialHitAsync(ip: string, statusCode: number, userAgent?: string):
   });
 }
 
+// Record SDK adoption signal in sdk_installs — upsert keyed on ipHash, fire-and-forget
+function recordSdkInstallAsync(ip: string, userAgent?: string): void {
+  const ipHash = crypto.createHash('sha256').update(ip).digest('hex').substring(0, 12);
+  const installId = `trial_${ipHash}`;
+  const ua = userAgent || '';
+
+  let sdkType = 'unknown';
+  if (/pip\//i.test(ua) || /python/i.test(ua)) sdkType = 'python';
+  else if (/\bnode\b/i.test(ua) || /node-fetch/i.test(ua)) sdkType = 'typescript-node';
+  else if (/curl/i.test(ua)) sdkType = 'curl';
+  else if (/httpx/i.test(ua)) sdkType = 'python-httpx';
+  else if (/elizaos/i.test(ua) || /eliza/i.test(ua)) sdkType = 'elizaos-plugin';
+  else if (ua) sdkType = 'browser';
+
+  const sdkVersion = 'trial';
+
+  void db.insert(sdkInstalls).values({
+    installId,
+    sdkType,
+    sdkVersion,
+    environment: {},
+    ipAddress: ip,
+    userAgent: ua.substring(0, 512),
+    totalRequests: 1,
+    freeCallsUsed: 0,
+    demoKeyIssued: false,
+    convertedToPaid: false,
+  }).onConflictDoUpdate({
+    target: sdkInstalls.installId,
+    set: {
+      lastSeenAt: new Date(),
+      totalRequests: sql`${sdkInstalls.totalRequests} + 1`,
+      userAgent: ua.substring(0, 512),
+    },
+  }).catch((err: Error) => {
+    console.error('⚠️ sdk_installs write failed (non-blocking):', err.message);
+  });
+}
+
 router.get('/trial', async (req: Request, res: Response) => {
   const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
     || req.socket?.remoteAddress
@@ -898,6 +937,7 @@ router.get('/trial', async (req: Request, res: Response) => {
     // ── Persist claim to DB (L2) and track hit ──
     recordTrialClaimAsync(ip, userId, userAgent);
     trackTrialHitAsync(ip, 200, userAgent);
+    recordSdkInstallAsync(ip, userAgent);
 
     emitFirstContactAsync(ip, 'direct_trial', '/api/m2m/credits/trial');
     emitFunnelEventAsync({ stage: 'trial_claimed', source: 'direct_trial', ip, apiKeyPrefix: keyPrefix, creditsAmount: TRIAL_CREDITS });

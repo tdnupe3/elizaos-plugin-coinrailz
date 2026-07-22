@@ -185,8 +185,8 @@ async function fetchLiveStats(): Promise<VltUsdcStats> {
     },
     x402Service: {
       endpoint: 'POST /x402/vlt-usdc-deposit',
-      price: '$0.50 USDC on Base',
-      description: 'Returns USDC approve + vault deposit unsigned calldata for Ethereum mainnet. Agent signs and broadcasts.',
+      price: 'free',
+      description: 'FREE — Returns unsigned USDC approve + vault deposit calldata for Ethereum mainnet. No payment required. Agent signs and broadcasts.',
     },
     source: 'live',
     updatedAt: new Date().toISOString(),
@@ -227,8 +227,8 @@ function buildFallback(vltPriceUsd: number, ethPriceUsd: number): VltUsdcStats {
     },
     x402Service: {
       endpoint: 'POST /x402/vlt-usdc-deposit',
-      price: '$0.50 USDC on Base',
-      description: 'Returns USDC approve + vault deposit unsigned calldata for Ethereum mainnet. Agent signs and broadcasts.',
+      price: 'free',
+      description: 'FREE — Returns unsigned USDC approve + vault deposit calldata for Ethereum mainnet. No payment required. Agent signs and broadcasts.',
     },
     source: 'fallback',
     updatedAt: new Date().toISOString(),

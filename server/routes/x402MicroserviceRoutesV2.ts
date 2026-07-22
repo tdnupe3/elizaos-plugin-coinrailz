@@ -79,6 +79,7 @@ import { fetchRobinhoodPoolData, fetchRobinhoodTopPools, fetchRobinhoodChainStat
 import { rhStockPriceService, SUPPORTED_SYMBOLS as RH_STOCK_SYMBOLS } from './microservices/rhStockPrice';
 import { rhBridgeService } from './microservices/rhBridgeService';
 import { buildVltUsdcDeposit } from '../services/vltUsdcDepositService';
+import { getVltUsdcStats } from '../services/vltUsdcVaultService';
 import { rwaNavOracleService } from '../services/rwaNavOracleService';
 import { tokenizedYieldCompareService } from '../services/tokenizedYieldCompareService';
 
@@ -6120,15 +6121,36 @@ router.post("/rh-bridge-usdc",
 // ============================================================
 
 router.get("/vlt-usdc-deposit", (_req: Request, res: Response) => {
+  const stats = getVltUsdcStats();
   res.json({
     service: 'vlt-usdc-deposit',
     name: 'vltUSDC Vault Deposit Builder',
     price: 'free',
-    description: 'FREE — Returns unsigned ERC-4626 approve + deposit calldata for the Bankroll Network vltUSDC vault on Ethereum mainnet. No payment required.',
+    description: 'FREE — POST {amountUsdc, recipient} to receive 2 unsigned Ethereum transactions that deposit USDC into the Bankroll Network vltUSDC vault. No payment required.',
     method: 'POST',
-    body: { amountUsdc: 'string — USDC amount to deposit', recipient: 'string — Ethereum address for vltUSDC shares' },
-    vault: '0x348A57b1dc6E3dCAa645DE6e4E864924B410525D',
-    chainId: 1,
+    body: { amountUsdc: 'string — USDC amount to deposit', recipient: 'string — Ethereum address to receive vltUSDC shares' },
+    ...(stats ? {
+      vault: stats.vault,
+      liveStats: {
+        vltPriceUsd:  stats.stats.vltPriceUsd,
+        ethPriceUsd:  stats.stats.ethPriceUsd,
+        tvlUsd:       stats.stats.tvlUsd,
+        aprDisplay:   stats.stats.aprDisplay,
+        lPerShare:    stats.stats.lPerShare,
+        updatedAt:    stats.updatedAt,
+        source:       stats.source,
+      },
+    } : {
+      vault:      { address: '0x348A57b1dc6E3dCAa645DE6e4E864924B410525D', shareToken: 'vltUSDC', network: 'Ethereum Mainnet' },
+      liveStats:  null,
+    }),
+    deposit: {
+      acceptedToken: 'USDC (Ethereum Mainnet)',
+      usdcAddress:   '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      minDeposit:    '1 USDC',
+      chainId:       1,
+    },
+    also: 'GET /api/vlt-usdc/stats for full vault data including pool reserves',
   });
 });
 

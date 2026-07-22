@@ -3995,6 +3995,13 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   });
   console.log('✅ vltUSDC stats registered at GET /api/vlt-usdc/stats');
 
+  // === VLT VAULT — Ethereum USDC payment lane ===
+  // POST /api/vault/vlt-deposit-calldata — on-chain USDC verification on Ethereum
+  // GET  /api/vault/vlt-deposit-calldata — discovery / info
+  const { default: vltVaultRoutes } = await import('./routes/vltVaultRoutes.js');
+  app.use('/api/vault', vltVaultRoutes);
+  console.log('✅ vltUSDC vault routes registered at /api/vault/vlt-deposit-calldata');
+
   // === VLT HOLDER CHECK ===
   // On-chain ERC-20 balanceOf check. Returns whether address holds ≥ threshold VLT.
   // Used for gating discounted API tiers. Threshold default: 100 VLT (~$32).

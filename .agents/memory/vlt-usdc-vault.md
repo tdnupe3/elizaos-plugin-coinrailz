@@ -36,7 +36,14 @@ If vault reverts on ERC-4626 deposit, try alternativeCalldata.zapInData (zapIn(u
 
 ## API Endpoints
 - `GET /api/vlt-usdc/stats` — vault stats (registered in appMain.ts after VLT webhook)
-- `POST /x402/vlt-usdc-deposit` — x402 service, $0.50, builder pattern
+- `POST /x402/vlt-usdc-deposit` — x402 service, $0.50, builder pattern (pays on Base)
+- `GET /api/vault/vlt-deposit-calldata` — discovery info for Ethereum lane
+- `POST /api/vault/vlt-deposit-calldata` — Ethereum USDC payment lane (router in vltVaultRoutes.ts, mounted at /api/vault)
+
+## Ethereum Payment Lane
+Ethereum mainnet (eip155:1) cannot be in x402 accepts array — x402-fetch PaymentRequirementsSchema enum excludes it; ZodError blocks ALL payments including Base/Solana.
+Alternative: POST /api/vault/vlt-deposit-calldata — agent sends (amountUsdc + $0.50) USDC to PLATFORM_WALLETS.ethereum on Ethereum → POST { txHash, amountUsdc, recipient } → verifyTransactionPayment('ethereum') → returns same calldata as x402 service.
+Uses existing verifyTransactionPayment() from hybridPaymentMiddleware.ts and used_transaction_hashes replay protection.
 
 ## Stats Fallback
 In dev without ALCHEMY_API_KEY in env, on-chain reads fail. Service falls back gracefully with source="fallback" and TVL=0. ETH price from CoinGecko still resolves correctly. Struct and all fields are populated.

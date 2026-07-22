@@ -28,7 +28,7 @@ If vault reverts on ERC-4626 deposit, try alternativeCalldata.zapInData (zapIn(u
 **Why** (all architect-approved July 22 2026):
 1. **Builder Pattern only** for x402 service: agent pays $0.50 on Base, gets unsigned calldata for Ethereum, agent signs/broadcasts themselves. Zero custody. Architect explicitly rejected cross-chain execution (bridge risk, liquidity buffer requirement).
 2. **APR = "New"**: vault launched July 22 2026. "0%" looks dead; "New" looks like opportunity. APR will be calculated after 24-48h of fee data.
-3. **VLT replenishment threshold = 1,000** (not 100): at 100 VLT (~$40), Ethereum L1 swap gas = 12-38% overhead. 1,000 VLT (~$390) keeps overhead < 3%.
+3. **VLT replenishment threshold = 1,000** (not 100): at 100 VLT (~$40), Ethereum L1 swap gas is a meaningful fraction of the trade. 1,000 VLT (~$390) keeps gas overhead under 1% (gas ~$0.50–1 total).
 
 ## Backend Services
 - `server/services/vltUsdcVaultService.ts`: on-chain stats (cached 2min), reads pair reserves + vltUSDC totalSupply
@@ -42,8 +42,12 @@ If vault reverts on ERC-4626 deposit, try alternativeCalldata.zapInData (zapIn(u
 
 ## Ethereum Payment Lane
 Ethereum mainnet (eip155:1) cannot be in x402 accepts array — x402-fetch PaymentRequirementsSchema enum excludes it; ZodError blocks ALL payments including Base/Solana.
-Alternative: POST /api/vault/vlt-deposit-calldata — agent sends (amountUsdc + $0.50) USDC to PLATFORM_WALLETS.ethereum on Ethereum → POST { txHash, amountUsdc, recipient } → verifyTransactionPayment('ethereum') → returns same calldata as x402 service.
+Alternative: POST /api/vault/vlt-deposit-calldata — agent sends ONLY $0.50 service fee USDC to PLATFORM_WALLETS.ethereum on Ethereum. The deposit amountUsdc stays in the agent's wallet; it is a calldata parameter, not a transfer to Coin Railz. Agent POSTs { txHash (of $0.50 fee transfer), amountUsdc, recipient } → verifyTransactionPayment checks only SERVICE_FEE_MICRO (500_000) → returns same calldata as x402 service.
 Uses existing verifyTransactionPayment() from hybridPaymentMiddleware.ts and used_transaction_hashes replay protection.
+CRITICAL: Do NOT require amountUsdc + $0.50 as the transfer amount — the calldata tells the agent to deposit amountUsdc from THEIR wallet, so if they already sent it to us, the vault.deposit() call will revert.
+
+## Ethereum Gas (corrected Jul 22 2026)
+Ethereum gas is NOT $5–15 per operation. Current reality: simple USDC transfer ~$0.05–0.20, complex vault deposit (approve + ERC-4626 deposit with internal swap) ~$0.30–1.00 at normal base fees. Total cost to enter vault via Ethereum lane: ~$1.15–1.65 (fee + gas). Economically viable.
 
 ## Stats Fallback
 In dev without ALCHEMY_API_KEY in env, on-chain reads fail. Service falls back gracefully with source="fallback" and TVL=0. ETH price from CoinGecko still resolves correctly. Struct and all fields are populated.

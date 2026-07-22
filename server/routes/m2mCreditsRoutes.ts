@@ -794,9 +794,13 @@ function recordSdkInstallAsync(ip: string, userAgent?: string): void {
   else if (/curl/i.test(ua)) sdkType = 'curl';
   else if (/httpx/i.test(ua)) sdkType = 'python-httpx';
   else if (/elizaos/i.test(ua) || /eliza/i.test(ua)) sdkType = 'elizaos-plugin';
+  else if (/Go-http-client/i.test(ua)) sdkType = 'go';
+  else if (/Java\//i.test(ua)) sdkType = 'java';
   else if (ua) sdkType = 'browser';
 
-  const sdkVersion = 'trial';
+  // Extract version if UA contains coinrailz SDK version string (e.g. coinrailz-python/1.2.0)
+  const versionMatch = ua.match(/coinrailz[^/]*\/(\d+\.\d+\.\d+)/i);
+  const sdkVersion = versionMatch ? versionMatch[1] : 'trial';
 
   void db.insert(sdkInstalls).values({
     installId,

@@ -127,14 +127,35 @@ router.post('/vlt-deposit-calldata', async (req: Request, res: Response) => {
 
     // ── Payment verification ────────────────────────────────────────────────
     // Only verify the $0.50 service fee — deposit USDC stays in the agent's wallet.
+    // 12-second timeout: Ethereum block time is ~12s. If the tx isn't indexed in
+    // that window, tell the agent to wait for on-chain confirmation and retry.
     console.log(`[vlt-vault] Verifying $0.50 fee tx on Ethereum: ${txHash.slice(0, 18)}...`);
 
-    const verification = await verifyTransactionPayment(
-      txHash,
-      SERVICE_NAME,
-      SERVICE_FEE_MICRO,  // Only $0.50 — not amountUsdc + fee
-      'ethereum',
-    );
+    const VERIFY_TIMEOUT_MS = 12_000;
+    const verifyWithTimeout = Promise.race([
+      verifyTransactionPayment(txHash, SERVICE_NAME, SERVICE_FEE_MICRO, 'ethereum'),
+      new Promise<{ verified: false; timedOut: true }>((resolve) =>
+        setTimeout(() => resolve({ verified: false, timedOut: true }), VERIFY_TIMEOUT_MS)
+      ),
+    ]);
+
+    const verification = await verifyWithTimeout;
+
+    if (!verification.verified && (verification as any).timedOut) {
+      return res.status(402).json({
+        success: false,
+        error:   'Transaction not confirmed yet',
+        payment_required: {
+          description:  'Your transaction was not found on-chain within 12 seconds. Wait for it to confirm (1–2 Ethereum blocks, ~15–30 seconds), then retry this endpoint with the same txHash.',
+          txHash,
+          payTo:        PLATFORM_ETH_WALLET,
+          usdcAddress:  USDC_ETH_ADDRESS,
+          amount:       `${SERVICE_FEE_USD.toFixed(2)} USDC`,
+          network:      'Ethereum Mainnet',
+          retryAfterMs: 15_000,
+        },
+      });
+    }
 
     if (!verification.verified) {
       return res.status(402).json({

@@ -186,6 +186,8 @@ class AutonomousDiscoveryService {
         '/x402/b20-token-info',
         '/x402/b20-transfer-check',
         '/x402/b20-compliance-scan',
+        // Bankroll Network vltUSDC Vault (Jul 22 2026)
+        '/x402/vlt-usdc-deposit',
         // NASA Earthdata Intelligence API endpoints (Mar 2026)
         '/api/satellite/earthdata/catalog',
         '/api/satellite/earthdata/granules',

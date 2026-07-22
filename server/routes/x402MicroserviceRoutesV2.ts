@@ -1580,13 +1580,13 @@ const x402Routes = {
 
   // === BANKROLL NETWORK — vltUSDC (Ethereum LP Yield, July 2026) ===
   "POST /vlt-usdc-deposit": {
-    price: `$${microToUSD(SERVICE_PRICING_MICRO["vlt-usdc-deposit"])}`,
+    price: "free",
     network: NETWORK,
     config: {
       discoverable: true,
       resource: `${PUBLIC_BASE_URL}/x402/vlt-usdc-deposit`,
       name: "vltUSDC Deposit Builder",
-      description: "Builder Pattern: pay $0.50 USDC on Base, receive unsigned calldata to deposit USDC into the Bankroll Network vltUSDC vault on Ethereum mainnet. Step 1: USDC approve. Step 2: ERC-4626 deposit. Agent signs and broadcasts both transactions on Ethereum. Zero custody — funds never leave your wallet until you submit. Vault converts USDC to VLT/WETH Uniswap V2 LP and issues vltUSDC shares.",
+      description: "FREE — No payment required. Send {amountUsdc, recipient} and receive unsigned calldata to deposit USDC into the Bankroll Network vltUSDC vault on Ethereum mainnet. Step 1: USDC approve. Step 2: ERC-4626 deposit. Agent signs and broadcasts both on Ethereum. Zero custody — funds never leave your wallet until you submit. Vault converts USDC to VLT/WETH Uniswap V2 LP and issues vltUSDC shares.",
       mimeType: "application/json",
       maxTimeoutSeconds: 30,
       inputSchema: {
@@ -6116,30 +6116,40 @@ router.post("/rh-bridge-usdc",
 
 // ============================================================
 // BANKROLL NETWORK — vltUSDC Deposit Builder (Ethereum LP Yield, July 2026)
-// vlt-usdc-deposit: $0.50 — Builder Pattern, returns calldata only, no execution
+// FREE — No payment required. Partnership with Bankroll Network.
 // ============================================================
 
-router.post("/vlt-usdc-deposit",
-  createPaymentOrchestrator("vlt-usdc-deposit", SERVICE_PRICING_MICRO["vlt-usdc-deposit"], async (req: Request, res: Response) => {
-    const startTime = Date.now();
-    try {
-      const { amountUsdc, recipient } = req.body as { amountUsdc?: string; recipient?: string };
-      if (!amountUsdc || !recipient) {
-        res.status(400).json({ success: false, error: 'amountUsdc and recipient are required' });
-        return;
-      }
-      const result = await buildVltUsdcDeposit(amountUsdc, recipient);
-      const responseTime = Date.now() - startTime;
-      await trackRequest("vlt-usdc-deposit", req.body, result, responseTime, SERVICE_PRICING_USD["vlt-usdc-deposit"], req.ip || "unknown");
-      await trackBundleUsage(req, res, "vlt-usdc-deposit", { amountUsdc, recipient });
-      res.json(result);
-    } catch (error: any) {
-      const responseTime = Date.now() - startTime;
-      await trackRequest("vlt-usdc-deposit", req.body, null, responseTime, SERVICE_PRICING_USD["vlt-usdc-deposit"], req.ip || "unknown", error.message);
-      res.status(500).json({ success: false, error: error.message });
+router.get("/vlt-usdc-deposit", (_req: Request, res: Response) => {
+  res.json({
+    service: 'vlt-usdc-deposit',
+    name: 'vltUSDC Vault Deposit Builder',
+    price: 'free',
+    description: 'FREE — Returns unsigned ERC-4626 approve + deposit calldata for the Bankroll Network vltUSDC vault on Ethereum mainnet. No payment required.',
+    method: 'POST',
+    body: { amountUsdc: 'string — USDC amount to deposit', recipient: 'string — Ethereum address for vltUSDC shares' },
+    vault: '0x348A57b1dc6E3dCAa645DE6e4E864924B410525D',
+    chainId: 1,
+  });
+});
+
+router.post("/vlt-usdc-deposit", async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  try {
+    const { amountUsdc, recipient } = req.body as { amountUsdc?: string; recipient?: string };
+    if (!amountUsdc || !recipient) {
+      res.status(400).json({ success: false, error: 'amountUsdc and recipient are required', example: { amountUsdc: "100", recipient: "0x..." } });
+      return;
     }
-  })
-);
+    const result = await buildVltUsdcDeposit(amountUsdc, recipient);
+    const responseTime = Date.now() - startTime;
+    await trackRequest("vlt-usdc-deposit", req.body, result, responseTime, 0, req.ip || "unknown");
+    res.json(result);
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    await trackRequest("vlt-usdc-deposit", req.body, null, responseTime, 0, req.ip || "unknown", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // ============================================================
 // UNKNOWN-SERVICE CATCH-ALL — must be the LAST route in this router

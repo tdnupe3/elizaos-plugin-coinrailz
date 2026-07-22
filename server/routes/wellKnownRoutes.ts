@@ -3798,8 +3798,8 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       {
         id: "vlt-usdc-deposit",
         name: "vltUSDC Vault Deposit Calldata",
-        description: "Unsigned ERC-4626 approve + deposit calldata for the Bankroll Network vltUSDC vault on Ethereum mainnet. Pay $0.50 on Base, deposit USDC stays in your wallet, sign 2 Ethereum transactions to enter vault. Vault zaps USDC into VLT/WETH LP and mints vltUSDC shares. $0.50 per request.",
-        tags: ["defi", "yield", "vault", "bankroll", "vlt", "usdc", "ethereum", "erc4626", "x402"],
+        description: "FREE — Unsigned ERC-4626 approve + deposit calldata for the Bankroll Network vltUSDC vault on Ethereum mainnet. No payment required. Send {amountUsdc, recipient}, get back 2 unsigned Ethereum transactions. Vault zaps USDC into VLT/WETH LP and mints vltUSDC shares.",
+        tags: ["defi", "yield", "vault", "bankroll", "vlt", "usdc", "ethereum", "erc4626", "x402", "free"],
         inputModes: ["application/json"],
         outputModes: ["application/json"]
       }
@@ -5658,9 +5658,9 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
       {
         id: "vlt-usdc-deposit",
         name: "vltUSDC Vault Deposit (Bankroll Network)",
-        description: "Unsigned ERC-4626 calldata for the Bankroll Network vltUSDC vault on Ethereum. Pay $0.50 on Base, vault zaps USDC into VLT/WETH LP, mints vltUSDC shares. Builder Pattern — zero custody. $0.50/call.",
+        description: "FREE — Unsigned ERC-4626 calldata for the Bankroll Network vltUSDC vault on Ethereum. No payment required. Send {amountUsdc, recipient}, vault zaps USDC into VLT/WETH LP, mints vltUSDC shares. Builder Pattern — zero custody.",
         endpoint: `${baseUrl}/x402/vlt-usdc-deposit`,
-        price: "$0.50 USDC",
+        price: "free",
       },
       {
         id: "catalog",

@@ -1597,8 +1597,8 @@ app.get('/api/dex/tokens', (req, res) => {
         decimals: 18,
         coingeckoId: 'bankroll-vault',
         website: 'https://bankroll.network',
-        pool: 'Uniswap V2 VLT/WETH',
-        pairAddress: '0x966053Ca4fca049173eb1F27E4cb168CCb794534',
+        pool: 'VLT/USDC Uniswap V4 (vltUSDC vault) + VLT/WETH Uniswap V2 (legacy pair)',
+        vltUsdcVaultAddress: '0xee8d4c5c768AadCd3517Aa8C908De300305D0A7f',
         priceUsd: vlt.priceUsd,
         priceEth: vlt.priceEth,
         liquidityUsd: Math.round(vlt.liquidityUsd),
@@ -1611,7 +1611,7 @@ app.get('/api/dex/tokens', (req, res) => {
         not_payment_token: true,
         etherscanVerified: true,
         deployedSince: '2020-06-13',
-        notes: 'Fixed supply, burn-only (no mint), protocol-owned Uniswap V2 liquidity. Proof of Liquidity model.',
+        notes: 'Fixed supply, burn-only (no mint). VLT/WETH V2 pair for price discovery. vltUSDC vault provides VLT/USDC Uniswap V4 auto-compounding LP yield (bankroll.network/vltUSDC.html). Audit: Shieldify.',
         dataUpdatedAt: vlt.updatedAt.toISOString(),
         dataSource: vlt.source,
       }
@@ -3978,7 +3978,8 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
 
   // === vltUSDC VAULT STATS ===
   // Live stats for Bankroll Network vltUSDC vault on Ethereum mainnet.
-  // Reads VLT/WETH Uniswap V2 pair reserves + vltUSDC totalSupply to compute TVL.
+  // Reads vault.positionLiquidity() + vault.totalSupply() + DexScreener TVL.
+  // Vault = VLT/USDC full-range Uniswap V4. Shares denominated in liquidity units (L).
   // Cached 2 minutes. Used by YieldPortal UI and agents discovering Ethereum yield.
   app.get('/api/vlt-usdc/stats', async (req, res) => {
     try {

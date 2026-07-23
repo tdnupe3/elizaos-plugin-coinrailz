@@ -13,9 +13,9 @@ import {
 
 interface VltUsdcStatsResponse {
   success: boolean;
-  vault: { address: string; shareToken: string; shareTokenAddress: string; underlyingPair: string; pairAddress: string; network: string };
-  stats: { tvlUsd: number; vltInVault: number; wethInVault: number; wethUsd: number; totalSharesVltUsdc: string; lPerShare: number; aprPct: number | null; aprDisplay: string; vltPriceUsd: number; ethPriceUsd: number; poolVltTotal: number; poolWethTotal: number };
-  deposit: { acceptedToken: string; usdcAddress: string; vaultAddress: string; network: string; chainId: number };
+  vault: { address: string; shareToken: string; shareTokenAddress: string; zapHelper: string; underlyingPool: string; poolFee: string; network: string };
+  stats: { tvlUsd: number; positionLiquidity: string; totalSharesVltUsdc: string; lPerShare: number; aprPct: number | null; aprDisplay: string; vltPriceUsd: number; ethPriceUsd: number };
+  deposit: { acceptedTokens: string; vltAddress: string; usdcAddress: string; vaultAddress: string; zapHelperAddress: string; network: string; chainId: number };
   x402Service: { endpoint: string; price: string; description: string };
   source: string;
   updatedAt: string;
@@ -458,7 +458,7 @@ function VltUsdcSection() {
   const vault  = data?.vault;
   const x402   = data?.x402Service;
   const tvl    = stats?.tvlUsd ? `$${stats.tvlUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : null;
-  const vaultAddr = vault?.address ?? '0x348A57b1dc6E3dCAa645DE6e4E864924B410525D';
+  const vaultAddr = vault?.address ?? '0xee8d4c5c768AadCd3517Aa8C908De300305D0A7f';
 
   return (
     <section>
@@ -469,7 +469,7 @@ function VltUsdcSection() {
         <div>
           <h2 className="text-xl font-bold text-white">Ethereum Yield — vltUSDC</h2>
           <p className="text-sm text-slate-400">
-            Bankroll Network LP vault · VLT/WETH Uniswap V2 · Ethereum mainnet
+            Bankroll Network · VLT/USDC Uniswap V4 · auto-compound · Ethereum mainnet
           </p>
         </div>
         <Badge className="ml-auto bg-amber-500/15 text-amber-400 border border-amber-500/30 text-xs">
@@ -488,20 +488,20 @@ function VltUsdcSection() {
             ) : (
               <div className="text-3xl font-bold text-white">{tvl ?? '—'}</div>
             )}
-            <div className="text-xs text-slate-500 mt-0.5">VLT + WETH pool value</div>
-            {stats && stats.tvlUsd > 0 && (
+            <div className="text-xs text-slate-500 mt-0.5">VLT/USDC V4 pool value</div>
+            {stats && (
               <div className="mt-2 pt-2 border-t border-white/8 space-y-0.5">
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">VLT in vault</span>
-                  <span className="text-white font-mono">{stats.vltInVault.toLocaleString('en-US', { maximumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">WETH in vault</span>
-                  <span className="text-white font-mono">{stats.wethInVault.toFixed(4)} ETH</span>
+                  <span className="text-slate-400">L / share</span>
+                  <span className="text-white font-mono">{stats.lPerShare.toFixed(6)}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-400">VLT price</span>
                   <span className="text-slate-300">${stats.vltPriceUsd.toFixed(4)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400">Pool</span>
+                  <span className="text-slate-300">VLT/USDC · V4 · 1%</span>
                 </div>
               </div>
             )}
@@ -515,8 +515,8 @@ function VltUsdcSection() {
             </div>
             <div className="text-xs text-slate-500 mt-0.5">Trading fees accrued to LP</div>
             <div className="mt-2 pt-2 border-t border-amber-500/15 text-xs text-slate-400 leading-relaxed">
-              Vault launched July 22, 2026. APR calculated after 24h of fee data.
-              Earn from <strong className="text-amber-300">VLT/WETH swap fees</strong> automatically.
+              Vault launched July 2026. APR calculated after 24h of fee data.
+              Earn from <strong className="text-amber-300">VLT/USDC swap fees</strong> automatically — no keeper, no claiming.
             </div>
           </div>
 
@@ -525,10 +525,10 @@ function VltUsdcSection() {
             <div className="text-[10px] font-bold text-white uppercase tracking-wider mb-2">How to Deposit</div>
             <div className="space-y-2">
               {[
-                { n: '1', text: 'Call POST /x402/vlt-usdc-deposit ($0.50 on Base)' },
-                { n: '2', text: 'Receive USDC approve + ERC-4626 deposit calldata' },
-                { n: '3', text: 'Sign & broadcast 2 txs on Ethereum mainnet' },
-                { n: '4', text: 'Receive vltUSDC shares — LP fees accrue automatically' },
+                { n: '1', text: 'Call POST /x402/vlt-usdc-deposit (free) with {amountUsdc, recipient}' },
+                { n: '2', text: 'Receive VLT approve + USDC approve + vault.deposit calldata' },
+                { n: '3', text: 'Sign & broadcast 3 txs on Ethereum mainnet in order' },
+                { n: '4', text: 'Receive vltUSDC shares — V4 fees auto-compound, no claiming' },
               ].map(({ n, text }) => (
                 <div key={n} className="flex gap-2 text-xs">
                   <span className="w-4 h-4 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-[9px] font-bold text-amber-400 shrink-0">{n}</span>
@@ -554,9 +554,9 @@ function VltUsdcSection() {
               className="inline-flex items-center gap-1 text-xs text-amber-400 hover:underline">
               Etherscan <ExternalLink className="w-3 h-3" />
             </a>
-            <a href="https://app.uniswap.org/#/pool?chainId=1" target="_blank" rel="noopener noreferrer"
+            <a href="https://bankroll.network/vltUSDC.html" target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-xs text-blue-400 hover:underline">
-              Uniswap V2 pool <ExternalLink className="w-3 h-3" />
+              Bankroll vault <ExternalLink className="w-3 h-3" />
             </a>
             <a href="/api/vlt-usdc/stats" target="_blank"
               className="inline-flex items-center gap-1 text-xs text-slate-400 hover:underline">

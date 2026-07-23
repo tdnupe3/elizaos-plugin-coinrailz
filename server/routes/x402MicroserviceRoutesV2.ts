@@ -1587,7 +1587,7 @@ const x402Routes = {
       discoverable: true,
       resource: `${PUBLIC_BASE_URL}/x402/vlt-usdc-deposit`,
       name: "vltUSDC Deposit Builder",
-      description: "FREE — No payment required. Send {amountUsdc, recipient} and receive unsigned calldata to deposit USDC into the Bankroll Network vltUSDC vault on Ethereum mainnet. Step 1: USDC approve. Step 2: ERC-4626 deposit. Agent signs and broadcasts both on Ethereum. Zero custody — funds never leave your wallet until you submit. Vault converts USDC to VLT/WETH Uniswap V2 LP and issues vltUSDC shares.",
+      description: "FREE — No payment required. Send {amountUsdc, recipient} and receive 3 unsigned Ethereum transactions: VLT.approve(vault), USDC.approve(vault), vault.deposit(vltAmount, usdcAmount, minShares, deadline, recipient). Agent signs and broadcasts all 3 on Ethereum mainnet. Zero custody — funds stay in your wallet until you submit. Underlying pool: VLT/USDC Uniswap V4 full-range 1% fee. Fees auto-compound. Vault audited by Shieldify. Redeem any time.",
       mimeType: "application/json",
       maxTimeoutSeconds: 30,
       inputSchema: {

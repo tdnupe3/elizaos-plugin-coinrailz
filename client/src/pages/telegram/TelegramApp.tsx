@@ -24,6 +24,77 @@ interface Transaction {
   createdAt: string;
 }
 
+interface TradeRecord {
+  id: number;
+  tokenMint: string;
+  action: string;
+  amount: string;
+  fee: string | null;
+  txHash: string | null;
+  slippage: string | null;
+  pnl: string | null;
+  status: string | null;
+  createdAt: string;
+}
+
+function TradingPnL({ initData }: { initData: string }) {
+  const { data, isLoading } = useQuery<{ trades: TradeRecord[]; totalPnL: number; winRate: number; count: number }>({
+    queryKey: ['/api/telegram/trades', initData],
+    queryFn: async () => {
+      const res = await fetch(`/api/telegram/trades?initData=${encodeURIComponent(initData)}&limit=10`);
+      if (!res.ok) throw new Error('Failed to load trades');
+      return res.json();
+    },
+    enabled: !!initData && initData !== '',
+    staleTime: 30_000,
+  });
+
+  if (isLoading) return null;
+  if (!data || data.count === 0) return null;
+
+  const pnlColor = (data.totalPnL ?? 0) >= 0 ? 'text-green-500' : 'text-red-500';
+  const pnlSign = (data.totalPnL ?? 0) >= 0 ? '+' : '';
+
+  return (
+    <Section header="Trading P&L (Paper)">
+      <Card className="mx-4 mb-2 p-3">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <Text weight="2">Total P&L</Text>
+            <Text className={`text-lg font-bold ${pnlColor}`}>
+              {pnlSign}{(data.totalPnL ?? 0).toFixed(4)} SOL
+            </Text>
+          </div>
+          <div className="text-right">
+            <Text weight="2">Win Rate</Text>
+            <Text className="text-lg font-bold text-blue-500">{(data.winRate ?? 0).toFixed(0)}%</Text>
+          </div>
+          <div className="text-right">
+            <Text weight="2">Trades</Text>
+            <Text className="text-lg font-bold">{data.count}</Text>
+          </div>
+        </div>
+      </Card>
+      <List>
+        {data.trades.slice(0, 5).map((t) => (
+          <Cell
+            key={t.id}
+            subtitle={`${t.tokenMint.substring(0, 8)}… · ${new Date(t.createdAt).toLocaleDateString()}`}
+            after={
+              <Text weight="2" className={parseFloat(t.pnl || '0') >= 0 ? 'text-green-500' : 'text-red-500'}>
+                {parseFloat(t.pnl || '0') >= 0 ? '+' : ''}{parseFloat(t.pnl || '0').toFixed(4)}
+              </Text>
+            }
+            data-testid={`trade-${t.id}`}
+          >
+            {t.action.toUpperCase()} {parseFloat(t.amount).toFixed(3)} SOL
+          </Cell>
+        ))}
+      </List>
+    </Section>
+  );
+}
+
 export default function TelegramApp() {
   const { toast } = useToast();
   const [isInitialized, setIsInitialized] = useState(false);
@@ -58,6 +129,9 @@ export default function TelegramApp() {
     // In dev mode, return empty string to skip validation
     return DEV_MODE ? 'dev-mode' : '';
   };
+
+  // Component-level initData — used by TradingPnL and other sub-components
+  const initData = getInitData();
 
   // Link account and get $1 bonus
   const { data: account, isLoading: isLinking } = useQuery<TelegramAccount>({
@@ -401,6 +475,9 @@ export default function TelegramApp() {
             </Cell>
           </List>
         </Section>
+
+        {/* Trading P&L */}
+        <TradingPnL initData={initData} />
 
         {/* Recent Activity */}
         {activity.length > 0 && (

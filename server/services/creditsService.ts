@@ -34,7 +34,7 @@ function logApiUsageAsync(params: {
 }
 
 export type TransactionType = "purchase" | "debit" | "refund" | "adjustment" | "bonus";
-export type PaymentMethod = "stripe" | "usdc" | "usdt";
+export type PaymentMethod = "stripe" | "usdc" | "usdt" | "telegram_stars";
 
 export interface CreditsPurchaseParams {
   userId: string;

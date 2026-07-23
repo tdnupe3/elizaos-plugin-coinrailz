@@ -14,8 +14,8 @@ import TelegramBot from 'node-telegram-bot-api';
 import { Connection, PublicKey, Keypair } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { db } from '../db';
-import { telegramUsers, userWallets } from '../../shared/schema';
-import { eq } from 'drizzle-orm';
+import { telegramUsers, userWallets, telegramTrades } from '../../shared/schema';
+import { eq, desc } from 'drizzle-orm';
 import { encryptPrivateKey, decryptPrivateKey, isEncrypted } from './walletEncryption';
 import { pumpfunCopyTradingService } from './pumpfunCopyTradingService';
 
@@ -526,12 +526,50 @@ export class TelegramTradingService {
     if (PAPER_TRADING_MODE) {
       await new Promise(r => setTimeout(r, 1200)); // simulate latency
       const mockTx = `PAPER_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-      console.log(`📄 PAPER TRADE: ${action} ${amountSOL} SOL | chatId=${chatId} | fee=${(amountSOL * PLATFORM_FEE_RATE).toFixed(4)} SOL`);
-      return { success: true, txHash: mockTx, slippage: Math.random() * 1.5 };
+      const fee = amountSOL * PLATFORM_FEE_RATE;
+      const slippage = parseFloat((Math.random() * 1.5).toFixed(2));
+      console.log(`📄 PAPER TRADE: ${action} ${amountSOL} SOL | chatId=${chatId} | fee=${fee.toFixed(4)} SOL`);
+
+      // ── Persist trade to DB ────────────────────────────────────────────────
+      try {
+        await db.insert(telegramTrades).values({
+          telegramUserId: chatId.toString(),
+          tokenMint,
+          action,
+          amount: amountSOL.toString(),
+          fee: fee.toFixed(9),
+          txHash: mockTx,
+          slippage: slippage.toString(),
+          status: 'completed',
+        });
+      } catch (dbErr) {
+        // Non-fatal — trade already happened, just log the DB failure
+        console.error('[TradingService] DB persist error:', dbErr);
+      }
+
+      return { success: true, txHash: mockTx, slippage };
     }
 
     // TODO: Replace with real Jupiter/PumpPortal execution
     return { success: false, error: 'Live trading not yet enabled. Use /upgrade or contact support.' };
+  }
+
+  /** Return paginated trade history + aggregate P&L for a chatId */
+  async getTradeHistory(chatId: number, limit = 20): Promise<{ trades: any[]; totalPnL: number; winRate: number }> {
+    try {
+      const trades = await db.select().from(telegramTrades)
+        .where(eq(telegramTrades.telegramUserId, chatId.toString()))
+        .orderBy(desc(telegramTrades.createdAt))
+        .limit(limit);
+
+      const totalPnL = trades.reduce((sum, t) => sum + parseFloat(t.pnl || '0'), 0);
+      const wins = trades.filter(t => parseFloat(t.pnl || '0') > 0).length;
+      const winRate = trades.length > 0 ? (wins / trades.length) * 100 : 0;
+
+      return { trades, totalPnL, winRate };
+    } catch {
+      return { trades: [], totalPnL: 0, winRate: 0 };
+    }
   }
 }
 

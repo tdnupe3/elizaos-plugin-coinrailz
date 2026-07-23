@@ -5,7 +5,7 @@ import crypto from "crypto";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { db } from "../db";
-import { telegramAccounts, telegramReferrals, telegramGuardians, users, creditsAccounts, creditTransactions, apiKeys } from "@shared/schema";
+import { telegramAccounts, telegramReferrals, telegramGuardians, telegramTrades, users, creditsAccounts, creditTransactions, apiKeys } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { creditsService } from "../services/creditsService";
 import { nanoid } from "nanoid";
@@ -126,6 +126,77 @@ function validateTelegramData(initData: string): { id: number; first_name?: stri
     console.error("Telegram data validation error:", error);
     return null;
   }
+}
+
+/**
+ * Auto-provision a full Telegram account if one doesn't exist yet.
+ * Safe to call on every Stars payment — idempotent by telegramId.
+ * Used so users who pay before /start still get their credits.
+ */
+async function getOrCreateTelegramAccountFromUpdate(
+  from: { id: number; first_name?: string; last_name?: string; username?: string }
+): Promise<typeof telegramAccounts.$inferSelect> {
+  const telegramId = from.id.toString();
+
+  const existing = await db.query.telegramAccounts.findFirst({
+    where: eq(telegramAccounts.telegramId, telegramId)
+  });
+  if (existing) return existing;
+
+  // New user — provision the full account chain
+  const userId = `t${nanoid(8)}`;
+  const userReferralCode = `T${nanoid(8)}`;
+
+  await db.insert(users).values({
+    id: userId,
+    firstName: from.first_name || 'Telegram',
+    lastName: from.last_name || 'User',
+    accountStatus: 'active',
+    referralCode: userReferralCode,
+    freeCreditsGranted: true,
+  }).onConflictDoNothing();
+
+  const [creditsAccount] = await db.insert(creditsAccounts).values({
+    userId, balance: STARTING_BONUS, autoTopUpEnabled: false
+  }).onConflictDoNothing().returning();
+
+  // Only log the bonus transaction if the account was just created
+  if (creditsAccount) {
+    await db.insert(creditTransactions).values({
+      accountId: creditsAccount.id,
+      userId,
+      amount: STARTING_BONUS,
+      type: 'bonus',
+      balanceBefore: '0.00',
+      balanceAfter: STARTING_BONUS,
+      description: 'Welcome bonus',
+      metadata: { source: 'telegram_payment', reason: 'new_user_bonus' }
+    }).onConflictDoNothing();
+  }
+
+  const apiKeyValue = `cr_tg_${nanoid(32)}`;
+  const keyPrefix = apiKeyValue.substring(0, 12);
+  const hashedKey = await bcrypt.hash(apiKeyValue, 10);
+
+  await db.insert(apiKeys).values({
+    userId, hashedKey, keyPrefix,
+    name: 'Telegram Mini-App', status: 'active', rateLimit: 100,
+    metadata: { source: 'telegram', telegramId }
+  }).onConflictDoNothing();
+
+  const [telegramAccount] = await db.insert(telegramAccounts).values({
+    telegramId,
+    userId,
+    username: from.username,
+    firstName: from.first_name,
+    lastName: from.last_name,
+    referralCode: userReferralCode,
+  }).onConflictDoUpdate({
+    target: telegramAccounts.telegramId,
+    set: { username: from.username, firstName: from.first_name }
+  }).returning();
+
+  return telegramAccount;
 }
 
 /**
@@ -643,6 +714,18 @@ router.post("/webhook", async (req: Request, res: Response) => {
       else if (data?.startsWith("guardian_enable:")) {
         const groupId = data.replace("guardian_enable:", "");
         try {
+          // Verify the requesting user is an admin of the target group
+          let isGroupAdmin = false;
+          try {
+            const member = await bot.getChatMember(parseInt(groupId), userId);
+            isGroupAdmin = ['administrator', 'creator'].includes(member.status);
+          } catch {
+            isGroupAdmin = true; // can't verify yet (bot not cached) — allow through
+          }
+          if (!isGroupAdmin) {
+            await bot.sendMessage(chatId, '❌ Only group admins can enable AI Guardian.');
+            return;
+          }
           await db.insert(telegramGuardians).values({
             groupChatId: groupId,
             adminUserId: userId.toString(),
@@ -659,8 +742,12 @@ router.post("/webhook", async (req: Request, res: Response) => {
           await bot.sendMessage(chatId,
             `✅ *AI Guardian activated!*\n\n` +
             `The group is now protected. I'll automatically scan contract addresses and wallet risk scores in every message.\n\n` +
-            `Free tier: 10 scans/day. Use /guardian in the group to manage settings.`,
-            { parse_mode: 'Markdown' }
+            `🆓 *Free tier:* 10 scans/day\n` +
+            `⭐ *Guardian Pro:* Unlimited — 4,000 Stars/month\n\n` +
+            `Use /guardian in the group to manage settings.`,
+            { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[
+              { text: '⭐ Upgrade to Pro — 4,000 Stars', callback_data: `upgrade_guardian:${groupId}` }
+            ]]}}
           );
         } catch (err) {
           console.error('Guardian enable error:', err);
@@ -671,13 +758,31 @@ router.post("/webhook", async (req: Request, res: Response) => {
       else if (data?.startsWith("guardian_disable:")) {
         const groupId = data.replace("guardian_disable:", "");
         try {
+          let isGroupAdmin = false;
+          try {
+            const member = await bot.getChatMember(parseInt(groupId), userId);
+            isGroupAdmin = ['administrator', 'creator'].includes(member.status);
+          } catch { isGroupAdmin = true; }
+          if (!isGroupAdmin) { await bot.sendMessage(chatId, '❌ Only group admins can manage Guardian.'); return; }
           await db.update(telegramGuardians)
             .set({ enabled: false })
             .where(eq(telegramGuardians.groupChatId, groupId));
-          await bot.sendMessage(chatId, '⏸️ AI Guardian paused for this group.');
+          await bot.sendMessage(chatId, '⏸️ AI Guardian paused for this group. Use /guardian to re-enable.');
         } catch (err) {
           await bot.sendMessage(chatId, '❌ Error pausing Guardian.');
         }
+      }
+
+      else if (data === "upgrade_guardian" || data?.startsWith("upgrade_guardian:")) {
+        const groupId = data.includes(":") ? data.split(":")[1] : null;
+        // Guardian Pro = 4,000 Telegram Stars/month ($50 equivalent)
+        await bot.sendInvoice(chatId, {
+          title: "Guardian Pro — Monthly",
+          description: "Unlimited AI security scans in your group for 30 days. Automatically detects rug pulls, scam contracts, and high-risk wallets.",
+          payload: JSON.stringify({ type: "guardian_pro", groupId, adminTelegramId: userId }),
+          currency: "XTR",
+          prices: [{ label: "Guardian Pro (30 days)", amount: 4000 }]
+        });
       }
 
       // ── Trading callbacks — delegate to trading service ───────────────────
@@ -734,31 +839,53 @@ router.post("/webhook", async (req: Request, res: Response) => {
           return;
         }
 
+        // ── Guardian Pro payment: upgrade group to unlimited scans ───────────
+        if (payload.type === "guardian_pro") {
+          const { groupId } = payload;
+          if (groupId) {
+            await db.update(telegramGuardians)
+              .set({ subscriptionStatus: "active", scanLimitPerDay: 9999 })
+              .where(eq(telegramGuardians.groupChatId, groupId.toString()));
+          }
+          await bot.sendMessage(chatId,
+            `⭐ *Guardian Pro Activated!*\n\n` +
+            `Your group is now protected with *unlimited scans* for the next 30 days.\n\n` +
+            `Thank you for supporting Coin Railz! 🚀\n` +
+            `Charge ID: \`${chargeId}\``,
+            { parse_mode: 'Markdown' }
+          );
+          return;
+        }
+
         // ── Credits bundle payment ────────────────────────────────────────
         const { stars, usdValue, bonus, totalCredits } = payload;
-        
-        const telegramId = update.message.from?.id;
-        if (!telegramId) throw new Error("No telegram ID");
-        
-        const telegramAccount = await db.query.telegramAccounts.findFirst({
-          where: eq(telegramAccounts.telegramId, telegramId.toString())
+
+        const from = update.message.from;
+        if (!from) throw new Error("No sender info");
+
+        // IDEMPOTENCY: skip if this exact charge was already processed
+        const [existingTx] = await db.select()
+          .from(creditTransactions)
+          .where(eq(creditTransactions.referenceId, chargeId))
+          .limit(1);
+        if (existingTx) {
+          console.log(`⚠️ Stars webhook: charge ${chargeId} already processed (tx ${existingTx.id}) — skipping`);
+          await bot.sendMessage(chatId, '✅ Your credits have already been added to your account.');
+          return;
+        }
+
+        // AUTO-PROVISION: create account if user paid before /start
+        const telegramAccount = await getOrCreateTelegramAccountFromUpdate(from);
+
+        // Add credits — CORRECT object-based signature for creditsService.addCredits()
+        await creditsService.addCredits({
+          userId: telegramAccount.userId,
+          amount: Math.round(totalCredits * 100) / 100,
+          paymentMethod: "telegram_stars",
+          referenceId: chargeId,
+          description: `Telegram Stars payment - ${stars} ⭐ (${bonus > 0 ? `$${usdValue} + ${(bonus * 100).toFixed(0)}% bonus` : `$${usdValue}`})`,
+          metadata: { source: "telegram_stars", chargeId, stars, usdValue, bonus: bonus || 0 }
         });
-        
-        if (!telegramAccount) throw new Error("No account found");
-        
-        // Add credits to account (Telegram delivers successful_payment only once per charge)
-        await creditsService.addCredits(
-          telegramAccount.userId,
-          totalCredits,
-          `Telegram Stars payment - ${stars} ⭐ (${bonus > 0 ? `$${usdValue} + ${(bonus * 100)}% bonus` : `$${usdValue}`})`,
-          {
-            source: "telegram_stars",
-            paymentId: chargeId,
-            stars,
-            usdValue,
-            bonus: bonus || 0
-          }
-        );
         
         const newBalance = await creditsService.getBalance(telegramAccount.userId);
         
@@ -791,6 +918,56 @@ router.post("/webhook", async (req: Request, res: Response) => {
     console.error("Telegram webhook error:", error);
     // Don't send error response if we already sent 200 OK
     // Just log the error - Telegram already received acknowledgment
+  }
+});
+
+/**
+ * GET /api/telegram/trades
+ * Returns trade history and P&L for the authenticated Telegram user.
+ * Auth: initData query param (same pattern as /api/telegram/activity)
+ */
+router.get('/trades', async (req: Request, res: Response) => {
+  try {
+    const { initData } = req.query as { initData?: string };
+    const limit = Math.min(parseInt((req.query.limit as string) || '20', 10), 100);
+
+    if (!initData) {
+      return res.status(401).json({ error: 'initData required' });
+    }
+
+    const telegramData = validateTelegramData(initData);
+    if (!telegramData || !telegramData.user) {
+      return res.status(401).json({ error: 'Invalid initData' });
+    }
+
+    const telegramId = telegramData.user.id.toString();
+    const telegramAccount = await db.query.telegramAccounts.findFirst({
+      where: eq(telegramAccounts.telegramId, telegramId)
+    });
+
+    if (!telegramAccount) {
+      return res.json({ trades: [], totalPnL: 0, winRate: 0 });
+    }
+
+    const trades = await db.select().from(telegramTrades)
+      .where(eq(telegramTrades.telegramUserId, telegramId))
+      .orderBy(desc(telegramTrades.createdAt))
+      .limit(limit);
+
+    const totalPnL = trades.reduce((sum, t) => sum + parseFloat(t.pnl || '0'), 0);
+    const wins = trades.filter(t => parseFloat(t.pnl || '0') > 0).length;
+    const winRate = trades.length > 0 ? (wins / trades.length) * 100 : 0;
+
+    return res.json({
+      trades,
+      totalPnL,
+      winRate,
+      telegramId,
+      count: trades.length
+    });
+  } catch (error) {
+    console.error('Error fetching trades:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 

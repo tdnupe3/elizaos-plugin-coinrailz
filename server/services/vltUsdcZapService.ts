@@ -28,7 +28,11 @@
  *   1. USDC.approve(zapHelper, usdcAmount)
  *   2. zapHelper.zapDeposit(7 args)
  *
- * Sandwich protection: 1% slippage on minVltOut, minShares=0 (vault handles internally).
+ * Security:
+ *   - Live quote is MANDATORY — fails closed if RPC unavailable (no stale fallback)
+ *   - minVltOut enforces 1% slippage on VLT swap output
+ *   - minShares enforces 2% slippage on vault share mint via vault.previewDeposit
+ *   - Fails closed if vault.previewDeposit unavailable (no stale fallback tiers)
  */
 
 import { ethers } from 'ethers';
@@ -54,6 +58,7 @@ const MAX_UINT256  = ethers.MaxUint256; // use router's full balance of intermed
 
 const ERC20_ABI = [
   'function approve(address spender, uint256 amount) returns (bool)',
+  'function totalSupply() view returns (uint256)',
 ];
 
 // 7-arg — verified via bytecode selector 0x9248013e
@@ -73,9 +78,15 @@ const UR_ABI = [
   'function execute(bytes commands, bytes[] inputs, uint256 deadline) external payable',
 ];
 
-const ZAP_IFACE  = new ethers.Interface(ZAP_ABI);
+// Common vault preview ABI — try both known patterns
+const VAULT_PREVIEW_ABI = [
+  'function previewDeposit(uint256 vltAmount, uint256 usdcAmount) view returns (uint256 shares)',
+  'function totalSupply() view returns (uint256)',
+];
+
+const ZAP_IFACE   = new ethers.Interface(ZAP_ABI);
 const ERC20_IFACE = new ethers.Interface(ERC20_ABI);
-const UR_IFACE   = new ethers.Interface(UR_ABI);
+const UR_IFACE    = new ethers.Interface(UR_ABI);
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,6 +100,9 @@ export interface ZapDepositResult {
   quotedVltOut: string;
   minVltOut: string;
   minVltOutRaw: string;
+  minShares: string;
+  minSharesRaw: string;
+  minSharesSource: 'vault-preview';
   slippagePct: number;
   recipient: string;
   network: string;
@@ -106,7 +120,7 @@ export interface ZapDepositResult {
   zapHelperAddress: string;
   vaultAddress: string;
   agentInstructions: string;
-  quoteSource: 'live' | 'fallback';
+  quoteSource: 'live';
   error?: string;
 }
 
@@ -131,43 +145,56 @@ function v2AmountOut(amountIn: bigint, reserveIn: bigint, reserveOut: bigint): b
 }
 
 // ── Live quote chain: USDC → WETH (V3) → VLT (V2) ──────────────────────────
+// Fails closed — throws if RPC unavailable. No stale fallback.
 
 async function quoteUsdcToVlt(
   swapUsdcRaw: bigint,
   provider: ethers.JsonRpcProvider,
-): Promise<{ wethOut: bigint; vltOut: bigint; source: 'live' | 'fallback' }> {
-  try {
-    const quoter = new ethers.Contract(QUOTER_V2, QUOTER_ABI, provider);
-    const pair   = new ethers.Contract(VLT_WETH_PAIR, V2_PAIR_ABI, provider);
+): Promise<{ wethOut: bigint; vltOut: bigint }> {
+  const quoter = new ethers.Contract(QUOTER_V2, QUOTER_ABI, provider);
+  const pair   = new ethers.Contract(VLT_WETH_PAIR, V2_PAIR_ABI, provider);
 
-    const [v3Result, reserves] = await Promise.all([
-      quoter.quoteExactInputSingle.staticCall({
-        tokenIn: USDC_ETH,
-        tokenOut: WETH,
-        amountIn: swapUsdcRaw,
-        fee: V3_FEE_USDC_WETH,
-        sqrtPriceLimitX96: 0n,
-      }),
-      pair.getReserves(),
-    ]);
+  const [v3Result, reserves] = await Promise.all([
+    quoter.quoteExactInputSingle.staticCall({
+      tokenIn: USDC_ETH,
+      tokenOut: WETH,
+      amountIn: swapUsdcRaw,
+      fee: V3_FEE_USDC_WETH,
+      sqrtPriceLimitX96: 0n,
+    }),
+    pair.getReserves(),
+  ]);
 
-    const wethOut = BigInt(v3Result[0].toString());
+  const wethOut = BigInt(v3Result[0].toString());
 
-    // VLT=token0, WETH=token1 (verified on-chain)
-    const reserveWeth = BigInt(reserves[1].toString()); // token1
-    const reserveVlt  = BigInt(reserves[0].toString()); // token0
+  // VLT=token0, WETH=token1 (verified on-chain)
+  const reserveWeth = BigInt(reserves[1].toString()); // token1
+  const reserveVlt  = BigInt(reserves[0].toString()); // token0
 
-    const vltOut = v2AmountOut(wethOut, reserveWeth, reserveVlt);
+  const vltOut = v2AmountOut(wethOut, reserveWeth, reserveVlt);
 
-    return { wethOut, vltOut, source: 'live' };
-  } catch (err: any) {
-    console.warn('[vltUSDC Zap] quote failed, using fallback pricing:', err?.message);
-    // Fallback: approximate from market price (VLT ~$0.40, USDC 1:1)
-    const usdcAmount = Number(swapUsdcRaw) / 1e6;
-    const vltPriceUsd = 0.40;
-    const vltOutApprox = BigInt(Math.floor((usdcAmount * 0.98 / vltPriceUsd) * 1e18));
-    return { wethOut: 0n, vltOut: vltOutApprox, source: 'fallback' };
+  return { wethOut, vltOut };
+}
+
+// ── minShares estimation ─────────────────────────────────────────────────────
+// Uses vault.previewDeposit with 2% slippage. Fails closed if unavailable.
+// No fallback tiers — economically weak fallbacks are removed per security review.
+
+const SHARE_SLIPPAGE_BPS = 200n; // 2% on share mint
+
+async function estimateMinShares(
+  vltAmountRaw: bigint,
+  usdcHalfRaw: bigint,
+  provider: ethers.JsonRpcProvider,
+): Promise<{ minSharesRaw: bigint; source: 'vault-preview' }> {
+  const vault = new ethers.Contract(VAULT, VAULT_PREVIEW_ABI, provider);
+  const preview = await vault.previewDeposit(vltAmountRaw, usdcHalfRaw);
+  const previewShares = BigInt(preview.toString());
+  if (previewShares === 0n) {
+    throw new Error('vault.previewDeposit returned 0 shares — pool may be paused or empty');
   }
+  const minSharesRaw = previewShares * (10000n - SHARE_SLIPPAGE_BPS) / 10000n;
+  return { minSharesRaw: minSharesRaw > 0n ? minSharesRaw : 1n, source: 'vault-preview' };
 }
 
 // ── swapData encoder ─────────────────────────────────────────────────────────
@@ -199,7 +226,7 @@ function buildSwapData(
 // ── Main export ──────────────────────────────────────────────────────────────
 
 const DEADLINE_SECONDS = 20 * 60; // 20 min
-const SLIPPAGE_BPS     = 100;     // 1%
+const SLIPPAGE_BPS     = 100;     // 1% on VLT swap output
 
 export async function buildZapDeposit(
   amountUsdc: string | number,
@@ -223,18 +250,50 @@ export async function buildZapDeposit(
 
   const usdcRaw        = ethers.parseUnits(amount.toFixed(6), 6);
   const swapHalf       = usdcRaw / 2n;
+  const depositHalf    = usdcRaw - swapHalf;
   const deadline       = BigInt(Math.floor(Date.now() / 1000) + DEADLINE_SECONDS);
   const addr           = normalizedRecipient; // EIP-55 normalized
 
   const rpcUrl  = `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY ?? ''}`;
   const provider = new ethers.JsonRpcProvider(rpcUrl);
 
-  const { vltOut, source } = await quoteUsdcToVlt(swapHalf, provider);
+  // Live quote — MANDATORY. Throws if RPC unavailable. No stale fallback.
+  let vltOut: bigint;
+  try {
+    const result = await quoteUsdcToVlt(swapHalf, provider);
+    vltOut = result.vltOut;
+  } catch (err: any) {
+    console.error('[vltUSDC Zap] live quote failed — failing closed (no stale fallback):', err?.message);
+    return errorResult(
+      amountUsdc,
+      recipient,
+      `Live on-chain quote unavailable — cannot build safe calldata. Retry shortly or use Bankroll UI at https://bankroll.network/vltUSDC.html. (${err?.message ?? 'RPC error'})`,
+    );
+  }
 
-  // Slippage: 1% floor on VLT received
+  if (vltOut === 0n) {
+    return errorResult(amountUsdc, recipient, 'Quote returned 0 VLT — pool may have insufficient liquidity for this amount');
+  }
+
+  // Slippage: 1% floor on VLT received from swap
   const minVltOutRaw = vltOut * BigInt(10000 - SLIPPAGE_BPS) / 10000n;
   const quotedVlt    = parseFloat(ethers.formatEther(vltOut)).toFixed(4);
   const minVltOut    = parseFloat(ethers.formatEther(minVltOutRaw)).toFixed(4);
+
+  // minShares: vault.previewDeposit with 2% slippage — MANDATORY, fail closed.
+  let minSharesRaw: bigint;
+  try {
+    const sharesResult = await estimateMinShares(minVltOutRaw, depositHalf, provider);
+    minSharesRaw = sharesResult.minSharesRaw;
+  } catch (err: any) {
+    console.error('[vltUSDC Zap] vault.previewDeposit failed — failing closed:', err?.message);
+    return errorResult(
+      amountUsdc,
+      recipient,
+      `Vault share preview unavailable — cannot enforce share slippage. Retry shortly or use Bankroll UI at https://bankroll.network/vltUSDC.html. (${err?.message ?? 'RPC error'})`,
+    );
+  }
+  const minSharesDisplay = ethers.formatEther(minSharesRaw);
 
   const swapData = buildSwapData(swapHalf, minVltOutRaw, deadline);
 
@@ -245,8 +304,8 @@ export async function buildZapDeposit(
   const zapData = ZAP_IFACE.encodeFunctionData('zapDeposit', [
     usdcRaw,        // total USDC
     swapHalf,       // swap ~50% to VLT
-    minVltOutRaw,   // 1% slippage floor
-    0n,             // minShares = 0 (vault handles internally)
+    minVltOutRaw,   // 1% slippage floor on VLT
+    minSharesRaw,   // slippage floor on shares (never 0)
     deadline,
     addr,
     swapData,
@@ -262,6 +321,9 @@ export async function buildZapDeposit(
     quotedVltOut: quotedVlt,
     minVltOut,
     minVltOutRaw: minVltOutRaw.toString(),
+    minShares: minSharesDisplay,
+    minSharesRaw: minSharesRaw.toString(),
+    minSharesSource: 'vault-preview' as const,
     slippagePct: SLIPPAGE_BPS / 100,
     recipient: addr,
     network: 'Ethereum Mainnet',
@@ -286,8 +348,8 @@ export async function buildZapDeposit(
         note: [
           `ZapHelper swaps ~${(amount / 2).toFixed(2)} USDC → ≥${minVltOut} VLT via V3(USDC→WETH 0.05%) + V2(WETH→VLT).`,
           `Then deposits VLT + remaining ~${(amount / 2).toFixed(2)} USDC into the vltUSDC vault.`,
-          `Vault mints vltUSDC shares to ${addr}. Quote: ${quotedVlt} VLT (${source === 'live' ? 'live' : 'estimated'}).`,
-          `1% slippage protection on VLT output.`,
+          `Vault mints vltUSDC shares to ${addr}. Quote: ${quotedVlt} VLT (live on-chain).`,
+          `1% slippage on VLT, 2% slippage on shares (source: vault-preview). Calldata valid for 20 min.`,
         ].join(' '),
       },
     ],
@@ -299,10 +361,10 @@ export async function buildZapDeposit(
       `Step 1: sign and broadcast the USDC approve transaction. Wait for confirmation.`,
       `Step 2: sign and broadcast the zapDeposit transaction. The ZapHelper buys VLT on-market and deposits both tokens, minting vltUSDC shares to ${addr}.`,
       `vltUSDC auto-compounds VLT/USDC Uniswap V4 LP fees — no claiming needed.`,
-      `Quote generated at ${new Date().toISOString()}${source === 'fallback' ? ' (estimated — live quote unavailable)' : ' (live on-chain)'}. Slippage: 1%.`,
-      `Redeem: vault.redeem(shares, minVltOut, minUsdcOut, deadline, receiver) at ${VAULT}.`,
+      `Quote generated at ${new Date().toISOString()} (live on-chain). Slippage guards: 1% on VLT swap, 2% on share mint (vault-preview).`,
+      `Calldata valid for 20 minutes. Redeem: vault.redeem(shares, minVltOut, minUsdcOut, deadline, receiver) at ${VAULT}.`,
     ].join(' '),
-    quoteSource: source,
+    quoteSource: 'live',
   };
 }
 
@@ -317,6 +379,9 @@ function errorResult(amountUsdc: string | number, recipient: string, error: stri
     quotedVltOut: '0',
     minVltOut: '0',
     minVltOutRaw: '0',
+    minShares: '0',
+    minSharesRaw: '0',
+    minSharesSource: 'vault-preview' as const,
     slippagePct: 1,
     recipient,
     network: 'Ethereum Mainnet',
@@ -326,7 +391,7 @@ function errorResult(amountUsdc: string | number, recipient: string, error: stri
     zapHelperAddress: ZAP_HELPER,
     vaultAddress: VAULT,
     agentInstructions: '',
-    quoteSource: 'fallback',
+    quoteSource: 'live',
     error,
   };
 }

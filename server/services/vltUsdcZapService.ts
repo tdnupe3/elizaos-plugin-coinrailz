@@ -344,7 +344,7 @@ export async function buildZapDeposit(
         to: ZAP_HELPER,
         data: zapData,
         value: '0x0',
-        gasEstimate: '0x7A120', // ~500,000 gas (V3 swap + V2 swap + V4 deposit)
+        gasEstimate: '0x927C0', // ~600,000 gas (V3 swap + V2 swap + V4 deposit; 500k is too tight on busy mainnet)
         note: [
           `ZapHelper swaps ~${(amount / 2).toFixed(2)} USDC → ≥${minVltOut} VLT via V3(USDC→WETH 0.05%) + V2(WETH→VLT).`,
           `Then deposits VLT + remaining ~${(amount / 2).toFixed(2)} USDC into the vltUSDC vault.`,

@@ -6144,7 +6144,7 @@ router.get("/vlt-usdc-deposit", (_req: Request, res: Response) => {
         requires:  'USDC only on Ethereum mainnet — no VLT needed',
         returns:   '2 unsigned txs: USDC.approve(zapHelper) → zapHelper.zapDeposit(7 args with live swapData)',
         route:     'USDC –[V3 0.05%]→ WETH –[V2]→ VLT + USDC → vltUSDC vault',
-        slippage:  '1% on VLT output, live on-chain quote (QuoterV2 + V2 getReserves)',
+        slippage:  '1% on VLT swap output + 2% on vault share mint (vault.previewDeposit). Both fail-closed — no calldata without live quote AND share preview.',
         alsoAt:    'POST /api/vault/vlt-zap-deposit (standalone USDC-only endpoint)',
       },
     },
@@ -6201,7 +6201,12 @@ router.post("/vlt-usdc-deposit", async (req: Request, res: Response) => {
 
     const responseTime = Date.now() - startTime;
     await trackRequest("vlt-usdc-deposit", req.body, result, responseTime, 0, req.ip || "unknown");
-    res.json(result);
+
+    // Return correct HTTP status — service errors (RPC failure, bad quote) must be 400 not 200
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    res.json({ free: true, ...result });
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("vlt-usdc-deposit", req.body, null, responseTime, 0, req.ip || "unknown", error.message);

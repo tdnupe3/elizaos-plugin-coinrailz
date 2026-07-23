@@ -91,19 +91,17 @@ async function getVltUsdcTvlFromDexScreener(): Promise<number> {
     if (!r.ok) throw new Error('DexScreener non-ok');
     const d = await r.json();
     const pairs: any[] = d?.pairs ?? [];
-    // Find VLT/USDC pair on Ethereum (V4 or any version)
+
+    // Deterministic match: VLT/USDC on Ethereum — both token addresses must match
+    const usdcLower = USDC_ETH.toLowerCase();
     const vltUsdc = pairs.find((p: any) =>
       p.chainId === 'ethereum' &&
-      (p.quoteToken?.address?.toLowerCase() === USDC_ETH.toLowerCase() ||
-       p.baseToken?.address?.toLowerCase() === USDC_ETH.toLowerCase())
+      (p.quoteToken?.address?.toLowerCase() === usdcLower ||
+       p.baseToken?.address?.toLowerCase() === usdcLower)
     );
     if (vltUsdc?.liquidity?.usd) return Number(vltUsdc.liquidity.usd);
-    // Fallback: largest liquidity pair on Ethereum
-    const ethPairs = pairs.filter((p: any) => p.chainId === 'ethereum');
-    if (ethPairs.length > 0) {
-      ethPairs.sort((a: any, b: any) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0));
-      return Number(ethPairs[0].liquidity?.usd ?? 0);
-    }
+
+    // No VLT/USDC pair found yet — return 0 rather than reporting unrelated pair liquidity
     return 0;
   } catch {
     return 0;
@@ -227,7 +225,17 @@ export function getVltUsdcStats(): VltUsdcStats | null {
         lastFetchMs = Date.now();
         console.log(`[vltUSDC] stats refreshed — TVL $${stats.stats.tvlUsd} | L/share ${stats.stats.lPerShare}`);
       })
-      .catch(err => console.warn('[vltUSDC] stats fetch error:', err?.message))
+      .catch(async (err) => {
+        // On refresh failure: serve the last good cache if available, otherwise build a fallback.
+        // Always update lastFetchMs so we back off and don't hammer the RPC on every request.
+        console.warn('[vltUSDC] stats fetch error:', err?.message);
+        if (!cachedStats) {
+          const vlt = getVltMarketData();
+          const tvl = await getVltUsdcTvlFromDexScreener().catch(() => 0);
+          cachedStats = buildFallback(vlt.priceUsd, tvl);
+        }
+        lastFetchMs = Date.now(); // back off — don't retry until next TTL window
+      })
       .finally(() => { fetchInProgress = false; });
   }
   return cachedStats;

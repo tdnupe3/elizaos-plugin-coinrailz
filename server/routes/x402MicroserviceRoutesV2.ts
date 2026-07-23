@@ -6126,31 +6126,32 @@ router.get("/vlt-usdc-deposit", (_req: Request, res: Response) => {
     service: 'vlt-usdc-deposit',
     name: 'vltUSDC Vault Deposit Builder',
     price: 'free',
-    description: 'FREE — POST {amountUsdc, recipient} to receive 2 unsigned Ethereum transactions that deposit USDC into the Bankroll Network vltUSDC vault. No payment required.',
+    description: 'FREE — POST {amountUsdc, recipient} to receive 3 unsigned Ethereum transactions: VLT.approve(vault), USDC.approve(vault), vault.deposit(vltAmount, usdcAmount, minShares, deadline, recipient). Agent holds both VLT + USDC; signs all 3 on Ethereum mainnet. Vault is VLT/USDC Uniswap V4 full-range 1% fee, auto-compounds fees. No payment required.',
     method: 'POST',
-    body: { amountUsdc: 'string — USDC amount to deposit', recipient: 'string — Ethereum address to receive vltUSDC shares' },
-    ...(stats ? {
-      vault: stats.vault,
-      liveStats: {
-        vltPriceUsd:  stats.stats.vltPriceUsd,
-        ethPriceUsd:  stats.stats.ethPriceUsd,
-        tvlUsd:       stats.stats.tvlUsd,
-        aprDisplay:   stats.stats.aprDisplay,
-        lPerShare:    stats.stats.lPerShare,
-        updatedAt:    stats.updatedAt,
-        source:       stats.source,
-      },
-    } : {
-      vault:      { address: '0x348A57b1dc6E3dCAa645DE6e4E864924B410525D', shareToken: 'vltUSDC', network: 'Ethereum Mainnet' },
-      liveStats:  null,
-    }),
-    deposit: {
-      acceptedToken: 'USDC (Ethereum Mainnet)',
-      usdcAddress:   '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-      minDeposit:    '1 USDC',
-      chainId:       1,
+    body: {
+      amountUsdc: 'string | number — USDC amount to deposit (agent must also hold equivalent VLT)',
+      recipient:  'string — Ethereum address to receive vltUSDC shares',
     },
-    also: 'GET /api/vlt-usdc/stats for full vault data including pool reserves',
+    contracts: {
+      vault:      '0xee8d4c5c768AadCd3517Aa8C908De300305D0A7f', // vault IS the vltUSDC ERC-20
+      zapHelper:  '0x348A57b1dc6E3dCAa645DE6e4E864924B410525D', // USDC-only periphery (needs live swap routing)
+      vlt:        '0x6b785a0322126826d8226d77e173d75DAfb84d11',
+      usdc:       '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      chainId:    1,
+      pool:       'VLT/USDC · Uniswap V4 · full-range · 1% fee',
+    },
+    ...(stats ? {
+      liveStats: {
+        vltPriceUsd: stats.stats.vltPriceUsd,
+        tvlUsd:      stats.stats.tvlUsd,
+        aprDisplay:  stats.stats.aprDisplay,
+        lPerShare:   stats.stats.lPerShare,
+        updatedAt:   stats.updatedAt,
+        source:      stats.source,
+      },
+    } : { liveStats: null }),
+    zapHelperNote: 'USDC-only deposits via ZapHelper require live swap routing data (Universal Router encoded path) — not statically pre-computable. Use Bankroll UI at https://bankroll.network/vltUSDC.html for USDC-only deposits.',
+    also: 'GET /api/vlt-usdc/stats for full vault stats',
   });
 });
 

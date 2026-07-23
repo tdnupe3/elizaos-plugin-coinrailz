@@ -1,0 +1,133 @@
+Skip to content
+Bankroll
+VLT
+Connect
+Put your USDC to work
+ vltUSDC
+Deposit USDC and get back one token: vltUSDC. Underneath, your deposit becomes trading liquidity for VLT on Uniswap — every swap in the pool pays a fee, and the vault reinvests those fees into your position automatically. Nothing to stake, nothing to claim, nothing to manage. Withdraw whenever you like.
+
+Connect Wallet
+How it works
+vltUSDC Stats
+
+TVL
+—
+Pool
+—
+positionLiquidity (L)
+4,643 T
+totalSupply
+4,643 T  vltUSDC
+L per share
+1.0000
+lifetime L/share growth
++0.00%
+7d APR
+—
+30d APR
+—
+claimable (fees + retained)
+auto-compound trigger
+lifetime fees
+VLT price
+—
+L per share is liquidity-denominated, not USD.
+
+How it works
+Deposit once. Earn from every trade.
+vltUSDC turns the VLT market's trading activity into a compounding USDC position you simply hold.
+
+01
+Deposit
+Bring USDC on its own — the vault buys the VLT half for you in the same transaction — or bring both tokens. Either way, vltUSDC lands in your wallet: a standard ERC-20 you hold like any other.
+
+02
+Earn
+Your deposit becomes the deepest VLT/USDC market on Uniswap. Every swap pays a 1% fee, and all of it accrues to holders — real trading revenue, not printed rewards.
+
+03
+Compound
+Collected fees are reinvested into the position automatically. No keeper, no claim button, no compound fee — the value accrues to your token instead of paying out.
+
+04
+Withdraw
+Redeem any time for both tokens, or take USDC only in a single transaction. Nothing in the system can be paused — the exit is always open.
+
+Why vltUSDC
+Real yield, in a token you actually hold.
+Yield here is the old-fashioned kind: traders pay for liquidity, and you supplied the liquidity. When the VLT market is busy you earn more; when it's quiet you earn less. Nothing is minted, promised, or propped up.
+
+Roughly half your position sits in USDC at all times. You keep upside exposure to VLT with materially less volatility than holding it outright — and half your value stays a stablecoin, ready the moment you want out.
+
+And it's genuinely yours. vltUSDC lives in your wallet like any other token — transfer it, hold it, build on it. The vault has no admin keys, no pause switch, and no upgrade path, so nobody can change the deal after you're in. Not even us.
+
+Key facts
+Chain
+Ethereum
+Market
+Uniswap V4
+Pair · range
+VLT/USDC · full range
+Fee tier
+1% per swap
+Compound fee
+None
+Admin keys
+None
+Audit
+Shieldify
+Under the hood
+One position. No oracle. No keys.
+vltUSDC is an ERC-20 share over a single full-range Uniswap V4 VLT/USDC position, engineered for minimal trust: the fewest moving parts that can do the job, and no privileged role anywhere.
+
+Shares are liquidity, not dollars
+Shares are denominated in the pool's own liquidity units (L) — never in prices — so no oracle exists anywhere in the system and there is no price feed to manipulate. Your balance is a pro-rata claim on the position, checkable directly against the pool.
+
+Two entrypoints, by design
+The vault's entire write surface is deposit and redeem. Deposit pulls a balanced VLT + USDC pair, adds liquidity with no internal swap, and mints shares against the liquidity the pool actually credited — neutralizing donation and first-deposit inflation attacks. Redeem burns shares and returns both tokens in kind: no forced sale, no slippage input, nothing to sandwich — and it can never exceed what the position holds.
+
+Compounding rides on deposits
+There is no keeper and no compound function. Once about $100 of fees is claimable, the next deposit harvests them first: it rebalances within a hard-capped ≤5% price move and reinvests 100% as fresh liquidity while minting no new shares — so liquidity per share rises and every holder's redemption value grows. In a quiet market, anyone can trigger it with a small deposit.
+
+The zap lives outside the walls
+The vault never swaps and depends on nothing external. USDC-only deposits go through the ZapHelper — a separate, replaceable periphery contract that buys VLT on the open market (real buy pressure for VLT) and deposits the pair, with shares minting straight to your wallet. The vault doesn't reference it: a zapper bug can't touch the vault or its holders.
+
+The code that shipped is the code that runs.
+No proxy, no migration path, no owner, no admin role, no pause, no sweep. Every parameter is a constant fixed at deploy — nobody, including the deployer, holds a key over the vault.
+
+Trust model
+Upgradeable
+No
+Admin keys
+None
+Pause switch
+None
+Price oracle
+None
+Keeper
+None
+Autocompound
+Yes
+Exit
+Always open
+Know the risks.
+vltUSDC is a liquidity position, not a savings account. If VLT moves sharply, the position underperforms simply holding the two tokens (impermanent loss). Yield tracks trading volume, so quiet markets compound slowly. VLT itself is volatile, and smart-contract risk is never zero — audit or not. Don't deposit more than you can afford to lose.
+
+Verify everything
+Don't take this page's word for it.
+Every claim above is checkable onchain: the vault code, the pool, the position, and the audit trail are all public.
+
+Vault contract
+Verified on Etherscan
+ZapHelper
+USDC-only entry periphery
+VLT token
+The other half of the pair
+Security
+Audits & design notes
+Get started
+Ready when you are.
+Connect a wallet to see the vault live — your stats, the pool, and every flow. Deposits start at any size, compounding is automatic, and you can leave whenever you like.
+
+Connect Wallet
+vltUSDC · auto-compounding Uniswap V4 liquidity vault. Non-custodial — no admin, no pause.

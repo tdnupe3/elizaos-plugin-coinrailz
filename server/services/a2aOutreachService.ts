@@ -958,8 +958,10 @@ export class A2AOutreachService {
             lt(discoveredAgents.lastContactAt, sql`NOW() - INTERVAL '7 days'`)
           ),
           sql`${discoveredAgents.status} NOT IN ('opt_out', 'duplicate', 'unreachable')`,
-          // Exclude CDP wallet URLs — they are passive payment addresses, not A2A messaging agents
-          not(eq(discoveredAgents.source, 'coinbase-cdp-wallet'))
+          // Exclude passive/non-A2A sources — these are service listings or wallet addresses, not messaging agents
+          not(eq(discoveredAgents.source, 'coinbase-cdp-wallet')),
+          not(eq(discoveredAgents.source, 'x402-bazaar')),
+          not(eq(discoveredAgents.source, 'github'))
         )
       )
       .orderBy(desc(discoveredAgents.score))

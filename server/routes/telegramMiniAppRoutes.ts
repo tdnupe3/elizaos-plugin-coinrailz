@@ -132,10 +132,10 @@ router.post("/webhook", async (req: Request, res: Response) => {
           "Your AI-powered on-chain command center. " +
           "Get $1 free credits to try our services!\n\n" +
           "• Wallet Risk Checks\n" +
-          "• Token Prices\n" +
-          "• Contract Scans\n" +
-          "• DEX Liquidity\n" +
-          "• And 14 more services!\n\n" +
+          "• Token Prices & Contract Scans\n" +
+          "• DEX Liquidity & Portfolio Tracking\n" +
+          "• Satellite & Weather Data (IoT)\n" +
+          "• And 73 more services across 9 chains!\n\n" +
           "Tap below to get started 👇",
           {
             reply_markup: {
@@ -170,7 +170,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
           "/portfolio - View wallet portfolio\n\n" +
           "*Inside the Mini-App:*\n" +
           "• Chat with AI ($0.10/message)\n" +
-          "• Access 72 curated data services\n" +
+          "• Access 77 blockchain & AI data services\n" +
           "• Track your activity & balance\n" +
           "• Share results with friends\n\n" +
           "*Pricing:*\n" +

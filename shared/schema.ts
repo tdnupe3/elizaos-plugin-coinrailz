@@ -6750,3 +6750,33 @@ export const insertSolanaYieldRateSnapshotSchema = createInsertSchema(solanaYiel
 });
 export type SolanaYieldRateSnapshot = typeof solanaYieldRateSnapshots.$inferSelect;
 export type InsertSolanaYieldRateSnapshot = z.infer<typeof insertSolanaYieldRateSnapshotSchema>;
+
+// ─────────────────────────────────────────────
+// Telegram AI Guardian (group auto-scan subscription)
+// ─────────────────────────────────────────────
+export const telegramGuardians = pgTable("telegram_guardians", {
+  id: serial("id").primaryKey(),
+  groupChatId: varchar("group_chat_id", { length: 255 }).notNull().unique(),
+  groupTitle: varchar("group_title", { length: 255 }),
+  adminUserId: varchar("admin_user_id", { length: 255 }).notNull(), // Telegram user ID of admin who enabled
+  adminTelegramAccountId: integer("admin_telegram_account_id"), // FK to telegramAccounts.id
+  enabled: boolean("enabled").default(true).notNull(),
+  subscriptionStatus: varchar("subscription_status", { length: 20 }).default("trial").notNull(), // trial, active, expired
+  subscriptionExpiresAt: timestamp("subscription_expires_at"),
+  scanContracts: boolean("scan_contracts").default(true).notNull(),
+  scanWallets: boolean("scan_wallets").default(true).notNull(),
+  riskThreshold: integer("risk_threshold").default(70).notNull(), // Only alert if risk >= this score (0-100)
+  scansToday: integer("scans_today").default(0).notNull(),
+  scanLimitPerDay: integer("scan_limit_per_day").default(10).notNull(), // 10 free/day, 100/day on paid
+  totalScans: integer("total_scans").default(0).notNull(),
+  lastScanAt: timestamp("last_scan_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("IDX_telegram_guardians_group").on(t.groupChatId),
+  index("IDX_telegram_guardians_admin").on(t.adminUserId),
+  index("IDX_telegram_guardians_status").on(t.subscriptionStatus),
+]);
+
+export type TelegramGuardian = typeof telegramGuardians.$inferSelect;
+export type InsertTelegramGuardian = typeof telegramGuardians.$inferInsert;

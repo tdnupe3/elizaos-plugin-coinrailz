@@ -1,0 +1,15 @@
+Business opportunities — ranked by impact
+1. Activate the trading bot (biggest near-term revenue miss)
+BullX does $30M+/month in trading fees. Trojan and Bonkbot are in the same range. Our trading bot is fully written — Solana wallet generation, buy/sell execution, copy trading, 4 subscription tiers ($0-$100/month), 0.5-1.5% trading fees. The only thing between us and this revenue is actually instantiating the TelegramTradingBot class in production and pointing it at a real Solana RPC. This is the single highest-leverage thing we can do with Telegram right now.
+
+2. Bot-to-Bot as an AI agent payment rail
+Telegram's bot-to-bot feature means other developers' AI bots can query @coinrailz_bot directly for on-chain data and pay via Telegram Stars. This is a parallel distribution channel to x402 — same services, different payment surface, accessing a different category of builders (Telegram bot developers, not pure crypto devs). We should add structured response formatting so bot-to-bot requests get clean JSON rather than human-readable text.
+
+3. AI Guardian product for crypto groups
+Package our wallet risk ($0.50) and contract scan ($1.00) services as a subscription product for Telegram group admins. Any new member who posts a contract address gets it automatically scanned. Any wallet trying to shill gets risk-checked. Price: $50-$100/month per group. There are tens of thousands of crypto groups on Telegram. This is a recurring revenue stream that compounds as crypto communities grow.
+
+4. Telegram Stars as front-door micropayments
+Stars are app-store compliant (no 30% Apple/Google cut on digital goods), work on every device, and Telegram users already have them from other bots. 1,000 Stars ≈ $13. Our current tiers ($10/$25/$50/$100) map cleanly. The opportunity is to also accept Stars for individual service calls — /price for 20 Stars ($0.25), /scan for 80 Stars ($1.00) — rather than requiring a credit purchase first. Lower friction = higher conversion from casual users.
+
+5. Guest Bot distribution
+With Guest AI Bots, users can invite @coinrailz_bot into any group chat temporarily. A trader in a Telegram group can type /price ETH and get a live price mid-conversation without anyone else needing an account. Word-of-mouth distribution built in.

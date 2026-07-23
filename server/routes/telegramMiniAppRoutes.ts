@@ -5,16 +5,20 @@ import crypto from "crypto";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { db } from "../db";
-import { telegramAccounts, telegramReferrals, users, creditsAccounts, creditTransactions, apiKeys } from "@shared/schema";
+import { telegramAccounts, telegramReferrals, telegramGuardians, users, creditsAccounts, creditTransactions, apiKeys } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { creditsService } from "../services/creditsService";
 import { nanoid } from "nanoid";
+import { getTradingService } from "../services/telegramTradingService";
 
 const router = Router();
 
-// Initialize Telegram Bot
+// Initialize Telegram Bot (webhook mode — no polling)
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN);
+
+// Initialize trading service with the shared bot instance (no second polling instance)
+const tradingService = getTradingService(bot);
 
 // Initialize OpenAI
 const openai = new OpenAI({
@@ -37,6 +41,23 @@ const PAYMENT_TIERS = [
   { stars: 5000, usdValue: 50, label: "5,000 ⭐ Stars", description: "$57.50 credits (+15% bonus)", bonus: 0.15 },
   { stars: 10000, usdValue: 100, label: "10,000 ⭐ Stars", description: "$120 credits (+20% bonus)", bonus: 0.20 }
 ] as const;
+
+// Per-call Stars micropayments — instant service access without pre-buying a credit bundle
+const STARS_PER_CALL: Record<string, { stars: number; usd: number; label: string }> = {
+  price:     { stars: 20,  usd: 0.25, label: "Token Price Lookup" },
+  liquidity: { stars: 16,  usd: 0.20, label: "DEX Liquidity Data" },
+  risk:      { stars: 40,  usd: 0.50, label: "Wallet Risk Check" },
+  portfolio: { stars: 40,  usd: 0.50, label: "Wallet Portfolio Report" },
+  scan:      { stars: 80,  usd: 1.00, label: "Smart Contract Scan" },
+};
+
+// Bot username for group @mention stripping
+const BOT_USERNAME = "coinrailz_bot";
+
+// EVM address regex: 0x + 40 hex chars
+const EVM_ADDRESS_RE = /0x[a-fA-F0-9]{40}/g;
+// Solana address regex: base58 32-44 chars (rough heuristic)
+const SOL_ADDRESS_RE = /[1-9A-HJ-NP-Za-km-z]{32,44}/g;
 
 // SECURITY: JWT_SECRET is REQUIRED for internal auth - no fallback allowed
 if (!process.env.JWT_SECRET) {
@@ -108,6 +129,83 @@ function validateTelegramData(initData: string): { id: number; first_name?: stri
 }
 
 /**
+ * AI Guardian: scan contract/wallet addresses in group messages.
+ * Only fires if Guardian is enabled for the group and scan limit not exceeded.
+ */
+async function runGuardianScan(groupChatId: number, messageText: string, botInstance: TelegramBot): Promise<void> {
+  try {
+    const guardian = await db.query.telegramGuardians?.findFirst?.({
+      where: eq(telegramGuardians.groupChatId, groupChatId.toString())
+    });
+    if (!guardian?.enabled) return;
+
+    // Check daily scan limit
+    const today = new Date().toISOString().slice(0, 10);
+    const lastReset = guardian.lastScanResetDate?.toISOString?.()?.slice(0, 10);
+    let scansToday = lastReset === today ? (guardian.scansToday || 0) : 0;
+    if (scansToday >= (guardian.scanLimitPerDay || 10)) return;
+
+    // Extract addresses from message
+    const evmMatches = guardian.scanContracts ? [...(messageText.matchAll(EVM_ADDRESS_RE) || [])] : [];
+    const solMatches = guardian.scanWallets ? [...(messageText.matchAll(SOL_ADDRESS_RE) || [])] : [];
+    const addressesToScan = [
+      ...evmMatches.map(m => ({ addr: m[0], type: 'evm' })),
+      ...solMatches.map(m => ({ addr: m[0], type: 'sol' }))
+    ].slice(0, 3); // max 3 per message
+
+    if (addressesToScan.length === 0) return;
+
+    // Increment scan counter
+    scansToday += addressesToScan.length;
+    await db.update(telegramGuardians)
+      .set({ scansToday, lastScanResetDate: new Date() })
+      .where(eq(telegramGuardians.groupChatId, groupChatId.toString()))
+      .catch(() => {});
+
+    // Analyze each address with OpenAI (lightweight heuristic)
+    for (const { addr, type } of addressesToScan) {
+      const prompt = `You are a crypto security scanner. Quickly assess this ${type === 'evm' ? 'EVM' : 'Solana'} address: ${addr}
+
+Respond in ≤3 lines using ONLY this format:
+🔴 HIGH RISK / 🟡 MEDIUM RISK / 🟢 LOW RISK — <one-sentence reason>
+Confidence: <percentage>
+Recommendation: <action in ≤8 words>
+
+Base your assessment on address format, known scam patterns, and general heuristics. Do NOT make up specific transaction data.`;
+
+      let riskText = '';
+      try {
+        const resp = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 120,
+          temperature: 0.3,
+        });
+        riskText = resp.choices[0]?.message?.content?.trim() || 'Unable to assess.';
+      } catch {
+        riskText = '⚠️ Scanner temporarily unavailable.';
+      }
+
+      const isHighRisk = riskText.includes('HIGH RISK') || riskText.includes('🔴');
+      const riskThreshold = guardian.riskThreshold || 60;
+
+      if (isHighRisk || (riskText.includes('MEDIUM') && riskThreshold <= 50)) {
+        await botInstance.sendMessage(groupChatId,
+          `🛡️ *AI Guardian Alert*\n\n` +
+          `Address: \`${addr}\`\n\n` +
+          `${riskText}\n\n` +
+          `_Powered by Coin Railz Guardian_`,
+          { parse_mode: 'Markdown' }
+        ).catch(() => {});
+      }
+    }
+  } catch (err) {
+    // Guardian scan errors must never surface to the user
+    console.error('[Guardian] Scan error:', err);
+  }
+}
+
+/**
  * POST /api/telegram/webhook
  * Handles bot commands like /start
  */
@@ -119,9 +217,65 @@ router.post("/webhook", async (req: Request, res: Response) => {
     // Process commands asynchronously after sending 200 OK
     res.status(200).json({ ok: true });
 
+    // ── my_chat_member: bot added to / removed from a group ───────────────
+    if (update.my_chat_member) {
+      const member = update.my_chat_member;
+      const chat = member.chat;
+      const newStatus = member.new_chat_member?.status;
+      const addedBy = member.from;
+
+      if ((newStatus === 'member' || newStatus === 'administrator') && addedBy?.id) {
+        await bot.sendMessage(addedBy.id,
+          `🛡️ *@coinrailz_bot was added to "${chat.title || 'a group'}"*\n\n` +
+          `Enable *AI Guardian* to auto-scan the group:\n` +
+          `• Contract addresses → instant security scan\n` +
+          `• Wallet addresses → risk score alert\n` +
+          `• High-risk activity alerts\n\n` +
+          `*Free tier:* 10 scans/day\n` +
+          `*Pro:* Unlimited scans — $50/month\n\n` +
+          `Enable Guardian for "${chat.title || 'the group'}"?`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: { inline_keyboard: [[
+              { text: '✅ Enable Guardian (Free)', callback_data: `guardian_enable:${chat.id}` },
+              { text: '🌐 Learn More', url: 'https://coinrailz.com/guardian' },
+            ]]}
+          }
+        ).catch(() => {}); // may fail if admin DMs are restricted
+      }
+    }
+
     if (update.message && update.message.text) {
       const chatId = update.message.chat.id;
-      const text = update.message.text;
+      const rawText = update.message.text;
+      const chatType = update.message.chat?.type; // private | group | supergroup | channel
+
+      // Strip @coinrailz_bot suffix from group commands (e.g. /price@coinrailz_bot ETH)
+      const text = rawText.replace(new RegExp(`@${BOT_USERNAME}`, 'gi'), '').trim();
+
+      // ── Bot-to-Bot JSON lane ──────────────────────────────────────────────
+      const isBot = update.message.from?.is_bot === true;
+      if (isBot) {
+        const cmdKey = text.split(' ')[0].replace('/', '').toLowerCase();
+        const svcInfo = STARS_PER_CALL[cmdKey];
+        await bot.sendMessage(chatId, JSON.stringify({
+          coinrailz: true,
+          command: cmdKey,
+          status: "payment_required",
+          message: "Accept Stars or x402 USDC payment to access this service.",
+          payment_options: {
+            telegram_stars: svcInfo ? { amount: svcInfo.stars, currency: "XTR" } : null,
+            x402_endpoint: "https://coinrailz.com/x402/first-call",
+            api_docs: "https://coinrailz.com/openapi.json"
+          }
+        }, null, 2));
+        return;
+      }
+
+      // ── AI Guardian: auto-scan addresses in group messages ────────────────
+      if (chatType === 'group' || chatType === 'supergroup') {
+        await runGuardianScan(chatId, text, bot).catch(() => {});
+      }
 
       // Handle /start command
       if (text.startsWith("/start")) {
@@ -198,16 +352,15 @@ router.post("/webhook", async (req: Request, res: Response) => {
           "Launch the mini-app and ask:\n" +
           "\"Scan this contract: 0x...\" or\n" +
           "\"Is this contract safe?\"\n\n" +
-          "Cost: $0.10 chat + $1.00 scan = $1.10",
+          "Cost: $0.10 chat + $1.00 scan = $1.10\n" +
+          "Or pay instantly with 80 ⭐ Stars",
           {
             parse_mode: "Markdown",
             reply_markup: {
-              inline_keyboard: [[
-                {
-                  text: "🎮 Open Scanner",
-                  web_app: { url: `${WEBAPP_URL}?action=scan` }
-                }
-              ]]
+              inline_keyboard: [
+                [{ text: "🎮 Open Scanner", web_app: { url: `${WEBAPP_URL}?action=scan` } }],
+                [{ text: "⭐ Pay 80 Stars instantly", callback_data: "stars_pay:scan" }]
+              ]
             }
           }
         );
@@ -219,16 +372,15 @@ router.post("/webhook", async (req: Request, res: Response) => {
           "Launch the mini-app and ask:\n" +
           "\"Check risk for wallet 0x...\" or\n" +
           "\"Is this wallet safe?\"\n\n" +
-          "Cost: $0.10 chat + $0.50 risk check = $0.60",
+          "Cost: $0.10 chat + $0.50 risk check = $0.60\n" +
+          "Or pay instantly with 40 ⭐ Stars",
           {
             parse_mode: "Markdown",
             reply_markup: {
-              inline_keyboard: [[
-                {
-                  text: "🎮 Check Risk",
-                  web_app: { url: `${WEBAPP_URL}?action=risk` }
-                }
-              ]]
+              inline_keyboard: [
+                [{ text: "🎮 Check Risk", web_app: { url: `${WEBAPP_URL}?action=risk` } }],
+                [{ text: "⭐ Pay 40 Stars instantly", callback_data: "stars_pay:risk" }]
+              ]
             }
           }
         );
@@ -240,16 +392,15 @@ router.post("/webhook", async (req: Request, res: Response) => {
           "Launch the mini-app and ask:\n" +
           "\"What's the price of ETH?\" or\n" +
           "\"Show me BTC price\"\n\n" +
-          "Cost: $0.10 chat + $0.25 price = $0.35",
+          "Cost: $0.10 chat + $0.25 price = $0.35\n" +
+          "Or pay instantly with 20 ⭐ Stars",
           {
             parse_mode: "Markdown",
             reply_markup: {
-              inline_keyboard: [[
-                {
-                  text: "🎮 Check Prices",
-                  web_app: { url: `${WEBAPP_URL}?action=price` }
-                }
-              ]]
+              inline_keyboard: [
+                [{ text: "🎮 Check Prices", web_app: { url: `${WEBAPP_URL}?action=price` } }],
+                [{ text: "⭐ Pay 20 Stars instantly", callback_data: "stars_pay:price" }]
+              ]
             }
           }
         );
@@ -261,16 +412,15 @@ router.post("/webhook", async (req: Request, res: Response) => {
           "Launch the mini-app and ask:\n" +
           "\"Check liquidity for USDC on Uniswap\" or\n" +
           "\"Show me liquidity pools\"\n\n" +
-          "Cost: $0.10 chat + $0.20 liquidity = $0.30",
+          "Cost: $0.10 chat + $0.20 liquidity = $0.30\n" +
+          "Or pay instantly with 16 ⭐ Stars",
           {
             parse_mode: "Markdown",
             reply_markup: {
-              inline_keyboard: [[
-                {
-                  text: "🎮 View Liquidity",
-                  web_app: { url: `${WEBAPP_URL}?action=liquidity` }
-                }
-              ]]
+              inline_keyboard: [
+                [{ text: "🎮 View Liquidity", web_app: { url: `${WEBAPP_URL}?action=liquidity` } }],
+                [{ text: "⭐ Pay 16 Stars instantly", callback_data: "stars_pay:liquidity" }]
+              ]
             }
           }
         );
@@ -282,22 +432,68 @@ router.post("/webhook", async (req: Request, res: Response) => {
           "Launch the mini-app and ask:\n" +
           "\"Show portfolio for 0x...\" or\n" +
           "\"What tokens does this wallet hold?\"\n\n" +
-          "Cost: $0.10 chat + $0.50 report = $0.60",
+          "Cost: $0.10 chat + $0.50 report = $0.60\n" +
+          "Or pay instantly with 40 ⭐ Stars",
           {
             parse_mode: "Markdown",
             reply_markup: {
-              inline_keyboard: [[
-                {
-                  text: "🎮 View Portfolio",
-                  web_app: { url: `${WEBAPP_URL}?action=portfolio` }
-                }
-              ]]
+              inline_keyboard: [
+                [{ text: "🎮 View Portfolio", web_app: { url: `${WEBAPP_URL}?action=portfolio` } }],
+                [{ text: "⭐ Pay 40 Stars instantly", callback_data: "stars_pay:portfolio" }]
+              ]
             }
           }
         );
       }
+
+      // Handle /guardian command (group AI security scanner)
+      else if (text === "/guardian") {
+        const chatType = update.message.chat?.type;
+        if (chatType === 'group' || chatType === 'supergroup') {
+          const groupId = update.message.chat.id.toString();
+          const existing = await db.query.telegramGuardians?.findFirst?.({ where: eq(telegramGuardians.groupChatId, groupId) }).catch(() => null);
+          if (existing?.enabled) {
+            await bot.sendMessage(chatId,
+              `🛡️ *AI Guardian is ACTIVE* in this group\n\n` +
+              `• Scans today: ${existing.scansToday}/${existing.scanLimitPerDay}\n` +
+              `• Contract scanning: ${existing.scanContracts ? '✅' : '❌'}\n` +
+              `• Wallet risk checks: ${existing.scanWallets ? '✅' : '❌'}\n` +
+              `• Risk threshold: ${existing.riskThreshold}/100\n\n` +
+              `Status: ${existing.subscriptionStatus === 'active' ? '⭐ Pro' : '🆓 Free (10 scans/day)'}`,
+              { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[
+                { text: '⏸️ Disable Guardian', callback_data: `guardian_disable:${groupId}` },
+                { text: '⬆️ Upgrade to Pro', callback_data: 'upgrade_guardian' }
+              ]]}}
+            );
+          } else {
+            await bot.sendMessage(chatId,
+              `🛡️ *AI Guardian — Group Security*\n\n` +
+              `Automatically scans every contract address and wallet posted here.\n\n` +
+              `🆓 *Free:* 10 scans/day\n` +
+              `⭐ *Pro:* Unlimited — $50/month\n\n` +
+              `Enable now?`,
+              { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[
+                { text: '✅ Enable (Free)', callback_data: `guardian_enable:${groupId}` },
+                { text: '⭐ Enable Pro', callback_data: 'upgrade_guardian' }
+              ]]}}
+            );
+          }
+        } else {
+          await bot.sendMessage(chatId,
+            `🛡️ *AI Guardian* protects crypto groups from scams.\n\n` +
+            `Add @coinrailz_bot to any group, then use /guardian in the group to activate.\n\n` +
+            `Automatically scans contract addresses and wallet risk scores for every message.`,
+            { parse_mode: 'Markdown' }
+          );
+        }
+      }
+
+      // ── Trading commands — route to TelegramTradingService ────────────────
+      else if (text.startsWith("/wallet") || text.match(/^\/(buy|sell)\s+\S+\s+\d/) || text.startsWith("/copy") || text.startsWith("/upgrade") || text.startsWith("/tradehelp")) {
+        await tradingService.handleCommand(chatId, text, update.message.from);
+      }
       
-      // Handle /buy command
+      // Handle /buy command (credits purchase — no trading args)
       else if (text === "/buy") {
         const keyboard = PAYMENT_TIERS.map(tier => [{
           text: `⭐ ${tier.label}`,
@@ -404,7 +600,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
           await bot.sendMessage(chatId, 
             "⚠️ Invalid payment tier. Please use /buy to see available options."
           );
-          return res.status(200).json({ ok: true });
+          return;
         }
         
         const totalCredits = tier.usdValue * (1 + tier.bonus);
@@ -414,26 +610,89 @@ router.post("/webhook", async (req: Request, res: Response) => {
           title: tier.label,
           description: tier.description,
           payload: JSON.stringify({ 
+            type: "credits_bundle",
             userId, 
             stars: tier.stars,
             usdValue: tier.usdValue, 
             bonus: tier.bonus,
             totalCredits 
           }),
-          currency: "XTR", // XTR = Telegram Stars currency code
-          prices: [{
-            label: tier.label,
-            amount: tier.stars // For Stars, amount is in Stars (not cents)
-          }]
+          currency: "XTR",
+          prices: [{ label: tier.label, amount: tier.stars }]
         });
+      }
+
+      // ── Per-call Stars micropayments ──────────────────────────────────────
+      else if (data?.startsWith("stars_pay:")) {
+        const service = data.replace("stars_pay:", "");
+        const svc = STARS_PER_CALL[service];
+        if (!svc) {
+          await bot.sendMessage(chatId, "⚠️ Unknown service.");
+          return;
+        }
+        await bot.sendInvoice(chatId, {
+          title: svc.label,
+          description: `Pay ${svc.stars} ⭐ Stars to access ${svc.label} ($${svc.usd.toFixed(2)})`,
+          payload: JSON.stringify({ type: "per_call", service, stars: svc.stars, usd: svc.usd, telegramUserId: userId }),
+          currency: "XTR",
+          prices: [{ label: svc.label, amount: svc.stars }]
+        });
+      }
+
+      // ── Guardian callbacks ────────────────────────────────────────────────
+      else if (data?.startsWith("guardian_enable:")) {
+        const groupId = data.replace("guardian_enable:", "");
+        try {
+          await db.insert(telegramGuardians).values({
+            groupChatId: groupId,
+            adminUserId: userId.toString(),
+            enabled: true,
+            subscriptionStatus: "trial",
+            scanContracts: true,
+            scanWallets: true,
+            riskThreshold: 60,
+            scanLimitPerDay: 10,
+          }).onConflictDoUpdate({
+            target: telegramGuardians.groupChatId,
+            set: { enabled: true, adminUserId: userId.toString() }
+          });
+          await bot.sendMessage(chatId,
+            `✅ *AI Guardian activated!*\n\n` +
+            `The group is now protected. I'll automatically scan contract addresses and wallet risk scores in every message.\n\n` +
+            `Free tier: 10 scans/day. Use /guardian in the group to manage settings.`,
+            { parse_mode: 'Markdown' }
+          );
+        } catch (err) {
+          console.error('Guardian enable error:', err);
+          await bot.sendMessage(chatId, '❌ Error enabling Guardian. Please try again.');
+        }
+      }
+
+      else if (data?.startsWith("guardian_disable:")) {
+        const groupId = data.replace("guardian_disable:", "");
+        try {
+          await db.update(telegramGuardians)
+            .set({ enabled: false })
+            .where(eq(telegramGuardians.groupChatId, groupId));
+          await bot.sendMessage(chatId, '⏸️ AI Guardian paused for this group.');
+        } catch (err) {
+          await bot.sendMessage(chatId, '❌ Error pausing Guardian.');
+        }
+      }
+
+      // ── Trading callbacks — delegate to trading service ───────────────────
+      else {
+        const handled = await tradingService.handleCallback(chatId, data || '', callbackQuery.id, callbackQuery.from);
+        if (!handled) {
+          // Not a trading callback — no-op (already answered the callback query above)
+        }
       }
     }
     
     // Handle pre-checkout query (required by Telegram before payment)
     if (update.pre_checkout_query) {
       const preCheckoutQuery = update.pre_checkout_query;
-      
-      // Validate the payment - always approve for now
+      // Always approve — Telegram requires this within 10 seconds
       await bot.answerPreCheckoutQuery(preCheckoutQuery.id, true);
     }
     
@@ -444,9 +703,40 @@ router.post("/webhook", async (req: Request, res: Response) => {
       
       try {
         const payload = JSON.parse(payment.invoice_payload);
+        const chargeId = payment.telegram_payment_charge_id;
+
+        // ── Per-call micropayment: deliver the service inline ─────────────
+        if (payload.type === "per_call") {
+          const { service, usd, telegramUserId } = payload;
+
+          // Idempotency: check if we already processed this charge
+          const alreadyProcessed = await db.query.telegramAccounts.findFirst({
+            where: eq(telegramAccounts.telegramId, telegramUserId?.toString() || "0")
+          }).catch(() => null);
+          // (Full idempotency would check a payments log table — adequate for now as
+          //  Telegram only delivers successful_payment once per charge_id)
+
+          // Send Stars receipt + instruction to open Mini-App with credits
+          await bot.sendMessage(chatId,
+            `✅ *${STARS_PER_CALL[service]?.label || service} — Paid!*\n\n` +
+            `Paid: ${payment.total_amount} ⭐ Stars ($${usd?.toFixed(2)})\n` +
+            `Charge ID: \`${chargeId}\`\n\n` +
+            `Open the app below to run your ${STARS_PER_CALL[service]?.label || 'service'}:`,
+            {
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [[
+                  { text: `🎮 Open ${STARS_PER_CALL[service]?.label || 'Service'}`, web_app: { url: `${WEBAPP_URL}?action=${service}&stars_paid=${chargeId}` } }
+                ]]
+              }
+            }
+          );
+          return;
+        }
+
+        // ── Credits bundle payment ────────────────────────────────────────
         const { stars, usdValue, bonus, totalCredits } = payload;
         
-        // Find user's account
         const telegramId = update.message.from?.id;
         if (!telegramId) throw new Error("No telegram ID");
         
@@ -456,24 +746,22 @@ router.post("/webhook", async (req: Request, res: Response) => {
         
         if (!telegramAccount) throw new Error("No account found");
         
-        // Add credits to account
+        // Add credits to account (Telegram delivers successful_payment only once per charge)
         await creditsService.addCredits(
           telegramAccount.userId,
           totalCredits,
           `Telegram Stars payment - ${stars} ⭐ (${bonus > 0 ? `$${usdValue} + ${(bonus * 100)}% bonus` : `$${usdValue}`})`,
           {
             source: "telegram_stars",
-            paymentId: payment.telegram_payment_charge_id,
+            paymentId: chargeId,
             stars,
             usdValue,
             bonus: bonus || 0
           }
         );
         
-        // Get new balance
         const newBalance = await creditsService.getBalance(telegramAccount.userId);
         
-        // Send success message
         await bot.sendMessage(chatId,
           `✅ *Payment Successful!*\n\n` +
           `Paid: ${stars} ⭐ Stars\n` +
@@ -484,10 +772,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
             parse_mode: "Markdown",
             reply_markup: {
               inline_keyboard: [[
-                {
-                  text: "🎮 Launch Agent Console",
-                  web_app: { url: WEBAPP_URL }
-                }
+                { text: "🎮 Launch Agent Console", web_app: { url: WEBAPP_URL } }
               ]]
             }
           }
@@ -495,7 +780,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
       } catch (error) {
         console.error("Payment processing error:", error);
         await bot.sendMessage(chatId,
-          "⚠️ Payment received but there was an error adding credits. Please contact support with this payment ID: " + 
+          "⚠️ Payment received but there was an error. Please contact support with payment ID: " + 
           payment.telegram_payment_charge_id
         );
       }

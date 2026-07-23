@@ -1,3 +1,4 @@
+- [Telegram 5 business features](telegram-5-features.md) — trading bot (webhook mode, shared bot instance), bot-to-bot JSON lane, AI Guardian (direct SQL table, runGuardianScan), Stars per-call (type discriminator in payload), group @mention stripping
 - [Census bot GET/HEAD probe pattern](census-bot-pattern.md) — AgentsCensusBot + similar crawlers probe POST A2A endpoints via GET before POSTing; fix = GET|HEAD handler returning catalog JSON at same path
 - [RH Chain Chainlink feeds + Bootstrap Bridge](rh-chainlink-bridge.md) — rh-stock-price ($0.05, 35+ symbols, viem readContract) + rh-bridge-usdc ($0.75, Across depositV3, treasury-funded); platform now 76 services
 - [⚠️ CRITICAL — Prod vs Dev DB](prod-vs-dev-db.md) — executeSql defaults to dev snapshot; ALL platform assessments MUST pass environment:"production" or data is wrong

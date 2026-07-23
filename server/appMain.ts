@@ -4001,7 +4001,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   // GET  /api/vault/vlt-deposit-calldata — discovery / info
   const { default: vltVaultRoutes } = await import('./routes/vltVaultRoutes.js');
   app.use('/api/vault', vltVaultRoutes);
-  console.log('✅ vltUSDC vault routes registered at /api/vault/vlt-deposit-calldata');
+  console.log('✅ vltUSDC vault routes registered: /api/vault/vlt-deposit-calldata + /api/vault/vlt-zap-deposit');
 
   // === VLT HOLDER CHECK ===
   // On-chain ERC-20 balanceOf check. Returns whether address holds ≥ threshold VLT.

@@ -6126,15 +6126,31 @@ router.get("/vlt-usdc-deposit", (_req: Request, res: Response) => {
     service: 'vlt-usdc-deposit',
     name: 'vltUSDC Vault Deposit Builder',
     price: 'free',
-    description: 'FREE — POST {amountUsdc, recipient} to receive 3 unsigned Ethereum transactions: VLT.approve(vault), USDC.approve(vault), vault.deposit(vltAmount, usdcAmount, minShares, deadline, recipient). Agent holds both VLT + USDC; signs all 3 on Ethereum mainnet. Vault is VLT/USDC Uniswap V4 full-range 1% fee, auto-compounds fees. No payment required.',
+    description: 'FREE — Two deposit modes: (A) balanced (VLT+USDC, 3 txs) or (B) USDC-only via ZapHelper with live swap quote (2 txs). Set usdcOnly:true in the request body for USDC-only mode. No VLT required in mode B. Vault is VLT/USDC Uniswap V4 full-range 1% fee, auto-compounds fees.',
     method: 'POST',
     body: {
-      amountUsdc: 'string | number — USDC amount to deposit (agent must also hold equivalent VLT)',
-      recipient:  'string — Ethereum address to receive vltUSDC shares',
+      amountUsdc: 'string | number — total USDC to deposit',
+      recipient:  'string — Ethereum address to receive vltUSDC shares (lowercase accepted, auto-normalized)',
+      usdcOnly:   'boolean (optional, default false) — set true for USDC-only mode via ZapHelper (no VLT needed)',
+    },
+    modes: {
+      balanced: {
+        usdcOnly:  false,
+        requires:  'VLT + USDC on Ethereum mainnet',
+        returns:   '3 unsigned txs: VLT.approve(vault) → USDC.approve(vault) → vault.deposit',
+      },
+      usdcOnly: {
+        usdcOnly:  true,
+        requires:  'USDC only on Ethereum mainnet — no VLT needed',
+        returns:   '2 unsigned txs: USDC.approve(zapHelper) → zapHelper.zapDeposit(7 args with live swapData)',
+        route:     'USDC –[V3 0.05%]→ WETH –[V2]→ VLT + USDC → vltUSDC vault',
+        slippage:  '1% on VLT output, live on-chain quote (QuoterV2 + V2 getReserves)',
+        alsoAt:    'POST /api/vault/vlt-zap-deposit (standalone USDC-only endpoint)',
+      },
     },
     contracts: {
-      vault:      '0xee8d4c5c768AadCd3517Aa8C908De300305D0A7f', // vault IS the vltUSDC ERC-20
-      zapHelper:  '0x348A57b1dc6E3dCAa645DE6e4E864924B410525D', // USDC-only periphery (needs live swap routing)
+      vault:      '0xee8d4c5c768AadCd3517Aa8C908De300305D0A7f',
+      zapHelper:  '0x348A57b1dc6E3dCAa645DE6e4E864924B410525D',
       vlt:        '0x6b785a0322126826d8226d77e173d75DAfb84d11',
       usdc:       '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
       chainId:    1,
@@ -6150,20 +6166,39 @@ router.get("/vlt-usdc-deposit", (_req: Request, res: Response) => {
         source:      stats.source,
       },
     } : { liveStats: null }),
-    zapHelperNote: 'USDC-only deposits via ZapHelper require live swap routing data (Universal Router encoded path) — not statically pre-computable. Use Bankroll UI at https://bankroll.network/vltUSDC.html for USDC-only deposits.',
-    also: 'GET /api/vlt-usdc/stats for full vault stats',
+    also: 'GET /api/vlt-usdc/stats for full vault stats | GET /api/vault/vlt-zap-deposit for USDC-only discovery',
   });
 });
 
 router.post("/vlt-usdc-deposit", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
-    const { amountUsdc, recipient } = req.body as { amountUsdc?: string; recipient?: string };
+    const { amountUsdc, recipient, usdcOnly } = req.body as {
+      amountUsdc?: string;
+      recipient?:  string;
+      usdcOnly?:   boolean;
+    };
     if (!amountUsdc || !recipient) {
-      res.status(400).json({ success: false, error: 'amountUsdc and recipient are required', example: { amountUsdc: "100", recipient: "0x..." } });
+      res.status(400).json({
+        success: false,
+        error: 'amountUsdc and recipient are required',
+        example: { amountUsdc: "100", recipient: "0x..." },
+        modes: {
+          balanced:  'omit usdcOnly or set usdcOnly:false — requires VLT + USDC, returns 3 txs',
+          usdcOnly:  'set usdcOnly:true — USDC only, ZapHelper buys VLT on-market, returns 2 txs with live swap quote',
+        },
+      });
       return;
     }
-    const result = await buildVltUsdcDeposit(amountUsdc, recipient);
+
+    let result: any;
+    if (usdcOnly === true) {
+      const { buildZapDeposit } = await import('../services/vltUsdcZapService.js');
+      result = await buildZapDeposit(amountUsdc, recipient);
+    } else {
+      result = await buildVltUsdcDeposit(amountUsdc, recipient);
+    }
+
     const responseTime = Date.now() - startTime;
     await trackRequest("vlt-usdc-deposit", req.body, result, responseTime, 0, req.ip || "unknown");
     res.json(result);

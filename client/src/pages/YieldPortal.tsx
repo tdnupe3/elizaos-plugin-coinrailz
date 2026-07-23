@@ -522,19 +522,43 @@ function VltUsdcSection() {
 
           {/* How to deposit */}
           <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
-            <div className="text-[10px] font-bold text-white uppercase tracking-wider mb-2">How to Deposit</div>
-            <div className="space-y-2">
-              {[
-                { n: '1', text: 'Call POST /x402/vlt-usdc-deposit (free) with {amountUsdc, recipient}' },
-                { n: '2', text: 'Receive VLT approve + USDC approve + vault.deposit calldata' },
-                { n: '3', text: 'Sign & broadcast 3 txs on Ethereum mainnet in order' },
-                { n: '4', text: 'Receive vltUSDC shares — V4 fees auto-compound, no claiming' },
-              ].map(({ n, text }) => (
-                <div key={n} className="flex gap-2 text-xs">
-                  <span className="w-4 h-4 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-[9px] font-bold text-amber-400 shrink-0">{n}</span>
-                  <span className="text-slate-400">{text}</span>
-                </div>
-              ))}
+            <div className="text-[10px] font-bold text-white uppercase tracking-wider mb-3">How to Deposit</div>
+
+            {/* USDC-only path — highlighted */}
+            <div className="mb-3 p-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/5">
+              <div className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider mb-1.5">
+                ★ USDC-Only Path (Recommended)
+              </div>
+              <div className="space-y-1.5">
+                {[
+                  { n: '1', text: 'POST /api/vault/vlt-zap-deposit with {amountUsdc, recipient}' },
+                  { n: '2', text: 'Receive live-quoted calldata: USDC approve + zapDeposit (2 txs)' },
+                  { n: '3', text: 'ZapHelper buys VLT on-market and deposits both — 1% slippage guard' },
+                ].map(({ n, text }) => (
+                  <div key={n} className="flex gap-2 text-xs">
+                    <span className="w-4 h-4 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-[9px] font-bold text-emerald-400 shrink-0">{n}</span>
+                    <span className="text-slate-300">{text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Balanced path */}
+            <div className="p-2.5 rounded-lg border border-white/5 bg-white/[0.01]">
+              <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                Balanced Path (holds VLT+USDC)
+              </div>
+              <div className="space-y-1.5">
+                {[
+                  { n: '1', text: 'POST /x402/vlt-usdc-deposit with {amountUsdc, recipient}' },
+                  { n: '2', text: 'Receive 3 txs: VLT.approve + USDC.approve + vault.deposit' },
+                ].map(({ n, text }) => (
+                  <div key={n} className="flex gap-2 text-xs">
+                    <span className="w-4 h-4 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[9px] font-bold text-slate-500 shrink-0">{n}</span>
+                    <span className="text-slate-500">{text}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

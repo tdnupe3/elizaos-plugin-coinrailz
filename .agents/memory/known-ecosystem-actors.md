@@ -45,13 +45,12 @@ description: Profiles of all recurring non-human actors hitting the x402 platfor
 
 ## x402 Peer Agents (Inbound A2A Introductions)
 
-**13.48.136.59** — python-requests/2.34.2 | AWS eu-north-1 (Stockholm) | MetaVision DeFi Signals
+**13.48.136.59** — python-requests/2.34.2 | AWS eu-north-1 (Stockholm) | MetaVision DeFi Signals / CVE Oracle
 - Monitored Coin Railz SILENTLY for 7 consecutive days at ~15:03 UTC before revealing identity
-- Sent formal A2A business introduction Jul 15 2026 15:03 UTC: x402-priced API ($0.10/call Base), Uniswap V3 vs Aerodrome real-time arbitrage, 79k+ historical scans
-- Matched to arbitrage-scanner → 200; has NOT yet purchased from Coin Railz
-- API: https://metavision.click/api/defi-signals — complementary to arbitrage-scanner + trading-signal
-- PATTERN: silent monitoring → formal intro = commercial validation cycle; watch for the same pattern in other silent daily-checker IPs
-- Needs reciprocal A2A outreach: check /.well-known/agent-card.json at metavision.click
+- Sent formal A2A business introduction Jul 15 2026: DeFi Signals (arbitrage), then Jul 23 2026 sent FORMAL PARTNER OFFER for CVE Oracle integration (355k+ NVD CVEs, $0.10/call Base, MCP endpoint)
+- Jul 23 message arrived as "unmatched" — A2A routing gap: no handler for inbound partnership offers
+- Commercial opportunity: route smart-contract-audit / contract-scan through MetaVision at $0.10 subagent cost, bill $0.25–$2.00 to callers
+- ACTION NEEDED: respond via A2A or email; add CVE/NVD/vulnerability to SEMANTIC_PATTERNS
 
 **94.162.62.98** — CarryLens | WIND TRE (Milan) | x402 peer ($0.01/call Base)
 - Sent inbound A2A introduction Jul 13 2026; Coin Railz responded via outreach campaign Jul 15
@@ -130,10 +129,25 @@ description: Profiles of all recurring non-human actors hitting the x402 platfor
 - First appeared Window 5 (Jul 15–16 2026), 1 hit
 - Third major search engine crawler (after GoogleOther + Bing)
 
+## New / Unidentified High-Interest Actors
+
+**152.55.176.124** — node UA | first appeared Jul 23 2026
+- Executed full-catalog double-POST traversal: 77 services × 2 POSTs each, completed in ~1 hour (03:00–04:00 UTC)
+- Drove the 254 req/hr spike that is the highest hourly rate logged this month
+- No prior history. No payment yet. Pattern is consistent with pre-integration payload validation.
+- T-48h watch: if no payment within 48h, investigate further / consider rate limiting
+**Why it matters:** Full-catalog double-traversal is the closest behavioral precursor to first payment seen since 0x9cc42f3d's initial sessions
+
 ## Depleted / Dormant
 
-**74.220.48.244** — python-httpx/0.28.1 | depleted USDC wallet
+**74.220.48.244** — python-httpx/0.28.1 | depleted USDC wallet (0x9cc42f3d)
 - Continues to POST/probe but wallet is empty — do NOT flag as diagnostic mystery
+- NOTE: sibling IP 74.220.48.169 (same /24) appeared Jul 23 2026 with node UA, 180 POSTs to 47 services
+
+**74.220.48.169** — node UA | same /24 as 0x9cc42f3d depleted actor
+- First confirmed Jul 23 2026 window: 180 POSTs, 47 services — significantly more aggressive than .244
+- Targeted focus: whale-alerts (16), credit-risk-score (16), agent-create-wallet (14), construction-progress (14)
+- Non-random — has specific service interest. High-probability payer if USDC wallet is refunded.
 
 **165.162.47.179** — node | post-shortlist then returned
 - Hit decay: 89 → 17 → 2 → 0 over 4 windows, then RETURNED Window 5 (Jul 15–16 2026): 16 hits, 8 services, 16:14–19:32 UTC

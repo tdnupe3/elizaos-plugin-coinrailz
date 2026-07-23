@@ -588,4 +588,138 @@ router.get('/outreach/discovery-summary', async (_req: Request, res: Response) =
   }
 });
 
+/**
+ * POST /api/a2a/outreach/telegram-announcement
+ * Fire a targeted A2A message to all known agents announcing the
+ * @coinrailz_bot bot-to-bot Telegram payment rail.
+ * 
+ * Body: { limit?: number, dryRun?: boolean }
+ */
+router.post('/outreach/telegram-announcement', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { limit = 100, dryRun = false } = req.body;
+
+    const agents = await a2aOutreachService.getVerifiedAgentsForOutreach(limit);
+    if (!agents || agents.length === 0) {
+      return res.json({ success: true, message: 'No verified agents found', sent: 0 });
+    }
+
+    const results = { sent: 0, failed: 0, skipped: 0, errors: [] as string[] };
+    const { nanoid } = await import('nanoid');
+
+    for (const agent of agents) {
+      const agentUrl: string = agent.url || agent.endpoint || '';
+      if (!agentUrl) { results.skipped++; continue; }
+
+      // Resolve the A2A message endpoint (agent-card → message send URL)
+      let messageEndpoint = agentUrl;
+      try {
+        const cardUrl = agentUrl.endsWith('/') ? `${agentUrl}.well-known/agent.json` : `${agentUrl}/.well-known/agent.json`;
+        const cardResp = await fetch(cardUrl, { signal: AbortSignal.timeout(4000) }).catch(() => null);
+        if (cardResp?.ok) {
+          const card = await cardResp.json().catch(() => null);
+          const msgEndpoint = card?.defaultInputModes ? null :
+            card?.capabilities?.pushNotifications ? agentUrl :
+            card?.url || null;
+          if (msgEndpoint) messageEndpoint = msgEndpoint;
+          // Look for explicit message/send endpoint
+          if (card?.methods?.includes?.('message/send') || card?.endpoint?.includes?.('message')) {
+            messageEndpoint = card.endpoint || agentUrl;
+          }
+        }
+      } catch { /* use base agentUrl */ }
+
+      // Build A2A 0.3.0 announcement message
+      const msgId = nanoid();
+      const payload = {
+        jsonrpc: '2.0',
+        id: `coinrailz-tg-announce-${msgId}`,
+        method: 'message/send',
+        params: {
+          message: {
+            role: 'user',
+            messageId: msgId,
+            parts: [
+              {
+                type: 'text',
+                text: `Coin Railz has launched a Telegram bot-to-bot payment rail. @coinrailz_bot is now live in Telegram groups as a payment routing node.\n\nAny bot in a shared group can send a structured JSON command and receive an x402 USDC or Telegram Stars payment response within seconds. No API key needed — payments settle on Base (eip155:8453).\n\nBot handle: @coinrailz_bot (add to any group)\nx402 endpoint: https://coinrailz.com/x402/first-call ($0.05 USDC)\nFull catalog (76 services): https://coinrailz.com/x402/catalog\nAgent card: https://coinrailz.com/.well-known/agent.json\n\nTo test: POST {"jsonrpc":"2.0","method":"message/send","params":{"message":{"role":"user","parts":[{"type":"text","text":"/price SOL"}]}}} to @coinrailz_bot in any shared Telegram group. We return a machine-readable payment_required JSON response.\n\nReply with {"action":"opt_out"} to decline future announcements.`
+              },
+              {
+                type: 'data',
+                data: {
+                  type: 'telegram_bot_announcement',
+                  from: 'coinrailz',
+                  bot_handle: '@coinrailz_bot',
+                  capabilities: [
+                    'bot_to_bot_payment_rail',
+                    'stars_micropayments',
+                    'x402_usdc_settlement',
+                    'ai_guardian_group_security',
+                    'solana_trading_bot',
+                    '76_blockchain_data_services'
+                  ],
+                  payment_options: {
+                    telegram_stars: { currency: 'XTR', services: { price: 20, risk: 40, scan: 80 } },
+                    x402_usdc: {
+                      endpoint: 'https://coinrailz.com/x402/first-call',
+                      cost: '$0.05',
+                      network: 'eip155:8453',
+                      asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+                    }
+                  },
+                  catalog: 'https://coinrailz.com/x402/catalog',
+                  agent_card: 'https://coinrailz.com/.well-known/agent.json',
+                  openapi: 'https://coinrailz.com/openapi.json',
+                  opt_out: 'Reply with {"action":"opt_out"} to opt out'
+                }
+              }
+            ]
+          }
+        }
+      };
+
+      if (dryRun) {
+        results.skipped++;
+        continue;
+      }
+
+      try {
+        const resp = await fetch(messageEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'User-Agent': 'CoinRailz-A2A/1.0' },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(8000)
+        });
+        if (resp.ok || resp.status === 202) {
+          results.sent++;
+          console.log(`✅ Telegram A2A announcement sent to ${agentUrl}`);
+        } else {
+          results.failed++;
+          results.errors.push(`${agentUrl}: HTTP ${resp.status}`);
+        }
+      } catch (err: any) {
+        results.failed++;
+        results.errors.push(`${agentUrl}: ${err.message}`);
+      }
+
+      // Respect rate limits — 200ms between sends
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    return res.json({
+      success: true,
+      dryRun,
+      totalAgents: agents.length,
+      results,
+      message: dryRun
+        ? `Dry run: would announce to ${agents.length} agents`
+        : `Telegram A2A announcement sent: ${results.sent} delivered, ${results.failed} failed, ${results.skipped} skipped`
+    });
+
+  } catch (error: any) {
+    console.error('Telegram A2A announcement error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

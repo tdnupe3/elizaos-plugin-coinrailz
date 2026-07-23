@@ -1486,4 +1486,146 @@ router.get("/activity", async (req: Request, res: Response) => {
   }
 });
 
+// ─── Admin: Telegram Broadcast ────────────────────────────────────────────────
+
+function requireTelegramAdmin(req: Request, res: Response, next: () => void) {
+  const key = req.headers['x-admin-key'] as string | undefined;
+  if (key && key === process.env.ADMIN_KEY) return next();
+  return res.status(401).json({ error: 'Admin authentication required. Pass X-Admin-Key header.' });
+}
+
+/**
+ * POST /api/telegram/broadcast
+ * Send a feature-announcement message to every Telegram user who has opted in
+ * (started the bot) and every group where AI Guardian is active.
+ * 
+ * TOS compliance: only sends to users who initiated contact (telegram_accounts)
+ * and groups where we are an active member (telegram_guardians).
+ * 
+ * Body: { dryRun?: boolean, audience?: "users"|"groups"|"all", message?: string }
+ */
+router.post('/broadcast', requireTelegramAdmin, async (req: Request, res: Response) => {
+  try {
+    const { dryRun = false, audience = 'all', customMessage } = req.body;
+
+    const userMessage =
+`🚀 *Coin Railz — New Features Live*
+
+Since you started @coinrailz_bot, you're first to know about what just shipped:
+
+⭐ *Pay-Per-Call (Stars)* — No credit bundle needed
+  • Token Price: 20 ⭐ ($0.25)
+  • Wallet Risk Check: 40 ⭐ ($0.50)
+  • Contract Scan: 80 ⭐ ($1.00)
+
+🛡️ *AI Guardian* — Add me to any group for real-time address scanning. Free tier: 10 scans/day. Pro: unlimited.
+
+📊 *Solana Trading Bot* — /buy /sell /portfolio with P&L tracking
+
+🤖 *Bot-to-Bot Payment Rail* — Add @coinrailz_bot to any group alongside other trading bots. We handle payment routing via x402/USDC.
+
+Use the button below to access all 76 services 👇`;
+
+    const groupMessage =
+`🛡️ *AI Guardian — Update*
+
+Coin Railz just expanded its capabilities for this group:
+
+• Solana address scanning (in addition to EVM)
+• Wallet risk scoring with on-chain history
+• Real-time honeypot pattern detection
+
+⭐ Upgrade to *Guardian Pro* for unlimited scans — just 4,000 Stars/month.
+
+Type /guardian to manage settings or /help for full service list.`;
+
+    const finalUserMessage = customMessage || userMessage;
+    const finalGroupMessage = customMessage || groupMessage;
+
+    // Fetch audiences
+    const results = { sent: 0, skipped: 0, failed: 0, errors: [] as string[] };
+    const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+    // ── Individual users (opted-in via /start) ────────────────────────────
+    if (audience === 'users' || audience === 'all') {
+      const accounts = await db.select({
+        telegramId: telegramAccounts.telegramId,
+        firstName: telegramAccounts.firstName,
+      }).from(telegramAccounts);
+
+      console.log(`📢 Telegram broadcast: ${accounts.length} opted-in users (dryRun=${dryRun})`);
+
+      for (const account of accounts) {
+        if (dryRun) {
+          results.skipped++;
+          continue;
+        }
+        try {
+          await bot.sendMessage(parseInt(account.telegramId), finalUserMessage, {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🎮 Launch Agent Console', web_app: { url: WEBAPP_URL } }],
+                [{ text: '⭐ Buy Credits with Stars', callback_data: 'buy_credits' }]
+              ]
+            }
+          });
+          results.sent++;
+          await delay(50); // ~20 msgs/sec — well within Telegram's 30/sec global limit
+        } catch (err: any) {
+          results.failed++;
+          results.errors.push(`user ${account.telegramId}: ${err.message}`);
+        }
+      }
+    }
+
+    // ── Guardian groups (bot is an active member) ─────────────────────────
+    if (audience === 'groups' || audience === 'all') {
+      const guardians = await db.select({
+        groupChatId: telegramGuardians.groupChatId,
+        groupTitle: telegramGuardians.groupTitle,
+      }).from(telegramGuardians)
+        .where(eq(telegramGuardians.enabled, true));
+
+      console.log(`📢 Telegram broadcast: ${guardians.length} active Guardian groups (dryRun=${dryRun})`);
+
+      for (const group of guardians) {
+        if (dryRun) {
+          results.skipped++;
+          continue;
+        }
+        try {
+          await bot.sendMessage(parseInt(group.groupChatId), finalGroupMessage, {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [[
+                { text: '⭐ Upgrade to Guardian Pro', callback_data: `upgrade_guardian:${group.groupChatId}` }
+              ]]
+            }
+          });
+          results.sent++;
+          await delay(1100); // 1.1 sec between group messages (Telegram group limit: 1/sec)
+        } catch (err: any) {
+          results.failed++;
+          results.errors.push(`group ${group.groupChatId}: ${err.message}`);
+        }
+      }
+    }
+
+    return res.json({
+      success: true,
+      dryRun,
+      audience,
+      results,
+      message: dryRun
+        ? `Dry run: would send to ${results.skipped} recipients`
+        : `Broadcast complete: ${results.sent} sent, ${results.failed} failed`
+    });
+
+  } catch (error: any) {
+    console.error('Telegram broadcast error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

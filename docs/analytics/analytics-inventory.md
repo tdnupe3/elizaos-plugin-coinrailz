@@ -338,37 +338,36 @@ GROUP BY sdk_type;
 
 ## Real Revenue Picture (Jul 23 2026 — verified from production DB)
 
-**All-time gross USDC: $322.24 across 731 payment intents from 16 distinct wallets**
-**All-time external (non-canary): $187.84 across 366 external intents from 15 payers**
-**Canary wallet total: $134.40 across 365 intents (internal, excluded from external)**
+**⚠️ ALWAYS query live DB — do NOT trust this section for "last payment" date. It goes stale.**
 
-**External (organic) revenue only — canary excluded:**
+**All-time gross USDC: $322.24 across 731 payment intents from 16 distinct wallets**
+**All-time external (non-canary): ~$187.84 across 366 external intents from 15 payers**
+**Canary wallet (0x5837a864): 365 intents, $134.40 (ALL internal — exclude from external totals)**
+
+**External payers sorted by most recent payment (verified Jul 23 2026):**
 
 | Payer | Network | Intents | USDC | Last Payment | Notes |
 |---|---|---|---|---|---|
+| **0x85ed02ee...** | **Base** | **1** | **$0.40** | **Jul 21 2026** | **NEW — stock-sentiment, first payment ever** |
+| 0xe92eb50a... | Base | 1 | $0.05 | Jul 10 2026 | NEW — rh-stock-price (first RH Chain external payer) |
+| 0x3803a192... | Base | 7 | $1.35 | Jul 10 2026 | Organic returner — earthdata specialist, 7 total intents |
+| 0x9cc42f3d... | Base | 94 | $42.85 | Jul 1 2026 | Wallet depleted — still POST-ing but not paying |
+| 0xa4bbe37f... | Base | 109 | $5.45 | Jun 13 2026 | Secondary internal (is_canary=false in DB) |
 | 0x92ca4cef... | Base | 94 | $79.75 | Dec 22 2025 | |
 | 0x2f5134f7... | Base | 48 | $31.70 | Jan 10 2026 | |
 | 0x0a2854fb... | Base | 1 | $14.87 | Dec 14 2025 | |
-| 0x9cc42f3d... | Base | 21 | $10.15 | Jun 12 2026 | Depleted Jul 1 2026 — wallet empty |
 | 0x74de5d4f... | Ethereum | 1 | $9.84 | Feb 18 2026 | |
 | 0x6341b240... | Base | 4 | $0.70 | Jan 25 2026 | |
-| 0x3803a192... | Base | 6 | $1.10 | Jun 13 2026 | Organic returner — earthdata specialist |
-| Others (3 wallets) | Base | 3 | $0.75 | Dec 2025 | |
 | Hgby7VEo6va... | Solana | 2 | $0.10 | Feb 27 2026 | Internal test |
+| Others | Base | ~3 | $0.75 | Dec 2025 | |
 
-**Internal canary wallet:**
+**Last confirmed external payment: July 21, 2026** — wallet `0x85ed02ee...`, stock-sentiment, $0.40.
 
-| Wallet | Intents | USDC | Notes |
-|---|---|---|---|
-| **0x5837a864...** | **365** | **$134.40** | **Active canary — derived from X402_BUYER_PRIVATE_KEY. ALL payments internal.** |
+**⚠️ Past assessments incorrectly stated "39-day payment gap" and "last payment Jun 13". This was wrong — the inventory doc was not updated after subsequent payments in July. Always query x402_payment_intents live.**
 
-> ⚠️ `0x5837a864` is and always has been the canary wallet (is_canary=true). No external payer has ever spent more than $10.15 in a single session.
+**NOTE on 0x9cc42f3d:** The inventory previously listed this wallet as 21 intents/$10.15. The live DB shows 94 intents/$42.85 — the prior figure was from a single session count, not total.
 
-**Last confirmed external (non-canary) payment: June 13, 2026** — wallet `0x3803a192...`, earthdata-precipitation $0.25.
-
-**39-day external payment gap as of Jul 23 2026.** Platform is in active ecosystem discovery/indexing phase; conversion stalled.
-
-**Most significant recent event: June 12, 2026** — wallet `0x9cc42f3d...` paid for 21 different services in 15 minutes ($10.15 total). Wallet subsequently depleted; actor still POST-ing but not paying.
+**NOTE on 0x92ca4cef:** Previously listed as 94 intents/$79.75 via the 'base' network field. Confirmed in DB as the Dec 2025 era payer.
 
 **To get current totals at any check:**
 ```sql

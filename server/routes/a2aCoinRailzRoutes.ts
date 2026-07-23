@@ -322,6 +322,22 @@ const SEMANTIC_PATTERNS: Array<{ pattern: RegExp; services: string[]; boost: num
     services: ['b20-token-info', 'b20-transfer-check'],
     boost: 10
   },
+  // VLT USDC Vault / Bankroll Network — deposit calldata builder
+  {
+    pattern: /\b(vlt|bankroll network|vlt.*vault|vault.*deposit|usdc.*vault|vault.*usdc)\b/i,
+    services: ['vlt-usdc-deposit'],
+    boost: 30
+  },
+  {
+    pattern: /\b(deposit.*calldata|calldata.*deposit|lp.*deposit|vault.*lp|add.*liquidity.*vault)\b/i,
+    services: ['vlt-usdc-deposit'],
+    boost: 25
+  },
+  {
+    pattern: /\b(vlt.*price|vlt.*tvl|vlt.*apr|bankroll.*apr|bankroll.*tvl)\b/i,
+    services: ['vlt-usdc-deposit'],
+    boost: 25
+  },
   // Robinhood Chain stock / price feeds
   {
     pattern: /\b(robinhood chain|rh chain|eip155:4663|rh-stock|chainlink.*(stock|equity|price feed))\b/i,

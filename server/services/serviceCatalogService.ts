@@ -906,6 +906,18 @@ export class ServiceCatalogService {
         x402Compatible: true,
         stripeCompatible: false
       },
+      // Bankroll Network / VLT Vault
+      {
+        id: 'vlt-usdc-deposit',
+        name: 'VLT USDC Vault Deposit Builder',
+        description: 'Free deposit calldata builder for the Bankroll Network VLT/WETH LP vault on Base. Returns the ABI-encoded deposit transaction calldata, current VLT price, ETH price, vault TVL, and APR. Pass { amount } in USDC. No payment required.',
+        endpoint: '/x402/vlt-usdc-deposit',
+        network: 'eip155:8453',
+        category: 'execution',
+        capabilities: ['vault', 'deposit', 'calldata', 'vlt', 'bankroll-network', 'lp', 'usdc', 'defi', 'yield', 'apr', 'tvl'],
+        x402Compatible: true,
+        stripeCompatible: false
+      },
       // Robinhood Chain Services
       {
         id: 'rh-stock-price',

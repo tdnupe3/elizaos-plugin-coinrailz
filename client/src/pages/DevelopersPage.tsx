@@ -73,9 +73,9 @@ export default function DevelopersPage() {
     {
       id: 'multi-chain-balance',
       name: 'Multi-Chain Balance',
-      price: '$0.10',
+      price: '$0.50',
       description: 'Get real-time balances across Ethereum, Base, Polygon, Arbitrum, and BNB Chain',
-      endpoint: '/api/x402/multi-chain-balance',
+      endpoint: '/x402/multi-chain-balance',
       method: 'POST',
       category: 'Data',
       exampleRequest: `{ "walletAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "chains": ["ethereum", "base"], "includeTokens": true }`,
@@ -86,7 +86,7 @@ export default function DevelopersPage() {
       name: 'Gas Price Oracle',
       price: '$0.10',
       description: 'Real-time gas prices with fast/average/slow recommendations',
-      endpoint: '/api/x402/gas-price-oracle',
+      endpoint: '/x402/gas-price-oracle',
       method: 'POST',
       category: 'Data',
       exampleRequest: `{ "chains": ["ethereum", "base", "polygon"] }`,
@@ -97,7 +97,7 @@ export default function DevelopersPage() {
       name: 'Token Price Feed',
       price: '$0.25',
       description: 'Live token prices with 24h change and volume data',
-      endpoint: '/api/x402/token-price',
+      endpoint: '/x402/token-price',
       method: 'POST',
       category: 'Data',
       exampleRequest: `{ "tokenAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "chain": "ethereum" }`,
@@ -106,9 +106,9 @@ export default function DevelopersPage() {
     {
       id: 'contract-scan',
       name: 'Contract Quick Scan',
-      price: '$0.50',
+      price: '$1.00',
       description: 'Security analysis and metadata for any smart contract',
-      endpoint: '/api/x402/contract-scan',
+      endpoint: '/x402/contract-scan',
       method: 'POST',
       category: 'Security',
       exampleRequest: `{ "contractAddress": "0x...", "chain": "ethereum" }`,
@@ -119,7 +119,7 @@ export default function DevelopersPage() {
       name: 'Wallet Risk Score',
       price: '$0.50',
       description: 'AML/fraud risk assessment for any wallet address',
-      endpoint: '/api/x402/wallet-risk',
+      endpoint: '/x402/wallet-risk',
       method: 'POST',
       category: 'Security',
       exampleRequest: `{ "walletAddress": "0x...", "chain": "ethereum" }`,
@@ -128,9 +128,9 @@ export default function DevelopersPage() {
     {
       id: 'trade-signals',
       name: 'Trade Signals',
-      price: '$1.00',
+      price: '$0.75',
       description: 'AI-powered trading signals with confidence scores',
-      endpoint: '/api/x402/trade-signals',
+      endpoint: '/x402/trade-signals',
       method: 'POST',
       category: 'Trading',
       exampleRequest: `{ "token": "ETH", "timeframe": "1h", "riskLevel": "medium" }`,
@@ -141,7 +141,7 @@ export default function DevelopersPage() {
       name: 'Token Social Sentiment',
       price: '$0.75',
       description: 'Real-time social media sentiment analysis for any token',
-      endpoint: '/api/x402/token-sentiment',
+      endpoint: '/x402/token-sentiment',
       method: 'POST',
       category: 'Trading',
       exampleRequest: `{ "tokenSymbol": "ETH", "chain": "ethereum" }`,
@@ -152,7 +152,7 @@ export default function DevelopersPage() {
       name: 'Trending Tokens Feed',
       price: '$0.50',
       description: 'Discover trending tokens before they pump',
-      endpoint: '/api/x402/trending-tokens',
+      endpoint: '/x402/trending-tokens',
       method: 'POST',
       category: 'Trading',
       exampleRequest: `{ "timeframe": "24h", "chain": "ethereum" }`,
@@ -163,7 +163,7 @@ export default function DevelopersPage() {
       name: 'Whale Wallet Alerts',
       price: '$1.00',
       description: 'Real-time notifications for large wallet movements',
-      endpoint: '/api/x402/whale-alerts',
+      endpoint: '/x402/whale-alerts',
       method: 'POST',
       category: 'Trading',
       exampleRequest: `{ "chains": ["ethereum"], "minValueUsd": 100000 }`,
@@ -174,7 +174,7 @@ export default function DevelopersPage() {
       name: 'DEX Liquidity Monitor',
       price: '$0.50',
       description: 'Track liquidity pools across major DEXs',
-      endpoint: '/api/x402/dex-liquidity',
+      endpoint: '/x402/dex-liquidity',
       method: 'POST',
       category: 'DeFi',
       exampleRequest: `{ "tokenAddress": "0x...", "chain": "ethereum" }`,
@@ -185,7 +185,7 @@ export default function DevelopersPage() {
       name: 'Transaction Builder',
       price: '$2.00',
       description: 'Build and simulate complex multi-step transactions',
-      endpoint: '/api/x402/transaction-builder',
+      endpoint: '/x402/transaction-builder',
       method: 'POST',
       category: 'DeFi',
       exampleRequest: `{ "steps": [{ "action": "swap", "tokenIn": "ETH", "tokenOut": "USDC", "amount": "1.0" }] }`,
@@ -196,7 +196,7 @@ export default function DevelopersPage() {
       name: 'Token Metadata',
       price: '$0.25',
       description: 'Complete token information including logo, decimals, and total supply',
-      endpoint: '/api/x402/token-metadata',
+      endpoint: '/x402/token-metadata',
       method: 'POST',
       category: 'Data',
       exampleRequest: `{ "tokenAddress": "0x...", "chain": "ethereum" }`,
@@ -207,7 +207,7 @@ export default function DevelopersPage() {
       name: 'Approval Manager',
       price: '$1.50',
       description: 'Manage token approvals and revoke dangerous permissions',
-      endpoint: '/api/x402/approval-manager',
+      endpoint: '/x402/approval-manager',
       method: 'POST',
       category: 'Security',
       exampleRequest: `{ "walletAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "action": "revoke", "spender": "0x1111111254fb6c44bAC0beD2854e76F90643097d" }`,
@@ -218,7 +218,7 @@ export default function DevelopersPage() {
       name: 'Batch Quote Service',
       price: '$1.00',
       description: 'Get swap quotes for multiple token pairs simultaneously',
-      endpoint: '/api/x402/batch-quote',
+      endpoint: '/x402/batch-quote',
       method: 'POST',
       category: 'DeFi',
       exampleRequest: `{ "pairs": [{ "tokenIn": "ETH", "tokenOut": "USDC", "amount": "1.0" }] }`,
@@ -229,7 +229,7 @@ export default function DevelopersPage() {
       name: 'Portfolio Tracker',
       price: '$0.75',
       description: 'Complete portfolio analysis with PnL tracking',
-      endpoint: '/api/x402/portfolio-tracker',
+      endpoint: '/x402/portfolio-tracker',
       method: 'POST',
       category: 'Data',
       exampleRequest: `{ "walletAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "chains": ["ethereum", "base"] }`,
@@ -240,7 +240,7 @@ export default function DevelopersPage() {
       name: 'Instant Agent Wallet',
       price: '$5.00',
       description: 'Create a Base mainnet wallet with USDC funding instantly',
-      endpoint: '/api/x402/instant-agent-wallet',
+      endpoint: '/x402/instant-agent-wallet',
       method: 'POST',
       category: 'Agent Services',
       exampleRequest: `{ "agentId": "my-ai-agent", "initialFundingAmount": 10 }`,
@@ -251,7 +251,7 @@ export default function DevelopersPage() {
       name: 'Verified Agent Identity',
       price: '$3.00',
       description: 'Register your AI agent on-chain with ERC-8004 identity standard',
-      endpoint: '/api/x402/verified-agent-identity',
+      endpoint: '/x402/verified-agent-identity',
       method: 'POST',
       category: 'Agent Services',
       exampleRequest: `{ "agentId": "my-ai-agent", "walletAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "metadata": { "name": "Trading Bot", "version": "1.0" } }`,
@@ -262,7 +262,7 @@ export default function DevelopersPage() {
       name: 'Seamless Chain Bridge',
       price: '$2.50',
       description: 'Bridge assets across chains with best-rate routing',
-      endpoint: '/api/x402/seamless-chain-bridge',
+      endpoint: '/x402/seamless-chain-bridge',
       method: 'POST',
       category: 'DeFi',
       exampleRequest: `{ "fromChain": "ethereum", "toChain": "base", "amount": "100", "currency": "USDC" }`,
@@ -288,10 +288,10 @@ const wallet = new ethers.Wallet(YOUR_PRIVATE_KEY, provider);
 // Amount in USDC (6 decimals) - $0.10 = 100000
 const usdcContract = new ethers.Contract(USDC_BASE, ERC20_ABI, wallet);
 const tx = await usdcContract.transfer(PLATFORM_WALLET, '100000'); // $0.10
-await tx.wait(); // Wait for Base confirmation (~12 seconds)
+await tx.wait(); // Wait for Base confirmation (~2 seconds)
 
 // Step 2: Call API with payment proof
-const response = await fetch('https://coinrailz.com/api/x402/gas-price-oracle', {
+const response = await fetch('https://coinrailz.com/x402/gas-price-oracle', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -337,7 +337,7 @@ signed = w3.eth.account.sign_transaction(tx, private_key=YOUR_KEY)
 tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
 
 # Wait for confirmation
-time.sleep(15)  # Base finality ~12 seconds
+time.sleep(3)  # Base finality ~2 seconds
 
 # Call API with payment header
 payment_proof = base64.b64encode(json.dumps({
@@ -348,7 +348,7 @@ payment_proof = base64.b64encode(json.dumps({
 }).encode()).decode()
 
 response = requests.post(
-    'https://coinrailz.com/api/x402/gas-price-oracle',
+    'https://coinrailz.com/x402/gas-price-oracle',
     headers={
         'Content-Type': 'application/json',
         'X-PAYMENT': payment_proof
@@ -359,7 +359,7 @@ response = requests.post(
 print(response.json())`;
 
   const curlExample = `# Test with curl (replace with your actual txHash)
-curl -X POST https://coinrailz.com/api/x402/gas-price-oracle \\
+curl -X POST https://coinrailz.com/x402/gas-price-oracle \\
   -H "Content-Type: application/json" \\
   -H "X-PAYMENT: $(echo -n '{"txHash":"0xYOUR_TX_HASH","amount":"100000","token":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","from":"0xYOUR_WALLET"}' | base64)" \\
   -d '{"chains":["ethereum","base"]}'`;
@@ -367,7 +367,7 @@ curl -X POST https://coinrailz.com/api/x402/gas-price-oracle \\
   const errorHandlingExample = `// Error handling patterns
 async function safeApiCall(endpoint, payload, txHash) {
   try {
-    const response = await fetch(\`https://coinrailz.com/api/x402/\${endpoint}\`, {
+    const response = await fetch(\`https://coinrailz.com/x402/\${endpoint}\`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -412,7 +412,7 @@ async function safeApiCall(endpoint, payload, txHash) {
     {
       id: 'why-base',
       question: 'Why do I have to pay on Base? Can I use another chain?',
-      answer: 'Base was chosen for its speed (~12 second finality) and low fees. Currently, x402 services require Base mainnet USDC only. We may expand to other chains in the future.'
+      answer: 'Base was chosen for its speed (~2 second finality) and low fees. x402 services support Base mainnet USDC and Solana USDC. Additional chains are available via the multi-chain payment router.'
     },
     {
       id: 'rate-limits',
@@ -450,7 +450,7 @@ async function safeApiCall(endpoint, payload, txHash) {
               Curated Machine-Payable Data for AI Agents
             </h1>
             <p className="text-xl text-blue-100 mb-8">
-              72 crypto, satellite/IoT, and prediction-market APIs powered by the x402 protocol. Pay per request with USDC on Base or Solana. No API keys, no registration, no subscriptions.
+              78 crypto, satellite/IoT, and prediction-market APIs powered by the x402 protocol. Pay per request with USDC on Base or Solana — 9 chains supported. No API keys, no registration, no subscriptions.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <Link href="/quickstart" data-testid="link-quickstart">
@@ -503,7 +503,7 @@ async function safeApiCall(endpoint, payload, txHash) {
             <CardContent className="pt-6">
               <div className="text-center">
                 <Zap className="h-12 w-12 text-yellow-600 mx-auto mb-3" />
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">~12 seconds</div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white">~2 seconds</div>
                 <div className="text-gray-600 dark:text-gray-400">Base Confirmation</div>
               </div>
             </CardContent>
@@ -512,7 +512,7 @@ async function safeApiCall(endpoint, payload, txHash) {
             <CardContent className="pt-6">
               <div className="text-center">
                 <Shield className="h-12 w-12 text-blue-600 mx-auto mb-3" />
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">72 APIs</div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white">78 APIs</div>
                 <div className="text-gray-600 dark:text-gray-400">Curated Data Services</div>
               </div>
             </CardContent>
@@ -542,7 +542,7 @@ async function safeApiCall(endpoint, payload, txHash) {
               </div>
               <h3 className="font-semibold text-lg mb-2 text-gray-900 dark:text-white">Wait for Confirmation</h3>
               <p className="text-gray-600 dark:text-gray-400">
-                Base finality is ~12 seconds. Transaction must be confirmed before API call
+                Base finality is ~2 seconds. Transaction must be confirmed before API call
               </p>
             </div>
             <div className="text-center">

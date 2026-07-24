@@ -279,7 +279,7 @@ export default function Landing() {
             {/* Key Stats - Verified counts only */}
             <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-6 sm:mb-8">
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600">72</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600">78</div>
                 <div className="text-xs sm:text-sm text-gray-600">APIs Available</div>
               </div>
               <div className="text-center">

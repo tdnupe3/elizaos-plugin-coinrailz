@@ -280,7 +280,7 @@ if (response.status === 402) {
               <CardTitle className="text-white text-lg">3. Call APIs</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-400 text-sm">37+ crypto microservices ready</p>
+              <p className="text-slate-400 text-sm">78 services ready</p>
             </CardContent>
           </Card>
         </div>
@@ -619,7 +619,7 @@ if (response.status === 402) {
             Ready to Explore More?
           </h3>
           <p className="text-slate-400 mb-6">
-            Browse all 37+ services or check out the full API documentation
+            Browse all 78 services or check out the full API documentation
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link href="/developers" data-testid="link-developers">

@@ -9,7 +9,7 @@ const EU_FEATURES = [
   {
     icon: Shield,
     title: "USDC-First by Design",
-    desc: "All 60+ services settle in USDC — the only major stablecoin with full MiCA/EMT authorization via Circle EEA. No USDT exposure. No regulatory risk."
+    desc: "All 78 services settle in USDC — the only major stablecoin with full MiCA/EMT authorization via Circle EEA. No USDT exposure. No regulatory risk."
   },
   {
     icon: CheckCircle,
@@ -24,7 +24,7 @@ const EU_FEATURES = [
   {
     icon: Bot,
     title: "AI Agent Commerce",
-    desc: "60+ x402 microservices payable by any A2A-protocol agent. Satellite data, DeFi analytics, AI inference — agent-to-agent commerce that regulators can work with."
+    desc: "78 x402 microservices payable by any A2A-protocol agent. Satellite data, DeFi analytics, AI inference — agent-to-agent commerce that regulators can work with."
   },
   {
     icon: Network,
@@ -74,7 +74,7 @@ export default function MicaCompliancePage() {
     description: "USDT banned from EU exchanges. Coin Railz is USDC-first — fully MiCA-compliant payment rails for AI agents, IoT networks, and DePIN projects operating in the European Union.",
     keywords: "MiCA compliant, USDC EU, AI agent payments EU, DePIN MiCA, stablecoin compliance, USDT alternative EU",
     ogTitle: "MiCA-Native AI Agent Payment Infrastructure | Coin Railz",
-    ogDescription: "USDT is banned in the EU. Coin Railz was USDC-first from day one. 60+ x402 microservices, MiCA-compliant by design.",
+    ogDescription: "USDT is banned in the EU. Coin Railz was USDC-first from day one. 78 x402 microservices, MiCA-compliant by design.",
   });
 
   return (
@@ -122,7 +122,7 @@ export default function MicaCompliancePage() {
 
         <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-10 leading-relaxed">
           MiCA's full enforcement delisted Tether from every EU-regulated exchange.
-          Coin Railz has been USDC-first since launch — 60+ x402 microservices for AI agents,
+          Coin Railz has been USDC-first since launch — 78 x402 microservices for AI agents,
           IoT networks, and DePIN projects, all settling in MiCA-authorized stablecoins.
           No migration needed. No regulatory exposure.
         </p>
@@ -131,7 +131,7 @@ export default function MicaCompliancePage() {
           <Link href="/x402">
             <Button size="lg" className="bg-green-600 hover:bg-green-500 text-white font-semibold px-8 w-full sm:w-auto">
               <Zap className="w-5 h-5 mr-2" />
-              Browse 60+ MiCA-Compliant Services
+              Browse 78 MiCA-Compliant Services
             </Button>
           </Link>
           <Link href="/developers">
@@ -227,7 +227,7 @@ export default function MicaCompliancePage() {
             <Link href="/x402">
               <Button size="lg" className="bg-green-600 hover:bg-green-500 text-white font-semibold px-8 w-full sm:w-auto">
                 <TrendingUp className="w-5 h-5 mr-2" />
-                Explore All 60+ Services
+                Explore All 78 Services
               </Button>
             </Link>
             <Link href="/mcp-integration-guide">

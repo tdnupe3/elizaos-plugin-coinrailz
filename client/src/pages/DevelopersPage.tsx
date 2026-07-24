@@ -1511,7 +1511,7 @@ if (risk.riskScore > 80) {
                       <div>
                         <h4 className="font-semibold mb-2">Scale to More Services</h4>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Swap <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">wallet-risk</code> for any of our 72 services:
+                          Swap <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">wallet-risk</code> for any of our 78 services:
                         </p>
                         <ul className="text-sm text-gray-600 dark:text-gray-400 mt-2 space-y-1">
                           <li>• <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">dex-liquidity</code> — Check pool liquidity</li>

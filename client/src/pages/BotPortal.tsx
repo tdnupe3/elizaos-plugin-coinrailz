@@ -650,7 +650,7 @@ const tx = await signer.sendTransaction(transaction);`}
 
 # First call is FREE (no payment required)
 response = httpx.post(
-    "https://coinrailz.replit.app/x402/gas-price-oracle",
+    "https://coinrailz.com/x402/gas-price-oracle",
     json={"chains": ["ethereum", "base"]}
 )
 
@@ -671,7 +671,7 @@ elif response.status_code == 402:
 
 # Get token metadata (first call free)
 response = httpx.post(
-    "https://coinrailz.replit.app/x402/token-metadata",
+    "https://coinrailz.com/x402/token-metadata",
     json={
         "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
         "chain": "ethereum"
@@ -690,8 +690,8 @@ if response.status_code == 200:
               <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-x402-catalog">
 {`import httpx
 
-# Get full catalog of 37 paid services
-catalog = httpx.get("https://coinrailz.replit.app/x402/catalog").json()
+# Get full catalog of 78 paid services
+catalog = httpx.get("https://coinrailz.com/x402/catalog").json()
 
 for service in catalog["services"]:
     print(f"{service['id']}: ${service['price']} USDC")`}
@@ -708,7 +708,7 @@ for service in catalog["services"]:
 
 # Step 1: Request wallet (will return 402 with payment details)
 response = httpx.post(
-    "https://coinrailz.replit.app/x402/instant-agent-wallet",
+    "https://coinrailz.com/x402/instant-agent-wallet",
     json={"agentId": "my-trading-bot", "description": "Production trading wallet"}
 )
 
@@ -721,7 +721,7 @@ if response.status_code == 402:
     
     # Step 2: After sending USDC, retry with payment proof
     # response = httpx.post(
-    #     "https://coinrailz.replit.app/x402/instant-agent-wallet",
+    #     "https://coinrailz.com/x402/instant-agent-wallet",
     #     json={"agentId": "my-trading-bot"},
     #     headers={"X-PAYMENT": "0xYourTransactionHash"}
     # )

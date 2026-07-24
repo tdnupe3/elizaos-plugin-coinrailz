@@ -15,7 +15,10 @@ import {
   Copy,
   ChevronRight,
   Rocket,
-  Terminal
+  Terminal,
+  Activity,
+  Users,
+  Gift
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -23,6 +26,16 @@ export default function DevelopersPage() {
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
+  const [liveStats, setLiveStats] = useState<{ totalChallenges: number; uniqueAgents: number; totalPaid: number } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/public-stats')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data && !data.error) setLiveStats(data); })
+      .catch(() => {});
+  }, []);
+
+  const fmtCount = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(0)}K+` : `${n}+`;
 
   useEffect(() => {
     // Add JSON-LD schema for Google AI indexing
@@ -483,6 +496,13 @@ async function safeApiCall(endpoint, payload, txHash) {
                 API Reference
               </Button>
             </div>
+
+            {/* First Call Free hook */}
+            <div className="mt-8 inline-flex items-center gap-3 bg-white/10 border border-white/20 rounded-full px-6 py-3 backdrop-blur-sm">
+              <Gift className="h-5 w-5 text-emerald-300 flex-shrink-0" />
+              <span className="text-white font-medium">Your first call is free</span>
+              <span className="text-blue-200 text-sm hidden sm:inline">— try <code className="bg-white/10 px-1.5 py-0.5 rounded text-xs">gas-price-oracle</code> or <code className="bg-white/10 px-1.5 py-0.5 rounded text-xs">token-metadata</code> with zero USDC balance</span>
+            </div>
           </div>
         </div>
       </div>
@@ -511,12 +531,45 @@ async function safeApiCall(endpoint, payload, txHash) {
           <Card className="bg-white dark:bg-gray-800 shadow-xl border-2">
             <CardContent className="pt-6">
               <div className="text-center">
-                <Shield className="h-12 w-12 text-blue-600 mx-auto mb-3" />
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">78 APIs</div>
-                <div className="text-gray-600 dark:text-gray-400">Curated Data Services</div>
+                <Activity className="h-12 w-12 text-blue-600 mx-auto mb-3" />
+                <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                  {liveStats ? fmtCount(liveStats.totalChallenges) : '78'}
+                </div>
+                <div className="text-gray-600 dark:text-gray-400">
+                  {liveStats ? 'Challenges Served' : 'Curated APIs'}
+                </div>
+                {liveStats && (
+                  <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                    {fmtCount(liveStats.uniqueAgents)} unique agents
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
+        </div>
+      </div>
+
+      {/* Ecosystem Compatibility Strip */}
+      <div className="container mx-auto px-4 pt-6 pb-2">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-center gap-2 flex-wrap text-sm text-gray-500 dark:text-gray-400">
+            <span className="font-medium text-gray-400 dark:text-gray-500 mr-1">Compatible with:</span>
+            <Badge variant="outline" className="gap-1.5 font-normal">
+              <span className="text-blue-500">●</span> Coinbase CDP Facilitator
+            </Badge>
+            <Badge variant="outline" className="gap-1.5 font-normal">
+              <span className="text-indigo-500">⬡</span> Base Mainnet
+            </Badge>
+            <Badge variant="outline" className="gap-1.5 font-normal">
+              <span className="text-purple-500">◎</span> Solana
+            </Badge>
+            <Badge variant="outline" className="gap-1.5 font-normal">
+              <span className="text-yellow-500">⚡</span> ElizaOS Plugin
+            </Badge>
+            <Badge variant="outline" className="gap-1.5 font-normal">
+              <span className="text-green-500">↗</span> x402-fetch
+            </Badge>
+          </div>
         </div>
       </div>
 
@@ -705,13 +758,13 @@ async function safeApiCall(endpoint, payload, txHash) {
                 <div className="flex items-start gap-2">
                   <CheckCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                   <div>
-                    <strong>Wait for confirmation:</strong> Must wait ~12 seconds for Base finality before API call
+                    <strong>Wait for confirmation:</strong> Must wait ~2 seconds for Base finality before API call
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                   <div>
-                    <strong>Supported chains:</strong> All payments must be USDC on Ethereum (ChainID 1) or Base (ChainID 8453)
+                    <strong>Supported chains:</strong> USDC on Base (ChainID 8453), Ethereum (ChainID 1), or Solana — 9 chains total via multi-chain router
                   </div>
                 </div>
               </CardContent>
@@ -1068,7 +1121,7 @@ import fetch from "node-fetch";
 import { Buffer } from "buffer";
 
 // Coin Railz Platform Constants
-const COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402";
+const COINRAILZ_BASE_URL = "https://coinrailz.com/x402";
 const PLATFORM_WALLET = "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const BASE_CHAIN_ID = 8453;
@@ -1112,7 +1165,7 @@ export async function callWalletRisk(params: WalletRiskParams, txHash: string) {
                         size="sm"
                         variant="outline"
                         className="absolute top-2 right-2"
-                        onClick={() => copyToClipboard(`// coinrailzClient.ts\nimport fetch from "node-fetch";\nimport { Buffer } from "buffer";\n\n// Coin Railz Platform Constants\nconst COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402";\nconst PLATFORM_WALLET = "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";\nconst USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";\nconst BASE_CHAIN_ID = 8453;\n\nexport type Chain = "base";\n\nexport interface WalletRiskParams {\n  walletAddress: string;\n  chain: Chain;\n}\n\nexport interface CoinRailzPaymentPayload {\n  txHash: string;\n}\n\nexport function encodeXPayment(payload: CoinRailzPaymentPayload): string {\n  return Buffer.from(JSON.stringify(payload)).toString("base64");\n}\n\nexport async function callWalletRisk(params: WalletRiskParams, txHash: string) {\n  const xPayment = encodeXPayment({ txHash });\n\n  const res = await fetch(\`\${COINRAILZ_BASE_URL}/wallet-risk\`, {\n    method: "POST",\n    headers: {\n      "Content-Type": "application/json",\n      "X-PAYMENT": xPayment\n    },\n    body: JSON.stringify(params)\n  });\n\n  if (!res.ok) {\n    const text = await res.text();\n    throw new Error(\`Coin Railz wallet-risk error (\${res.status}): \${text}\`);\n  }\n\n  return res.json();\n}`, 'ElizaOS helper')}
+                        onClick={() => copyToClipboard(`// coinrailzClient.ts\nimport fetch from "node-fetch";\nimport { Buffer } from "buffer";\n\n// Coin Railz Platform Constants\nconst COINRAILZ_BASE_URL = "https://coinrailz.com/x402";\nconst PLATFORM_WALLET = "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";\nconst USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";\nconst BASE_CHAIN_ID = 8453;\n\nexport type Chain = "base";\n\nexport interface WalletRiskParams {\n  walletAddress: string;\n  chain: Chain;\n}\n\nexport interface CoinRailzPaymentPayload {\n  txHash: string;\n}\n\nexport function encodeXPayment(payload: CoinRailzPaymentPayload): string {\n  return Buffer.from(JSON.stringify(payload)).toString("base64");\n}\n\nexport async function callWalletRisk(params: WalletRiskParams, txHash: string) {\n  const xPayment = encodeXPayment({ txHash });\n\n  const res = await fetch(\`\${COINRAILZ_BASE_URL}/wallet-risk\`, {\n    method: "POST",\n    headers: {\n      "Content-Type": "application/json",\n      "X-PAYMENT": xPayment\n    },\n    body: JSON.stringify(params)\n  });\n\n  if (!res.ok) {\n    const text = await res.text();\n    throw new Error(\`Coin Railz wallet-risk error (\${res.status}): \${text}\`);\n  }\n\n  return res.json();\n}`, 'ElizaOS helper')}
                         data-testid="button-copy-eliza-helper"
                       >
                         <Copy className="h-4 w-4" />
@@ -1232,7 +1285,7 @@ export const myAgentConfig = {
 import { Buffer } from "buffer";
 
 // Coin Railz Platform Constants (Base mainnet)
-const COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402";
+const COINRAILZ_BASE_URL = "https://coinrailz.com/x402";
 const PLATFORM_WALLET = "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
@@ -1273,7 +1326,7 @@ console.log("Wallet risk:", result);`}</code>
                         size="sm"
                         variant="outline"
                         className="absolute top-2 right-2"
-                        onClick={() => copyToClipboard(`import fetch from "node-fetch";\nimport { Buffer } from "buffer";\n\n// Coin Railz Platform Constants (Base mainnet)\nconst COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402";\nconst PLATFORM_WALLET = "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";\nconst USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";\n\nfunction encodeXPayment(txHash) {\n  return Buffer.from(JSON.stringify({ txHash })).toString("base64");\n}\n\nexport async function getWalletRisk(walletAddress, chain, txHash) {\n  const xPayment = encodeXPayment(txHash);\n\n  const res = await fetch(\`\${COINRAILZ_BASE_URL}/wallet-risk\`, {\n    method: "POST",\n    headers: {\n      "Content-Type": "application/json",\n      "X-PAYMENT": xPayment\n    },\n    body: JSON.stringify({ walletAddress, chain })\n  });\n\n  if (!res.ok) {\n    const text = await res.text();\n    throw new Error(\`Coin Railz error (\${res.status}): \${text}\`);\n  }\n\n  return res.json();\n}\n\n// Usage in your agent\nconst result = await getWalletRisk(\n  "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",\n  "base",\n  "0x123abc..." // txHash of Base USDC payment to PLATFORM_WALLET\n);\n\nconsole.log("Wallet risk:", result);`, 'Node.js code')}
+                        onClick={() => copyToClipboard(`import fetch from "node-fetch";\nimport { Buffer } from "buffer";\n\n// Coin Railz Platform Constants (Base mainnet)\nconst COINRAILZ_BASE_URL = "https://coinrailz.com/x402";\nconst PLATFORM_WALLET = "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";\nconst USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";\n\nfunction encodeXPayment(txHash) {\n  return Buffer.from(JSON.stringify({ txHash })).toString("base64");\n}\n\nexport async function getWalletRisk(walletAddress, chain, txHash) {\n  const xPayment = encodeXPayment(txHash);\n\n  const res = await fetch(\`\${COINRAILZ_BASE_URL}/wallet-risk\`, {\n    method: "POST",\n    headers: {\n      "Content-Type": "application/json",\n      "X-PAYMENT": xPayment\n    },\n    body: JSON.stringify({ walletAddress, chain })\n  });\n\n  if (!res.ok) {\n    const text = await res.text();\n    throw new Error(\`Coin Railz error (\${res.status}): \${text}\`);\n  }\n\n  return res.json();\n}\n\n// Usage in your agent\nconst result = await getWalletRisk(\n  "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",\n  "base",\n  "0x123abc..." // txHash of Base USDC payment to PLATFORM_WALLET\n);\n\nconsole.log("Wallet risk:", result);`, 'Node.js code')}
                         data-testid="button-copy-generic-node"
                       >
                         <Copy className="h-4 w-4" />

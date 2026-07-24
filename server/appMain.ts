@@ -2536,6 +2536,36 @@ app.get('/api/crypto/prices', async (req, res) => {
   }
 });
 
+// Public platform stats — real x402_interactions data, cached 5 min
+let _publicStatsCache: { data: { totalChallenges: number; uniqueAgents: number; totalPaid: number }; ts: number } | null = null;
+app.get('/api/public-stats', async (req, res) => {
+  try {
+    const now = Date.now();
+    if (_publicStatsCache && now - _publicStatsCache.ts < 5 * 60 * 1000) {
+      return res.json(_publicStatsCache.data);
+    }
+    const { db } = await import('./db');
+    const { sql } = await import('drizzle-orm');
+    const result = await db.execute(sql`
+      SELECT
+        COUNT(*) FILTER(WHERE ip_address NOT IN('127.0.0.1','10.172.8.223')) AS total_challenges,
+        COUNT(DISTINCT ip_address) FILTER(WHERE ip_address NOT IN('127.0.0.1','10.172.8.223')) AS unique_agents,
+        COUNT(*) FILTER(WHERE paid = true AND ip_address NOT IN('127.0.0.1','10.172.8.223')) AS total_paid
+      FROM x402_interactions
+    `);
+    const row = (result.rows ?? result)[0] as any;
+    const data = {
+      totalChallenges: Number(row.total_challenges),
+      uniqueAgents: Number(row.unique_agents),
+      totalPaid: Number(row.total_paid),
+    };
+    _publicStatsCache = { data, ts: now };
+    return res.json(data);
+  } catch (e: any) {
+    return res.status(500).json({ error: 'stats unavailable', detail: String(e) });
+  }
+});
+
 // Platform analytics endpoint  
 app.get('/api/analytics/platform-stats', async (req, res) => {
   try {

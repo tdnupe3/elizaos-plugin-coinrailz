@@ -65,7 +65,7 @@ Pay $1 (USDC/USDT on Base or Solana) and get an API key immediately—no account
 2. Send $1 to the platform wallet
 3. Verify your transaction and receive your key + $5 starter credits
 
-Your API key is **permanent** and works across ALL 43+ Coin Railz microservices. Credits are deducted per use, and you can top up anytime with the same key.
+Your API key is **permanent** and works across ALL 78 Coin Railz microservices. Credits are deducted per use, and you can top up anytime with the same key.
 
 ## License Tiers
 

@@ -4,7 +4,7 @@ Official JavaScript/TypeScript SDK for [Coin Railz LLC](https://coinrailz.com) -
 
 ## Features
 
-- 🚀 **66 Microservices** - NASA satellite data, trading intelligence, prediction markets, AI inference, and IoT/DePIN
+- 🚀 **78 Microservices** - NASA satellite data, trading intelligence, prediction markets, AI inference, and IoT/DePIN
 - 💳 **Simple API Key Auth** - No account or blockchain wallet required to start
 - 📦 **TypeScript First** - Full type definitions included
 - ⚡ **Zero Dependencies** - Lightweight and fast, uses native fetch
@@ -51,7 +51,7 @@ const client = new CoinRailzClient({
   apiKey: process.env.COINRAILZ_API_KEY,
 });
 
-// All 66 services available with full credits
+// All 78 services available with full credits
 const signals = await client.tradeSignals({ token: 'ETH' });
 ```
 
@@ -152,7 +152,7 @@ runTradingBot();
 - `propertyValuation()` - AI-driven real estate valuation
 
 ---
-*See the full 66-service catalog at [coinrailz.com/x402/catalog](https://coinrailz.com/x402/catalog)*
+*See the full 78-service catalog at [coinrailz.com/x402/catalog](https://coinrailz.com/x402/catalog)*
 
 ### Generic Call
 ```typescript

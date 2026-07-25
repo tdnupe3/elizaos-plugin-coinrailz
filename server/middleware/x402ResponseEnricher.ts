@@ -381,16 +381,17 @@ export function x402ResponseEnricher() {
           s.slug === servicePath
         );
         
-        // Filter out Ethereum mainnet accepts entries before mapping.
-        // x402-fetch v0.7.3 (and @x402/evm) validate ALL entries via PaymentRequirementsSchema.parse()
-        // before selecting one. "ethereum" / "eip155:1" is absent from their network enum, so any
-        // Ethereum entry causes a ZodError that blocks Base and Solana payments too.
-        // Ethereum gas (~$2–10/tx) also makes it economically unviable for micropayments.
-        // Ethereum is still listed in supportedNetworks metadata and docs for reference.
+        // Filter out the "ethereum" shorthand from accepts entries.
+        // Legacy x402-fetch 0.7.x clients check SupportedEVMNetworks enum which never included
+        // "ethereum" (shorthand) — passing it causes a ZodError that blocks ALL entries.
+        // "eip155:1" (CAIP-2 format) is allowed through: @x402/core 2.12.0+ uses a free-form
+        // CAIP-2 schema (no enum), so new clients handle it correctly; legacy clients will
+        // gracefully ignore unknown eip155:* entries and fall back to "base"/"solana" entries.
+        // eip155:1 is exposed in top-level supportedNetworks for informational discovery.
         body.accepts = body.accepts
           .filter((paymentReq: any) => {
             const n = paymentReq.network || '';
-            return n !== 'ethereum' && n !== 'eip155:1';
+            return n !== 'ethereum'; // block legacy shorthand only; CAIP-2 "eip155:1" allowed
           })
           .map((paymentReq: any) => {
           const enriched = { ...paymentReq };

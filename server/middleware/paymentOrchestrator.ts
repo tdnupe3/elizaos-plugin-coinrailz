@@ -3221,7 +3221,7 @@ function generate402Response(
     },
     // Structured system prompt for LLM-based agents encountering this 402
     agent_instructions: {
-      system_prompt: `402 Payment Required for ${resource}. Four paths to proceed:\n1. FREE TRIAL (fastest, no payment): GET ${baseUrl}/api/m2m/credits/trial → receive cr_live_ key with $5 credits (~80-100 calls). Retry with X-API-KEY header.\n2. HOSTED CHECKOUT (operator pays once, key auto-provisioned): POST ${baseUrl}/api/m2m/credits/checkout/session with {"amountUsd":10}. Response includes checkoutUrl (open in browser) + retrievalToken (save it). Poll statusEndpoint?token=<retrievalToken> for key after payment.\n3. DIRECT CARD (if you have a Stripe paymentMethodId): POST ${baseUrl}/api/m2m/credits/purchase with {paymentMethodId, amountUsd, idempotencyKey}.\n4. ON-CHAIN USDC: Send ${priceUsd} USDC to payTo address in accepts[], include signed payload in X-PAYMENT header and retry.`,
+      system_prompt: `402 Payment Required for ${resource}. Four paths to proceed:\n1. FREE TRIAL (fastest, no payment): GET ${baseUrl}/api/m2m/credits/trial → receive cr_live_ key with $5 credits (~80-100 calls). Retry with X-API-KEY header.\n2. HOSTED CHECKOUT (operator pays once, key auto-provisioned): POST ${baseUrl}/api/m2m/credits/checkout/session with {"amountUsd":10}. Response includes checkoutUrl (open in browser) + retrievalToken (save it). Poll statusEndpoint?token=<retrievalToken> for key after payment.\n3. DIRECT CARD (if you have a Stripe paymentMethodId): POST ${baseUrl}/api/m2m/credits/purchase with {paymentMethodId, amountUsd, idempotencyKey}.\n4. ON-CHAIN USDC: Send ${priceUsd} USDC to payTo address in accepts[] on Base (eip155:8453) or Solana, include signed payload in X-PAYMENT header and retry. Ethereum mainnet (eip155:1) is also accepted for verification — send USDC (0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) or USDT (0xdAC17F958D2ee523a2206206994597C13D831ec7) to the platform_wallet in alternativePaymentMethods.rawTransaction.platformWallets.ethereum and include the tx hash as X-PAYMENT.`,
       recommended_action: "GET /api/m2m/credits/trial",
       docs: `${baseUrl}/.well-known/agent-instructions.json`,
       ...(req.method === 'POST' && !req.headers['x-payment'] && !req.headers['x-api-key'] ? {
@@ -3238,18 +3238,35 @@ function generate402Response(
     funding_guide: {
       fastest_path: `GET ${baseUrl}/api/m2m/credits/trial — free $5 API key, no wallet needed, works immediately`,
       on_chain_usdc: {
-        network: "Base mainnet (chain ID 8453)",
-        usdc_contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-        minimum_balance: `${priceUsd} USDC + ~$0.001 ETH for gas`,
-        platform_wallet: PLATFORM_WALLET,
-        funding_steps: [
-          "1. GET Base ETH for gas: bridge via bridge.base.org or buy on Coinbase and withdraw to Base",
-          "2. GET USDC on Base: buy on Coinbase → withdraw to Base, or swap at base.uniswap.org",
-          `3. VERIFY balance: curl '${baseUrl}/x402/multi-chain-balance' -H 'X-API-KEY: <trial_key>' -d '{"address":"YOUR_ADDRESS"}'`,
-          "4. SEND payment using x402-fetch, x402-axios, or CDP SDK — include X-PAYMENT header and retry"
+        preferred_network: "Base mainnet (chain ID 8453) — lowest gas",
+        networks: [
+          {
+            name: "Base mainnet (chain ID 8453)",
+            network: "eip155:8453",
+            usdc_contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            usdt_contract: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+            minimum_balance: `${priceUsd} USDC + ~$0.001 ETH for gas`,
+            platform_wallet: PLATFORM_WALLET,
+            funding_steps: [
+              "1. GET Base ETH for gas: bridge via bridge.base.org or buy on Coinbase and withdraw to Base",
+              "2. GET USDC on Base: buy on Coinbase → withdraw to Base, or swap at base.uniswap.org",
+              `3. VERIFY balance: curl '${baseUrl}/x402/multi-chain-balance' -H 'X-API-KEY: <trial_key>' -d '{"address":"YOUR_ADDRESS"}'`,
+              "4. SEND payment using x402-fetch, x402-axios, or CDP SDK — include X-PAYMENT header and retry"
+            ],
+          },
+          {
+            name: "Ethereum mainnet (chain ID 1)",
+            network: "eip155:1",
+            usdc_contract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            usdt_contract: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+            minimum_balance: `${priceUsd} USDC + ~$0.02 ETH for gas`,
+            platform_wallet: PLATFORM_WALLET,
+            payment_method: "Send USDC or USDT to platform_wallet, then include the tx hash as X-PAYMENT: <0x...> and retry the request",
+            note: "Ethereum verification is fully supported. Send the tx hash directly in X-PAYMENT."
+          }
         ],
         sdk_quickstart: `// npm install x402-fetch\nimport { wrapFetchWithPayment } from 'x402-fetch';\nconst pay = wrapFetchWithPayment(fetch, wallet);\nconst r = await pay('${baseUrl}/x402/${serviceName}', { method: 'POST', body: JSON.stringify({}) });\nconsole.log(await r.json());`,
-        note: "Minimum viable test: fund with 0.10 USDC + 0.001 ETH on Base. That covers ~2-10 calls depending on service."
+        note: "Base is preferred for lowest gas. Ethereum mainnet also accepted — send tx hash in X-PAYMENT header."
       }
     },
     recommended_next_step: {
@@ -3274,6 +3291,48 @@ function generate402Response(
       },
     },
     accepts: acceptsArray,
+    // Top-level network capability discovery — informational, not the payment selection list.
+    // Agents can read this to know which chains are supported before constructing a payment.
+    // eip155:1 is listed here for discovery; Ethereum tx hashes are verified by the orchestrator.
+    supportedNetworks: [
+      {
+        network: "eip155:8453",
+        name: "Base",
+        token: "USDC",
+        contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        active: true
+      },
+      {
+        network: "eip155:8453",
+        name: "Base",
+        token: "USDT",
+        contract: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+        active: true
+      },
+      {
+        network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+        name: "Solana",
+        token: "USDC",
+        contract: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        active: true
+      },
+      {
+        network: "eip155:1",
+        name: "Ethereum",
+        token: "USDC",
+        contract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        active: true,
+        note: "Send USDC to platform_wallet (see alternativePaymentMethods.rawTransaction.platformWallets.ethereum), include tx hash as X-PAYMENT header"
+      },
+      {
+        network: "eip155:1",
+        name: "Ethereum",
+        token: "USDT",
+        contract: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        active: true,
+        note: "Send USDT to platform_wallet, include tx hash as X-PAYMENT header"
+      }
+    ],
     resource: {
       url: resource,
       description: baseDescription,

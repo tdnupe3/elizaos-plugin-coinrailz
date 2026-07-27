@@ -64,3 +64,4 @@
 - [webmcp.json transport URL](webmcp-transport-url.md) — mcpServers.coinrailz.url must be /mcp (JSON-RPC), NOT /mcp/services (catalog); strict MCP clients fail silently if pointed at the catalog
 - [discovery/resources endpoint](discovery-resources-endpoint.md) — IPv6 agent (2a06:98c0:3600::103) needs GET /x402/discovery/resources distinct from /x402/discovery; implemented Jul 19 2026
 - [Free-trial grant gating on handler status](free-trial-status-gate.md) — first-call-free grant must only persist if res.statusCode < 400 after await handler(); malformed requests returned 400 but burned the trial before this fix; eventType='first-call-free-rejected' + freeGrantOutcome:'failed-validation' for 4xx outcomes
+- [Assessment editorial rules](assessment-editorial-rules.md) — dormant API keys: never raise as action item (A2A only if contactable, else move on); MetaVision CVE Oracle: do not pursue (platform already has smart-contract-audit; they're a vendor not a customer)

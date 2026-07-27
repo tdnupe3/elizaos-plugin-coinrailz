@@ -113,11 +113,16 @@ Disallow: /transactions
 Disallow: /portfolio
 Disallow: /credits
 
-# JSON config files
-Disallow: /openapi*.json
+# OpenAPI specs - allowed for AI agent/crawler discovery
+Allow: /openapi.json
+Allow: /openapi-x402-services.json
 
 # Crawl-delay for respectful crawling
 Crawl-delay: 1
 
 # Sitemap for Google
 Sitemap: https://coinrailz.com/sitemap.xml
+
+# LLMs.txt — structured content guide for AI crawlers and citation systems
+# See: https://llmstxt.org
+LLMs: https://coinrailz.com/llms.txt

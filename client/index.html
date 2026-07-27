@@ -47,6 +47,111 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     
+    <!-- Structured Data - Organization + WebSite (site-level, crawler-visible) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://coinrailz.com/#organization",
+          "name": "Coin Railz",
+          "legalName": "Kellogg Holdings LLC",
+          "url": "https://coinrailz.com",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://coinrailz.com/favicon.png",
+            "width": 512,
+            "height": 512
+          },
+          "sameAs": [
+            "https://twitter.com/coinrailz",
+            "https://www.npmjs.com/package/@coinrailz/agent-payments"
+          ],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "technical support",
+            "url": "https://coinrailz.com/enterprise"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://coinrailz.com/#website",
+          "url": "https://coinrailz.com",
+          "name": "Coin Railz",
+          "description": "Payment infrastructure for AI agents — 76 pay-per-call APIs, x402 on-chain USDC, and a USDC Yield Vault on Base.",
+          "publisher": { "@id": "https://coinrailz.com/#organization" },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://coinrailz.com/x402?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- Structured Data - FAQPage (crawler-visible; covers top questions for rich results) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do AI agents pay for APIs on Coin Railz?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Agents can pay two ways: (1) API key pre-funded via card or USDC — get a key in ~60 seconds; (2) x402 on-chain USDC micropayments — the agent attaches a signed USDC payment header to each HTTP request, no key required. Prices start at $0.05/call."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the x402 payment protocol?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "x402 is an open HTTP-native payment protocol that revives the HTTP 402 status code. When an AI agent calls a Coin Railz endpoint without payment, the server returns a 402 response describing the price and accepted tokens. The agent attaches a signed USDC payment in the X-PAYMENT header and retries — no API key, no OAuth, no human in the loop."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which blockchains does Coin Railz support?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Coin Railz supports Base, Ethereum, Polygon, Arbitrum, Optimism, BNB Chain, and Solana for USDC payments. The USDC Yield Vault is deployed on Base (ERC-4626) with auto-routing across Aave v3, Compound v3, and Morpho Blue."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the USDC Yield Vault?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The Coin Railz USDC Yield Vault is an ERC-4626 vault deployed on Base that auto-routes idle USDC across Aave v3, Compound v3, and Morpho Blue to maximize yield. There is no lockup — agents and developers can deposit and withdraw at any time. Yield is paid in USDC."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How many APIs are available on Coin Railz?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Coin Railz offers 76 pay-per-call APIs spanning DeFi (token prices, DEX swaps, yield rates), IoT device payments, satellite and NASA Earthdata intelligence, prediction market feeds, RWA tokenization oracles, stock and forex sentiment, and more. Pricing starts at $0.05/call."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Coin Railz compatible with ElizaOS and AgentKit?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Coin Railz publishes an official ElizaOS plugin (elizaos-plugin-coinrailz on npm) and an AgentKit integration (@coinrailz/agent-payments). Both allow AI agents built on those frameworks to call any of the 76 microservices and interact with the USDC Yield Vault with no extra configuration."
+          }
+        }
+      ]
+    }
+    </script>
+
     <!-- Structured Data - SoftwareApplication for AI Agent Payments SDK -->
     <script type="application/ld+json">
     {

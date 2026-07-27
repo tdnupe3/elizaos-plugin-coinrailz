@@ -1,6 +1,7 @@
 import { app, httpServer, port, markFrontendReady, markStartupComplete } from './index.js';
 import { getVltMarketData, validateAndPush } from './services/vltMarketCache';
 import { getVltUsdcStatsFresh, getVltUsdcStats } from './services/vltUsdcVaultService';
+import { createSsrMetaRouter } from './ssrMetaRoutes';
 
 export async function initApp() {
 
@@ -3818,7 +3819,23 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     next();
   });
   console.log('✅ Legacy route guidance middleware active');
-  
+
+  // ============================================================================
+  // SSR META ROUTES — Crawler-visible HTML for priority marketing pages
+  // ============================================================================
+  // Social bots and AI crawlers (GPTBot, ClaudeBot, Twitterbot, etc.) cannot
+  // execute JavaScript. Without this, they see only the generic loading shell.
+  // This router intercepts requests from known crawler UAs and returns complete
+  // HTML with per-route <title>, OG tags, JSON-LD, and semantic body content.
+  // Regular browsers pass through to Vite/serveStatic unchanged.
+  //
+  // MUST be registered BEFORE serveStatic() and setupVite() — see memory note
+  // api-route-registration.md for why pre-static placement is required.
+  // ============================================================================
+  const ssrMetaRouter = createSsrMetaRouter(!isProduction);
+  app.use('/', ssrMetaRouter);
+  console.log('✅ SSR meta routes registered (crawler UA detection active)');
+
   // ============================================================================
   // CRITICAL: DEFERRED ROUTER PATTERN FOR SDK ROUTES
   // ============================================================================

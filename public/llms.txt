@@ -1,0 +1,190 @@
+# Coin Railz
+
+> Coin Railz is a machine-payable API platform built for AI agents, autonomous systems, and developers. It implements the x402 payment protocol — an HTTP 402-based micropayment standard — enabling any AI agent or software client to pay per API call in USDC on Base (and other EVM chains) with no accounts, subscriptions, or OAuth flows required.
+
+## What Coin Railz Does
+
+Coin Railz provides a catalog of 77 paid API services accessible via a single HTTP pattern:
+
+1. Agent sends a request to an `/x402/<service>` endpoint
+2. Server responds with HTTP 402 and a payment challenge (USDC amount, recipient wallet, supported chains)
+3. Agent signs and broadcasts an on-chain USDC payment
+4. Agent resends the request with a payment receipt header (`X-PAYMENT`)
+5. Server verifies payment on-chain and returns the data
+
+No API keys required. No rate limits. No accounts. Pay only for what you use.
+
+Coin Railz also supports traditional API-key access for agents that prefer a credit-based model, and enterprise contract access for high-volume use cases.
+
+## Target Audience
+
+- AI agent developers (ElizaOS, LangChain, CrewAI, AutoGen, custom agents)
+- Autonomous systems that need real-time data feeds without human-in-the-loop auth
+- Developers building agent-to-agent (A2A) systems
+- MCP (Model Context Protocol) clients
+- Web3 developers building on Base, Ethereum, Solana, or XRP Ledger
+
+## Key Concepts
+
+**x402 Protocol:** An open HTTP payment protocol where a 402 response body contains a machine-readable payment challenge. The agent pays on-chain and retries with proof. Coin Railz is one of the first production implementations with 77 live services.
+
+**USDC Micropayments:** All services priced in USDC, ranging from $0.003 to $1,000 per call. Payments settle on Base (primary), Ethereum, Polygon, Arbitrum, Optimism, and BSC.
+
+**Agent-to-Agent (A2A):** Coin Railz supports the Google A2A protocol (v0.3.0). Agents can discover Coin Railz capabilities via the agent card and send structured task requests.
+
+**MCP Integration:** Full Model Context Protocol server available at `/mcp`. AI assistants (Claude, GPT, etc.) can use Coin Railz as an MCP tool server.
+
+## Discovery & Integration Endpoints
+
+- **Agent Card (A2A):** https://coinrailz.com/.well-known/agent-card.json
+- **x402 Service Catalog:** https://coinrailz.com/.well-known/x402.json
+- **OpenAPI Spec (x402 services):** https://coinrailz.com/openapi.json
+- **OpenAPI Spec (x402 services, alternate):** https://coinrailz.com/openapi-x402-services.json
+- **MCP Server:** https://coinrailz.com/mcp
+- **Service Catalog (JSON):** https://coinrailz.com/x402/catalog
+- **Payment Docs:** https://coinrailz.com/x402/payment-docs
+- **Discovery Resources:** https://coinrailz.com/api/discovery/resources
+- **ChatGPT Plugin Spec:** https://coinrailz.com/openapi-chatgpt.json
+- **GPT Instructions:** https://coinrailz.com/gpt-instructions.md
+- **Sitemap:** https://coinrailz.com/sitemap.xml
+
+## Service Categories & Endpoints
+
+### Blockchain & Crypto Data
+- `POST /x402/gas-price-oracle` — Real-time gas prices across EVM chains ($0.05)
+- `POST /x402/token-price` — Live token price feed ($0.05)
+- `POST /x402/token-metadata` — Token metadata lookup ($0.05)
+- `POST /x402/token-sentiment` — AI-powered token sentiment analysis ($0.15)
+- `POST /x402/trending-tokens` — Trending tokens feed ($0.10)
+- `POST /x402/whale-alerts` — Large wallet movement alerts ($0.10)
+- `POST /x402/dex-liquidity` — DEX liquidity pool data ($0.10)
+- `POST /x402/multi-chain-balance` — Wallet balances across chains ($0.05)
+- `POST /x402/trade-signals` — AI-generated crypto trading signals ($0.25)
+- `POST /x402/contract-scan` — Smart contract security analysis ($0.10)
+- `POST /x402/wallet-risk` — Wallet risk scoring ($0.15)
+- `POST /x402/transaction-builder` — Build EVM transactions ($0.10)
+- `POST /x402/approval-manager` — ERC-20 token approval management ($0.05)
+- `POST /x402/batch-quote` — Batch token quotes ($0.10)
+- `POST /x402/portfolio-tracker` — Portfolio tracking ($0.15)
+- `POST /x402/arbitrage-scanner` — Cross-exchange arbitrage opportunities ($0.25)
+- `POST /x402/correlation-matrix` — Asset correlation matrix ($0.20)
+- `POST /x402/risk-metrics` — Portfolio risk metrics ($0.20)
+- `POST /x402/seamless-chain-bridge` — Cross-chain bridge quotes & execution ($0.50)
+
+### Agent Identity & Wallets
+- `POST /x402/verified-agent-identity` — On-chain verifiable agent identity ($0.10)
+- `POST /x402/instant-agent-wallet` — Provision a new agent wallet instantly ($0.25)
+- `POST /x402/agent-create-wallet` — CDP-powered agent wallet creation ($0.50)
+- `POST /x402/instant-api-key` — Generate a Coin Railz API key on-chain ($0.10)
+
+### Market Intelligence
+- `POST /x402/sentiment-analysis` — Broad market sentiment ($0.15)
+- `POST /x402/trading-signal` — AI trading signals (equities/crypto) ($0.20)
+- `POST /x402/portfolio-optimization` — Portfolio optimization recommendations ($0.30)
+- `POST /x402/stock-sentiment` — Equity sentiment analysis ($0.15)
+- `POST /x402/forex-sentiment` — Forex pair sentiment analysis ($0.15)
+
+### Prediction Markets
+- `POST /x402/polymarket-events` — Active Polymarket prediction market events ($0.05)
+- `POST /x402/polymarket-odds` — Current Polymarket odds ($0.05)
+- `POST /x402/polymarket-search` — Search Polymarket markets ($0.05)
+- `POST /x402/prediction-market-odds` — Aggregated prediction market odds ($0.10)
+- `POST /x402/kalshi-markets` — Kalshi regulated prediction markets ($0.05)
+- `POST /x402/kalshi-odds` — Current Kalshi odds ($0.05)
+- `POST /x402/kalshi-search` — Search Kalshi markets ($0.05)
+- `POST /x402/prediction-market-spread` — Cross-platform prediction market spreads ($0.15)
+
+### Yield & DeFi
+- `POST /x402/solana-yield-finder` — Solana DeFi yield opportunities via Kamino ($0.10)
+- `POST /x402/rwa-nav-oracle` — Real-world asset NAV oracle ($0.25)
+- `POST /x402/tokenized-yield-compare` — Tokenized treasury yield comparison ($0.15)
+- `POST /x402/vlt-usdc-deposit` — vltUSDC Vault deposit calldata builder ($0.25)
+
+### Enterprise & Compliance
+- `POST /x402/smart-contract-audit` — Full smart contract security audit ($1,000)
+- `POST /x402/payment-processing` — Enterprise payment processing ($50)
+- `POST /x402/compliance-consultation` — Regulatory compliance consultation ($500)
+- `POST /x402/compliance-check` — Automated compliance check ($0.25)
+- `POST /x402/credit-risk-score` — Credit risk scoring ($0.25)
+- `POST /x402/fraud-detection` — Transaction fraud detection ($0.20)
+
+### Real Estate (RWA)
+- `POST /x402/property-valuation` — AI property valuation ($0.50)
+- `POST /x402/lease-analysis` — Lease document analysis ($0.25)
+- `POST /x402/construction-progress` — Construction project progress tracking ($0.25)
+
+### Satellite & Earth Science (NASA)
+- `POST /x402/fire-alerts` — NASA FIRMS real-time fire/hotspot alerts ($0.10)
+- `POST /x402/weather-imagery` — Weather satellite imagery ($0.15)
+- `POST /x402/vegetation` — Vegetation health (NDVI) from satellite ($0.10)
+- `POST /x402/flood-detection` — Flood detection from satellite data ($0.15)
+- `POST /x402/air-quality` — Air quality index from Sentinel-5P ($0.10)
+- `POST /x402/land-use` — Land use classification ($0.15)
+- `POST /x402/earthdata-sst` — NASA sea surface temperature ($0.10)
+- `POST /x402/earthdata-soil-moisture` — NASA soil moisture data ($0.10)
+- `POST /x402/earthdata-ocean-color` — NASA ocean color data ($0.25)
+
+### IoT & Telematics
+- `POST /x402/fleet-telematics` — Fleet vehicle telematics ($0.20)
+- `POST /x402/weather-station-data` — IoT weather station readings ($0.10)
+- `POST /x402/iot-sensor-reading` — IoT sensor data retrieval ($0.05)
+- `POST /x402/iot-device-stream` — IoT device data stream ($0.10)
+- `POST /x402/iot-bulk-data` — Bulk IoT data export ($0.25)
+
+### Robinhood Chain (RH Chain)
+- `POST /x402/robinhood-token-price` — Token prices on Robinhood Chain ($0.05)
+- `POST /x402/robinhood-dex-pools` — DEX pool data on Robinhood Chain ($0.05)
+- `POST /x402/robinhood-chain-stats` — Robinhood Chain network health stats ($0.05)
+- `POST /x402/rh-stock-price` — Real-world stock prices via Robinhood Chain Chainlink feeds ($0.05)
+- `POST /x402/rh-bridge-usdc` — USDC bootstrap bridge onto Robinhood Chain ($0.75)
+
+### B20 (Beryl) Token Services
+- `POST /x402/b20-token-info` — B20/Beryl token info and price ($0.05)
+- `POST /x402/b20-transfer-check` — B20 transfer eligibility check ($0.10)
+- `POST /x402/b20-compliance-scan` — B20 token compliance scan ($0.25)
+
+### AI & Developer Tools
+- `POST /x402/ai-inference` — GPT-4o-mini inference via x402 ($0.01)
+- `POST /x402/first-call` — Golden path: first x402 payment test ($0.05)
+- `POST /x402/ping` — Ping/echo service ($0.003)
+
+## Key Documentation Pages
+
+- **Getting Started:** https://coinrailz.com/docs/getting-started
+- **x402 Protocol Explainer:** https://coinrailz.com/docs/x402-protocol
+- **API Reference:** https://coinrailz.com/docs/api
+- **Developer Hub:** https://coinrailz.com/developers
+- **Quickstart Guide:** https://coinrailz.com/quickstart
+- **x402 Docs:** https://coinrailz.com/x402-docs
+- **AI Marketplace:** https://coinrailz.com/ai-marketplace
+- **Enterprise:** https://coinrailz.com/enterprise
+- **USDC Payments:** https://coinrailz.com/usdc-payments
+- **IoT Platform:** https://coinrailz.com/iot
+- **Fleet Telematics:** https://coinrailz.com/fleet
+- **Satellite Data:** https://coinrailz.com/satellite
+- **FAQ:** https://coinrailz.com/faq
+
+## SDKs & Plugins
+
+- **coinrailz npm package:** `npm install coinrailz` — JavaScript/TypeScript SDK for x402 payments
+- **@coinrailz/agent-payments:** `npm install @coinrailz/agent-payments` — Agent-focused payment helpers
+- **elizaos-plugin-coinrailz:** `npm install elizaos-plugin-coinrailz` — ElizaOS plugin (merged into ElizaOS plugin registry PR #8382)
+
+## Payment Model Summary
+
+| Access Method | Auth | Best For |
+|---|---|---|
+| x402 per-call | On-chain USDC payment | Autonomous agents, one-off queries |
+| API key (credits) | `X-API-KEY` header | High-frequency, budget-controlled agents |
+| Enterprise contract | Admin provisioned | Bulk access, SLA-backed integrations |
+
+Pricing ranges from $0.003 (ping) to $1,000 (smart contract audit). Most data services are $0.05–$0.25 per call.
+
+## About
+
+Coin Railz is building the payment layer for the agentic web — infrastructure that lets AI agents transact autonomously using open standards (x402, A2A, MCP) without requiring human-managed API keys or subscription billing.
+
+Website: https://coinrailz.com  
+OpenAPI: https://coinrailz.com/openapi.json  
+Agent Card: https://coinrailz.com/.well-known/agent-card.json  
+Service Catalog: https://coinrailz.com/.well-known/x402.json

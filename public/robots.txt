@@ -122,3 +122,7 @@ Crawl-delay: 1
 
 # Sitemap for Google
 Sitemap: https://coinrailz.com/sitemap.xml
+
+# LLMs.txt — structured content guide for AI crawlers and citation systems
+# See: https://llmstxt.org
+LLMs: https://coinrailz.com/llms.txt

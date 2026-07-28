@@ -97,7 +97,7 @@ if (isProduction) {
     } catch {
       fallbackHtml = `<!DOCTYPE html><html><head><title>Coin Railz</title>
 <meta property="og:title" content="Coin Railz - Micropayment Rail for AI Agents">
-<meta property="og:image" content="https://coinrailz.com/og-image.png">
+<meta property="og:image" content="https://coinrailz.com/og-image.png?v=20260728">
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 </head><body><p>Loading...</p></body></html>`;
       console.log('⚠️ Using minimal fallback HTML (index.html not found)');

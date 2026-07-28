@@ -93,7 +93,7 @@ interface RouteSSRConfig {
 }
 
 const BASE_URL = 'https://coinrailz.com';
-const OG_IMAGE = `${BASE_URL}/og-image.png?v=20260314`;
+const OG_IMAGE = `${BASE_URL}/og-image.png?v=20260728`;
 
 const SSR_ROUTES: Record<string, RouteSSRConfig> = {
   '/': {

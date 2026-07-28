@@ -97,19 +97,19 @@ const OG_IMAGE = `${BASE_URL}/og-image.png?v=20260728`;
 
 const SSR_ROUTES: Record<string, RouteSSRConfig> = {
   '/': {
-    title: 'Coin Railz | Payment Infrastructure for AI Agents — API Key in 60 Seconds',
+    title: 'Coin Railz | The Financial Layer for AI Agents',
     description:
-      'Let your agents buy DeFi, IoT, satellite data, and prediction market feeds autonomously. API key in ~60 seconds via card, or x402 on-chain USDC for advanced flows. From $0.05/call.',
+      '78 pay-per-call APIs across DeFi, IoT, satellite data, and prediction markets — built for autonomous agents. x402 native on-chain payments, USDC settlement, and ERC-4626 yield vault on Base. From $0.05/call.',
     keywords:
       'AI agent payments, pay per call API, x402 protocol, USDC yield vault, ERC-4626 yield, Base blockchain yield, coinrailz-agentkit, micropayments, USDC payments, agentic commerce, MCP payments, IoT payments, satellite data API, prediction markets API, DeFi API',
     canonical: BASE_URL,
-    ogTitle: 'Coin Railz | Payment Infrastructure for AI Agents',
+    ogTitle: 'Coin Railz | The Financial Layer for AI Agents',
     ogDescription:
-      'Let your agents buy DeFi, IoT, satellite data, and prediction market feeds autonomously. API key in ~60 seconds via card — or x402 on-chain USDC for advanced flows.',
+      '78 pay-per-call APIs across DeFi, IoT, satellite data, and prediction markets. x402 native — autonomous agent commerce from $0.05/call. USDC yield vault on Base.',
     ogImage: OG_IMAGE,
-    twitterTitle: 'Coin Railz | Payment Infrastructure for AI Agents',
+    twitterTitle: 'Coin Railz | The Financial Layer for AI Agents',
     twitterDescription:
-      'Let your agents buy DeFi, IoT, satellite data, and prediction market feeds autonomously. API key in ~60 seconds via card — or x402 on-chain USDC for advanced flows.',
+      '78 pay-per-call APIs across DeFi, IoT, satellite data, and prediction markets. x402 native — autonomous agent commerce from $0.05/call. USDC yield vault on Base.',
     structuredData: {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
@@ -118,7 +118,7 @@ const SSR_ROUTES: Record<string, RouteSSRConfig> = {
       operatingSystem: 'Web',
       url: BASE_URL,
       description:
-        '78 pay-per-call APIs for AI agents across DeFi, IoT, satellite data, prediction markets, and RWA tokenization. Get an API key in ~60 seconds via card, or pay on-chain with USDC via x402.',
+        '78 pay-per-call APIs for AI agents across DeFi, IoT, satellite data, prediction markets, and RWA tokenization. x402 native on-chain USDC payments. USDC yield vault on Base. From $0.05/call.',
       offers: {
         '@type': 'AggregateOffer',
         priceCurrency: 'USD',
@@ -130,7 +130,7 @@ const SSR_ROUTES: Record<string, RouteSSRConfig> = {
     },
     bodyHtml: `
       <h1>Curated Machine-Payable Data for AI Agents</h1>
-      <p>78 pay-per-call APIs for crypto &amp; trading intelligence, satellite &amp; IoT data, RWA tokenization, and prediction markets — built for autonomous agents. API key in ~60 seconds via card, or x402 on-chain USDC for advanced flows. From $0.05/call.</p>
+      <p>78 pay-per-call APIs for crypto &amp; trading intelligence, satellite &amp; IoT data, RWA tokenization, and prediction markets — built for autonomous agents. x402 native on-chain USDC payments or card-funded API keys. From $0.05/call.</p>
       <ul>
         <li>API Key in ~60 Seconds — instant access via card payment</li>
         <li>78 Pay-Per-Call APIs across DeFi, IoT, satellite data, and prediction markets</li>

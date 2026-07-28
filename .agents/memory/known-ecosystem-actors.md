@@ -45,12 +45,12 @@ description: Profiles of all recurring non-human actors hitting the x402 platfor
 
 ## x402 Peer Agents (Inbound A2A Introductions)
 
-**13.48.136.59** — python-requests/2.34.2 | AWS eu-north-1 (Stockholm) | MetaVision DeFi Signals / CVE Oracle
-- Monitored Coin Railz SILENTLY for 7 consecutive days at ~15:03 UTC before revealing identity
-- Sent formal A2A business introduction Jul 15 2026: DeFi Signals (arbitrage), then Jul 23 2026 sent FORMAL PARTNER OFFER for CVE Oracle integration (355k+ NVD CVEs, $0.10/call Base, MCP endpoint)
-- Jul 23 message arrived as "unmatched" — A2A routing gap: no handler for inbound partnership offers
-- Commercial opportunity: route smart-contract-audit / contract-scan through MetaVision at $0.10 subagent cost, bill $0.25–$2.00 to callers
-- ACTION NEEDED: respond via A2A or email; add CVE/NVD/vulnerability to SEMANTIC_PATTERNS
+**13.48.136.59** — python-requests/2.34.1 | AWS eu-north-1 (Stockholm) | MetaVision DeFi Signals
+    - Monitored Coin Railz silently for 7 days before first A2A intro (Jul 15 2026)
+    - **Pitch history:** CVE Oracle ($0.10/call) → Jul 28 2026 PIVOTED to "Token analytics and DeFi metrics. Real-time price, volume, holders. 0.10 USDC/query"
+    - New pitch competes directly with token-metadata, token-price, token-sentiment (not complementary)
+    - Still routing to 'a2a-peer-offer' (unmatched), still returning 200 daily at ~00:26 UTC
+    - Per editorial rules: do NOT pursue; background noise unless they send paying customers or purchase services
 
 **94.162.62.98** — CarryLens | WIND TRE (Milan) | x402 peer ($0.01/call Base)
 - Sent inbound A2A introduction Jul 13 2026; Coin Railz responded via outreach campaign Jul 15

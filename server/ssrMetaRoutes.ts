@@ -750,7 +750,7 @@ function getSpaScriptTag(isDev: boolean): string {
   const distPath = path.resolve(process.cwd(), 'dist/public');
   try {
     if (fs.existsSync(distPath)) {
-      const files = fs.readdirSync(path.join(distPath, 'assets')).filter((f) => f.startsWith('main-') && f.endsWith('.js'));
+      const files = fs.readdirSync(path.join(distPath, 'assets')).filter((f) => (f.startsWith('index-') || f.startsWith('main-')) && f.endsWith('.js'));
       if (files.length > 0) {
         return `<script type="module" src="/assets/${files[0]}"></script>`;
       }

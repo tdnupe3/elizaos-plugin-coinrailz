@@ -3802,6 +3802,14 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         tags: ["defi", "yield", "vault", "bankroll", "vlt", "usdc", "ethereum", "erc4626", "x402", "free"],
         inputModes: ["application/json"],
         outputModes: ["application/json"]
+      },
+      {
+        id: "vlt-usdc-withdraw",
+        name: "vltUSDC Vault Withdraw Calldata",
+        description: "FREE — Unsigned vault.redeem calldata for exiting the Bankroll Network vltUSDC vault on Ethereum mainnet. No payment required. Send {shares, recipient}, get back 1 unsigned Ethereum transaction with live slippage floors for VLT + USDC output.",
+        tags: ["defi", "yield", "vault", "bankroll", "vlt", "usdc", "ethereum", "withdraw", "redeem", "x402", "free"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
       }
     ],
     
@@ -5660,6 +5668,13 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
         name: "vltUSDC Vault Deposit (Bankroll Network)",
         description: "FREE — Unsigned ERC-4626 calldata for the Bankroll Network vltUSDC vault on Ethereum. No payment required. Send {amountUsdc, recipient}, vault zaps USDC into VLT/WETH LP, mints vltUSDC shares. Builder Pattern — zero custody.",
         endpoint: `${baseUrl}/x402/vlt-usdc-deposit`,
+        price: "free",
+      },
+      {
+        id: "vlt-usdc-withdraw",
+        name: "vltUSDC Vault Withdraw (Bankroll Network)",
+        description: "FREE — Unsigned vault.redeem calldata for exiting the Bankroll Network vltUSDC vault on Ethereum. Send {shares, recipient}, receive 1 unsigned tx with live slippage floors for VLT + USDC output. Completes the deposit→earn→withdraw lifecycle.",
+        endpoint: `${baseUrl}/x402/vlt-usdc-withdraw`,
         price: "free",
       },
       {

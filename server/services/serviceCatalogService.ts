@@ -909,12 +909,23 @@ export class ServiceCatalogService {
       // Bankroll Network / VLT Vault
       {
         id: 'vlt-usdc-deposit',
-        name: 'VLT USDC Vault Deposit Builder',
-        description: 'Free deposit calldata builder for the Bankroll Network VLT/WETH LP vault on Base. Returns the ABI-encoded deposit transaction calldata, current VLT price, ETH price, vault TVL, and APR. Pass { amount } in USDC. No payment required.',
+        name: 'vltUSDC Vault Deposit Builder',
+        description: 'FREE — Calldata builder for depositing into the Bankroll Network vltUSDC vault on Ethereum mainnet. Two modes: balanced (VLT+USDC, 3 txs) or USDC-only via ZapHelper with live swap quote (2 txs). Vault auto-compounds VLT/USDC Uniswap V4 1% LP fees. No payment required.',
         endpoint: '/x402/vlt-usdc-deposit',
-        network: 'eip155:8453',
+        network: 'eip155:1',
         category: 'execution',
-        capabilities: ['vault', 'deposit', 'calldata', 'vlt', 'bankroll-network', 'lp', 'usdc', 'defi', 'yield', 'apr', 'tvl'],
+        capabilities: ['vault', 'deposit', 'calldata', 'vlt', 'bankroll-network', 'ethereum', 'usdc', 'defi', 'yield', 'apr', 'tvl', 'uniswap-v4'],
+        x402Compatible: true,
+        stripeCompatible: false
+      },
+      {
+        id: 'vlt-usdc-withdraw',
+        name: 'vltUSDC Vault Withdraw Builder',
+        description: 'FREE — Calldata builder for redeeming vltUSDC shares from the Bankroll Network vault on Ethereum mainnet. Single transaction — no approvals needed. Returns vault.redeem calldata with live-computed slippage floors (2% default). VLT + USDC sent directly to recipient. No payment required.',
+        endpoint: '/x402/vlt-usdc-withdraw',
+        network: 'eip155:1',
+        category: 'execution',
+        capabilities: ['vault', 'withdraw', 'redeem', 'calldata', 'vlt', 'bankroll-network', 'ethereum', 'usdc', 'defi', 'yield', 'slippage'],
         x402Compatible: true,
         stripeCompatible: false
       },

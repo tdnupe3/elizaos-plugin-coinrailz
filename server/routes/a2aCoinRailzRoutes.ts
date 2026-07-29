@@ -322,10 +322,10 @@ const SEMANTIC_PATTERNS: Array<{ pattern: RegExp; services: string[]; boost: num
     services: ['b20-token-info', 'b20-transfer-check'],
     boost: 10
   },
-  // VLT USDC Vault / Bankroll Network — deposit calldata builder
+  // VLT USDC Vault / Bankroll Network — deposit + withdraw calldata builders
   {
     pattern: /\b(vlt|bankroll network|vlt.*vault|vault.*deposit|usdc.*vault|vault.*usdc)\b/i,
-    services: ['vlt-usdc-deposit'],
+    services: ['vlt-usdc-deposit', 'vlt-usdc-withdraw'],
     boost: 30
   },
   {
@@ -334,8 +334,13 @@ const SEMANTIC_PATTERNS: Array<{ pattern: RegExp; services: string[]; boost: num
     boost: 25
   },
   {
+    pattern: /\b(withdraw.*vault|redeem.*vault|exit.*vault|vault.*withdraw|vault.*redeem|vlt.*withdraw|withdraw.*vlt|redeem.*shares|shares.*redeem)\b/i,
+    services: ['vlt-usdc-withdraw'],
+    boost: 30
+  },
+  {
     pattern: /\b(vlt.*price|vlt.*tvl|vlt.*apr|bankroll.*apr|bankroll.*tvl)\b/i,
-    services: ['vlt-usdc-deposit'],
+    services: ['vlt-usdc-deposit', 'vlt-usdc-withdraw'],
     boost: 25
   },
   // Robinhood Chain stock / price feeds

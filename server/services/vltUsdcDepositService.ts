@@ -33,6 +33,13 @@ import { ethers } from 'ethers';
 import { getVltMarketData } from './vltMarketCache.js';
 import { getVltUsdcStatsFresh } from './vltUsdcVaultService.js';
 
+// Common vault preview ABI (same as zap service)
+const VAULT_PREVIEW_ABI = [
+  'function previewDeposit(uint256 vltAmount, uint256 usdcAmount) view returns (uint256 shares)',
+];
+
+const SHARE_SLIPPAGE_BPS = 200n; // 2% — matches zap service
+
 const VAULT_ADDRESS = '0xee8d4c5c768AadCd3517Aa8C908De300305D0A7f'; // vault IS the vltUSDC ERC-20
 const VLT_TOKEN     = '0x6b785a0322126826d8226d77e173d75DAfb84d11';
 const USDC_ETH      = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
@@ -49,6 +56,7 @@ const ERC20_IFACE = new ethers.Interface([
 // vault.deposit(uint256 vltAmount, uint256 usdcAmount, uint256 minShares, uint256 deadline, address recipient)
 const VAULT_IFACE = new ethers.Interface([
   'function deposit(uint256 vltAmount, uint256 usdcAmount, uint256 minShares, uint256 deadline, address recipient) returns (uint256 shares)',
+  'function previewDeposit(uint256 vltAmount, uint256 usdcAmount) view returns (uint256 shares)',
 ]);
 
 export interface DepositCalldataResult {
@@ -111,13 +119,33 @@ export async function buildVltUsdcDeposit(
 
   const deadline = BigInt(Math.floor(Date.now() / 1000) + DEADLINE_SECONDS);
 
+  // Fetch minShares via vault.previewDeposit with 2% slippage — same pattern as zap service.
+  // Fails gracefully: if RPC unavailable, falls back to 1n (non-zero minimum) and warns.
+  let minSharesRaw = 1n;
+  let minSharesSource = 'non-zero-fallback';
+  try {
+    const rpcUrl = `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY ?? ''}`;
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const vault = new ethers.Contract(VAULT_ADDRESS, VAULT_PREVIEW_ABI, provider);
+    const preview = await vault.previewDeposit(vltRaw, usdcRaw);
+    const previewShares = BigInt(preview.toString());
+    if (previewShares > 0n) {
+      const slipped = previewShares * (10000n - SHARE_SLIPPAGE_BPS) / 10000n;
+      minSharesRaw = slipped > 0n ? slipped : 1n;
+      minSharesSource = 'vault-preview-2pct';
+    }
+  } catch {
+    // Non-fatal — balanced deposit still works but with minimal slippage protection
+    console.warn('[vltUSDC Deposit] vault.previewDeposit unavailable — using minShares=1 fallback');
+  }
+
   // Build calldata
   const vltApproveData  = ERC20_IFACE.encodeFunctionData('approve', [VAULT_ADDRESS, vltRaw]);
   const usdcApproveData = ERC20_IFACE.encodeFunctionData('approve', [VAULT_ADDRESS, usdcRaw]);
   const depositData     = VAULT_IFACE.encodeFunctionData('deposit', [
     vltRaw,
     usdcRaw,
-    0n,        // minShares = 0 (no slippage protection on shares — agent can tighten)
+    minSharesRaw,   // slippage-protected: vault.previewDeposit × 0.98 (or 1n fallback)
     deadline,
     recipient,
   ]);

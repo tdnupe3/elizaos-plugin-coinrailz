@@ -79,6 +79,7 @@ import { fetchRobinhoodPoolData, fetchRobinhoodTopPools, fetchRobinhoodChainStat
 import { rhStockPriceService, SUPPORTED_SYMBOLS as RH_STOCK_SYMBOLS } from './microservices/rhStockPrice';
 import { rhBridgeService } from './microservices/rhBridgeService';
 import { buildVltUsdcDeposit } from '../services/vltUsdcDepositService';
+import { buildVltUsdcWithdraw } from '../services/vltUsdcWithdrawService';
 import { getVltUsdcStats } from '../services/vltUsdcVaultService';
 import { rwaNavOracleService } from '../services/rwaNavOracleService';
 import { tokenizedYieldCompareService } from '../services/tokenizedYieldCompareService';
@@ -1580,6 +1581,49 @@ const x402Routes = {
   },
 
   // === BANKROLL NETWORK — vltUSDC (Ethereum LP Yield, July 2026) ===
+  "POST /vlt-usdc-withdraw": {
+    price: "free",
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/vlt-usdc-withdraw`,
+      name: "vltUSDC Withdraw Builder",
+      description: "FREE — No payment required. Send {shares, recipient} and receive 1 unsigned Ethereum transaction: vault.redeem(shares, minVltOut, minUsdcOut, deadline, receiver). Agent signs and broadcasts on Ethereum mainnet. No approval needed — shares are already in your wallet. Returns VLT + USDC directly to recipient. minVltOut and minUsdcOut are computed from live vault data with 2% slippage (zero-fallback if unavailable).",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 30,
+      inputSchema: {
+        bodyFields: {
+          shares:     { type: "string", description: "vltUSDC share amount to redeem (raw 18-decimal string, e.g. '1000000000000000000' for 1 share)", required: true },
+          recipient:  { type: "string", description: "Ethereum mainnet wallet address to receive VLT + USDC", required: true },
+          slippageBps: { type: "number", description: "Slippage tolerance in basis points (default: 200 = 2%, max: 1000)", required: false },
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          required: ["shares", "recipient"],
+          properties: {
+            shares:     { type: "string", description: "vltUSDC shares to redeem (18-decimal raw amount)" },
+            recipient:  { type: "string", description: "0x Ethereum address that receives VLT + USDC" },
+            slippageBps: { type: "number", description: "Slippage floor in basis points (default 200 = 2%)" },
+          }
+        },
+        output: {
+          type: "object",
+          properties: {
+            success:         { type: "boolean" },
+            shares:          { type: "string",  description: "Share amount with 6-decimal precision" },
+            recipient:       { type: "string",  description: "Recipient Ethereum address" },
+            network:         { type: "string",  description: "Always 'Ethereum Mainnet'" },
+            chainId:         { type: "number",  description: "Always 1 (Ethereum)" },
+            step:            { type: "object",  description: "Single unsigned transaction to sign and broadcast" },
+            shareValue:      { type: "object",  description: "Estimated VLT/USDC output and vault fraction stats" },
+            agentInstructions: { type: "string", description: "Plain-English step-by-step instructions for agent" },
+          }
+        }
+      }
+    }
+  },
   "POST /vlt-usdc-deposit": {
     price: "free",
     network: NETWORK,
@@ -6116,6 +6160,99 @@ router.post("/rh-bridge-usdc",
 );
 
 // ============================================================
+// BANKROLL NETWORK — vltUSDC Withdraw Builder (Ethereum LP Yield, July 2026)
+// FREE — No payment required. Completes the deposit→earn→withdraw lifecycle.
+// ============================================================
+
+router.get("/vlt-usdc-withdraw", (_req: Request, res: Response) => {
+  const stats = getVltUsdcStats();
+  res.json({
+    service:  'vlt-usdc-withdraw',
+    name:     'vltUSDC Vault Withdraw Builder',
+    price:    'free',
+    description: 'FREE — Returns 1 unsigned Ethereum transaction: vault.redeem(shares, minVltOut, minUsdcOut, deadline, receiver). No token approval needed — your vltUSDC shares are burned and VLT + USDC are sent directly to the recipient. minVltOut and minUsdcOut are computed from live vault data with 2% slippage.',
+    method:   'POST',
+    body: {
+      shares:      'string — raw 18-decimal vltUSDC share amount (e.g. "1000000000000000000" for 1 share)',
+      recipient:   'string — Ethereum address to receive VLT + USDC',
+      slippageBps: 'number (optional, default 200) — slippage tolerance in basis points (200 = 2%, max 1000)',
+    },
+    contracts: {
+      vault:     '0xee8d4c5c768AadCd3517Aa8C908De300305D0A7f',
+      vlt:       '0x6b785a0322126826d8226d77e173d75DAfb84d11',
+      usdc:      '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      chainId:   1,
+      pool:      'VLT/USDC · Uniswap V4 · full-range · 1% fee',
+    },
+    slippageNote: 'minVltOut and minUsdcOut are estimated from live vault TVL using a 50/50 value-split approximation. Vault returns any excess tokens. Set slippageBps=0 to disable floors (receives whatever the vault sends).',
+    ...(stats ? {
+      liveStats: {
+        vltPriceUsd: stats.stats.vltPriceUsd,
+        tvlUsd:      stats.stats.tvlUsd,
+        aprDisplay:  stats.stats.aprDisplay,
+        lPerShare:   stats.stats.lPerShare,
+        updatedAt:   stats.updatedAt,
+        source:      stats.source,
+      },
+    } : { liveStats: null }),
+    also: 'POST /x402/vlt-usdc-deposit to enter the vault | GET /api/vlt-usdc/stats for full vault stats',
+  });
+});
+
+// BigInt-safe JSON send helper — vlt-usdc-withdraw service uses BigInt arithmetic
+// internally; any unreplaced BigInt that escapes into the response body causes
+// JSON.stringify to throw. This helper converts all remaining BigInts to strings.
+function sendWithdrawJson(res: Response, status: number, body: object): void {
+  const safe = JSON.stringify(body, (_key, val) =>
+    typeof val === 'bigint' ? val.toString() : val,
+  );
+  res.status(status).set('Content-Type', 'application/json').send(safe);
+}
+
+router.post("/vlt-usdc-withdraw", async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  try {
+    const { shares, recipient, slippageBps } = req.body as {
+      shares?:      string;
+      recipient?:   string;
+      slippageBps?: number;
+    };
+
+    if (!shares || !recipient) {
+      res.status(400).json({
+        success: false,
+        error: 'shares and recipient are required',
+        example: {
+          shares:    '1000000000000000000',
+          recipient: '0x...',
+          slippageBps: 200,
+        },
+        note: 'shares is a raw 18-decimal integer string (your vltUSDC balance). Check your balance via eth_call totalSupply or a wallet RPC.',
+      });
+      return;
+    }
+
+    const result = await buildVltUsdcWithdraw(shares, recipient, slippageBps);
+    const responseTime = Date.now() - startTime;
+    // Pass result through BigInt-safe stringify before trackRequest to avoid
+    // potential serialization issues in the audit trail layer.
+    const safeResult = JSON.parse(JSON.stringify(result, (_k, v) =>
+      typeof v === 'bigint' ? v.toString() : v,
+    ));
+    await trackRequest("vlt-usdc-withdraw", req.body, safeResult, responseTime, 0, req.ip || "unknown");
+
+    if (!result.success) {
+      return sendWithdrawJson(res, 400, result);
+    }
+    sendWithdrawJson(res, 200, { free: true, ...result });
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    await trackRequest("vlt-usdc-withdraw", req.body, null, responseTime, 0, req.ip || "unknown", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================
 // BANKROLL NETWORK — vltUSDC Deposit Builder (Ethereum LP Yield, July 2026)
 // FREE — No payment required. Partnership with Bankroll Network.
 // ============================================================
@@ -6239,7 +6376,7 @@ router.post("/vlt-usdc-deposit", async (req: Request, res: Response) => {
     'flood-detection','air-quality','land-use','b20-token-info','b20-transfer-check','b20-compliance-scan',
     'robinhood-token-price','robinhood-dex-pools','robinhood-chain-stats',
     'rh-stock-price','rh-bridge-usdc',
-    'vlt-usdc-deposit',
+    'vlt-usdc-deposit','vlt-usdc-withdraw',
     'fleet-telematics',
     'weather-station-data','iot-sensor-reading','iot-device-stream','iot-bulk-data',
     'earthdata-sst','earthdata-soil-moisture','earthdata-ocean-color',

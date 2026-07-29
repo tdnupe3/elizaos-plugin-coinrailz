@@ -3265,7 +3265,7 @@ function generate402Response(
             note: "Ethereum verification is fully supported. Send the tx hash directly in X-PAYMENT."
           }
         ],
-        sdk_quickstart: `// npm install x402-fetch\nimport { wrapFetchWithPayment } from 'x402-fetch';\nconst pay = wrapFetchWithPayment(fetch, wallet);\nconst r = await pay('${baseUrl}/x402/${serviceName}', { method: 'POST', body: JSON.stringify({}) });\nconsole.log(await r.json());`,
+        sdk_quickstart: `// npm install x402-fetch\nimport { wrapFetchWithPayment } from 'x402-fetch';\n// maxValue must be set to cover the service price — default is too low for most services\nconst pay = wrapFetchWithPayment(fetch, wallet, { maxValue: BigInt(10 * 10 ** 6) });\nconst r = await pay('${baseUrl}/x402/${serviceName}', { method: 'POST', body: JSON.stringify({}) });\nconsole.log(await r.json());`,
         note: "Base is preferred for lowest gas. Ethereum mainnet also accepted — send tx hash in X-PAYMENT header."
       }
     },

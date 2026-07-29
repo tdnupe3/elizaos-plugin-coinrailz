@@ -116,7 +116,12 @@ export class X402Client {
         transport: http()
       });
 
-      const x402Fetch = wrapFetchWithPayment(fetch, walletClient as any);
+      // maxValue must be set explicitly — x402-fetch defaults to a conservative limit
+      // (~$0.10) that silently blocks most catalog services. $10.00 covers the full
+      // catalog including smart-contract-audit.
+      const x402Fetch = wrapFetchWithPayment(fetch, walletClient as any, {
+        maxValue: BigInt(10 * 10 ** 6)  // $10.00 in USDC micro-units (6 decimals)
+      });
 
       const response = await x402Fetch(endpoint, {
         method: 'POST',

@@ -3232,8 +3232,8 @@ const firstCallHandler = async (req: Request, res: Response) => {
         {
           id: "multi-chain-balance",
           name: "Multi-Chain Balance",
-          price: "$1.00 USDC",
-          priceUsd: 1.00,
+          price: "$0.50 USDC",
+          priceUsd: 0.50,
           endpoint: "/x402/multi-chain-balance",
           endpointUrl: "https://coinrailz.com/x402/multi-chain-balance",
           description: "Wallet balances across Base, Ethereum, Polygon, Arbitrum, and Solana in a single call.",

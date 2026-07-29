@@ -71,7 +71,7 @@ export class X402Client {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`,
-          'User-Agent': 'elizaos-plugin-coinrailz/2.0.0'
+          'User-Agent': 'elizaos-plugin-coinrailz/2.4.0'
         }
       });
       return { success: true, serviceResponse: response.data };
@@ -125,7 +125,7 @@ export class X402Client {
 
       const response = await x402Fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'User-Agent': 'elizaos-plugin-coinrailz/2.0.0' },
+        headers: { 'Content-Type': 'application/json', 'User-Agent': 'elizaos-plugin-coinrailz/2.4.0' },
         body: JSON.stringify(payload ?? {})
       });
 
@@ -162,7 +162,7 @@ export class X402Client {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-PAYMENT': transactionHash,
-      'User-Agent': 'elizaos-plugin-coinrailz/2.0.0'
+      'User-Agent': 'elizaos-plugin-coinrailz/2.4.0'
     };
     if (this.apiKey) headers['Authorization'] = `Bearer ${this.apiKey}`;
 

@@ -8,7 +8,7 @@
 |---|---|
 | 🏦 **Solana USDC Yield** | Deposit into Kamino Lending — ~3.4% APY. Agent signs txs locally; Coin Railz never holds funds. |
 | 🏦 **Base USDC Yield** | ERC-4626 vault auto-routing across Aave v3, Compound v3, and Morpho Blue for best rate. |
-| ⚡ **78 x402 Services** | Pay-per-call APIs: NASA satellite data, prediction market spread, AI inference, trading signals. |
+| ⚡ **79 x402 Services** | Pay-per-call APIs: NASA satellite data, prediction market spread, AI inference, trading signals. |
 | 🔑 **Two payment paths** | API key credits (no wallet needed) or autonomous x402 (self-sovereign USDC on Base). |
 
 **Platform:** `https://coinrailz.com`  
@@ -157,7 +157,7 @@ Uses `x402-fetch` with EIP-712 signing to pay for services automatically on Base
 
 ---
 
-## x402 Pay-Per-Call Services (78 total)
+## x402 Pay-Per-Call Services (79 total)
 
 ### 📈 Featured: Prediction Markets ($0.25–$0.75)
 | Service ID | Price | Description |

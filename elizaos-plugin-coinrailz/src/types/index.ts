@@ -723,5 +723,34 @@ export const COIN_RAILZ_SERVICES: CoinRailzService[] = [
     endpoint: '/x402/prediction-market-spread',
     network: 'base',
     category: 'prediction-markets'
+  },
+
+  // ─── Bankroll Network / VLT Vault ───────────────────────────────────────────
+  {
+    id: 'vlt-stats',
+    name: 'VLT + vltUSDC Vault Stats',
+    description: 'Live VLT token price, market cap, liquidity, and vltUSDC vault stats (TVL, estimated LP fee APR, L/share). Use for autonomous vault allocation decisions.',
+    price: '0.05',
+    endpoint: '/x402/vlt-stats',
+    network: 'base',
+    category: 'bankroll-network'
+  },
+  {
+    id: 'vlt-usdc-deposit',
+    name: 'vltUSDC Vault Deposit Builder',
+    description: 'FREE — Calldata builder for depositing into the Bankroll Network vltUSDC vault on Ethereum mainnet. Balanced (VLT+USDC) or USDC-only via ZapHelper. No payment required with API key.',
+    price: '0.00',
+    endpoint: '/x402/vlt-usdc-deposit',
+    network: 'base',
+    category: 'bankroll-network'
+  },
+  {
+    id: 'vlt-usdc-withdraw',
+    name: 'vltUSDC Vault Withdraw Builder',
+    description: 'FREE — Calldata builder for redeeming vltUSDC shares from the Bankroll Network vault on Ethereum mainnet. Single transaction, no approvals needed. No payment required with API key.',
+    price: '0.00',
+    endpoint: '/x402/vlt-usdc-withdraw',
+    network: 'base',
+    category: 'bankroll-network'
   }
 ];

@@ -6427,7 +6427,32 @@ router.post("/vlt-stats",
       const responseTime = Date.now() - startTime;
       await trackRequest("vlt-stats", req.body, result, responseTime, SERVICE_PRICING_USD["vlt-stats"], req.ip || "unknown");
       await trackBundleUsage(req, res, "vlt-stats", {});
-      res.json(result);
+      res.json({
+        ...result,
+        agentHints: {
+          description: 'Use vlt-stats to evaluate the vault, then call the free lifecycle endpoints to act.',
+          nextServices: [
+            {
+              id: 'vlt-usdc-withdraw',
+              name: 'vltUSDC Vault Withdraw Builder',
+              price: 'FREE',
+              endpoint: '/x402/vlt-usdc-withdraw',
+              description: 'Redeem vltUSDC shares back to VLT + USDC. Single tx, no approvals. Pass shares amount and recipient.',
+              requiredParams: { shares: 'string (uint256 — vltUSDC share amount to redeem)', recipient: 'string (0x wallet address)' }
+            },
+            {
+              id: 'vlt-usdc-deposit',
+              name: 'vltUSDC Vault Deposit Builder',
+              price: 'FREE',
+              endpoint: '/x402/vlt-usdc-deposit',
+              description: 'Enter the vault with USDC-only (ZapHelper) or balanced VLT+USDC. Returns unsigned calldata.',
+              requiredParams: { mode: '"usdc-only" | "balanced"', usdcAmount: 'string (USDC amount in micro-units)' }
+            }
+          ],
+          vaultWorkflow: 'GET vlt-stats → evaluate TVL/APR → POST vlt-usdc-deposit (enter) or POST vlt-usdc-withdraw (exit)',
+          note: 'vlt-usdc-deposit and vlt-usdc-withdraw are free with an API key (X-API-KEY header). The vault operates on Ethereum mainnet; returned calldata must be executed there.'
+        }
+      });
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
       await trackRequest("vlt-stats", {}, null, responseTime, SERVICE_PRICING_USD["vlt-stats"], req.ip || "unknown", error.message);

@@ -110,6 +110,7 @@ export type ServiceName =
   // Bankroll Network — vltUSDC Ethereum Yield (July 2026)
   | "vlt-usdc-deposit"
   | "vlt-usdc-withdraw"
+  | "vlt-stats"
   // RWA & Tokenization vertical (July 2026)
   | "rwa-nav-oracle"
   | "tokenized-yield-compare";
@@ -229,6 +230,7 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   // BANKROLL NETWORK — vltUSDC (Ethereum LP Yield, July 2026)
   "vlt-usdc-deposit": 0,              // Free — Bankroll Network partnership; vault LP fees flow to VLT holders
   "vlt-usdc-withdraw": 0,             // Free — Withdraw calldata builder; completes the deposit→earn→withdraw lifecycle
+  "vlt-stats": 50000,                 // $0.05 — VLT price + vltUSDC vault TVL/APR snapshot
 
   // SATELLITE DATA SERVICES (NASA Earthdata + ESA Copernicus)
   "fire-alerts": 50000,                // $0.05 - NASA FIRMS active fire detection
@@ -355,6 +357,7 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   // Bankroll Network — vltUSDC (Ethereum LP Yield, July 2026)
   "vlt-usdc-deposit": 0.00,
   "vlt-usdc-withdraw": 0.00,
+  "vlt-stats": 0.05,                  // VLT price + vltUSDC vault TVL/APR snapshot
 
   // Satellite Data Services (NASA Earthdata + ESA Copernicus)
   "fire-alerts": 0.05,

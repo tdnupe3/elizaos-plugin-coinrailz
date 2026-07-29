@@ -339,9 +339,14 @@ const SEMANTIC_PATTERNS: Array<{ pattern: RegExp; services: string[]; boost: num
     boost: 30
   },
   {
-    pattern: /\b(vlt.*price|vlt.*tvl|vlt.*apr|bankroll.*apr|bankroll.*tvl)\b/i,
-    services: ['vlt-usdc-deposit', 'vlt-usdc-withdraw'],
+    pattern: /\b(vlt.*price|vlt.*tvl|vlt.*apr|bankroll.*apr|bankroll.*tvl|vlt.*stats|vlt.*market|vlt.*cap|vlt.*volume)\b/i,
+    services: ['vlt-stats', 'vlt-usdc-deposit', 'vlt-usdc-withdraw'],
     boost: 25
+  },
+  {
+    pattern: /\b(vlt.{0,20}(market|price|cap|apr|tvl|stats|snapshot)|bankroll.{0,20}stats)\b/i,
+    services: ['vlt-stats'],
+    boost: 30
   },
   // Robinhood Chain stock / price feeds
   {

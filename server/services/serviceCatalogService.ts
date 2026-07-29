@@ -929,6 +929,17 @@ export class ServiceCatalogService {
         x402Compatible: true,
         stripeCompatible: false
       },
+      {
+        id: 'vlt-stats',
+        name: 'VLT + vltUSDC Vault Stats',
+        description: 'Live VLT token price, market cap, liquidity, and vltUSDC vault stats (TVL, estimated LP fee APR, L/share, total shares). Sourced from CoinGecko + DexScreener (market data) and Alchemy on-chain reads (vault state). Use for autonomous vault allocation decisions alongside vlt-usdc-deposit and vlt-usdc-withdraw.',
+        endpoint: '/x402/vlt-stats',
+        network: 'eip155:1',
+        category: 'execution',
+        capabilities: ['vlt-price', 'vault-tvl', 'vault-apr', 'share-price', 'lp-fees', 'bankroll-network', 'ethereum', 'defi', 'yield', 'uniswap-v4', 'market-data'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
       // Robinhood Chain Services
       {
         id: 'rh-stock-price',

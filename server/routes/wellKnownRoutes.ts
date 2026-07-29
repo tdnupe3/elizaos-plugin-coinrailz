@@ -3810,6 +3810,14 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         tags: ["defi", "yield", "vault", "bankroll", "vlt", "usdc", "ethereum", "withdraw", "redeem", "x402", "free"],
         inputModes: ["application/json"],
         outputModes: ["application/json"]
+      },
+      {
+        id: "vlt-stats",
+        name: "VLT + vltUSDC Vault Stats",
+        description: "$0.05 — Live VLT token price, market cap, and vltUSDC vault stats (TVL, estimated LP fee APR, L/share). Sourced from CoinGecko + DexScreener (market) and Alchemy on-chain reads (vault state). Use for autonomous vault allocation decisions alongside vlt-usdc-deposit and vlt-usdc-withdraw.",
+        tags: ["defi", "yield", "vault", "bankroll", "vlt", "usdc", "ethereum", "price", "tvl", "apr", "market-data", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
       }
     ],
     
@@ -5676,6 +5684,13 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
         description: "FREE — Unsigned vault.redeem calldata for exiting the Bankroll Network vltUSDC vault on Ethereum. Send {shares, recipient}, receive 1 unsigned tx with live slippage floors for VLT + USDC output. Completes the deposit→earn→withdraw lifecycle.",
         endpoint: `${baseUrl}/x402/vlt-usdc-withdraw`,
         price: "free",
+      },
+      {
+        id: "vlt-stats",
+        name: "VLT + vltUSDC Vault Stats (Bankroll Network)",
+        description: "$0.05 — Live VLT price, market cap, and vltUSDC vault stats (TVL, LP fee APR estimate, L/share). Sourced from CoinGecko + DexScreener + Alchemy. Pair with vlt-usdc-deposit and vlt-usdc-withdraw for autonomous vault allocation.",
+        endpoint: `${baseUrl}/x402/vlt-stats`,
+        price: "$0.05 USDC",
       },
       {
         id: "catalog",

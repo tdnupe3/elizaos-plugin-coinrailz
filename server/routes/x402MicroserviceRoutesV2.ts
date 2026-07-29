@@ -81,6 +81,7 @@ import { rhBridgeService } from './microservices/rhBridgeService';
 import { buildVltUsdcDeposit } from '../services/vltUsdcDepositService';
 import { buildVltUsdcWithdraw } from '../services/vltUsdcWithdrawService';
 import { getVltUsdcStats } from '../services/vltUsdcVaultService';
+import { getVltStats } from '../services/vltStatsService';
 import { rwaNavOracleService } from '../services/rwaNavOracleService';
 import { tokenizedYieldCompareService } from '../services/tokenizedYieldCompareService';
 
@@ -6352,6 +6353,90 @@ router.post("/vlt-usdc-deposit", async (req: Request, res: Response) => {
 });
 
 // ============================================================
+// BANKROLL NETWORK — vlt-stats ($0.05): VLT price + vltUSDC vault TVL/APR
+// GET  → discovery: schema, preview of live price, $0.05 price tag
+// POST → paid: full agent-readable snapshot (VLT market + vault stats)
+// ============================================================
+
+router.get("/vlt-stats", (_req: Request, res: Response) => {
+  // Return a preview of live data even on the discovery endpoint so agents
+  // can decide whether the full payload is worth $0.05 before paying.
+  const preview = (() => {
+    try {
+      const s = getVltStats();
+      return {
+        vltPriceUsd:   s.vlt.priceUsd,
+        tvlUsd:        s.vltUsdc.tvlUsd,
+        aprDisplay:    s.vltUsdc.aprDisplay,
+        lPerShare:     s.vltUsdc.lPerShare,
+        dataSource:    s.dataAge.dataSource,
+      };
+    } catch { return null; }
+  })();
+
+  res.json({
+    service:     'vlt-stats',
+    name:        'VLT + vltUSDC Vault Stats',
+    price:       `$${microToUSD(SERVICE_PRICING_MICRO["vlt-stats"])}`,
+    description: 'Live VLT token price, market cap, and vltUSDC vault stats (TVL, estimated LP fee APR, L/share). Sourced from CoinGecko, DexScreener, and Alchemy on-chain reads.',
+    endpoint:    'POST /x402/vlt-stats',
+    network:     'Ethereum Mainnet (eip155:1)',
+    schema: {
+      request: '{}  (no parameters required — full snapshot returned)',
+      response: {
+        vlt: {
+          priceUsd:              'number — VLT/USD from CoinGecko',
+          marketCapUsd:          'number',
+          liquidityUsd:          'number — DexScreener best pair',
+          vol24hUsd:             'number',
+          priceChangePercent24h: 'number',
+          supply:                'number',
+          address:               'string — ERC-20 contract on Ethereum',
+        },
+        vltUsdc: {
+          tvlUsd:           'number — DexScreener VLT/USDC pair liquidity',
+          aprPct:           'number|null — estimated LP fee APR',
+          aprDisplay:       'string — human-readable APR estimate',
+          lPerShare:        'number — Uniswap V4 L/share (grows as fees compound)',
+          totalShares:      'string — total vltUSDC supply (raw 18-dec)',
+          positionLiquidity: 'string — vault V4 position liquidity (uint128)',
+        },
+        pool: {
+          fee:               'string — "1% per swap"',
+          feeBps:            'number — 100',
+          tickSpacing:       'number — 200',
+          poolManagerAddress: 'string — Uniswap V4 PoolManager on Ethereum',
+          dex:               'string — "Uniswap V4"',
+        },
+        dataAge: {
+          vltMarketAgeSeconds: 'number — seconds since last CoinGecko/DexScreener refresh',
+          vaultStatsUpdatedAt: 'string — ISO timestamp of last on-chain vault refresh',
+        },
+      },
+    },
+    ...(preview ? { livePreview: preview } : {}),
+    also: 'POST /x402/vlt-usdc-deposit (free deposit calldata) | POST /x402/vlt-usdc-withdraw (free withdraw calldata)',
+  });
+});
+
+router.post("/vlt-stats",
+  createPaymentOrchestrator("vlt-stats", SERVICE_PRICING_MICRO["vlt-stats"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = getVltStats();
+      const responseTime = Date.now() - startTime;
+      await trackRequest("vlt-stats", req.body, result, responseTime, SERVICE_PRICING_USD["vlt-stats"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "vlt-stats", {});
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("vlt-stats", {}, null, responseTime, SERVICE_PRICING_USD["vlt-stats"], req.ip || "unknown", error.message);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  })
+);
+
+// ============================================================
 // UNKNOWN-SERVICE CATCH-ALL — must be the LAST route in this router
 // Returns machine-readable JSON 404 with did_you_mean for malformed
 // paths (e.g. gas-price-oracle%60 → suggests gas-price-oracle).
@@ -6376,7 +6461,7 @@ router.post("/vlt-usdc-deposit", async (req: Request, res: Response) => {
     'flood-detection','air-quality','land-use','b20-token-info','b20-transfer-check','b20-compliance-scan',
     'robinhood-token-price','robinhood-dex-pools','robinhood-chain-stats',
     'rh-stock-price','rh-bridge-usdc',
-    'vlt-usdc-deposit','vlt-usdc-withdraw',
+    'vlt-usdc-deposit','vlt-usdc-withdraw','vlt-stats',
     'fleet-telematics',
     'weather-station-data','iot-sensor-reading','iot-device-stream','iot-bulk-data',
     'earthdata-sst','earthdata-soil-moisture','earthdata-ocean-color',

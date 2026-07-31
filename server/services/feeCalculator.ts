@@ -179,40 +179,6 @@ export class FeeCalculator {
   }
   
   /**
-   * Calculate fees for any transaction type with payment method
-   */
-  static calculateTransactionFee({
-    amount,
-    currency = 'USD',
-    paymentMethod = 'crypto',
-    transactionType = 'dex_swap'
-  }: {
-    amount: number;
-    currency?: string;
-    paymentMethod?: string;
-    transactionType?: string;
-  }): FeeCalculation {
-    const platformFee = Math.round(amount * this.PLATFORM_BASE_FEE * 100) / 100;
-    const processingFee = amount * 0.001;
-    const totalFee = platformFee + processingFee;
-    
-    return {
-      originalAmount: amount,
-      processingFee,
-      convenienceFee: 0,
-      platformFee,
-      totalFee,
-      totalAmount: amount + totalFee,
-      netAmount: amount,
-      paymentMethod,
-      // Legacy compatibility
-      fee: totalFee,
-      total: amount + totalFee,
-      feePercentage: (totalFee / amount) * 100
-    };
-  }
-
-  /**
    * Legacy Stripe fee calculator for backward compatibility
    */
   static calculateStripeFees(amount: number): FeeCalculation {

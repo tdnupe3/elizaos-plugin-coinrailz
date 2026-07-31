@@ -312,16 +312,6 @@ Network: Base Chain Mainnet`;
   // SIMULATION CODE REMOVED - ALL OUTREACH MUST BE REAL
   // User explicitly requested: "we need this to be real and not a simulation"
 
-  /**
-   * 📊 Generate comprehensive campaign report
-   */
-  private generateCampaignReport(): void {
-    console.log('📊 CAMPAIGN REPORT GENERATED');
-    console.log(`✅ Total messages sent: ${this.messagesSent}`);
-    console.log(`💰 Total cost: $${this.totalCost.toFixed(6)}`);
-    console.log(`📈 Success rate: ${((this.campaignResults.filter(r => r.status === 'success').length / this.campaignResults.length) * 100).toFixed(1)}%`);
-  }
-
   private getGamingTargets() {
     return [
       // 🎮 GAMING & NFT PLATFORMS (High Priority)

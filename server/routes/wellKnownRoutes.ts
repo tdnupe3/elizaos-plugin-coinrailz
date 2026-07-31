@@ -2373,6 +2373,8 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
           basescan:   `https://basescan.org/address/${process.env.YIELD_VAULT_ADDRESS ?? 'deploying-soon'}`
         },
         endpoints: {
+          _format:   'uri-template (RFC 6570) — replace {wallet} with your EVM wallet address before calling',
+          _note:     'Do NOT pass {wallet} literally. Substitute your actual 0x address. See example_endpoints for pre-filled examples.',
           rates:     `${baseUrl}/api/yield/rates`,
           stats:     `${baseUrl}/api/yield/stats`,
           depositTx: `${baseUrl}/api/yield/deposit-tx?preset=100&recipient={wallet}`,
@@ -2382,6 +2384,13 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
           contract:  `${baseUrl}/api/yield/contract`,
           manifest:  `${baseUrl}/api/yield/manifest`,
           portal:    `${baseUrl}/yield-portal`
+        },
+        example_endpoints: {
+          _note:     'Pre-filled examples — replace 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91 with YOUR wallet. Do NOT deposit to the example address.',
+          depositTx: `${baseUrl}/api/yield/deposit-tx?preset=100&recipient=0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
+          permitTx:  `${baseUrl}/api/yield/deposit-tx?mode=permit&preset=100&recipient=0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
+          redeemTx:  `${baseUrl}/api/yield/redeem-tx?wallet=0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
+          position:  `${baseUrl}/api/yield/position/0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
         },
         agentkit: {
           package: "coinrailz-agentkit",
@@ -3620,6 +3629,8 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
           "TRACK: GET /api/yield/position/0xWALLET → live shares, USD value, yield earned, protocol allocation."
         ],
         endpoints: {
+          _format:   'uri-template (RFC 6570) — replace {wallet} with your EVM wallet address before calling',
+          _note:     'Do NOT pass {wallet} literally. Substitute your actual 0x address. See example_endpoints for pre-filled examples.',
           rates:     `${baseUrl}/api/yield/rates`,
           stats:     `${baseUrl}/api/yield/stats`,
           depositTx: `${baseUrl}/api/yield/deposit-tx?preset=100&recipient={wallet}`,
@@ -3629,6 +3640,13 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
           contract:  `${baseUrl}/api/yield/contract`,
           manifest:  `${baseUrl}/api/yield/manifest`,
           portal:    `${baseUrl}/yield-portal`
+        },
+        example_endpoints: {
+          _note:     'Pre-filled examples — replace 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91 with YOUR wallet. Do NOT deposit to the example address.',
+          depositTx: `${baseUrl}/api/yield/deposit-tx?preset=100&recipient=0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
+          permitTx:  `${baseUrl}/api/yield/deposit-tx?mode=permit&preset=100&recipient=0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
+          redeemTx:  `${baseUrl}/api/yield/redeem-tx?wallet=0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
+          position:  `${baseUrl}/api/yield/position/0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
         },
         inputModes: ["application/json"],
         outputModes: ["application/json"],
@@ -4203,6 +4221,8 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         npmUrl:  "https://www.npmjs.com/package/coinrailz-agentkit"
       },
       routes: {
+        _format:   'uri-template (RFC 6570) — replace {wallet} with your EVM wallet address before calling',
+        _note:     'Do NOT pass {wallet} literally. Substitute your actual 0x address. See example_routes for pre-filled examples.',
         rates:     `${baseUrl}/api/yield/rates`,
         stats:     `${baseUrl}/api/yield/stats`,
         depositTx: `${baseUrl}/api/yield/deposit-tx?preset=100&recipient={wallet}`,
@@ -4212,6 +4232,13 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         contract:  `${baseUrl}/api/yield/contract`,
         manifest:  `${baseUrl}/api/yield/manifest`,
         portal:    `${baseUrl}/yield-portal`,
+      },
+      example_routes: {
+        _note:     'Pre-filled examples — replace 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91 with YOUR wallet. Do NOT deposit to the example address.',
+        depositTx: `${baseUrl}/api/yield/deposit-tx?preset=100&recipient=0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
+        permitTx:  `${baseUrl}/api/yield/deposit-tx?mode=permit&preset=100&recipient=0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
+        redeemTx:  `${baseUrl}/api/yield/redeem-tx?wallet=0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
+        position:  `${baseUrl}/api/yield/position/0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
       },
     },
     blockchain: {

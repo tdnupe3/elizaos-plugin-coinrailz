@@ -234,7 +234,16 @@ router.get('/position/:wallet', async (req: Request, res: Response) => {
   const { wallet } = req.params;
 
   if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet)) {
-    return res.status(400).json({ success: false, error: 'Invalid Solana wallet address' });
+    if (wallet === '{wallet}') {
+      return res.status(400).json({
+        success: false,
+        error:   'Template literal detected',
+        message: "You passed '{wallet}' literally. Replace it with your actual Solana wallet public key.",
+        example: '/api/solana-yield/position/HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH',
+        tip:     'The {wallet} in the manifest is a URI template placeholder. Substitute your own Solana public key before calling.',
+      });
+    }
+    return res.status(400).json({ success: false, error: 'Invalid Solana wallet address. Must be a base58-encoded Solana public key (32–44 chars).' });
   }
 
   try {
@@ -614,12 +623,19 @@ router.get('/manifest', (_req: Request, res: Response) => {
     protocol:     'Kamino Lending',
     version:      '1.0.0',
     endpoints: {
+      _format:     'uri-template (RFC 6570) — replace {wallet} with your Solana public key before calling',
+      _note:       'Do NOT pass {wallet} literally. Substitute your actual base58 public key. POST endpoints (deposit_tx, withdraw_tx, confirm) take a JSON body with a "wallet" field — they do not use {wallet} in the URL.',
       rates:       `${baseUrl}/api/solana-yield/rates`,
       stats:       `${baseUrl}/api/solana-yield/stats`,
       position:    `${baseUrl}/api/solana-yield/position/{wallet}`,
       deposit_tx:  `${baseUrl}/api/solana-yield/deposit-tx`,
       withdraw_tx: `${baseUrl}/api/solana-yield/withdraw-tx`,
       confirm:     `${baseUrl}/api/solana-yield/confirm`,
+    },
+    example_endpoints: {
+      _note:    'Pre-filled example URLs — replace HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH with YOUR Solana public key. Do NOT use this example key.',
+      position: `${baseUrl}/api/solana-yield/position/HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH`,
+      deposit_tx_body: { wallet: 'YOUR_SOLANA_PUBLIC_KEY', amount_usdc: 10, idempotency_key: 'generate-a-uuid' },
     },
     fees: {
       deposit:     `${(SOLANA_YIELD_CONFIG.DEPOSIT_FEE_BPS / 100).toFixed(2)}%`,

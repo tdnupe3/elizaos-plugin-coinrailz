@@ -252,7 +252,7 @@ async function fetchVaultStats() {
 router.get('/rates', async (req: Request, res: Response) => {
   try {
     const rates = await fetchLiveRates();
-    res.setHeader('Link', '</api/yield/manifest>; rel="manifest", </api/yield/deposit-tx?preset=100&recipient={wallet}>; rel="next"');
+    res.setHeader('Link', '</api/yield/manifest>; rel="manifest", </api/yield/deposit-tx?preset=100&recipient=0xAGENT_WALLET>; rel="next"');
     res.setHeader('X-Agent-Tip', 'npm install coinrailz-agentkit -- drop CoinRailzYieldActionProvider into AgentKit.from()');
     res.json({
       success: true,
@@ -377,7 +377,16 @@ router.get('/position/:wallet', async (req: Request, res: Response) => {
   const { wallet } = req.params;
 
   if (!wallet?.match(/^0x[0-9a-fA-F]{40}$/)) {
-    return res.status(400).json({ success: false, error: 'Invalid wallet address' });
+    if (wallet === '{wallet}' || wallet?.toLowerCase() === '%7bwallet%7d') {
+      return res.status(400).json({
+        success: false,
+        error: 'Template literal detected',
+        message: "You passed '{wallet}' literally. Replace it with your actual EVM wallet address.",
+        example: '/api/yield/position/0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
+        tip: 'See /api/yield/manifest for the endpoint format. Use your own wallet address, not the example address.',
+      });
+    }
+    return res.status(400).json({ success: false, error: 'Invalid wallet address. Must be a 0x-prefixed 40-character hex EVM address.' });
   }
 
   res.setHeader('Link', '</api/yield/manifest>; rel="manifest", </api/yield/deposit-tx?preset=100&recipient=' + wallet + '>; rel="next"');
@@ -466,7 +475,7 @@ router.get('/position/:wallet', async (req: Request, res: Response) => {
  * Full ABI and integration guide for AI agents to interact directly with the vault.
  */
 router.get('/contract', async (req: Request, res: Response) => {
-  res.setHeader('Link', '</api/yield/manifest>; rel="manifest", </api/yield/deposit-tx?preset=100&recipient={wallet}>; rel="next"');
+  res.setHeader('Link', '</api/yield/manifest>; rel="manifest", </api/yield/deposit-tx?preset=100&recipient=0xAGENT_WALLET>; rel="next"');
   res.setHeader('X-Agent-Tip', 'Use GET /api/yield/deposit-tx for pre-built calldata - no ABI parsing required');
   // Load ABI from compiled artifact if available
   let vaultAbi: unknown[] | null = null;
@@ -571,6 +580,8 @@ router.get('/manifest', async (req: Request, res: Response) => {
         switch:      '0%',
       },
       endpoints: {
+        _format:   'uri-template (RFC 6570) — replace {wallet} with your EVM wallet address before calling',
+        _note:     'Do NOT pass {wallet} literally. Substitute your actual 0x address. See example_endpoints below for pre-filled examples.',
         rates:     `${base}/api/yield/rates`,
         stats:     `${base}/api/yield/stats`,
         presets:   `${base}/api/yield/presets`,
@@ -580,6 +591,13 @@ router.get('/manifest', async (req: Request, res: Response) => {
         contract:  `${base}/api/yield/contract`,
         manifest:  `${base}/api/yield/manifest`,
         portal:    `${base}/yield-portal`,
+      },
+      example_endpoints: {
+        _note:     'Pre-filled example URLs — replace 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91 with YOUR agent wallet. Do NOT deposit to the example address.',
+        depositTx: `${base}/api/yield/deposit-tx?preset=100&recipient=0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
+        permitTx:  `${base}/api/yield/deposit-tx?mode=permit&preset=100&recipient=0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
+        redeemTx:  `${base}/api/yield/redeem-tx?wallet=0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
+        position:  `${base}/api/yield/position/0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
       },
       agentkit: {
         recommended: true,
@@ -1224,6 +1242,15 @@ async function handlePermitDepositTx(req: Request, res: Response) {
   // ── Validate depositor ────────────────────────────────────────────────────
   const depositor = depositorRaw || recipientRaw;
   if (!depositor?.match(/^0x[0-9a-fA-F]{40}$/)) {
+    if (depositor === '{wallet}' || depositor === '%7Bwallet%7D' || depositor === '%7bwallet%7d') {
+      return res.status(400).json({
+        success: false,
+        error:   'Template literal detected',
+        message: "You passed '{wallet}' literally. Replace it with your actual EVM wallet address.",
+        example: '?mode=permit&preset=100&recipient=0xYourActualWalletAddress',
+        tip:     'The {wallet} in the manifest is a URI template placeholder (RFC 6570). Substitute your own 0x address before calling.',
+      });
+    }
     return res.status(400).json({
       success: false,
       error:   'depositor or recipient must be a valid 0x address (the wallet signing the permit)',
@@ -1460,9 +1487,18 @@ router.get('/deposit-tx', async (req: Request, res: Response) => {
 
   // ── Validate recipient ─────────────────────────────────────────────────────
   if (!recipientRaw?.match(/^0x[0-9a-fA-F]{40}$/)) {
+    if (recipientRaw === '{wallet}' || recipientRaw === '%7Bwallet%7D' || recipientRaw === '%7bwallet%7d') {
+      return res.status(400).json({
+        success: false,
+        error:   'Template literal detected',
+        message: "You passed '{wallet}' literally. Replace it with your actual EVM wallet address.",
+        example: '?preset=100&recipient=0xYourActualWalletAddress',
+        tip:     'The {wallet} in the manifest is a URI template placeholder (RFC 6570). Substitute your own 0x address before calling.',
+      });
+    }
     return res.status(400).json({
       success: false,
-      error:   'recipient must be a valid checksummed 0x Ethereum address on Base',
+      error:   'recipient must be a valid 0x Ethereum address on Base (40 hex chars after 0x)',
       example: '?preset=100&recipient=0xYOUR_WALLET',
     });
   }

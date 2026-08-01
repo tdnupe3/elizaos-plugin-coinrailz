@@ -6299,6 +6299,7 @@ router.post("/vlt-usdc-withdraw", async (req: Request, res: Response) => {
       }
     }
 
+
     const result = await buildVltUsdcWithdraw(shares, recipient, slippageBps);
     const responseTime = Date.now() - startTime;
     // Pass result through BigInt-safe stringify before trackRequest to avoid
@@ -6414,9 +6415,18 @@ router.post("/vlt-usdc-deposit", async (req: Request, res: Response) => {
       return;
     }
 
-    // 2. amountUsdc must be a positive finite number; reject Infinity, NaN, and values above 1 million USDC
-    const _amountNum = parseFloat(String(amountUsdc));
-    if (!Number.isFinite(_amountNum) || _amountNum <= 0) {
+    // 2. amountUsdc must be a strict decimal string (rejects "100abc", hex, scientific notation)
+    //    then must be a positive finite number no greater than 1,000,000 USDC
+    if (typeof amountUsdc !== 'string' || !/^\d+(\.\d+)?$/.test(amountUsdc)) {
+      res.status(400).json({
+        success: false,
+        error: 'amountUsdc must be a positive finite number (e.g. "100" for 100 USDC)',
+        received: amountUsdc,
+      });
+      return;
+    }
+    const _amountNum = Number(amountUsdc);
+    if (_amountNum <= 0) {
       res.status(400).json({
         success: false,
         error: 'amountUsdc must be a positive finite number (e.g. "100" for 100 USDC)',
@@ -6442,6 +6452,7 @@ router.post("/vlt-usdc-deposit", async (req: Request, res: Response) => {
       });
       return;
     }
+
 
     let result: any;
     if (usdcOnly === true) {

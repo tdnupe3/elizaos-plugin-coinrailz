@@ -96,6 +96,16 @@ export async function buildVltUsdcDeposit(
     return errorResult(amountUsdc, recipient, 'recipient must be a valid Ethereum address (0x + 40 hex chars)');
   }
 
+  // Normalize to EIP-55 checksum form — accepts lowercase, uppercase, or mixed-case addresses.
+  // ethers.encodeFunctionData calls ethers.getAddress() internally and throws on bad checksum;
+  // normalizing via toLowerCase() → getAddress() avoids 500s for valid-hex non-checksummed input.
+  let normalizedRecipient: string;
+  try {
+    normalizedRecipient = ethers.getAddress(recipient.toLowerCase());
+  } catch {
+    return errorResult(amountUsdc, recipient, 'recipient is not a valid Ethereum address (must be 0x + 40 hex characters)');
+  }
+
   const amount = parseFloat(String(amountUsdc));
   if (isNaN(amount) || amount <= 0) {
     return errorResult(amountUsdc, recipient, 'amountUsdc must be a positive number');
@@ -147,7 +157,7 @@ export async function buildVltUsdcDeposit(
     usdcRaw,
     minSharesRaw,   // slippage-protected: vault.previewDeposit × 0.98 (or 1n fallback)
     deadline,
-    recipient,
+    normalizedRecipient,
   ]);
 
   let vaultStats = { tvlUsd: 0, lPerShare: 1.0, aprDisplay: 'New', vltPriceUsd };
@@ -167,7 +177,7 @@ export async function buildVltUsdcDeposit(
     amountUsdcRaw: usdcRaw.toString(),
     amountVlt: vltEstimate.toFixed(6),
     amountVltRaw: vltRaw.toString(),
-    recipient,
+    recipient: normalizedRecipient,
     network: 'Ethereum Mainnet',
     chainId: CHAIN_ID,
     steps: [
@@ -196,7 +206,7 @@ export async function buildVltUsdcDeposit(
         data: depositData,
         value: '0x0',
         gasEstimate: '0x61A80', // ~400,000 gas (V4 liquidity provision)
-        note: `Vault adds VLT + USDC as liquidity into the Uniswap V4 VLT/USDC position and mints vltUSDC shares to ${recipient}. Any token excess is returned automatically.`,
+        note: `Vault adds VLT + USDC as liquidity into the Uniswap V4 VLT/USDC position and mints vltUSDC shares to ${normalizedRecipient}. Any token excess is returned automatically.`,
       },
     ],
     vaultStats,

@@ -201,7 +201,120 @@ describe('POST /x402/vlt-usdc-withdraw — missing required fields', () => {
 });
 
 // ────────────────────────────────────────────────────────────────────────────
-// 6. Deposit service previewDeposit path: minShares no longer hardcoded 0
+// 6. Additional withdraw guard cases — non-numeric shares string
+// ────────────────────────────────────────────────────────────────────────────
+describe('POST /x402/vlt-usdc-withdraw — non-numeric shares', () => {
+  test('shares:"abc" → 400 with error field mentioning shares', async () => {
+    const res = await axios.post(
+      WITHDRAW_URL,
+      { shares: 'abc', recipient: VALID_ADDR },
+      { validateStatus: () => true },
+    );
+    expect(res.status).toBe(400);
+    expect(res.data.success).toBe(false);
+    expect(typeof res.data.error).toBe('string');
+    // Error must reference "shares" so callers know which field is wrong
+    expect(res.data.error.toLowerCase()).toMatch(/shares/);
+  });
+
+  test('shares:"1.5" (decimal) → 400 (only whole shares accepted)', async () => {
+    const res = await axios.post(
+      WITHDRAW_URL,
+      { shares: '1.5', recipient: VALID_ADDR },
+      { validateStatus: () => true },
+    );
+    expect(res.status).toBe(400);
+    expect(res.data.success).toBe(false);
+  });
+
+  test('recipient:"foo" → 400 with error mentioning recipient/address', async () => {
+    const res = await axios.post(
+      WITHDRAW_URL,
+      { shares: ONE_SHARE, recipient: 'foo' },
+      { validateStatus: () => true },
+    );
+    expect(res.status).toBe(400);
+    expect(res.data.success).toBe(false);
+    expect(typeof res.data.error).toBe('string');
+    // Error must point to the recipient/address field
+    expect(res.data.error.toLowerCase()).toMatch(/recipient|address/);
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// 7. Deposit input-validation guard tests
+// ────────────────────────────────────────────────────────────────────────────
+describe('POST /x402/vlt-usdc-deposit — input validation guards', () => {
+  test('recipient:"not-an-address" → 400 with error mentioning recipient/address', async () => {
+    const res = await axios.post(
+      DEPOSIT_URL,
+      { amountUsdc: '100', recipient: 'not-an-address' },
+      { validateStatus: () => true },
+    );
+    expect(res.status).toBe(400);
+    expect(res.data.success).toBe(false);
+    expect(typeof res.data.error).toBe('string');
+    expect(res.data.error.toLowerCase()).toMatch(/recipient|address/);
+  });
+
+  test('amountUsdc:"abc" → 400 with error field', async () => {
+    const res = await axios.post(
+      DEPOSIT_URL,
+      { amountUsdc: 'abc', recipient: VALID_ADDR },
+      { validateStatus: () => true },
+    );
+    expect(res.status).toBe(400);
+    expect(res.data.success).toBe(false);
+    expect(typeof res.data.error).toBe('string');
+  });
+
+  test('amountUsdc:"0" → 400 (zero amount rejected)', async () => {
+    const res = await axios.post(
+      DEPOSIT_URL,
+      { amountUsdc: '0', recipient: VALID_ADDR },
+      { validateStatus: () => true },
+    );
+    expect(res.status).toBe(400);
+    expect(res.data.success).toBe(false);
+    expect(typeof res.data.error).toBe('string');
+  });
+
+  test('amountUsdc:"2000000" (>1M) → 400 (ceiling exceeded)', async () => {
+    const res = await axios.post(
+      DEPOSIT_URL,
+      { amountUsdc: '2000000', recipient: VALID_ADDR },
+      { validateStatus: () => true },
+    );
+    expect(res.status).toBe(400);
+    expect(res.data.success).toBe(false);
+    expect(typeof res.data.error).toBe('string');
+    // Error should mention the cap
+    expect(res.data.error.toLowerCase()).toMatch(/exceed|maximum|1.000.000|1,000,000/);
+  });
+
+  test('valid payload (correct address + valid amount) passes guards and reaches builder', async () => {
+    // A valid request must not be rejected by input-validation guards.
+    // The builder may return 400 if the on-chain RPC call fails in CI, but it
+    // must never return 400 with a guard-style error (missing/invalid field).
+    const res = await axios.post(
+      DEPOSIT_URL,
+      { amountUsdc: '10', recipient: VALID_ADDR },
+      { timeout: 25_000, validateStatus: () => true },
+    );
+    // 200 (success) or 400 from RPC failure are both acceptable;
+    // a guard 400 would have error mentioning "required" / "address" / "amountUsdc"
+    if (res.status === 400) {
+      const errLower = (res.data.error || '').toLowerCase();
+      // Must NOT be a guard rejection for a well-formed payload
+      expect(errLower).not.toMatch(/required|valid ethereum address|positive finite/);
+    }
+    // Must never 500 (unhandled crash)
+    expect(res.status).not.toBe(500);
+  }, 30_000);
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// 8. Deposit service previewDeposit path: minShares no longer hardcoded 0
 // ────────────────────────────────────────────────────────────────────────────
 describe('POST /x402/vlt-usdc-deposit — minShares safety fix', () => {
   test('balanced deposit response contains minSharesSource field (not minShares=0)', async () => {

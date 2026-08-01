@@ -6213,6 +6213,12 @@ function sendWithdrawJson(res: Response, status: number, body: object): void {
 router.post("/vlt-usdc-withdraw", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
+    // Guard: body must be a plain object (not null, array, or primitive)
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      res.status(400).json({ success: false, error: 'Request body must be a JSON object' });
+      return;
+    }
+
     const { shares, recipient, slippageBps } = req.body as {
       shares?:      string;
       recipient?:   string;
@@ -6231,6 +6237,66 @@ router.post("/vlt-usdc-withdraw", async (req: Request, res: Response) => {
         note: 'shares is a raw 18-decimal integer string (your vltUSDC balance). Check your balance via eth_call totalSupply or a wallet RPC.',
       });
       return;
+    }
+
+    // --- Type + format guards — all checked before any RPC or builder call ---
+
+    // 1. shares must be a string of decimal digits only (no scientific notation, signs, or decimals)
+    if (typeof shares !== 'string' || !/^\d+$/.test(shares)) {
+      res.status(400).json({
+        success: false,
+        error: 'shares must be a decimal-digit string (e.g. "1000000000000000000"); scientific notation and non-string types are not accepted',
+        received: typeof shares === 'string' ? shares : typeof shares,
+      });
+      return;
+    }
+
+    // 2. shares must be positive and within uint256 bounds
+    const UINT256_MAX = 2n ** 256n - 1n;
+    let _sharesBigInt: bigint;
+    try {
+      _sharesBigInt = BigInt(shares);
+    } catch {
+      res.status(400).json({ success: false, error: 'shares could not be parsed as an integer', received: shares });
+      return;
+    }
+    if (_sharesBigInt <= 0n || _sharesBigInt > UINT256_MAX) {
+      res.status(400).json({
+        success: false,
+        error: 'shares must be a positive integer within uint256 range',
+        received: shares,
+      });
+      return;
+    }
+
+    // 3. recipient must be a well-formed Ethereum address
+    const evmAddressRe = /^0x[0-9a-fA-F]{40}$/;
+    if (typeof recipient !== 'string' || !evmAddressRe.test(recipient)) {
+      res.status(400).json({
+        success: false,
+        error: 'recipient must be a valid Ethereum address (0x + 40 hex chars)',
+        received: recipient,
+      });
+      return;
+    }
+
+    // 4. slippageBps must be a finite non-negative integer in [0, 1000] if provided
+    //    (builder clamps to 1000 = 10% max; values above that are silently clamped downstream)
+    if (slippageBps !== undefined) {
+      if (
+        typeof slippageBps !== 'number' ||
+        !Number.isFinite(slippageBps) ||
+        !Number.isInteger(slippageBps) ||
+        slippageBps < 0 ||
+        slippageBps > 1000
+      ) {
+        res.status(400).json({
+          success: false,
+          error: 'slippageBps must be an integer in [0, 1000] (e.g. 200 = 2% slippage, max 1000 = 10%)',
+          received: slippageBps,
+        });
+        return;
+      }
     }
 
     const result = await buildVltUsdcWithdraw(shares, recipient, slippageBps);
@@ -6311,6 +6377,12 @@ router.get("/vlt-usdc-deposit", (_req: Request, res: Response) => {
 router.post("/vlt-usdc-deposit", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
+    // Guard: body must be a plain object (not null, array, or primitive)
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      res.status(400).json({ success: false, error: 'Request body must be a JSON object' });
+      return;
+    }
+
     const { amountUsdc, recipient, usdcOnly } = req.body as {
       amountUsdc?: string;
       recipient?:  string;
@@ -6325,6 +6397,48 @@ router.post("/vlt-usdc-deposit", async (req: Request, res: Response) => {
           balanced:  'omit usdcOnly or set usdcOnly:false — requires VLT + USDC, returns 3 txs',
           usdcOnly:  'set usdcOnly:true — USDC only, ZapHelper buys VLT on-market, returns 2 txs with live swap quote',
         },
+      });
+      return;
+    }
+
+    // --- Type + format guards — all checked before any RPC or builder call ---
+
+    // 1. recipient must be a well-formed Ethereum address
+    const evmAddressRe = /^0x[0-9a-fA-F]{40}$/;
+    if (typeof recipient !== 'string' || !evmAddressRe.test(recipient)) {
+      res.status(400).json({
+        success: false,
+        error: 'recipient must be a valid Ethereum address (0x + 40 hex chars)',
+        received: recipient,
+      });
+      return;
+    }
+
+    // 2. amountUsdc must be a positive finite number; reject Infinity, NaN, and values above 1 million USDC
+    const _amountNum = parseFloat(String(amountUsdc));
+    if (!Number.isFinite(_amountNum) || _amountNum <= 0) {
+      res.status(400).json({
+        success: false,
+        error: 'amountUsdc must be a positive finite number (e.g. "100" for 100 USDC)',
+        received: amountUsdc,
+      });
+      return;
+    }
+    if (_amountNum > 1_000_000) {
+      res.status(400).json({
+        success: false,
+        error: 'amountUsdc exceeds the maximum single-transaction deposit of 1,000,000 USDC',
+        received: amountUsdc,
+      });
+      return;
+    }
+
+    // 3. usdcOnly must be a boolean if provided (reject string "true", numbers, etc.)
+    if (usdcOnly !== undefined && typeof usdcOnly !== 'boolean') {
+      res.status(400).json({
+        success: false,
+        error: 'usdcOnly must be a boolean (true or false)',
+        received: usdcOnly,
       });
       return;
     }

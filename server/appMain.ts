@@ -274,6 +274,15 @@ app.post('/api/payments/webhook', express.raw({type: 'application/json'}), subsc
 // Apply JSON parsing middleware AFTER Stripe webhooks
 app.use(express.json({ limit: '50mb' }));
 
+// Convert body-parse failures (malformed JSON, strict-mode null/primitive bodies) to 400.
+// body-parser sets err.type = 'entity.parse.failed'; SyntaxError check covers JSON.parse throws.
+app.use((err: any, req: any, res: any, next: any) => {
+  if (err.type === 'entity.parse.failed' || (err instanceof SyntaxError && 'body' in err)) {
+    return res.status(400).json({ success: false, error: 'Invalid JSON body — expected a JSON object' });
+  }
+  next(err);
+});
+
 // NOTE: Service Delivery Framework initialization moved to post-listen for faster health check response
 // See setImmediate block after httpServer.listen()
 
@@ -584,6 +593,14 @@ if (pulseChainService.isEnabled()) {
 // Essential middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Convert body-parse failures to 400 (same handler as above, covers second json() instance)
+app.use((err: any, req: any, res: any, next: any) => {
+  if (err.type === 'entity.parse.failed' || (err instanceof SyntaxError && 'body' in err)) {
+    return res.status(400).json({ success: false, error: 'Invalid JSON body — expected a JSON object' });
+  }
+  next(err);
+});
 
 // Inject X-Agent-Instructions + Link headers on every 402 response automatically.
 // This covers all 60+ res.status(402).json(...) call sites without touching any of them.
@@ -4511,6 +4528,10 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
 
   // Basic error handling (registered after routes)
   app.use((err: any, req: any, res: any, next: any) => {
+    // Body-parse errors (malformed JSON, strict-mode rejections like null/primitives) → 400
+    if (err instanceof SyntaxError && (err as any).status === 400 && 'body' in err) {
+      return res.status(400).json({ success: false, error: 'Invalid JSON body — expected a JSON object' });
+    }
     console.error('Server error:', err);
     res.status(500).json({ error: 'Internal server error' });
   });

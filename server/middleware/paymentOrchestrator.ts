@@ -3192,6 +3192,10 @@ function generate402Response(
     "gas-price-oracle": { chain: "base" },
     "wallet-risk": { address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
     "approval-manager": { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", spender: "0x...", amount: "unlimited", chain: "base" },
+    "whale-alerts": { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", chain: "ethereum", threshold: 100000 },
+    "trade-signals": { token: "ETH", timeframe: "4h", riskLevel: "medium" },
+    "agent-create-wallet": { agent_id: "my-trading-bot-v1", purpose: "persistent", chain: "base-mainnet" },
+    "credit-risk-score": { applicantInfo: { annualIncome: 85000, employmentYears: 5, currentDebt: 12000 }, requestedAmount: 50000 },
   };
   const bazaarInput = {
     type: "http" as const,
@@ -3502,6 +3506,186 @@ function generate402Response(
           ],
           curlExample: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-Solana-Wallet: <pubkey>' -H 'X-PAYMENT: <solana_payload>' -d '{}'`,
           pythonExample: `import httpx\nresp = httpx.post('${baseUrl}/x402/first-call',\n  headers={'X-PAYMENT': solana_payload, 'X-Solana-Wallet': pubkey},\n  json={})\nprint(resp.json())`
+        }
+      }
+    };
+  }
+
+  // Execution guide: inject service-specific payment recipe for whale-alerts
+  if (serviceName === 'whale-alerts') {
+    response.execution_guide = {
+      priceUSD: "0.35",
+      amountMicroUSDC: 350000,
+      endpoint: `/x402/whale-alerts`,
+      requestBody: { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", chain: "ethereum", threshold: 100000 },
+      paymentRecipe: {
+        description: "Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response with whale movement data.",
+        evmPath: {
+          chain: "Base mainnet",
+          chainId: 8453,
+          network: "eip155:8453",
+          asset: "USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)",
+          amount: "350000 micro-USDC (0.35 USDC, 6 decimals)",
+          payTo: PLATFORM_WALLET,
+          facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+          steps: [
+            "1. Authorize 350000 micro-USDC transfer via EIP-3009 OR send direct USDC tx on Base (chainId: 8453)",
+            "2. Retry POST /x402/whale-alerts with header: X-PAYMENT: <tx_hash_or_eip3009_payload>",
+            "3. Receive 200 OK with recent large wallet movements, counterparties, and USD values"
+          ],
+          curlExample: `curl -X POST ${baseUrl}/x402/whale-alerts -H 'Content-Type: application/json' -H 'X-PAYMENT: <evm_tx_hash>' -d '{"tokenAddress":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","chain":"ethereum","threshold":100000}'`,
+          pythonExample: `import httpx\nresp = httpx.post('${baseUrl}/x402/whale-alerts',\n  headers={'X-PAYMENT': tx_hash, 'Content-Type': 'application/json'},\n  json={'tokenAddress': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', 'chain': 'ethereum', 'threshold': 100000})\nprint(resp.json())`
+        },
+        solanaPath: {
+          network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+          asset: "USDC (EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v)",
+          amount: "350000 micro-USDC (0.35 USDC, 6 decimals)",
+          payTo: SOLANA_PLATFORM_WALLET,
+          facilitator: "https://x402.dexter.cash",
+          scheme: "ExactSvmScheme",
+          steps: [
+            "1. Include X-Solana-Wallet: <your_pubkey> header with initial request",
+            "2. Use Dexter facilitator (x402.dexter.cash) to sign ExactSvmScheme payment of 350000 micro-USDC",
+            "3. Retry POST /x402/whale-alerts with header: X-PAYMENT: <solana_payment_payload>",
+            "4. Receive 200 OK with whale movement data"
+          ],
+          curlExample: `curl -X POST ${baseUrl}/x402/whale-alerts -H 'Content-Type: application/json' -H 'X-Solana-Wallet: <pubkey>' -H 'X-PAYMENT: <solana_payload>' -d '{"tokenAddress":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","chain":"ethereum","threshold":100000}'`,
+          pythonExample: `import httpx\nresp = httpx.post('${baseUrl}/x402/whale-alerts',\n  headers={'X-PAYMENT': solana_payload, 'X-Solana-Wallet': pubkey},\n  json={'tokenAddress': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', 'chain': 'ethereum', 'threshold': 100000})\nprint(resp.json())`
+        }
+      }
+    };
+  }
+
+  // Execution guide: inject service-specific payment recipe for trade-signals
+  if (serviceName === 'trade-signals') {
+    response.execution_guide = {
+      priceUSD: "0.75",
+      amountMicroUSDC: 750000,
+      endpoint: `/x402/trade-signals`,
+      requestBody: { token: "ETH", timeframe: "4h", riskLevel: "medium" },
+      paymentRecipe: {
+        description: "Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response with an AI-generated BUY/SELL/HOLD signal, entry price, target, and stop-loss.",
+        evmPath: {
+          chain: "Base mainnet",
+          chainId: 8453,
+          network: "eip155:8453",
+          asset: "USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)",
+          amount: "750000 micro-USDC (0.75 USDC, 6 decimals)",
+          payTo: PLATFORM_WALLET,
+          facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+          steps: [
+            "1. Authorize 750000 micro-USDC transfer via EIP-3009 OR send direct USDC tx on Base (chainId: 8453)",
+            "2. Retry POST /x402/trade-signals with header: X-PAYMENT: <tx_hash_or_eip3009_payload>",
+            "3. Receive 200 OK with BUY/SELL/HOLD signal, confidence score, entry/target/stop-loss levels"
+          ],
+          curlExample: `curl -X POST ${baseUrl}/x402/trade-signals -H 'Content-Type: application/json' -H 'X-PAYMENT: <evm_tx_hash>' -d '{"token":"ETH","timeframe":"4h","riskLevel":"medium"}'`,
+          pythonExample: `import httpx\nresp = httpx.post('${baseUrl}/x402/trade-signals',\n  headers={'X-PAYMENT': tx_hash, 'Content-Type': 'application/json'},\n  json={'token': 'ETH', 'timeframe': '4h', 'riskLevel': 'medium'})\nprint(resp.json())`
+        },
+        solanaPath: {
+          network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+          asset: "USDC (EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v)",
+          amount: "750000 micro-USDC (0.75 USDC, 6 decimals)",
+          payTo: SOLANA_PLATFORM_WALLET,
+          facilitator: "https://x402.dexter.cash",
+          scheme: "ExactSvmScheme",
+          steps: [
+            "1. Include X-Solana-Wallet: <your_pubkey> header with initial request",
+            "2. Use Dexter facilitator (x402.dexter.cash) to sign ExactSvmScheme payment of 750000 micro-USDC",
+            "3. Retry POST /x402/trade-signals with header: X-PAYMENT: <solana_payment_payload>",
+            "4. Receive 200 OK with AI trade signal and price targets"
+          ],
+          curlExample: `curl -X POST ${baseUrl}/x402/trade-signals -H 'Content-Type: application/json' -H 'X-Solana-Wallet: <pubkey>' -H 'X-PAYMENT: <solana_payload>' -d '{"token":"ETH","timeframe":"4h","riskLevel":"medium"}'`,
+          pythonExample: `import httpx\nresp = httpx.post('${baseUrl}/x402/trade-signals',\n  headers={'X-PAYMENT': solana_payload, 'X-Solana-Wallet': pubkey},\n  json={'token': 'ETH', 'timeframe': '4h', 'riskLevel': 'medium'})\nprint(resp.json())`
+        }
+      }
+    };
+  }
+
+  // Execution guide: inject service-specific payment recipe for agent-create-wallet
+  if (serviceName === 'agent-create-wallet') {
+    response.execution_guide = {
+      priceUSD: "2.00",
+      amountMicroUSDC: 2000000,
+      endpoint: `/x402/agent-create-wallet`,
+      requestBody: { agent_id: "my-trading-bot-v1", purpose: "persistent", chain: "base-mainnet" },
+      paymentRecipe: {
+        description: "Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response provisioning a persistent CDP-managed wallet for your agent.",
+        evmPath: {
+          chain: "Base mainnet",
+          chainId: 8453,
+          network: "eip155:8453",
+          asset: "USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)",
+          amount: "2000000 micro-USDC (2.00 USDC, 6 decimals)",
+          payTo: PLATFORM_WALLET,
+          facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+          steps: [
+            "1. Authorize 2000000 micro-USDC transfer via EIP-3009 OR send direct USDC tx on Base (chainId: 8453)",
+            "2. Retry POST /x402/agent-create-wallet with header: X-PAYMENT: <tx_hash_or_eip3009_payload>",
+            "3. Receive 200 OK with walletId, walletAddress, and chain details for your new agent wallet"
+          ],
+          curlExample: `curl -X POST ${baseUrl}/x402/agent-create-wallet -H 'Content-Type: application/json' -H 'X-PAYMENT: <evm_tx_hash>' -d '{"agent_id":"my-trading-bot-v1","purpose":"persistent","chain":"base-mainnet"}'`,
+          pythonExample: `import httpx\nresp = httpx.post('${baseUrl}/x402/agent-create-wallet',\n  headers={'X-PAYMENT': tx_hash, 'Content-Type': 'application/json'},\n  json={'agent_id': 'my-trading-bot-v1', 'purpose': 'persistent', 'chain': 'base-mainnet'})\nprint(resp.json())`
+        },
+        solanaPath: {
+          network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+          asset: "USDC (EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v)",
+          amount: "2000000 micro-USDC (2.00 USDC, 6 decimals)",
+          payTo: SOLANA_PLATFORM_WALLET,
+          facilitator: "https://x402.dexter.cash",
+          scheme: "ExactSvmScheme",
+          steps: [
+            "1. Include X-Solana-Wallet: <your_pubkey> header with initial request",
+            "2. Use Dexter facilitator (x402.dexter.cash) to sign ExactSvmScheme payment of 2000000 micro-USDC",
+            "3. Retry POST /x402/agent-create-wallet with header: X-PAYMENT: <solana_payment_payload>",
+            "4. Receive 200 OK with your new persistent CDP agent wallet details"
+          ],
+          curlExample: `curl -X POST ${baseUrl}/x402/agent-create-wallet -H 'Content-Type: application/json' -H 'X-Solana-Wallet: <pubkey>' -H 'X-PAYMENT: <solana_payload>' -d '{"agent_id":"my-trading-bot-v1","purpose":"persistent","chain":"base-mainnet"}'`,
+          pythonExample: `import httpx\nresp = httpx.post('${baseUrl}/x402/agent-create-wallet',\n  headers={'X-PAYMENT': solana_payload, 'X-Solana-Wallet': pubkey},\n  json={'agent_id': 'my-trading-bot-v1', 'purpose': 'persistent', 'chain': 'base-mainnet'})\nprint(resp.json())`
+        }
+      }
+    };
+  }
+
+  // Execution guide: inject service-specific payment recipe for credit-risk-score
+  if (serviceName === 'credit-risk-score') {
+    response.execution_guide = {
+      priceUSD: "1.25",
+      amountMicroUSDC: 1250000,
+      endpoint: `/x402/credit-risk-score`,
+      requestBody: { applicantInfo: { annualIncome: 85000, employmentYears: 5, currentDebt: 12000 }, requestedAmount: 50000 },
+      paymentRecipe: {
+        description: "Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response with an AI credit risk score, tier rating, and borrowing limit.",
+        evmPath: {
+          chain: "Base mainnet",
+          chainId: 8453,
+          network: "eip155:8453",
+          asset: "USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)",
+          amount: "1250000 micro-USDC (1.25 USDC, 6 decimals)",
+          payTo: PLATFORM_WALLET,
+          facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+          steps: [
+            "1. Authorize 1250000 micro-USDC transfer via EIP-3009 OR send direct USDC tx on Base (chainId: 8453)",
+            "2. Retry POST /x402/credit-risk-score with header: X-PAYMENT: <tx_hash_or_eip3009_payload>",
+            "3. Receive 200 OK with credit score, tier (A-F), metrics, and recommended borrow limit"
+          ],
+          curlExample: `curl -X POST ${baseUrl}/x402/credit-risk-score -H 'Content-Type: application/json' -H 'X-PAYMENT: <evm_tx_hash>' -d '{"applicantInfo":{"annualIncome":85000,"employmentYears":5,"currentDebt":12000},"requestedAmount":50000}'`,
+          pythonExample: `import httpx\nresp = httpx.post('${baseUrl}/x402/credit-risk-score',\n  headers={'X-PAYMENT': tx_hash, 'Content-Type': 'application/json'},\n  json={'applicantInfo': {'annualIncome': 85000, 'employmentYears': 5, 'currentDebt': 12000}, 'requestedAmount': 50000})\nprint(resp.json())`
+        },
+        solanaPath: {
+          network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+          asset: "USDC (EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v)",
+          amount: "1250000 micro-USDC (1.25 USDC, 6 decimals)",
+          payTo: SOLANA_PLATFORM_WALLET,
+          facilitator: "https://x402.dexter.cash",
+          scheme: "ExactSvmScheme",
+          steps: [
+            "1. Include X-Solana-Wallet: <your_pubkey> header with initial request",
+            "2. Use Dexter facilitator (x402.dexter.cash) to sign ExactSvmScheme payment of 1250000 micro-USDC",
+            "3. Retry POST /x402/credit-risk-score with header: X-PAYMENT: <solana_payment_payload>",
+            "4. Receive 200 OK with AI credit risk score and tier assessment"
+          ],
+          curlExample: `curl -X POST ${baseUrl}/x402/credit-risk-score -H 'Content-Type: application/json' -H 'X-Solana-Wallet: <pubkey>' -H 'X-PAYMENT: <solana_payload>' -d '{"applicantInfo":{"annualIncome":85000,"employmentYears":5,"currentDebt":12000},"requestedAmount":50000}'`,
+          pythonExample: `import httpx\nresp = httpx.post('${baseUrl}/x402/credit-risk-score',\n  headers={'X-PAYMENT': solana_payload, 'X-Solana-Wallet': pubkey},\n  json={'applicantInfo': {'annualIncome': 85000, 'employmentYears': 5, 'currentDebt': 12000}, 'requestedAmount': 50000})\nprint(resp.json())`
         }
       }
     };

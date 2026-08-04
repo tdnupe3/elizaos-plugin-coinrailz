@@ -1345,11 +1345,12 @@ export function createPaymentOrchestrator(
     // FIRST-CALL FREE: Check if eligible for free call on cheapest services
     // Skip when hasMppCredential — let the orchestrator issue a protocol-mismatch 402 below
     // so the agent receives clear guidance on the correct endpoint rather than a silent denial.
-    // CF agents: use cfAgentId as the identity key so they satisfy the UA guard even when
-    // Cloudflare Workers strips the User-Agent header, and so identity is IP-independent.
+    // NOTE: cfAgentId is logged for attribution only — we deliberately do NOT use it to bypass
+    // the UA guard or alter the eligibility key. The cloudflare-agent-id header is unverified
+    // (any caller can forge it), and using it as an eligibility key creates a replay attack
+    // vector because the DB stores the original userAgent, not the synthetic key.
     if (!xPayment && !hasMppCredential && FIRST_CALL_FREE_SERVICES.includes(serviceName)) {
-      const eligibilityUA = cfAgentId ? `cloudflare-agent:${cfAgentId}` : userAgent;
-      const eligible = await isEligibleForFirstCallFree(ipAddress, eligibilityUA);
+      const eligible = await isEligibleForFirstCallFree(ipAddress, userAgent);
       
       if (eligible) {
         console.log(`🎁 First-call FREE granted for ${serviceName} to ${knownAgent.name} (${ipAddress})`);
@@ -1418,10 +1419,9 @@ export function createPaymentOrchestrator(
             }
           });
           
-          // Update cache — CF agents keyed by agent ID (IP-independent)
-          const cacheKey = cfAgentId
-            ? `cloudflare-agent:${cfAgentId.substring(0, 50)}`
-            : `${ipAddress}:${userAgent?.substring(0, 50) || 'none'}`;
+          // Update cache (isEligibleForFirstCallFree manages its own cache under ip:ua;
+          // this outer write uses the same key so it's consistent)
+          const cacheKey = `${ipAddress}:${userAgent?.substring(0, 50) || 'none'}`;
           FIRST_CALL_FREE_CACHE.set(cacheKey, { granted: true, timestamp: Date.now() });
           
           return;
@@ -2800,7 +2800,7 @@ function buildExecutionGuide(params: {
           `4. Retry POST ${endpoint} with your wallet active — receive 200 OK with ${successDescription}`
         ],
         sdkExample: `// Cloudflare Agents SDK (automatic x402 payment)\nimport { Agent } from '@cloudflare/agents';\n\n// Your Cloudflare Wallet signs and pays automatically on 402 responses\nconst response = await agent.fetch('${fullUrl}', {\n  method: 'POST',\n  body: JSON.stringify(${bodyJson})\n});\nconsole.log(await response.json());`,
-        note: "Cloudflare Wallets launched August 2026. If you are a CF Wallet agent, include the cloudflare-agent-id header to identify yourself and unlock per-agent benefits including first-call-free on /x402/first-call."
+        note: "Cloudflare Wallets launched August 2026. Compatible because CF Wallets use the Coinbase CDP facilitator (api.cdp.coinbase.com/platform/v2/x402) that we already list in our accepts[] array. No configuration change needed. First-call-free is available on gas-price-oracle and token-metadata for first-time callers from any agent type."
       }
     }
   };
@@ -3674,17 +3674,17 @@ function generate402Response(
           curlNote: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-Solana-Wallet: <pubkey>' -H 'X-PAYMENT: <dexter_signed_payload>' -d '{}'`
         },
         cloudflarePath: {
-          description: "Cloudflare Wallet — zero setup if you already have one. Your wallet uses the Coinbase CDP facilitator we accept (api.cdp.coinbase.com/platform/v2/x402). This is the fastest path if you are a CF Wallet agent.",
+          description: "Cloudflare Wallet — zero setup if you already have one. Your wallet uses the Coinbase CDP facilitator we accept (api.cdp.coinbase.com/platform/v2/x402). Pay $0.05 USDC on Base automatically.",
           compatible: true,
           facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
           steps: [
-            "1. Your Cloudflare Wallet handles EIP-712 signing and X-PAYMENT construction automatically",
-            "2. Include cloudflare-agent-id header to identify yourself and receive first-call-free on this endpoint",
-            "3. Use the Cloudflare Agents SDK or wrapFetchWithPayment — no manual signing required",
-            `4. Retry POST /x402/first-call with your wallet active — receive 200 OK with onboarding receipt, sessionId, and next-service templates`
+            "1. Your Cloudflare Wallet handles EIP-712 signing and X-PAYMENT construction automatically — no manual signing",
+            "2. Use the Cloudflare Agents SDK fetch() — it intercepts 402 responses and retries with payment",
+            `3. Cost: $0.05 USDC on Base (eip155:8453) — deducted from your CF Wallet automatically`,
+            `4. Receive 200 OK with onboarding receipt, sessionId, and next-service templates`
           ],
-          sdkExample: `// Cloudflare Agents SDK — automatic x402 payment (no setup required)\nimport { Agent } from '@cloudflare/agents';\n\n// CF Wallet signs and pays automatically on 402 responses\nconst response = await agent.fetch('${baseUrl}/x402/first-call', {\n  method: 'POST',\n  headers: { 'cloudflare-agent-id': env.CF_AGENT_ID },\n  body: JSON.stringify({})\n});\nconsole.log(await response.json()); // onboarding receipt + next-service templates`,
-          note: "Cloudflare Wallets launched August 4, 2026. CF Wallet agents sending cloudflare-agent-id get first-call-free automatically — solving the 'difficult to try new APIs' problem highlighted in Cloudflare's launch. Compatible because CF Wallets use the Coinbase CDP x402 facilitator we already accept."
+          sdkExample: `// Cloudflare Agents SDK — automatic x402 payment\nimport { Agent } from '@cloudflare/agents';\n\n// CF Wallet intercepts 402 and pays $0.05 USDC on Base automatically\nconst response = await agent.fetch('${baseUrl}/x402/first-call', {\n  method: 'POST',\n  body: JSON.stringify({})\n});\nconsole.log(await response.json()); // onboarding receipt + next-service templates`,
+          note: "Cloudflare Wallets launched August 4, 2026. Compatible because CF Wallets use the Coinbase CDP facilitator (api.cdp.coinbase.com/platform/v2/x402) that we already list in our accepts[] array. No configuration change needed on either side. Note: first-call-free applies to gas-price-oracle and token-metadata (not this endpoint) — this service requires $0.05 payment."
         }
       }
     };

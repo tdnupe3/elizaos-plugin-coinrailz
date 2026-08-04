@@ -176,6 +176,31 @@ export const payForServiceAction: Action = {
       }
     } catch (error) {
       console.error('Error in payForService handler:', error);
+      const errMessage = error instanceof Error ? error.message : String(error);
+      const isCredentialError = errMessage.includes('No payment credentials') ||
+        errMessage.includes('COINRAILZ_API_KEY') ||
+        errMessage.includes('EVM_PRIVATE_KEY');
+      const content = message.content as any;
+      const serviceId = content?.serviceId ?? 'unknown';
+      const memoryText = isCredentialError
+        ? `No payment credentials configured for Coin Railz. ` +
+          `Set COINRAILZ_API_KEY at coinrailz.com/api-keys (recommended) ` +
+          `or EVM_PRIVATE_KEY with a funded Base mainnet wallet for autonomous x402 payments.`
+        : `Coin Railz encountered an unexpected error calling ${serviceId}: ${errMessage}. ` +
+          `This is likely a network or configuration issue — please check your setup or file a bug.`;
+      try {
+        await runtime.messageManager.createMemory({
+          userId: message.userId,
+          agentId: message.agentId,
+          roomId: message.roomId,
+          content: {
+            text: memoryText,
+            action: 'COINRAILZ_ERROR'
+          }
+        });
+      } catch (memErr) {
+        console.error('Failed to surface error to ElizaOS memory:', memErr);
+      }
       return false;
     }
   }

@@ -2666,6 +2666,68 @@ function buildExecutionGuide(params: {
   const amountStr = `${requiredAmount} micro-USDC (${priceUsd.toFixed(2)} USDC, 6 decimals)`;
   const bodyJson = JSON.stringify(requestBody);
 
+  const fullUrl = `${baseUrl}${endpoint}`;
+
+  // Python signing example — primary path for autonomous agents (eth_account EIP-712)
+  const pythonExample = [
+    `# pip install requests eth-account`,
+    `import requests, json, time, base64, secrets, os`,
+    `from eth_account import Account`,
+    ``,
+    `wallet = Account.from_key(os.environ['PRIVATE_KEY'])`,
+    `url = '${fullUrl}'`,
+    `body = ${bodyJson}`,
+    ``,
+    `# 1. Get 402 challenge — read payTo and amount from response`,
+    `r = requests.post(url, json=body)`,
+    `assert r.status_code == 402`,
+    `acc = r.json()['accepts'][0]  # has payTo, maxAmountRequired`,
+    ``,
+    `# 2. Build EIP-3009 authorization (no on-chain tx yet)`,
+    `nonce = '0x' + secrets.token_hex(32)`,
+    `auth = {'from': wallet.address, 'to': acc['payTo'], 'value': ${requiredAmount},`,
+    `        'validAfter': 0, 'validBefore': int(time.time()) + 300, 'nonce': nonce}`,
+    `domain = {'name': 'USD Coin', 'version': '2', 'chainId': 8453,`,
+    `          'verifyingContract': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'}`,
+    `types  = {'TransferWithAuthorization': [`,
+    `    {'name': 'from', 'type': 'address'}, {'name': 'to', 'type': 'address'},`,
+    `    {'name': 'value', 'type': 'uint256'}, {'name': 'validAfter', 'type': 'uint256'},`,
+    `    {'name': 'validBefore', 'type': 'uint256'}, {'name': 'nonce', 'type': 'bytes32'}]}`,
+    ``,
+    `# 3. Sign off-chain — no gas required`,
+    `sig = Account.sign_typed_data(wallet.key, domain, types, auth)`,
+    ``,
+    `# 4. Encode x402 v2 payment envelope`,
+    `envelope = {'x402Version': 2, 'scheme': 'exact', 'network': 'eip155:8453',`,
+    `            'payload': {'authorization': auth, 'signature': sig.signature.hex()}}`,
+    `x_payment = base64.b64encode(json.dumps(envelope).encode()).decode()`,
+    ``,
+    `# 5. Retry with X-PAYMENT header`,
+    `result = requests.post(url, json=body, headers={'X-PAYMENT': x_payment})`,
+    `print(result.json())`,
+  ].join('\n');
+
+  // TypeScript SDK example — automatic signing via x402-fetch
+  const typescriptExample = [
+    `// npm install x402-fetch viem`,
+    `import { wrapFetchWithPayment } from 'x402-fetch';`,
+    `import { createWalletClient, http } from 'viem';`,
+    `import { base } from 'viem/chains';`,
+    `import { privateKeyToAccount } from 'viem/accounts';`,
+    ``,
+    `const account = privateKeyToAccount(process.env.PRIVATE_KEY as \`0x\${string}\`);`,
+    `const walletClient = createWalletClient({ account, chain: base, transport: http() });`,
+    `const paidFetch = wrapFetchWithPayment(fetch, walletClient);`,
+    ``,
+    `// SDK handles 402 → sign EIP-712 → encode envelope → X-PAYMENT → retry automatically`,
+    `const res = await paidFetch('${fullUrl}', {`,
+    `  method: 'POST',`,
+    `  headers: { 'content-type': 'application/json' },`,
+    `  body: JSON.stringify(${bodyJson})`,
+    `});`,
+    `console.log(await res.json());`,
+  ].join('\n');
+
   return {
     priceUSD: priceUsd.toFixed(2),
     amountMicroUSDC: requiredAmount,
@@ -2681,13 +2743,17 @@ function buildExecutionGuide(params: {
         amount: amountStr,
         payTo: PLATFORM_WALLET,
         facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+        signingNote: `X-PAYMENT is base64(JSON.stringify({x402Version:2,scheme:'exact',network:'eip155:8453',payload:{authorization:{from,to,value,validAfter,validBefore,nonce},signature}})) — NOT a raw tx hash. Sign off-chain via EIP-712 (no gas). Use x402-fetch wrapFetchWithPayment for automatic handling, or follow the pythonExample for manual signing with eth_account.`,
         steps: [
-          `1. Authorize ${requiredAmount} micro-USDC transfer via EIP-3009 OR send direct USDC tx on Base (chainId: 8453)`,
-          `2. Retry POST ${endpoint} with header: X-PAYMENT: <tx_hash_or_eip3009_payload>`,
-          `3. Receive 200 OK with ${successDescription}`
+          `1. POST ${endpoint} without X-PAYMENT to receive 402 challenge — read accepts[0].payTo and maxAmountRequired`,
+          `2. Build EIP-3009 authorization: {from:<your_wallet>, to:accepts[0].payTo, value:${requiredAmount}, validAfter:0, validBefore:<unix+300s>, nonce:<random_32_bytes>}`,
+          `3. Sign with EIP-712: domain={name:'USD Coin',version:'2',chainId:8453,verifyingContract:'0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'} — no gas required`,
+          `4. Set X-PAYMENT: base64(JSON.stringify({x402Version:2,scheme:'exact',network:'eip155:8453',payload:{authorization:<step2_object>,signature:<step3_sig>}}))`,
+          `5. Retry POST ${endpoint} with X-PAYMENT header — receive 200 OK with ${successDescription}`
         ],
-        curlExample: `curl -X POST ${baseUrl}${endpoint} -H 'Content-Type: application/json' -H 'X-PAYMENT: <evm_tx_hash>' -d '${bodyJson}'`,
-        pythonExample: `import httpx\nresp = httpx.post('${baseUrl}${endpoint}',\n  headers={'X-PAYMENT': tx_hash, 'Content-Type': 'application/json'},\n  json=${bodyJson})\nprint(resp.json())`
+        pythonExample,
+        typescriptExample,
+        curlNote: `curl cannot sign EIP-712 inline. Compute x_payment with the Python example above, then: curl -X POST ${fullUrl} -H 'Content-Type: application/json' -H 'X-PAYMENT: <computed_x_payment>' -d '${bodyJson}'`
       },
       solanaPath: {
         network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
@@ -2697,13 +2763,12 @@ function buildExecutionGuide(params: {
         facilitator: "https://x402.dexter.cash",
         scheme: "ExactSvmScheme",
         steps: [
-          "1. Include X-Solana-Wallet: <your_pubkey> header with initial request",
-          `2. Use Dexter facilitator (x402.dexter.cash) to sign ExactSvmScheme payment of ${requiredAmount} micro-USDC`,
-          `3. Retry POST ${endpoint} with header: X-PAYMENT: <solana_payment_payload>`,
+          `1. Include X-Solana-Wallet: <your_pubkey> header with initial POST ${endpoint}`,
+          `2. Receive 402 — Dexter facilitator (x402.dexter.cash) will handle ExactSvmScheme signing for ${requiredAmount} micro-USDC`,
+          `3. Retry POST ${endpoint} with X-PAYMENT: <solana_payload> returned by facilitator`,
           `4. Receive 200 OK with ${successDescription}`
         ],
-        curlExample: `curl -X POST ${baseUrl}${endpoint} -H 'Content-Type: application/json' -H 'X-Solana-Wallet: <pubkey>' -H 'X-PAYMENT: <solana_payload>' -d '${bodyJson}'`,
-        pythonExample: `import httpx\nresp = httpx.post('${baseUrl}${endpoint}',\n  headers={'X-PAYMENT': solana_payload, 'X-Solana-Wallet': pubkey},\n  json=${bodyJson})\nprint(resp.json())`
+        pythonExample: `# pip install requests\nimport requests\n\nurl = '${fullUrl}'\nbody = ${bodyJson}\npubkey = '<your_solana_pubkey>'\n\n# 1. Get challenge\nr = requests.post(url, json=body, headers={'X-Solana-Wallet': pubkey})\nassert r.status_code == 402\n\n# 2. Sign via Dexter facilitator\nfac = requests.post('https://x402.dexter.cash/sign', json={'challenge': r.json(), 'pubkey': pubkey})\nsolana_payload = fac.json()['payload']\n\n# 3. Retry with X-PAYMENT\nresult = requests.post(url, json=body, headers={'X-Solana-Wallet': pubkey, 'X-PAYMENT': solana_payload})\nprint(result.json())`
       }
     }
   };

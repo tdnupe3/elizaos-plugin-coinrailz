@@ -27,9 +27,6 @@ In `buildExecutionGuide()` (`server/middleware/paymentOrchestrator.ts` ~line 265
 ```
 Type: `TransferWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce)`
 
-## Known SDK Issue (unresolved)
-`elizaos-plugin-coinrailz/src/utils/x402Client.ts` has a legacy `callServiceWithPayment` (~line 162-166) that sends a raw tx hash verbatim as X-PAYMENT — incorrect for x402 v2. The `wrapFetchWithPayment` path in `x402Client.ts:97-147` is correct.
-
 ## Python Signing (canonical)
 ```python
 sig = Account.sign_typed_data(wallet.key, domain_data, message_types, message_data)

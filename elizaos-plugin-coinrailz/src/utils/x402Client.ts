@@ -71,7 +71,7 @@ export class X402Client {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`,
-          'User-Agent': 'elizaos-plugin-coinrailz/2.4.0'
+          'User-Agent': 'elizaos-plugin-coinrailz/2.5.0'
         }
       });
       return { success: true, serviceResponse: response.data };
@@ -125,7 +125,7 @@ export class X402Client {
 
       const response = await x402Fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'User-Agent': 'elizaos-plugin-coinrailz/2.4.0' },
+        headers: { 'Content-Type': 'application/json', 'User-Agent': 'elizaos-plugin-coinrailz/2.5.0' },
         body: JSON.stringify(payload ?? {})
       });
 
@@ -148,36 +148,4 @@ export class X402Client {
     }
   }
 
-  /**
-   * Call a service with an already-submitted transaction hash (legacy path).
-   * Useful when the agent has separately submitted a USDC transfer.
-   */
-  async callServiceWithPayment(
-    request: PaymentRequest,
-    transactionHash: string
-  ): Promise<PaymentResponse> {
-    const { serviceId, payload } = request;
-    const endpoint = `${this.baseUrl}/x402/${serviceId}`;
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'X-PAYMENT': transactionHash,
-      'User-Agent': 'elizaos-plugin-coinrailz/2.4.0'
-    };
-    if (this.apiKey) headers['Authorization'] = `Bearer ${this.apiKey}`;
-
-    try {
-      const response = await axios.post(endpoint, payload ?? {}, { headers });
-      return { success: true, transactionHash, serviceResponse: response.data };
-    } catch (error) {
-      const err = error as AxiosError;
-      const errData = err.response?.data;
-      const errMsg = typeof errData === 'string'
-        ? errData
-        : (typeof errData === 'object' && errData !== null && 'message' in errData)
-          ? String((errData as any).message)
-          : err.message || 'Unknown error';
-      return { success: false, transactionHash, error: errMsg };
-    }
-  }
 }

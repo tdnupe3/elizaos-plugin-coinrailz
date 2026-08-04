@@ -97,26 +97,17 @@ export const payForServiceAction: Action = {
   ): Promise<boolean> => {
     try {
       const content = message.content as any;
-      const { serviceId, payload, transactionHash } = content;
+      const { serviceId, payload } = content;
 
       const client = new X402Client();
 
-      let result;
-      
-      if (transactionHash) {
-        // Payment already made, call with tx hash
-        result = await client.callServiceWithPayment(
-          { serviceId, payload, amount: '' },
-          transactionHash
-        );
-      } else {
-        // Try calling without payment first (will get 402 if payment needed)
-        result = await client.callService({
-          serviceId,
-          payload,
-          amount: ''
-        });
-      }
+      // x402 v2 uses off-chain EIP-712 signing — there is no pre-submitted tx hash.
+      // wrapFetchWithPayment (inside callService) handles the full sign-and-submit cycle.
+      const result = await client.callService({
+        serviceId,
+        payload,
+        amount: ''
+      });
 
       if (result.success) {
         await runtime.messageManager.createMemory({

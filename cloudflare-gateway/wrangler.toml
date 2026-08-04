@@ -1,7 +1,10 @@
 # Cloudflare Worker configuration for Coin Railz x402 Gateway
+# Deploy: wrangler publish (set CLOUDFLARE_API_TOKEN in environment first)
+# This gateway bridges Coin Railz x402 services into Cloudflare's Agent ecosystem.
+# CF Wallet agents routing through this worker can pay Coin Railz services directly.
 name = "coinrailz-x402-gateway"
 main = "src/index.ts"
-compatibility_date = "2024-01-01"
+compatibility_date = "2026-01-01"
 
 [vars]
 COINRAILZ_BASE_URL = "https://coinrailz.com"

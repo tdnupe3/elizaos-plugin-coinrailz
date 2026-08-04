@@ -3003,7 +3003,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
   const agentCard = {
     protocolVersion: "0.3.0",
     name: "Coin Railz",
-    description: `Multi-chain x402 micropayment infrastructure for AI agents. ${svcCount} pay-per-call API services for crypto analytics, trading signals, security audits, satellite data (NASA Earthdata Intelligence + ESA), real estate, banking, market intelligence, prediction markets, IoT/DePIN data, and AI inference. Native Coinbase Agentic Wallet compatible. OWS (Open Wallet Standard) compatible. Pay with USDC on Ethereum or Base - prices from $0.05 to $10.00 per request.`,
+    description: `Multi-chain x402 micropayment infrastructure for AI agents. ${svcCount} pay-per-call API services for crypto analytics, trading signals, security audits, satellite data (NASA Earthdata Intelligence + ESA), real estate, banking, market intelligence, prediction markets, IoT/DePIN data, and AI inference. Native Coinbase Agentic Wallet compatible. Cloudflare Wallets compatible (launched Aug 2026). OWS (Open Wallet Standard) compatible. Pay with USDC on Ethereum or Base - prices from $0.05 to $10.00 per request.`,
     url: `${baseUrl}/a2a/v1`,
     version: "3.1.0",
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
@@ -3024,6 +3024,13 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
           symbol: "USDC",
           address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
           decimals: 6
+        },
+        cloudflareWalletsCompatible: true,
+        cloudflareAgentIdentity: {
+          supported: true,
+          header: "cloudflare-agent-id",
+          benefit: "first-call-free on eligible services + per-agent attribution",
+          note: "CF Wallet agents sharing cloudflare-agent-id receive first-call-free automatically. Compatible because CF Wallets use the Coinbase CDP facilitator we already accept."
         }
       }
     },

@@ -1329,11 +1329,27 @@ export function createPaymentOrchestrator(
     // (not claim a free trial), so the UA guard is irrelevant — bypass it.
     const hasMppCredential = /^Payment\s+/i.test((req.headers["authorization"] ?? '') as string);
 
+    // Detect Cloudflare Wallet agent identity.
+    // CF agents identify themselves via cloudflare-agent-id / cf-agent-id headers (cloudflare.id).
+    // Using this as the eligibility key is more stable than IP+UA for roaming CF agents.
+    const cfAgentId = (
+      req.headers['cloudflare-agent-id'] ||
+      req.headers['cf-agent-id'] ||
+      req.headers['x-cloudflare-agent-id'] ||
+      null
+    ) as string | null;
+    if (cfAgentId) {
+      console.log(`☁️  Cloudflare Wallet agent detected: cfAgentId=${cfAgentId.substring(0, 32)} service=${serviceName}`);
+    }
+
     // FIRST-CALL FREE: Check if eligible for free call on cheapest services
     // Skip when hasMppCredential — let the orchestrator issue a protocol-mismatch 402 below
     // so the agent receives clear guidance on the correct endpoint rather than a silent denial.
+    // CF agents: use cfAgentId as the identity key so they satisfy the UA guard even when
+    // Cloudflare Workers strips the User-Agent header, and so identity is IP-independent.
     if (!xPayment && !hasMppCredential && FIRST_CALL_FREE_SERVICES.includes(serviceName)) {
-      const eligible = await isEligibleForFirstCallFree(ipAddress, userAgent);
+      const eligibilityUA = cfAgentId ? `cloudflare-agent:${cfAgentId}` : userAgent;
+      const eligible = await isEligibleForFirstCallFree(ipAddress, eligibilityUA);
       
       if (eligible) {
         console.log(`🎁 First-call FREE granted for ${serviceName} to ${knownAgent.name} (${ipAddress})`);
@@ -1397,12 +1413,15 @@ export function createPaymentOrchestrator(
               first_call_free: 'granted',
               freeGrantOutcome: 'success',
               knownAgent: knownAgent.name,
-              originalPrice: SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD]
+              originalPrice: SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD],
+              ...(cfAgentId ? { cfAgentId: cfAgentId.substring(0, 64), paymentRail: 'cloudflare-wallet' } : {})
             }
           });
           
-          // Update cache
-          const cacheKey = `${ipAddress}:${userAgent?.substring(0, 50) || 'none'}`;
+          // Update cache — CF agents keyed by agent ID (IP-independent)
+          const cacheKey = cfAgentId
+            ? `cloudflare-agent:${cfAgentId.substring(0, 50)}`
+            : `${ipAddress}:${userAgent?.substring(0, 50) || 'none'}`;
           FIRST_CALL_FREE_CACHE.set(cacheKey, { granted: true, timestamp: Date.now() });
           
           return;
@@ -2769,6 +2788,19 @@ function buildExecutionGuide(params: {
           `4. Receive 200 OK with ${successDescription}`
         ],
         pythonExample: `# pip install requests\nimport requests\n\nurl = '${fullUrl}'\nbody = ${bodyJson}\npubkey = '<your_solana_pubkey>'\n\n# 1. Get challenge\nr = requests.post(url, json=body, headers={'X-Solana-Wallet': pubkey})\nassert r.status_code == 402\n\n# 2. Sign via Dexter facilitator\nfac = requests.post('https://x402.dexter.cash/sign', json={'challenge': r.json(), 'pubkey': pubkey})\nsolana_payload = fac.json()['payload']\n\n# 3. Retry with X-PAYMENT\nresult = requests.post(url, json=body, headers={'X-Solana-Wallet': pubkey, 'X-PAYMENT': solana_payload})\nprint(result.json())`
+      },
+      cloudflarePath: {
+        description: "Cloudflare Wallet — zero setup if you already have one. Your wallet uses the same Coinbase CDP facilitator we accept (api.cdp.coinbase.com/platform/v2/x402).",
+        compatible: true,
+        facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+        steps: [
+          `1. Your Cloudflare Wallet handles EIP-712 signing and X-PAYMENT construction automatically`,
+          `2. Use the Cloudflare Agents SDK or wrapFetchWithPayment — no manual signing required`,
+          `3. Send cloudflare-agent-id header to receive first-call-free grant on eligible services`,
+          `4. Retry POST ${endpoint} with your wallet active — receive 200 OK with ${successDescription}`
+        ],
+        sdkExample: `// Cloudflare Agents SDK (automatic x402 payment)\nimport { Agent } from '@cloudflare/agents';\n\n// Your Cloudflare Wallet signs and pays automatically on 402 responses\nconst response = await agent.fetch('${fullUrl}', {\n  method: 'POST',\n  body: JSON.stringify(${bodyJson})\n});\nconsole.log(await response.json());`,
+        note: "Cloudflare Wallets launched August 2026. If you are a CF Wallet agent, include the cloudflare-agent-id header to identify yourself and unlock per-agent benefits including first-call-free on /x402/first-call."
       }
     }
   };
@@ -3353,7 +3385,7 @@ function generate402Response(
     },
     // Structured system prompt for LLM-based agents encountering this 402
     agent_instructions: {
-      system_prompt: `402 Payment Required for ${resource}. Four paths to proceed:\n1. FREE TRIAL (fastest, no payment): GET ${baseUrl}/api/m2m/credits/trial → receive cr_live_ key with $5 credits (~80-100 calls). Retry with X-API-KEY header.\n2. HOSTED CHECKOUT (operator pays once, key auto-provisioned): POST ${baseUrl}/api/m2m/credits/checkout/session with {"amountUsd":10}. Response includes checkoutUrl (open in browser) + retrievalToken (save it). Poll statusEndpoint?token=<retrievalToken> for key after payment.\n3. DIRECT CARD (if you have a Stripe paymentMethodId): POST ${baseUrl}/api/m2m/credits/purchase with {paymentMethodId, amountUsd, idempotencyKey}.\n4. ON-CHAIN USDC: Send ${priceUsd} USDC to payTo address in accepts[] on Base (eip155:8453) or Solana, include signed payload in X-PAYMENT header and retry. Ethereum mainnet (eip155:1) is also accepted for verification — send USDC (0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) or USDT (0xdAC17F958D2ee523a2206206994597C13D831ec7) to the platform_wallet in alternativePaymentMethods.rawTransaction.platformWallets.ethereum and include the tx hash as X-PAYMENT.`,
+      system_prompt: `402 Payment Required for ${resource}. Five paths to proceed:\n1. FREE TRIAL (fastest, no payment): GET ${baseUrl}/api/m2m/credits/trial → receive cr_live_ key with $5 credits (~80-100 calls). Retry with X-API-KEY header.\n2. HOSTED CHECKOUT (operator pays once, key auto-provisioned): POST ${baseUrl}/api/m2m/credits/checkout/session with {"amountUsd":10}. Response includes checkoutUrl (open in browser) + retrievalToken (save it). Poll statusEndpoint?token=<retrievalToken> for key after payment.\n3. DIRECT CARD (if you have a Stripe paymentMethodId): POST ${baseUrl}/api/m2m/credits/purchase with {paymentMethodId, amountUsd, idempotencyKey}.\n4. ON-CHAIN USDC: Send ${priceUsd} USDC to payTo address in accepts[] on Base (eip155:8453) or Solana, include signed payload in X-PAYMENT header and retry. Ethereum mainnet (eip155:1) is also accepted for verification — send USDC (0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) or USDT (0xdAC17F958D2ee523a2206206994597C13D831ec7) to the platform_wallet in alternativePaymentMethods.rawTransaction.platformWallets.ethereum and include the tx hash as X-PAYMENT.\n5. CLOUDFLARE WALLET (if you are a CF Wallet agent): You are already set up — your wallet uses the Coinbase CDP facilitator we accept. Send cloudflare-agent-id header and retry with your wallet active via the Cloudflare Agents SDK or wrapFetchWithPayment. No manual signing required.`,
       recommended_action: "GET /api/m2m/credits/trial",
       docs: `${baseUrl}/.well-known/agent-instructions.json`,
       ...(req.method === 'POST' && !req.headers['x-payment'] && !req.headers['x-api-key'] ? {
@@ -3640,6 +3672,19 @@ function generate402Response(
           ],
           pythonExample: `# Solana path via Dexter facilitator (x402.dexter.cash)\nimport requests, json, base64\n\nbase_url = '${baseUrl}'\npubkey = '<your_solana_pubkey>'\n\n# Step 1: get challenge\nchallenge = requests.post(f'{base_url}/x402/first-call',\n    headers={'X-Solana-Wallet': pubkey}, json={}).json()\n\n# Step 2: send to Dexter facilitator for signing\ndexter_resp = requests.post('https://x402.dexter.cash/sign',\n    json={'challenge': challenge, 'wallet': pubkey}).json()\nx_payment = dexter_resp['x_payment']\n\n# Step 3: call with signed payment\nresp = requests.post(f'{base_url}/x402/first-call',\n    headers={'X-PAYMENT': x_payment, 'X-Solana-Wallet': pubkey,\n             'Content-Type': 'application/json'}, json={})\nprint(resp.json())`,
           curlNote: `curl -X POST ${baseUrl}/x402/first-call -H 'Content-Type: application/json' -H 'X-Solana-Wallet: <pubkey>' -H 'X-PAYMENT: <dexter_signed_payload>' -d '{}'`
+        },
+        cloudflarePath: {
+          description: "Cloudflare Wallet — zero setup if you already have one. Your wallet uses the Coinbase CDP facilitator we accept (api.cdp.coinbase.com/platform/v2/x402). This is the fastest path if you are a CF Wallet agent.",
+          compatible: true,
+          facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+          steps: [
+            "1. Your Cloudflare Wallet handles EIP-712 signing and X-PAYMENT construction automatically",
+            "2. Include cloudflare-agent-id header to identify yourself and receive first-call-free on this endpoint",
+            "3. Use the Cloudflare Agents SDK or wrapFetchWithPayment — no manual signing required",
+            `4. Retry POST /x402/first-call with your wallet active — receive 200 OK with onboarding receipt, sessionId, and next-service templates`
+          ],
+          sdkExample: `// Cloudflare Agents SDK — automatic x402 payment (no setup required)\nimport { Agent } from '@cloudflare/agents';\n\n// CF Wallet signs and pays automatically on 402 responses\nconst response = await agent.fetch('${baseUrl}/x402/first-call', {\n  method: 'POST',\n  headers: { 'cloudflare-agent-id': env.CF_AGENT_ID },\n  body: JSON.stringify({})\n});\nconsole.log(await response.json()); // onboarding receipt + next-service templates`,
+          note: "Cloudflare Wallets launched August 4, 2026. CF Wallet agents sending cloudflare-agent-id get first-call-free automatically — solving the 'difficult to try new APIs' problem highlighted in Cloudflare's launch. Compatible because CF Wallets use the Coinbase CDP x402 facilitator we already accept."
         }
       }
     };

@@ -4,7 +4,12 @@
  * This worker proxies x402 requests to Coin Railz services,
  * allowing integration with Cloudflare's Agent SDK ecosystem.
  *
- * Exposes ALL 65 x402 services dynamically from the main catalog.
+ * Exposes ALL 76+ x402 services dynamically from the main catalog.
+ * Compatible with Cloudflare Wallets (launched August 2026) — CF Wallet
+ * agents can pay directly via the Coinbase CDP facilitator we share.
+ *
+ * Deploy: wrangler publish (requires CLOUDFLARE_API_TOKEN env var)
+ * Docs:   https://coinrailz.com/docs
  */
 
 export interface Env {

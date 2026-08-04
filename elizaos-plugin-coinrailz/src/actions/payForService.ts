@@ -122,20 +122,56 @@ export const payForServiceAction: Action = {
         });
         return true;
       } else if (result.error === 'PAYMENT_REQUIRED') {
-        // Store payment requirement in memory
+        // Store payment requirement in memory with actionable instructions
+        const paymentData = result.serviceResponse as any;
+        const amount = paymentData?.amount || 'the required amount';
         await runtime.messageManager.createMemory({
           userId: message.userId,
           agentId: message.agentId,
           roomId: message.roomId,
           content: {
-            text: `Payment required for ${serviceId}. Please send USDC to complete the transaction.`,
+            text: `Payment required for ${serviceId} (${amount} USDC on Base). ` +
+              `To pay automatically, set COINRAILZ_API_KEY (get credits at coinrailz.com/api-keys) ` +
+              `or EVM_PRIVATE_KEY with a funded Base mainnet wallet.`,
             data: result.serviceResponse,
             action: 'PAYMENT_REQUIRED'
           }
         });
         return false;
+      } else if (result.error === 'INSUFFICIENT_CREDITS') {
+        // Surface credit top-up instructions via runtime memory
+        const rechargeUrl = (result.serviceResponse as any)?.rechargeUrl || 'coinrailz.com/credits';
+        await runtime.messageManager.createMemory({
+          userId: message.userId,
+          agentId: message.agentId,
+          roomId: message.roomId,
+          content: {
+            text: `Insufficient credits to call ${serviceId}. Top up your Coin Railz credits at ${rechargeUrl}.`,
+            data: result.serviceResponse,
+            action: 'COINRAILZ_ERROR'
+          }
+        });
+        return false;
       } else {
+        // Surface all other errors — including credential-missing — via runtime memory
+        // so ElizaOS agents can report the problem to the operator instead of silently failing.
+        const isCredentialMissing = typeof result.error === 'string' &&
+          result.error.startsWith('No payment credentials');
+        const memoryText = isCredentialMissing
+          ? `No payment credentials configured for Coin Railz. ` +
+            `Set COINRAILZ_API_KEY at coinrailz.com/api-keys (recommended) ` +
+            `or EVM_PRIVATE_KEY with a funded Base mainnet wallet for autonomous x402 payments.`
+          : `Coin Railz service call failed for ${serviceId}: ${result.error}`;
         console.error('Service call failed:', result.error);
+        await runtime.messageManager.createMemory({
+          userId: message.userId,
+          agentId: message.agentId,
+          roomId: message.roomId,
+          content: {
+            text: memoryText,
+            action: 'COINRAILZ_ERROR'
+          }
+        });
         return false;
       }
     } catch (error) {

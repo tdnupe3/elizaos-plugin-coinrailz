@@ -3029,8 +3029,8 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         cloudflareAgentIdentity: {
           supported: true,
           header: "cloudflare-agent-id",
-          benefit: "first-call-free on eligible services + per-agent attribution",
-          note: "CF Wallet agents sharing cloudflare-agent-id receive first-call-free automatically. Compatible because CF Wallets use the Coinbase CDP facilitator we already accept."
+          benefit: "per-agent attribution in analytics; eligible agents receive first-call-free on gas-price-oracle and token-metadata under standard eligibility rules",
+          note: "CF Wallet agents may include cloudflare-agent-id for attribution. First-call-free on eligible services (gas-price-oracle, token-metadata) follows standard per-IP/UA eligibility — no CF-specific bypass. Compatible because CF Wallets use the Coinbase CDP facilitator we already accept."
         }
       }
     },

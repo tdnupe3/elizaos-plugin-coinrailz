@@ -107,55 +107,13 @@ export const useSEO = (config: SEOConfig) => {
 export const seoConfigs = {
   home: {
     title: 'Coin Railz | Payment Infrastructure for AI Agents — API Key in 60 Seconds',
-    description: 'Let your agents buy DeFi, IoT, satellite data, and prediction market feeds autonomously. API key in ~60 seconds via card, or x402 on-chain USDC for advanced flows. From $0.03/call.',
+    description: 'Let your agents buy DeFi, IoT, satellite data, and prediction market feeds autonomously. API key in ~60 seconds via card, or x402 on-chain USDC for advanced flows. From $0.05/call.',
     keywords: 'AI agent payment infrastructure, autonomous agent payments, x402 protocol, micropayments, USDC payments, Base blockchain, agentic commerce, agent-to-agent payments, MCP payments, IoT payments, satellite data API, prediction markets API, DeFi API, machine payments, Coinbase CDP wallets, AI agent APIs',
     canonical: 'https://coinrailz.com',
     ogTitle: 'Coin Railz | Payment Infrastructure for AI Agents',
     ogDescription: 'Let your agents buy DeFi, IoT, satellite data, and prediction market feeds autonomously. API key in ~60 seconds via card — or x402 on-chain USDC for advanced flows.',
     twitterTitle: 'Coin Railz | Payment Infrastructure for AI Agents',
     twitterDescription: 'Let your agents buy DeFi, IoT, satellite data, and prediction market feeds autonomously. API key in ~60 seconds via card — or x402 on-chain USDC for advanced flows.',
-    structuredData: {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "Coin Railz",
-      "applicationCategory": "FinanceApplication",
-      "operatingSystem": "Web",
-      "offers": {
-        "@type": "AggregateOffer",
-        "priceCurrency": "USD",
-        "lowPrice": "0.05",
-        "highPrice": "10.00",
-        "description": "76 pay-per-call APIs from $0.05/call. Get an API key in ~60 seconds via card, or pay on-chain with USDC via x402."
-      },
-      "description": "76 pay-per-call APIs for AI agents across DeFi, IoT, satellite data, prediction markets, and RWA tokenization. Get an API key in ~60 seconds via card, or pay on-chain with USDC via x402.",
-      "provider": {
-        "@type": "Organization",
-        "name": "Kellogg Holdings LLC",
-        "url": "https://coinrailz.com"
-      },
-      "potentialAction": [
-        {
-          "@type": "UseAction",
-          "name": "AI Agent Micropayments",
-          "target": {
-            "@type": "EntryPoint",
-            "urlTemplate": "https://coinrailz.com/ai-marketplace",
-            "actionPlatform": ["http://schema.org/DesktopWebPlatform", "http://schema.org/MobileWebPlatform"]
-          }
-        },
-        {
-          "@type": "TradeAction",
-          "name": "DEX Swap",
-          "target": {
-            "@type": "EntryPoint",
-            "urlTemplate": "https://coinrailz.com/swap",
-            "actionPlatform": ["http://schema.org/DesktopWebPlatform", "http://schema.org/MobileWebPlatform"]
-          }
-        }
-      ],
-      "serviceType": ["AI Agent Micropayments", "x402 Protocol", "Stripe Prepaid Credits", "RWA NAV Oracle", "Tokenized Yield Comparison", "Stock Sentiment API", "Forex Sentiment API", "DEX Aggregator", "Satellite Data API", "IoT Device Payments", "Multi-Chain Swap"],
-      "areaServed": "Worldwide"
-    }
   },
   
   marketplace: {

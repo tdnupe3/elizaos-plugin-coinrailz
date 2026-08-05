@@ -1,0 +1,64 @@
+# Coin Railz — LLM Discovery File
+# https://coinrailz.com/llms.txt
+# Last updated: 2026-08-05
+
+## What is Coin Railz?
+
+Coin Railz is agentic commerce infrastructure — 76 pay-per-call APIs built for autonomous AI agents.
+Agents pay per call using x402 (HTTP-native USDC micropayments) or card-funded API keys.
+No subscriptions. No OAuth. No human in the loop.
+
+## Core Capabilities
+
+- **76 microservices** spanning DeFi, IoT, satellite data, prediction markets, RWA tokenization, and compliance
+- **x402 protocol** — agents attach a signed USDC payment header to each HTTP request; the server settles on-chain
+- **API key access** — card-funded credits, instant provisioning (~60 seconds)
+- **USDC Yield Vault** — ERC-4626 on Base, auto-routes across Aave v3, Compound v3, and Morpho Blue
+- **A2A payments** — agent-to-agent settlement at /a2a endpoint (A2A protocol 0.3.0)
+- **MCP server** — full MCP tool manifest at /mcp
+
+## Pricing
+
+- Minimum: $0.05/call
+- Maximum: $10.00/call (smart contract audit)
+- Processing fee: 1.5% + $0.01 per x402 transaction
+- Full price list: https://coinrailz.com/x402
+
+## Machine-Readable Endpoints
+
+- **Service catalog (x402):** https://coinrailz.com/x402 (GET — returns all 76 services with pricing)
+- **A2A agent card:** https://coinrailz.com/.well-known/agent.json
+- **MCP manifest:** https://coinrailz.com/mcp
+- **OpenAPI spec:** https://coinrailz.com/api/openapi.json
+- **AWI manifest:** https://coinrailz.com/.well-known/awi.json
+- **x402 discovery:** https://coinrailz.com/x402/discovery
+- **Sitemap:** https://coinrailz.com/sitemap.xml
+
+## SDK / Integration
+
+- **NPM (TypeScript/JS):** @coinrailz/agent-payments
+- **ElizaOS plugin:** elizaos-plugin-coinrailz (npm)
+- **Python:** coinrailz (PyPI)
+- **Docker:** tdnupe3/agent-payments
+- **AgentKit actions:** 6 built-in actions for yield deposits/withdrawals
+
+## Service Categories
+
+DeFi: token prices, DEX quotes, gas oracle, wallet risk, approval manager, yield comparisons, RWA NAV oracle
+IoT: device payments, telemetry, sensor data
+Satellite / Earth data: NASA Earthdata ocean color, fire alerts, weather imagery, SRTM elevation, NDVI
+Prediction markets: Kalshi political, Kalshi sports, Polymarket
+Compliance: KYC checks, smart contract audit, payment processing compliance, AML screening
+Stock / Forex: RH stock price, stock sentiment, forex sentiment
+Blockchain: token metadata, bridge USDC (Across protocol), B20 token info/transfer/compliance
+
+## Supported Payment Networks
+
+Base, Ethereum, Polygon, Arbitrum, Optimism, BNB Chain, Solana (USDC on all chains)
+
+## Contact / Links
+
+- Website: https://coinrailz.com
+- Twitter/X: @coinrailz
+- NPM org: https://www.npmjs.com/org/coinrailz
+- Operator: Kellogg Holdings LLC

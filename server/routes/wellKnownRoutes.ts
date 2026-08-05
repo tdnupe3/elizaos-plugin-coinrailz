@@ -3031,6 +3031,11 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
           header: "cloudflare-agent-id",
           benefit: "per-agent attribution in analytics; eligible agents receive first-call-free on gas-price-oracle and token-metadata under standard eligibility rules",
           note: "CF Wallet agents may include cloudflare-agent-id for attribution. First-call-free on eligible services (gas-price-oracle, token-metadata) follows standard per-IP/UA eligibility — no CF-specific bypass. Compatible because CF Wallets use the Coinbase CDP facilitator we already accept."
+        },
+        cloudflareGateway: {
+          url: "https://coinrailz-x402-gateway.coinrailz.workers.dev",
+          catalog: "https://coinrailz-x402-gateway.coinrailz.workers.dev/catalog",
+          description: "Cloudflare Worker gateway — exposes all Coin Railz x402 services natively within the Cloudflare agent ecosystem. CF Wallet agents can pay directly via the shared Coinbase CDP facilitator."
         }
       }
     },
@@ -4150,6 +4155,15 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     facilitators: [
       "https://api.cdp.coinbase.com/platform/v2/x402",
       "https://x402.dexter.cash"
+    ],
+    gateways: [
+      {
+        name: "Cloudflare Worker Gateway",
+        url: "https://coinrailz-x402-gateway.coinrailz.workers.dev",
+        catalog: "https://coinrailz-x402-gateway.coinrailz.workers.dev/catalog",
+        ecosystem: "cloudflare-agents",
+        description: "Native Cloudflare agent ecosystem entry point. All services available. CF Wallet agents pay via Coinbase CDP facilitator."
+      }
     ],
     endpoints: (() => {
       const allServices = getCanonicalServices();

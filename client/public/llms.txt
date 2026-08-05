@@ -34,6 +34,15 @@ No subscriptions. No OAuth. No human in the loop.
 - **x402 discovery:** https://coinrailz.com/x402/discovery
 - **Sitemap:** https://coinrailz.com/sitemap.xml
 
+## Cloudflare Agent Gateway
+
+Coin Railz is also accessible via a native Cloudflare Worker gateway — the preferred entry point for agents built on Cloudflare's Agent SDK or using Cloudflare Wallets.
+
+- **Gateway root:** https://coinrailz-x402-gateway.coinrailz.workers.dev
+- **Service catalog:** https://coinrailz-x402-gateway.coinrailz.workers.dev/catalog
+- **Payment:** CF Wallet agents pay via the Coinbase CDP facilitator (same as the main platform)
+- **Coverage:** All 76 services, dynamically sourced from the main catalog
+
 ## SDK / Integration
 
 - **NPM (TypeScript/JS):** @coinrailz/agent-payments

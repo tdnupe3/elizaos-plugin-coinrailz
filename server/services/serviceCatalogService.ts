@@ -930,6 +930,17 @@ export class ServiceCatalogService {
         stripeCompatible: false
       },
       {
+        id: 'vlt-usdc-zap-withdraw',
+        name: 'vltUSDC Vault Zap Withdraw Builder (USDC-only)',
+        description: 'FREE — USDC-only exit from the Bankroll Network vltUSDC vault via ZapHelper. Redeems shares, swaps VLT→WETH(V2)→USDC(V3), and delivers USDC only to recipient. 2 transactions. minUsdcOut encoded on-chain (2% slippage). Counterpart to vlt-usdc-deposit usdcOnly:true. No payment required.',
+        endpoint: '/x402/vlt-usdc-zap-withdraw',
+        network: 'eip155:1',
+        category: 'execution',
+        capabilities: ['vault', 'withdraw', 'redeem', 'zap', 'usdc-only', 'calldata', 'vlt', 'bankroll-network', 'ethereum', 'usdc', 'defi', 'yield', 'slippage', 'uniswap-v2', 'uniswap-v3'],
+        x402Compatible: true,
+        stripeCompatible: false
+      },
+      {
         id: 'vlt-stats',
         name: 'VLT + vltUSDC Vault Stats',
         description: 'Live VLT token price, market cap, liquidity, and vltUSDC vault stats (TVL, estimated LP fee APR, L/share, total shares). Sourced from CoinGecko + DexScreener (market data) and Alchemy on-chain reads (vault state). Use for autonomous vault allocation decisions alongside vlt-usdc-deposit and vlt-usdc-withdraw.',

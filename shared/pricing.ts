@@ -110,6 +110,7 @@ export type ServiceName =
   // Bankroll Network — vltUSDC Ethereum Yield (July 2026)
   | "vlt-usdc-deposit"
   | "vlt-usdc-withdraw"
+  | "vlt-usdc-zap-withdraw"
   | "vlt-stats"
   // RWA & Tokenization vertical (July 2026)
   | "rwa-nav-oracle"
@@ -230,6 +231,7 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   // BANKROLL NETWORK — vltUSDC (Ethereum LP Yield, July 2026)
   "vlt-usdc-deposit": 0,              // Free — Bankroll Network partnership; vault LP fees flow to VLT holders
   "vlt-usdc-withdraw": 0,             // Free — Withdraw calldata builder; completes the deposit→earn→withdraw lifecycle
+  "vlt-usdc-zap-withdraw": 0,         // Free — USDC-only exit via ZapHelper (sells VLT on-market); no VLT to handle
   "vlt-stats": 50000,                 // $0.05 — VLT price + vltUSDC vault TVL/APR snapshot
 
   // SATELLITE DATA SERVICES (NASA Earthdata + ESA Copernicus)
@@ -357,6 +359,7 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   // Bankroll Network — vltUSDC (Ethereum LP Yield, July 2026)
   "vlt-usdc-deposit": 0.00,
   "vlt-usdc-withdraw": 0.00,
+  "vlt-usdc-zap-withdraw": 0.00,      // USDC-only exit via ZapHelper; completes the USDC round-trip
   "vlt-stats": 0.05,                  // VLT price + vltUSDC vault TVL/APR snapshot
 
   // Satellite Data Services (NASA Earthdata + ESA Copernicus)

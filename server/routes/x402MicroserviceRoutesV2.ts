@@ -80,6 +80,7 @@ import { rhStockPriceService, SUPPORTED_SYMBOLS as RH_STOCK_SYMBOLS } from './mi
 import { rhBridgeService } from './microservices/rhBridgeService';
 import { buildVltUsdcDeposit } from '../services/vltUsdcDepositService';
 import { buildVltUsdcWithdraw } from '../services/vltUsdcWithdrawService';
+import { buildZapWithdraw } from '../services/vltUsdcZapWithdrawService';
 import { getVltUsdcStats } from '../services/vltUsdcVaultService';
 import { getVltStats } from '../services/vltStatsService';
 import { rwaNavOracleService } from '../services/rwaNavOracleService';
@@ -6321,6 +6322,127 @@ router.post("/vlt-usdc-withdraw", async (req: Request, res: Response) => {
 });
 
 // ============================================================
+// BANKROLL NETWORK — vltUSDC Zap Withdraw Builder (USDC-only exit, August 2026)
+// FREE — No payment required. Completes the USDC round-trip (deposit→earn→zap-withdraw).
+// ============================================================
+
+router.get("/vlt-usdc-zap-withdraw", (_req: Request, res: Response) => {
+  const stats = getVltUsdcStats();
+  res.json({
+    service: 'vlt-usdc-zap-withdraw',
+    name:    'vltUSDC Vault USDC-Only Exit Builder',
+    price:   'free',
+    description: [
+      'FREE — Returns 3 unsigned Ethereum transactions that convert vltUSDC shares entirely to USDC.',
+      'Step 1: vault.redeem(shares, recipient) — burns shares, sends VLT + USDC to recipient.',
+      'Step 2: VLT.approve(uniswapV2Router, vltAmount) — grants V2 Router permission to spend VLT.',
+      'Step 3: v2Router.swapExactTokensForTokens([VLT, WETH, USDC], recipient) — two-hop V2 swap.',
+      'VLT and USDC amounts in Step 1 are from vault.previewRedeem (exact on-chain, no approximation).',
+      'Swap slippage floor (minAmountOut) is computed from live V2 getReserves with 2% slippage and encoded on-chain.',
+      'Fails closed if any on-chain data is unavailable.',
+    ].join(' '),
+    exitModes: {
+      standard: {
+        service:  'POST /x402/vlt-usdc-withdraw',
+        returns:  'VLT + USDC (pro-rata in-kind, no swap)',
+        steps:    1,
+        slippage: 'none — on-chain no slippage params',
+        bestFor:  'agents that want VLT, or minimal transaction count',
+      },
+      usdcOnly: {
+        service:  'POST /x402/vlt-usdc-zap-withdraw',
+        returns:  'USDC only — VLT is swapped to USDC via Uniswap V2',
+        steps:    3,
+        slippage: '2% on V2 swap output (minAmountOut encoded on-chain)',
+        bestFor:  'agents that only want USDC back; counterpart to vlt-usdc-deposit usdcOnly:true',
+      },
+    },
+    method: 'POST',
+    body: {
+      shares:    'string — raw 18-decimal vltUSDC share amount (e.g. "1790439768343002" for 0.00179 shares)',
+      recipient: 'string — Ethereum address to receive all USDC (lowercase accepted, auto-normalized)',
+    },
+    route: 'Step 1: vltUSDC → vault.redeem → VLT + USDC | Step 3: VLT –[V2 VLT/WETH]→ WETH –[V2 WETH/USDC]→ USDC',
+    contracts: {
+      vault:        '0xee8d4c5c768AadCd3517Aa8C908De300305D0A7f',
+      vlt:          '0x6b785a0322126826d8226d77e173d75DAfb84d11',
+      usdc:         '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      v2Router:     '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
+      vltWethPair:  '0x966053Ca4fca049173eb1F27E4cb168CCb794534',
+      wethUsdcPair: '0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc',
+      chainId:      1,
+    },
+    security: [
+      'vault.previewRedeem is MANDATORY (exact on-chain amounts, no approximation).',
+      'V2 getReserves quotes are MANDATORY (fail-closed, no stale fallback).',
+      'minAmountOut in Step 3 is enforced on-chain.',
+    ].join(' '),
+    ...(stats ? {
+      liveStats: {
+        vltPriceUsd: stats.stats.vltPriceUsd,
+        tvlUsd:      stats.stats.tvlUsd,
+        aprDisplay:  stats.stats.aprDisplay,
+        lPerShare:   stats.stats.lPerShare,
+        updatedAt:   stats.updatedAt,
+        source:      stats.source,
+      },
+    } : { liveStats: null }),
+    also: 'POST /x402/vlt-usdc-withdraw (standard 1-tx exit, keeps VLT) | POST /x402/vlt-usdc-deposit (enter vault) | GET /x402/vlt-stats',
+  });
+});
+
+router.post("/vlt-usdc-zap-withdraw", async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  try {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      res.status(400).json({ success: false, error: 'Request body must be a JSON object' });
+      return;
+    }
+
+    const { shares, recipient } = req.body;
+
+    if (!shares) {
+      res.status(400).json({
+        success: false,
+        error: 'Missing required field: shares (raw 18-decimal vltUSDC share amount as string, e.g. "1000000000000000000")',
+      });
+      return;
+    }
+
+    if (!recipient) {
+      res.status(400).json({
+        success: false,
+        error: 'Missing required field: recipient (Ethereum address to receive USDC)',
+      });
+      return;
+    }
+
+    const result = await buildZapWithdraw(String(shares), String(recipient));
+    const responseTime = Date.now() - startTime;
+
+    // BigInt-safe serialization
+    const safe = JSON.stringify(
+      { free: true, ...result },
+      (_key, val) => (typeof val === 'bigint' ? val.toString() : val),
+    );
+
+    await trackRequest("vlt-usdc-zap-withdraw", req.body, result, responseTime, 0, req.ip || "unknown");
+
+    if (!result.success) {
+      res.status(400).set('Content-Type', 'application/json').send(
+        JSON.stringify({ free: true, ...result }, (_k, v) => (typeof v === 'bigint' ? v.toString() : v)),
+      );
+      return;
+    }
+    res.status(200).set('Content-Type', 'application/json').send(safe);
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    await trackRequest("vlt-usdc-zap-withdraw", req.body, null, responseTime, 0, req.ip || "unknown", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================
 // BANKROLL NETWORK — vltUSDC Deposit Builder (Ethereum LP Yield, July 2026)
 // FREE — No payment required. Partnership with Bankroll Network.
 // ============================================================
@@ -6611,7 +6733,7 @@ router.post("/vlt-stats",
     'flood-detection','air-quality','land-use','b20-token-info','b20-transfer-check','b20-compliance-scan',
     'robinhood-token-price','robinhood-dex-pools','robinhood-chain-stats',
     'rh-stock-price','rh-bridge-usdc',
-    'vlt-usdc-deposit','vlt-usdc-withdraw','vlt-stats',
+    'vlt-usdc-deposit','vlt-usdc-withdraw','vlt-usdc-zap-withdraw','vlt-stats',
     'fleet-telematics',
     'weather-station-data','iot-sensor-reading','iot-device-stream','iot-bulk-data',
     'earthdata-sst','earthdata-soil-moisture','earthdata-ocean-color',

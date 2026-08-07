@@ -752,5 +752,14 @@ export const COIN_RAILZ_SERVICES: CoinRailzService[] = [
     endpoint: '/x402/vlt-usdc-withdraw',
     network: 'base',
     category: 'bankroll-network'
+  },
+  {
+    id: 'vlt-usdc-zap-withdraw',
+    name: 'vltUSDC Vault USDC-Only Exit Builder',
+    description: 'FREE — Returns 3 unsigned Ethereum transactions to exit the Bankroll Network vltUSDC vault as USDC only: (1) vault.redeem burns shares → VLT + USDC, (2) VLT.approve Uniswap V2 Router, (3) V2 two-hop swap VLT → WETH → USDC. minAmountOut encoded on-chain at 2% slippage from live reserves. No payment required with API key.',
+    price: '0.00',
+    endpoint: '/x402/vlt-usdc-zap-withdraw',
+    network: 'base',
+    category: 'bankroll-network'
   }
 ];

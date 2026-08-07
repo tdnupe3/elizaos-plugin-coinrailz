@@ -27,7 +27,7 @@ import type {
   ServiceCatalog,
 } from './types.js';
 
-export const SDK_VERSION = '1.2.0';
+export const SDK_VERSION = '1.3.1';
 
 const FREE_TIER_SERVICES = new Set(['gas-price-oracle', 'token-metadata']);
 
@@ -709,6 +709,25 @@ export class CoinRailzClient {
    */
   async verifiedAgentIdentity(params: { agentAddress: string }): Promise<ServiceResponse<unknown>> {
     return this.request('verified-agent-identity', params);
+  }
+
+  // ==================== Bankroll Network / VLT Vault ====================
+
+  /**
+   * vltUSDC USDC-only exit calldata builder (3-transaction flow)
+   * FREE — returns three unsigned Ethereum transactions to exit the Bankroll Network vltUSDC vault as USDC only.
+   * Tx 1: vault.redeem(shares, recipient) — burns shares, delivers VLT + USDC pro-rata.
+   * Tx 2: VLT.approve(uniswapV2Router, vltAmount) — grants V2 Router permission to spend VLT.
+   * Tx 3: v2Router.swapExactTokensForTokens([VLT, WETH, USDC], recipient) — two-hop V2 swap.
+   * minAmountOut in Tx 3 is computed on-chain from live V2 reserves with 2% slippage.
+   */
+  async vltUsdcZapWithdraw(params: {
+    /** Raw 18-decimal vltUSDC share amount to redeem (e.g. "1790439768343002") */
+    shares: string;
+    /** Ethereum address to receive all USDC output */
+    recipient: string;
+  }): Promise<ServiceResponse<unknown>> {
+    return this.request('vlt-usdc-zap-withdraw', params);
   }
 }
 

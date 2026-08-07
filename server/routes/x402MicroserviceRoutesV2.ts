@@ -1589,7 +1589,7 @@ const x402Routes = {
       discoverable: true,
       resource: `${PUBLIC_BASE_URL}/x402/vlt-usdc-withdraw`,
       name: "vltUSDC Withdraw Builder",
-      description: "FREE — No payment required. Send {shares, recipient} and receive 1 unsigned Ethereum transaction: vault.redeem(shares, minVltOut, minUsdcOut, deadline, receiver). Agent signs and broadcasts on Ethereum mainnet. No approval needed — shares are already in your wallet. Returns VLT + USDC directly to recipient. minVltOut and minUsdcOut are computed from live vault data with 2% slippage (zero-fallback if unavailable).",
+      description: "FREE — No payment required. Send {shares, recipient} and receive 1 unsigned Ethereum transaction: vault.redeem(shares, receiver). Agent signs and broadcasts on Ethereum mainnet. No approval needed — shares are already in your wallet. Returns VLT + USDC directly to recipient. Redemption is pro-rata in-kind (no swap, no slippage params). Estimated output amounts are returned as informational context only.",
       mimeType: "application/json",
       maxTimeoutSeconds: 30,
       inputSchema: {
@@ -6171,12 +6171,12 @@ router.get("/vlt-usdc-withdraw", (_req: Request, res: Response) => {
     service:  'vlt-usdc-withdraw',
     name:     'vltUSDC Vault Withdraw Builder',
     price:    'free',
-    description: 'FREE — Returns 1 unsigned Ethereum transaction: vault.redeem(shares, minVltOut, minUsdcOut, deadline, receiver). No token approval needed — your vltUSDC shares are burned and VLT + USDC are sent directly to the recipient. minVltOut and minUsdcOut are computed from live vault data with 2% slippage.',
+    description: 'FREE — Returns 1 unsigned Ethereum transaction: vault.redeem(shares, receiver). No token approval needed — your vltUSDC shares are burned and VLT + USDC are sent directly to the recipient. Redemption is pro-rata in-kind (no swap, no slippage parameters on-chain). Estimated output amounts are included in the response as informational context only.',
     method:   'POST',
     body: {
       shares:      'string — raw 18-decimal vltUSDC share amount (e.g. "1000000000000000000" for 1 share)',
       recipient:   'string — Ethereum address to receive VLT + USDC',
-      slippageBps: 'number (optional, default 200) — slippage tolerance in basis points (200 = 2%, max 1000)',
+      slippageBps: 'number (optional, no-op) — accepted for backward compat but not encoded on-chain; vault redeems pro-rata with no slippage params',
     },
     contracts: {
       vault:     '0xee8d4c5c768AadCd3517Aa8C908De300305D0A7f',
@@ -6185,7 +6185,7 @@ router.get("/vlt-usdc-withdraw", (_req: Request, res: Response) => {
       chainId:   1,
       pool:      'VLT/USDC · Uniswap V4 · full-range · 1% fee',
     },
-    slippageNote: 'minVltOut and minUsdcOut are estimated from live vault TVL using a 50/50 value-split approximation. Vault returns any excess tokens. Set slippageBps=0 to disable floors (receives whatever the vault sends).',
+    estimateNote: 'minVltOut and minUsdcOut in the response are informational estimates only — they are NOT encoded on-chain. The vault redeems pro-rata in-kind (no swap, no slippage parameters). slippageBps is accepted for backward compat but has no effect on the generated calldata.',
     ...(stats ? {
       liveStats: {
         vltPriceUsd: stats.stats.vltPriceUsd,

@@ -6,21 +6,24 @@
  *
  * Vault contract (= vltUSDC ERC-20 share token):
  *   0xee8d4c5c768AadCd3517Aa8C908De300305D0A7f
- *   redeem(uint256 shares, uint256 minVltOut, uint256 minUsdcOut, uint256 deadline, address receiver)
- *   returns (uint256 vltAmount, uint256 usdcAmount)
+ *   redeem(uint256 shares, address receiver)
+ *   returns (uint256 vltOut, uint256 usdcOut)
+ *
+ * The vault has no slippage parameters — redemption is pro-rata in-kind (no swap,
+ * can't be sandwiched), so minVltOut/minUsdcOut do NOT exist in the on-chain ABI.
  *
  * Input:
  *   shares     — vltUSDC share balance (18 decimals, as a string raw amount)
  *   recipient  — address to receive VLT + USDC after redemption
- *   slippageBps — optional slippage tolerance in basis points (default: 200 = 2%)
+ *   slippageBps — accepted for backward compat but is a no-op; not encoded on-chain
  *
- * minVltOut / minUsdcOut derivation:
+ * minVltOut / minUsdcOut are computed from live data and returned as INFORMATIONAL
+ * estimates only — they are NOT encoded into the calldata.
  *   1. vault.positionLiquidity() + totalSupply() → share fraction
  *   2. DexScreener TVL → total USD value in vault
  *   3. VLT price → split TVL 50/50 by value between VLT and USDC
  *   4. agent's share fraction × token amounts → expected out
- *   5. Apply slippage floor
- *   Falls back to 0 if live data unavailable (agent is warned, calldata still returned).
+ *   Falls back to 0 if live data unavailable.
  *
  * No custody — funds stay in the agent's wallet until they sign and broadcast.
  */
@@ -36,7 +39,7 @@ const DEADLINE_SECONDS = 20 * 60; // 20 min (matches zap service)
 const DEFAULT_SLIPPAGE_BPS = 200n; // 2%
 
 const VAULT_ABI = [
-  'function redeem(uint256 shares, uint256 minVltOut, uint256 minUsdcOut, uint256 deadline, address receiver) returns (uint256 vltAmount, uint256 usdcAmount)',
+  'function redeem(uint256 shares, address receiver) returns (uint256 vltOut, uint256 usdcOut)',
   'function positionLiquidity() external view returns (uint128)',
   'function totalSupply() external view returns (uint256)',
 ];
@@ -217,20 +220,17 @@ export async function buildVltUsdcWithdraw(
   const slippageBpsClamped = Math.min(Math.max(slippageBps, 0), 1000); // 0–10%
   const slippageBpsBig = BigInt(slippageBpsClamped);
 
-  const deadline = BigInt(Math.floor(Date.now() / 1000) + DEADLINE_SECONDS);
   const rpcUrl   = `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY ?? ''}`;
   const provider = new ethers.JsonRpcProvider(rpcUrl);
 
-  // Fetch live estimates for minVltOut / minUsdcOut (fails gracefully, returns 0 fallback)
+  // Fetch live estimates for informational minVltOut / minUsdcOut (fails gracefully, returns 0 fallback)
   const estimate = await estimateMinOuts(sharesRawBig, provider, slippageBpsBig);
 
-  // Build vault.redeem calldata (single transaction, no approval needed)
+  // Build vault.redeem calldata — 2-arg ABI: redeem(uint256 shares, address receiver)
+  // The vault has NO slippage parameters; redemption is pro-rata in-kind (no swap).
   const vaultIface = new ethers.Interface(VAULT_ABI);
   const redeemData = vaultIface.encodeFunctionData('redeem', [
     sharesRawBig,
-    estimate.minVltOutRaw,
-    estimate.minUsdcOutRaw,
-    deadline,
     normalizedRecipient,
   ]);
 
@@ -271,10 +271,9 @@ export async function buildVltUsdcWithdraw(
       gasEstimate: '0x61A80', // ~400,000 gas (V4 position decrease + token transfers)
       note: [
         `Burn ${sharesDisplay} vltUSDC shares and receive VLT + USDC from the Bankroll Network vault.`,
-        `Estimated: ~${estVltOut} VLT + ~${estUsdcOut} USDC (50/50 value split at $${estimate.vltPriceUsd.toFixed(4)}/VLT).`,
-        `Minimum floors: ${estimate.minVltOutRaw > 0n ? minVltOut : '0'} VLT + ${estimate.minUsdcOutRaw > 0n ? minUsdcOut : '0'} USDC (${slippageBpsClamped/100}% slippage).`,
-        `Vault returns VLT to ${VLT_TOKEN} and USDC to ${USDC_ETH} in your wallet.`,
-        `Calldata valid for 20 minutes.`,
+        `Estimated output (informational only, not enforced on-chain): ~${estVltOut} VLT + ~${estUsdcOut} USDC (50/50 value split at $${estimate.vltPriceUsd.toFixed(4)}/VLT).`,
+        `The vault redeems pro-rata — no slippage parameters are encoded in the calldata.`,
+        `Vault sends VLT to ${VLT_TOKEN} and USDC to ${USDC_ETH} in ${normalizedRecipient}.`,
         zeroFallbackWarning,
       ].filter(Boolean).join(' '),
     },
@@ -291,10 +290,11 @@ export async function buildVltUsdcWithdraw(
     agentInstructions: [
       `You are redeeming ${sharesDisplay} vltUSDC shares from the Bankroll Network vault (${VAULT_ADDRESS}) on Ethereum mainnet (chainId 1).`,
       `This is a single transaction — no token approvals needed (shares are in your wallet).`,
-      `Sign and broadcast the vault.redeem transaction. The vault will burn your shares and send VLT (${VLT_TOKEN}) and USDC (${USDC_ETH}) directly to ${normalizedRecipient}.`,
+      `Sign and broadcast the vault.redeem(shares, receiver) transaction. The vault will burn your shares and send VLT (${VLT_TOKEN}) and USDC (${USDC_ETH}) directly to ${normalizedRecipient}.`,
+      `Redemption is pro-rata in-kind (no swap) — the vault has no slippage parameters on-chain; you receive your proportional share of the pool.`,
       estimate.source === 'live-estimate'
-        ? `Expected output: ~${estVltOut} VLT + ~${estUsdcOut} USDC. Slippage protection: ${slippageBpsClamped/100}% (source: live vault data).`
-        : `Slippage protection floors are 0 — live vault data was unavailable when calldata was built. You may want to regenerate the calldata when the vault is accessible.`,
+        ? `Estimated output (informational, not enforced on-chain): ~${estVltOut} VLT + ~${estUsdcOut} USDC based on live vault data.`
+        : `Live vault data was unavailable — estimated output not available. You will receive your pro-rata share of the pool.`,
       `After redemption, you can swap VLT back to USDC via Uniswap V2 (0x966053Ca4fca049173eb1F27E4cb168CCb794534 VLT/WETH) or the Bankroll UI at https://bankroll.network/vltUSDC.html.`,
     ].join(' '),
   };

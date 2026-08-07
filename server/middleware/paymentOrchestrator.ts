@@ -3690,106 +3690,19 @@ function generate402Response(
     };
   }
 
-  // Execution guide: inject service-specific payment recipe for whale-alerts
-  if (serviceName === 'whale-alerts') {
+  // Universal execution_guide — injected for ALL paid services.
+  // Provides cloudflarePath + EVM + Solana signing recipes to every 402 body.
+  // first-call is excluded: it already has a richer goldenPath block (superset).
+  // Free services (vlt-usdc-deposit, vlt-usdc-withdraw, vlt-stats GET) never reach
+  // generate402Response(), so they are naturally excluded with no guard needed.
+  if (serviceName !== 'first-call') {
     response.execution_guide = buildExecutionGuide({
       serviceName,
       requiredAmount,
       priceUsd,
-      requestBody: { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", chain: "ethereum", threshold: 100000 },
-      paymentRecipeDescription: "Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response with whale movement data.",
-      successDescription: "recent large wallet movements, counterparties, and USD values",
-      baseUrl
-    });
-  }
-
-  // Execution guide: inject service-specific payment recipe for trade-signals
-  if (serviceName === 'trade-signals') {
-    response.execution_guide = buildExecutionGuide({
-      serviceName,
-      requiredAmount,
-      priceUsd,
-      requestBody: { token: "ETH", timeframe: "4h", riskLevel: "medium" },
-      paymentRecipeDescription: "Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response with an AI-generated BUY/SELL/HOLD signal, entry price, target, and stop-loss.",
-      successDescription: "BUY/SELL/HOLD signal, confidence score, entry/target/stop-loss levels",
-      baseUrl
-    });
-  }
-
-  // Execution guide: inject service-specific payment recipe for agent-create-wallet
-  if (serviceName === 'agent-create-wallet') {
-    response.execution_guide = buildExecutionGuide({
-      serviceName,
-      requiredAmount,
-      priceUsd,
-      requestBody: { agent_id: "my-trading-bot-v1", purpose: "persistent", chain: "base-mainnet" },
-      paymentRecipeDescription: "Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response provisioning a persistent CDP-managed wallet for your agent.",
-      successDescription: "walletId, walletAddress, and chain details for your new persistent CDP agent wallet",
-      baseUrl
-    });
-  }
-
-  // Execution guide: inject service-specific payment recipe for credit-risk-score
-  if (serviceName === 'credit-risk-score') {
-    response.execution_guide = buildExecutionGuide({
-      serviceName,
-      requiredAmount,
-      priceUsd,
-      requestBody: { applicantInfo: { annualIncome: 85000, employmentYears: 5, currentDebt: 12000 }, requestedAmount: 50000 },
-      paymentRecipeDescription: "Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response with an AI credit risk score, tier rating, and borrowing limit.",
-      successDescription: "credit score, tier (A-F), key metrics, and recommended borrow limit",
-      baseUrl
-    });
-  }
-
-  // Execution guide: gas-price-oracle — Task #56 (first-call-free on first request)
-  if (serviceName === 'gas-price-oracle') {
-    response.execution_guide = buildExecutionGuide({
-      serviceName,
-      requiredAmount,
-      priceUsd,
-      requestBody: { chain: "base" },
-      paymentRecipeDescription: "Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response with real-time gas prices. Note: first call is FREE for new agents — no payment header needed.",
-      successDescription: "real-time gas prices (base fee, priority fee, fast/standard/slow) across multiple chains with USD cost estimates",
-      baseUrl
-    });
-  }
-
-  // Execution guide: token-metadata — Task #56 (first-call-free on first request)
-  if (serviceName === 'token-metadata') {
-    response.execution_guide = buildExecutionGuide({
-      serviceName,
-      requiredAmount,
-      priceUsd,
-      requestBody: { tokenAddress: "0x6b785a0322126826d8226d77e173d75DAfb84d11", chain: "ethereum" },
-      paymentRecipeDescription: "Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response with token contract metadata. Note: first call is FREE for new agents — no payment header needed.",
-      successDescription: "token name, symbol, decimals, total supply, contract type, and on-chain metadata",
-      baseUrl
-    });
-  }
-
-  // Execution guide: wallet-risk — Task #56
-  if (serviceName === 'wallet-risk') {
-    response.execution_guide = buildExecutionGuide({
-      serviceName,
-      requiredAmount,
-      priceUsd,
-      requestBody: { address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
-      paymentRecipeDescription: "Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response with an on-chain risk score for the wallet.",
-      successDescription: "risk score (0–100), risk tier, flagged behaviors (mixers, blacklisted counterparties, rug-pull history, concentration risk, anomalous patterns)",
-      baseUrl
-    });
-  }
-
-  // Execution guide: approval-manager — Task #56
-  if (serviceName === 'approval-manager') {
-    response.execution_guide = buildExecutionGuide({
-      serviceName,
-      requiredAmount,
-      priceUsd,
-      requestBody: { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", spender: "0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24", chain: "base" },
-      paymentRecipeDescription: "Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response with token approval analysis and security recommendations.",
-      successDescription: "approval status, unlimited vs bounded allowances, risk-ranked spender list, and recommended revoke actions",
+      requestBody: serviceExampleBodies[serviceName] || {},
+      paymentRecipeDescription: `Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response with ${serviceName.replace(/-/g, ' ')} data.`,
+      successDescription: `the ${serviceName.replace(/-/g, ' ')} response payload`,
       baseUrl
     });
   }

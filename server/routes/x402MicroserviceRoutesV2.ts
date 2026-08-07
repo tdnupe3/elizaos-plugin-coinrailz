@@ -6334,7 +6334,7 @@ router.get("/vlt-usdc-deposit", (_req: Request, res: Response) => {
     description: 'FREE — Two deposit modes: (A) balanced (VLT+USDC, 3 txs) or (B) USDC-only via ZapHelper with live swap quote (2 txs). Set usdcOnly:true in the request body for USDC-only mode. No VLT required in mode B. Vault is VLT/USDC Uniswap V4 full-range 1% fee, auto-compounds fees.',
     method: 'POST',
     body: {
-      amountUsdc: 'string | number — total USDC to deposit',
+      amountUsdc: 'string — total USDC to deposit (e.g. "100" for 100 USDC)',
       recipient:  'string — Ethereum address to receive vltUSDC shares (lowercase accepted, auto-normalized)',
       usdcOnly:   'boolean (optional, default false) — set true for USDC-only mode via ZapHelper (no VLT needed)',
     },
@@ -6575,7 +6575,7 @@ router.post("/vlt-stats",
             }
           ],
           vaultWorkflow: 'GET vlt-stats → evaluate TVL/APR → POST vlt-usdc-deposit (enter) or POST vlt-usdc-withdraw (exit)',
-          note: 'vlt-usdc-deposit and vlt-usdc-withdraw are free with an API key (X-API-KEY header). The vault operates on Ethereum mainnet; returned calldata must be executed there.'
+          note: 'vlt-usdc-deposit and vlt-usdc-withdraw are completely FREE — no API key, no payment header, no wallet required. Just POST the required body parameters. The vault operates on Ethereum mainnet; returned calldata must be signed and broadcast there by the caller.'
         }
       });
     } catch (error: any) {

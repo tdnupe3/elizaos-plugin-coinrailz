@@ -65,7 +65,7 @@ import { CoinbaseCDPService } from "../services/coinbaseCDPService";
 import { x402TrackingMiddleware } from "../middleware/x402TrackingMiddleware";
 import { hybridPaymentMiddleware, verifyTransactionPayment } from "../middleware/hybridPaymentMiddleware";
 import { usageAnalyticsMiddleware } from "../middleware/usageAnalyticsMiddleware";
-import { createPaymentOrchestrator } from "../middleware/paymentOrchestrator";
+import { createPaymentOrchestrator, buildExecutionGuide } from "../middleware/paymentOrchestrator";
 import { bundleAuthMiddleware } from "../middleware/bundleAuthMiddleware";
 import { deductBundleCredits } from "../services/bundleCreditService";
 import { serviceCatalogService, ServiceCatalogService } from "../services/serviceCatalogService";
@@ -2271,6 +2271,17 @@ const x402Routes = {
   },
 };
 
+// Example request bodies for services in generate402ResponseForGet — used to populate
+// execution_guide.requestBody so agents see exactly what to POST, not just an empty {}.
+const V2_SERVICE_EXAMPLE_BODIES: Record<string, Record<string, any>> = {
+  "trading-signal":   { symbol: "SOL/USDC", timeframe: "1d" },
+  "dex-liquidity":    { tokenA: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", tokenB: "0x4200000000000000000000000000000000000006", chain: "base" },
+  "polymarket-odds":  { slug: "will-btc-hit-100k-2026" },
+  "portfolio-tracker":{ walletAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", chains: ["ethereum", "base", "polygon"] },
+  "stock-sentiment":  { symbol: "NVDA", includeNews: true, includeTechnicals: true },
+  "fleet-telematics": { fleetId: "fleet_001", vehicleIds: ["truck_01", "truck_02", "truck_03"], timeRangeHours: 24 },
+};
+
 // CRITICAL FIX: x402-express never writes `discoverable` or `facilitatorUrl` into 402 responses
 // These fields must be manually injected by wrapping res.json BEFORE paymentMiddleware runs
 // See: https://github.com/coinbase/x402-express/issues - discoverable is metadata-only
@@ -2431,6 +2442,60 @@ router.use(async (req: Request, res: Response, next) => {
           ...confidenceMetrics,
           note: "Other autonomous agents have successfully used this payment flow.",
         };
+      }
+
+      // Inject execution_guide for POST 402s from x402-express (same recipe as GET/HEAD path).
+      // Agents that POST without payment receive this just like HEAD-probe agents do.
+      if (!body.execution_guide) {
+        try {
+          const svcSlug = req.path.replace(/^\/service\//, '').replace(/^\//, '').replace(/\/$/, '');
+          const priceUsd = body.accepts?.[0]?.maxAmountRequired
+            ? parseInt(body.accepts[0].maxAmountRequired, 10) / 1_000_000
+            : 0.10;
+          const requiredAmount = Math.round(priceUsd * 1_000_000);
+          const exampleBody = V2_SERVICE_EXAMPLE_BODIES[svcSlug] || {};
+          const publicBaseUrl = process.env.PUBLIC_URL ||
+            (process.env.REPLIT_DEPLOYMENT === '1' ? 'https://coinrailz.com' : 'http://localhost:5000');
+          body.execution_guide = buildExecutionGuide({
+            serviceName: svcSlug,
+            requiredAmount,
+            priceUsd,
+            requestBody: exampleBody,
+            paymentRecipeDescription: `Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response with ${svcSlug.replace(/-/g, ' ')} data.`,
+            successDescription: `the ${svcSlug.replace(/-/g, ' ')} response payload`,
+            baseUrl: publicBaseUrl,
+          });
+        } catch (egErr: any) {
+          // Non-fatal — proceed without execution_guide
+        }
+      }
+
+      // Inject actionable payment headers — visible on HTTP HEAD (body is suppressed by spec).
+      // HEAD-probe agents (like the earthdata organic payer) read these without needing a GET.
+      // Headers are also present on GET/POST 402 responses — no harm in always setting them.
+      try {
+        const svcSlug = req.path.replace(/^\/service\//, '').replace(/^\//, '').replace(/\/$/, '');
+        const priceUsd = body.accepts?.[0]?.maxAmountRequired
+          ? parseInt(body.accepts[0].maxAmountRequired, 10) / 1_000_000
+          : 0.10;
+        const exampleBody = V2_SERVICE_EXAMPLE_BODIES[svcSlug] || {};
+        const publicBaseUrl = process.env.PUBLIC_URL ||
+          (process.env.REPLIT_DEPLOYMENT === '1' ? 'https://coinrailz.com' : 'http://localhost:5000');
+        const paymentRecipeUrl = `${publicBaseUrl}/x402/${svcSlug}`;
+        // X-Payment-Price: human-readable amount so agents skip decoding PAYMENT-REQUIRED
+        res.setHeader('X-Payment-Price', `$${priceUsd.toFixed(2)} USDC`);
+        // X-Payment-Network: canonical CAIP-2 chain identifier
+        res.setHeader('X-Payment-Network', 'eip155:8453 (Base mainnet)');
+        // X-Request-Example: minimal JSON showing exactly what to POST — most useful for HEAD probers
+        if (Object.keys(exampleBody).length > 0) {
+          res.setHeader('X-Request-Example', JSON.stringify(exampleBody));
+        }
+        // X-Payment-Recipe-URL: GET this URL to receive the full 402 body with execution_guide
+        res.setHeader('X-Payment-Recipe-URL', paymentRecipeUrl);
+        // X-Trial-Access: fastest path to API key without a crypto wallet
+        res.setHeader('X-Trial-Access', `${publicBaseUrl}/api/m2m/credits/trial`);
+      } catch (_hdrErr) {
+        // Non-fatal — headers are best-effort
       }
 
       console.log(`✅ Injected: facilitatorUrl=${body.facilitatorUrl}, discoverable=true for ${body.accepts.length} payment requirements`);
@@ -2732,6 +2797,25 @@ curl -X POST https://coinrailz.com/x402/gas-price-oracle \\
     },
     ...(extraFields || {}),
   };
+
+  // Inject execution_guide: full EVM/Solana/Cloudflare payment recipe with example request body.
+  // Agents arriving via HEAD probe read this to know exactly what to POST and how to pay.
+  try {
+    const priceUsd = parseFloat(routeConfig.price.replace('$', '')) || 0.10;
+    const requiredAmount = Math.round(priceUsd * 1_000_000);
+    const exampleBody = V2_SERVICE_EXAMPLE_BODIES[serviceSlug] || {};
+    response.execution_guide = buildExecutionGuide({
+      serviceName: serviceSlug,
+      requiredAmount,
+      priceUsd,
+      requestBody: exampleBody,
+      paymentRecipeDescription: `Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response with ${serviceSlug.replace(/-/g, ' ')} data.`,
+      successDescription: `the ${serviceSlug.replace(/-/g, ' ')} response payload`,
+      baseUrl: publicBaseUrl,
+    });
+  } catch (egErr: any) {
+    console.warn(`[execution_guide] Failed to build for ${serviceSlug}: ${egErr.message}`);
+  }
 
   res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
   res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');

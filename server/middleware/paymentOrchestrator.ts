@@ -2670,7 +2670,7 @@ export function createPaymentOrchestrator(
  * All prices are derived from live requiredAmount / priceUsd — never hardcoded.
  * Prevents stale-price silent payment failures when service prices change (Task #55).
  */
-function buildExecutionGuide(params: {
+export function buildExecutionGuide(params: {
   serviceName: string;
   requiredAmount: number;
   priceUsd: number | string;
@@ -2860,7 +2860,9 @@ function generate402Response(
     "risk-metrics": "VaR, Sharpe ratio, and risk metrics",
     "arbitrage-scanner": "Cross-chain arbitrage opportunity scanner including Robinhood Chain (eip155:4663). Fetches real prices from DexScreener across Ethereum, Base, Polygon, Arbitrum, and Robinhood Chain's Uniswap V3. Returns opportunities with estimated profit, required capital, and step-by-step execution path. Pass { assets, chains, minProfitPercent, capitalUSD }.",
     "polymarket-events": "Trending prediction market events",
-    "polymarket-odds": "Current odds for prediction markets",
+    "polymarket-odds": "Live probability-weighted odds for any Polymarket prediction market event. Returns Yes/No prices, total liquidity, 24h volume, and closing date. Pass { slug } (URL slug) or { eventId }. $0.10/call.",
+    "stock-sentiment": "Aggregate social and news sentiment score (0–100) for any US equity ticker. Sources: Twitter/X, Reddit (r/stocks, r/investing), financial news NLP. Returns overall score, per-source breakdown, key bullish/bearish themes, and a momentum recommendation. Pass { symbol }.",
+    "fleet-telematics": "Real-time telematics for any connected vehicle fleet. Returns per-vehicle GPS location, speed, heading, fuel level, engine status, odometer, and driver-behavior events (hard brakes, rapid acceleration). Aggregates fleet-level KPIs: total distance, idle time, avg speed, fuel efficiency. Pass { fleetId } and optional { vehicleIds[], timeRangeHours }. $0.10/call.",
     "polymarket-search": "Search prediction markets by keyword",
     "prediction-market-odds": "Current odds for any prediction market event",
     "satellite-earthdata": "NASA Earthdata Intelligence gateway — 5 real-time Earth observation products in one endpoint: precipitation (GPM IMERG), granule search (CMR/1B+ scenes), sea surface temperature (MUR-SST 1km), soil moisture (SMAP 36km), and ocean chlorophyll (MODIS-Aqua 4km). Use cases: climate risk underwriting, crop stress modeling, maritime route optimization, insurance event detection. Pass { product: 'precipitation'|'granules'|'sst'|'soil-moisture'|'ocean-color', lat?, lon? }. $0.25/call.",
@@ -3356,6 +3358,13 @@ function generate402Response(
     "trade-signals": { token: "ETH", timeframe: "4h", riskLevel: "medium" },
     "agent-create-wallet": { agent_id: "my-trading-bot-v1", purpose: "persistent", chain: "base-mainnet" },
     "credit-risk-score": { applicantInfo: { annualIncome: 85000, employmentYears: 5, currentDebt: 12000 }, requestedAmount: 50000 },
+    // --- Services probed by the earthdata organic payer (Aug 2026) ---
+    "fleet-telematics": { fleetId: "fleet_001", vehicleIds: ["truck_01", "truck_02", "truck_03"], timeRangeHours: 24 },
+    "trading-signal": { symbol: "SOL/USDC", timeframe: "1d" },
+    "dex-liquidity": { tokenA: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", tokenB: "0x4200000000000000000000000000000000000006", chain: "base" },
+    "polymarket-odds": { slug: "will-btc-hit-100k-2026" },
+    "portfolio-tracker": { walletAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", chains: ["ethereum", "base", "polygon"] },
+    "stock-sentiment": { symbol: "NVDA", includeNews: true, includeTechnicals: true },
   };
   const bazaarInput = {
     type: "http" as const,
@@ -3732,5 +3741,17 @@ function generate402Response(
   
   res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
   res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
+
+  // Actionable payment headers — readable on HTTP HEAD without the body.
+  // HEAD-probe agents (e.g. earthdata payer pattern) can read price + schema without doing a GET.
+  res.setHeader('X-Payment-Price', `$${priceUsd.toFixed(2)} USDC`);
+  res.setHeader('X-Payment-Network', 'eip155:8453 (Base mainnet)');
+  const _exampleBody = serviceExampleBodies[serviceName];
+  if (_exampleBody && Object.keys(_exampleBody).length > 0) {
+    res.setHeader('X-Request-Example', JSON.stringify(_exampleBody));
+  }
+  res.setHeader('X-Payment-Recipe-URL', `${baseUrl}/x402/${serviceName}`);
+  res.setHeader('X-Trial-Access', `${baseUrl}/api/m2m/credits/trial`);
+
   res.status(402).json(response);
 }

@@ -612,7 +612,7 @@ app.use((_req, res, next) => {
     if (res.statusCode === 402) {
       res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
       res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
-      res.setHeader('Access-Control-Expose-Headers', 'X-Agent-Instructions, Link, X-402-Version, X-Credits-Used, X-Credits-Remaining, X-Recharge-Url');
+      res.setHeader('Access-Control-Expose-Headers', 'X-Agent-Instructions, Link, X-402-Version, X-Credits-Used, X-Credits-Remaining, X-Recharge-Url, X-Payment-Price, X-Payment-Network, X-Request-Example, X-Payment-Recipe-URL, X-Trial-Access');
     }
     return originalJson(body);
   };

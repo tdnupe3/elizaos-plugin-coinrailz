@@ -2274,12 +2274,16 @@ const x402Routes = {
 // Example request bodies for services in generate402ResponseForGet — used to populate
 // execution_guide.requestBody so agents see exactly what to POST, not just an empty {}.
 const V2_SERVICE_EXAMPLE_BODIES: Record<string, Record<string, any>> = {
-  "trading-signal":   { symbol: "SOL/USDC", timeframe: "1d" },
-  "dex-liquidity":    { tokenA: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", tokenB: "0x4200000000000000000000000000000000000006", chain: "base" },
-  "polymarket-odds":  { slug: "will-btc-hit-100k-2026" },
-  "portfolio-tracker":{ walletAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", chains: ["ethereum", "base", "polygon"] },
-  "stock-sentiment":  { symbol: "NVDA", includeNews: true, includeTechnicals: true },
-  "fleet-telematics": { fleetId: "fleet_001", vehicleIds: ["truck_01", "truck_02", "truck_03"], timeRangeHours: 24 },
+  "trading-signal":        { symbol: "SOL/USDC", timeframe: "1d" },
+  "dex-liquidity":         { tokenA: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", tokenB: "0x4200000000000000000000000000000000000006", chain: "base" },
+  "polymarket-odds":       { slug: "will-btc-hit-100k-2026" },
+  "portfolio-tracker":     { walletAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", chains: ["ethereum", "base", "polygon"] },
+  "stock-sentiment":       { symbol: "NVDA", includeNews: true, includeTechnicals: true },
+  "fleet-telematics":      { fleetId: "fleet_001", vehicleIds: ["truck_01", "truck_02", "truck_03"], timeRangeHours: 24 },
+  // Vault services — free, no payment required. Example bodies give agents correct POST schema.
+  "vlt-usdc-withdraw":     { shares: "1000000000000000000", recipient: "0x0000000000000000000000000000000000000001" },
+  "vlt-usdc-zap-withdraw": { shares: "1000000000000000000", recipient: "0x0000000000000000000000000000000000000001" },
+  "vlt-usdc-deposit":      { amountUsdc: "100", recipient: "0x0000000000000000000000000000000000000001", usdcOnly: false },
 };
 
 // CRITICAL FIX: x402-express never writes `discoverable` or `facilitatorUrl` into 402 responses
@@ -2496,8 +2500,8 @@ router.use(async (req: Request, res: Response, next) => {
         if (Object.keys(exampleBody).length > 0) {
           res.setHeader('X-Request-Example', JSON.stringify(exampleBody));
         }
-        // X-Payment-Recipe-URL: GET this URL to receive the full 402 body with execution_guide
-        res.setHeader('X-Payment-Recipe-URL', paymentRecipeUrl);
+        // X-Payment-Recipe-URL: GET this URL to receive the full payment recipe (unauthenticated)
+        res.setHeader('X-Payment-Recipe-URL', `${publicBaseUrl}/x402/recipes/${svcSlug}`);
         // X-Trial-Access: fastest path to API key without a crypto wallet
         res.setHeader('X-Trial-Access', `${publicBaseUrl}/api/m2m/credits/trial`);
       } catch (_hdrErr) {
@@ -6797,6 +6801,116 @@ router.post("/vlt-stats",
     }
   })
 );
+
+// ============================================================
+// UNAUTHENTICATED RECIPE ENDPOINT — /x402/recipes/:service
+// Returns the full payment recipe (execution_guide, example body, price, accepts[])
+// without requiring any payment or auth. Fixes X-Payment-Recipe-URL: previously it
+// pointed to /x402/:service which returns 402 on GET — defeating the HEAD-probe recovery
+// path. This endpoint always returns 200 JSON with the actionable recipe.
+// MUST be registered before the catch-all block below.
+// ============================================================
+router.options('/recipes/:service', (_req: Request, res: Response) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-PAYMENT');
+  res.status(204).end();
+});
+
+router.get('/recipes/:service', (req: Request, res: Response) => {
+  const slug = (req.params.service || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+
+  const publicBaseUrl = process.env.PUBLIC_URL ||
+    (process.env.REPLIT_DEPLOYMENT === '1' ? 'https://coinrailz.com' :
+    `${req.protocol}://${req.get('host')}`);
+
+  // Services that are free (no payment required) — recipe still useful for schema.
+  const FREE_SERVICE_DESCRIPTIONS: Record<string, string> = {
+    'vlt-usdc-withdraw':     'FREE — Returns 1 unsigned Ethereum transaction: vault.redeem(shares, recipient). No payment required. Required fields: shares (raw 18-decimal string), recipient (0x address).',
+    'vlt-usdc-zap-withdraw': 'FREE — Returns 3 unsigned Ethereum transactions to convert vltUSDC shares entirely to USDC (VLT auto-swapped via Uniswap V2). Required fields: shares, recipient.',
+    'vlt-usdc-deposit':      'FREE — Returns unsigned Ethereum transactions to deposit into the VLT/USDC vault. Set usdcOnly:true for USDC-only mode (no VLT needed). Required fields: amountUsdc, recipient.',
+  };
+
+  const priceMicro = SERVICE_PRICING_MICRO[slug as keyof typeof SERVICE_PRICING_MICRO];
+  const priceUsd   = SERVICE_PRICING_USD[slug as keyof typeof SERVICE_PRICING_USD];
+  const isFree     = slug in FREE_SERVICE_DESCRIPTIONS;
+
+  if (!priceMicro && !isFree) {
+    return res.status(404).json({
+      error:            'Unknown service',
+      service:          slug,
+      message:          `No recipe found for /x402/${slug}. Check the catalog for available services.`,
+      catalog:          `${publicBaseUrl}/x402/catalog`,
+      availableRecipes: `${publicBaseUrl}/x402/catalog`,
+    });
+  }
+
+  const exampleBody = V2_SERVICE_EXAMPLE_BODIES[slug] || {};
+
+  // Build execution_guide only for paid services (free ones have no payment steps).
+  let executionGuide: any = null;
+  if (!isFree && priceMicro && priceUsd !== undefined) {
+    try {
+      executionGuide = buildExecutionGuide({
+        serviceName:               slug,
+        requiredAmount:            priceMicro,
+        priceUsd,
+        requestBody:               exampleBody,
+        paymentRecipeDescription:  `Two payment paths — choose the chain your agent is on. Both lead to the same 200 OK response with ${slug.replace(/-/g, ' ')} data.`,
+        successDescription:        `the ${slug.replace(/-/g, ' ')} response payload`,
+        baseUrl:                   publicBaseUrl,
+      });
+    } catch (_e) {
+      // Non-fatal — recipe returned without execution_guide
+    }
+  }
+
+  const recipe: Record<string, any> = {
+    recipeVersion: 1,
+    service:       slug,
+    endpoint: {
+      method: 'POST',
+      path:   `/x402/${slug}`,
+      url:    `${publicBaseUrl}/x402/${slug}`,
+    },
+  };
+
+  if (isFree) {
+    recipe.price       = { amount: '0', usd: 0, currency: 'USDC', note: 'Free — no payment required' };
+    recipe.description = FREE_SERVICE_DESCRIPTIONS[slug];
+  } else {
+    recipe.price = {
+      amount:   String(priceMicro),
+      usd:      priceUsd,
+      currency: 'USDC',
+      decimals: 6,
+      network:  'eip155:8453 (Base mainnet)',
+    };
+    recipe.accepts = [{
+      scheme:           'exact',
+      network:          'eip155:8453',
+      maxAmountRequired: String(priceMicro),
+      resource:         `${publicBaseUrl}/x402/${slug}`,
+      description:      `POST /x402/${slug} — $${priceUsd} USDC per call`,
+      mimeType:         'application/json',
+      payTo:            process.env.PLATFORM_WALLET_ADDRESS || '',
+      facilitator:      getFacilitatorUrl(),
+    }];
+  }
+
+  if (Object.keys(exampleBody).length > 0) {
+    recipe.exampleBody = exampleBody;
+  }
+  if (executionGuide) {
+    recipe.execution_guide = executionGuide;
+  }
+  recipe.discovery = `${publicBaseUrl}/x402/discovery`;
+  recipe.catalog   = `${publicBaseUrl}/x402/catalog`;
+
+  return res.json(recipe);
+});
 
 // ============================================================
 // UNKNOWN-SERVICE CATCH-ALL — must be the LAST route in this router

@@ -3756,7 +3756,7 @@ function generate402Response(
   if (_exampleBody && Object.keys(_exampleBody).length > 0) {
     res.setHeader('X-Request-Example', JSON.stringify(_exampleBody));
   }
-  res.setHeader('X-Payment-Recipe-URL', `${baseUrl}/x402/${serviceName}`);
+  res.setHeader('X-Payment-Recipe-URL', `${baseUrl}/x402/recipes/${serviceName}`);
   res.setHeader('X-Trial-Access', `${baseUrl}/api/m2m/credits/trial`);
 
   res.status(402).json(response);

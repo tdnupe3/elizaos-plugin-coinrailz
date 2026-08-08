@@ -51,6 +51,9 @@ Coin Railz employs a USDC-first strategy, utilizing Coinbase CDP for wallet mana
 - **MCP Integration Guide Page**: Frontend page at `/mcp-integration-guide` with copy-paste instructions for API key credits and native x402 integration.
 - **X-Agent-Instructions Header (Global)**: A response interceptor middleware in `server/appMain.ts` automatically injects `X-Agent-Instructions` and `Link` headers on every 402 response platform-wide. This covers all 65+ `res.status(402)` call sites across 16 files without modifying individual routes. Agents using HEAD requests (Meta externalagent, python-httpx monitors) now receive the instructions pointer in HTTP headers without reading the body.
 
+## User Preferences
+- Do not propose follow-up tasks unless they are absolutely blocking or critical. The user finds unsolicited task suggestions annoying.
+
 ## External Dependencies
 - **Coinbase CDP:** Wallet creation, management, and transaction execution.
 - **Alchemy:** Ethereum/Base RPC endpoints and blockchain infrastructure.

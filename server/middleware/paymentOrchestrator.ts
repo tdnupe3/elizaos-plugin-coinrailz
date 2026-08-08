@@ -3229,6 +3229,10 @@ function generate402Response(
       payTo: PLATFORM_WALLET,
       maxTimeoutSeconds: 60,
       asset: USDC_BASE,
+      // REQUIRED by x402 spec: facilitator endpoint where the payer submits their signed EIP-3009
+      // authorization for settlement verification. Cloudflare Agents SDK reads accepts[i].facilitator
+      // directly — without it the SDK skips this entry and the agent cannot pay on Base.
+      facilitator: getFacilitatorUrl(),
       extra: {
         name: "USD Coin",
         version: "2",
@@ -3261,6 +3265,8 @@ function generate402Response(
       payTo: PLATFORM_WALLET,
       maxTimeoutSeconds: 60,
       asset: USDT_BASE,
+      // REQUIRED by x402 spec: same CDP facilitator handles USDT on Base
+      facilitator: getFacilitatorUrl(),
       extra: {
         name: "Tether USD",
         version: "1",

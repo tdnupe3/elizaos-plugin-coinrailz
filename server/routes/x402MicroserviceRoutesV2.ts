@@ -2356,6 +2356,12 @@ router.use(async (req: Request, res: Response, next) => {
           enriched.network = 'eip155:8453';
           enriched.networkLegacy = enriched.networkLegacy || 'base';
           enriched.x402Network = 'eip155:8453';
+          // REQUIRED by x402 spec: facilitator endpoint for EVM (Base) entries.
+          // Cloudflare Agents SDK reads accepts[i].facilitator directly — top-level facilitatorUrl
+          // is NOT sufficient. Without this field, CF Wallet agents skip Base USDC and cannot pay.
+          if (!enriched.facilitator) {
+            enriched.facilitator = getFacilitatorUrl();
+          }
         }
         if (enriched.network === 'solana' || enriched.network === 'solana:mainnet' || enriched.network === 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp') {
           // Keep network as "solana" shorthand — x402-fetch PaymentRequirementsSchema requires it

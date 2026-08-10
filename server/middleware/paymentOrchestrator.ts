@@ -2822,14 +2822,19 @@ function generate402Response(
   const priceUsd = requiredAmount / 1_000_000;
   const endpoint = req.originalUrl || `/x402/${serviceName}`;
   const baseUrl = getPublicBaseUrl(req);
-  // When an MCP proxy (or any trusted upstream) forwards the original client-facing
-  // resource URL via X-Forwarded-Resource, use it as-is so that the 402 challenge
-  // advertises the URL the client actually called (e.g. /mcp or /mcp/tools/call)
-  // rather than the internal /x402/... handler path.
-  const forwardedResource = req.headers['x-forwarded-resource'] as string | undefined;
-  const resource = (forwardedResource && forwardedResource.startsWith('http'))
-    ? forwardedResource
-    : `${baseUrl}${endpoint}`;
+  // When the internal MCP proxy forwards the original client-facing resource URL via
+  // X-Forwarded-Resource, use it so the 402 challenge advertises /mcp or /mcp/tools/call
+  // instead of the internal /x402/... path. Trust only requests from localhost (127.0.0.1
+  // / ::1) and only exact canonical MCP paths — external callers cannot inject this header.
+  const socketAddr  = (req.socket as any)?.remoteAddress ?? '';
+  const isInternal  = socketAddr === '127.0.0.1' || socketAddr === '::1' || socketAddr === '::ffff:127.0.0.1';
+  const fwdRaw      = req.headers['x-forwarded-resource'] as string | undefined;
+  const MCP_PATHS   = ['/mcp', '/mcp/tools/call'];
+  const isValidMcpResource = (u: string) => {
+    try { const p = new URL(u).pathname; return MCP_PATHS.some(mp => p === mp); } catch { return false; }
+  };
+  const forwardedResource = isInternal && fwdRaw && isValidMcpResource(fwdRaw) ? fwdRaw : undefined;
+  const resource = forwardedResource ?? `${baseUrl}${endpoint}`;
   
   // Service descriptions
   const descriptions: Record<string, string> = {

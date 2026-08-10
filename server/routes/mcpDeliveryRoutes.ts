@@ -20,12 +20,28 @@
 
 import { Router, Request, Response } from 'express';
 import { getCanonicalServices, getCanonicalServiceCount, CanonicalService } from '../utils/serviceCount';
-import { getFacilitatorUrl, USDC_BASE_ADDRESS, PLATFORM_WALLETS } from '../utils/facilitatorHelper';
+import {
+  getFacilitatorUrl,
+  getDexterFacilitatorUrl,
+  USDC_BASE_ADDRESS,
+  USDT_BASE_ADDRESS,
+  USDC_SOLANA_MINT,
+} from '../utils/facilitatorHelper';
 
 const router = Router();
 
 // MCP protocol version we advertise
 const MCP_VERSION = '2024-11-05';
+
+// ---------------------------------------------------------------------------
+// Platform wallet constants — must match paymentOrchestrator.ts exactly
+// ---------------------------------------------------------------------------
+const PLATFORM_WALLET_EVM    = process.env.PLATFORM_WALLET_ADDRESS || '0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91';
+// IMPORTANT: BmUP… is the active Solana wallet; Hgby… (PLATFORM_WALLETS.solana) is legacy.
+// Uses DEXTER_SOLANA_WALLET env var as source of truth, same as paymentOrchestrator.ts.
+const PLATFORM_WALLET_SOLANA = process.env.DEXTER_SOLANA_WALLET || 'BmUPzSupHJu2kW4cL27dF7Vc2JaZTwXKzFsRuagPDtL8';
+const BASE_URL               = process.env.PUBLIC_URL ||
+  (process.env.REPLIT_DEPLOYMENT === '1' ? 'https://coinrailz.com' : 'https://coinrailz.com');
 
 // ---------------------------------------------------------------------------
 // Helper: resolve API key from request headers
@@ -45,43 +61,119 @@ function extractApiKey(req: Request): string | null {
 // MCP 402 responses so x402-aware clients can construct payment and retry
 // automatically — identical header format to x402MicroserviceRoutesV2.
 // Call this BEFORE res.status(402).json() — headers must precede the body.
+//
+// Takes the pre-built payload from buildMcpX402Payload so that the
+// PAYMENT-REQUIRED header encodes EXACTLY the same accepts[] array and amounts
+// as the JSON body — no separate construction, no Math.round vs Math.ceil drift.
 // ---------------------------------------------------------------------------
-function setMcp402Headers(res: Response, service: CanonicalService): void {
+function setMcp402Headers(
+  res: Response,
+  service: CanonicalService,
+  payload: ReturnType<typeof buildMcpX402Payload>,
+): void {
   try {
-    const publicBaseUrl = process.env.PUBLIC_URL ||
-      (process.env.REPLIT_DEPLOYMENT === '1' ? 'https://coinrailz.com' : 'http://localhost:5000');
-
-    const priceInMicroUnits = Math.round(service.priceUsd * 1_000_000).toString();
-    const payTo = (process.env.PLATFORM_WALLET_ADDRESS || PLATFORM_WALLETS.base) as string;
-
-    // Standard x402 PAYMENT-REQUIRED payload — base64(JSON) matching enricher format
-    const paymentRequired = {
-      x402Version: 2,
-      accepts: [{
-        scheme:            'exact',
-        network:           'base',            // legacy x402-fetch compat; CAIP-2 = eip155:8453
-        maxAmountRequired: priceInMicroUnits,
-        amount:            priceInMicroUnits,
-        resource:          `${publicBaseUrl}${service.endpoint}`,
-        description:       `${service.name} — $${service.priceUsd.toFixed(2)} USDC per call`,
-        mimeType:          'application/json',
-        payTo,
-        maxTimeoutSeconds: 60,
-        asset:             USDC_BASE_ADDRESS, // 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
-        extra: { name: 'USD Coin', version: '2', decimals: 6, chainId: 8453, chainName: 'Base' },
-        facilitator:       getFacilitatorUrl(),
-      }],
-    };
-
-    const headerValue = Buffer.from(JSON.stringify(paymentRequired), 'utf8').toString('base64');
+    // Encode the canonical payload's accepts[] into the PAYMENT-REQUIRED header.
+    // This guarantees body and header are byte-identical in payTo/amounts/facilitators.
+    const headerPayload = { x402Version: payload.x402Version, accepts: payload.accepts };
+    const headerValue = Buffer.from(JSON.stringify(headerPayload), 'utf8').toString('base64');
     res.setHeader('PAYMENT-REQUIRED',      headerValue);
     res.setHeader('X-Payment-Price',       `$${service.priceUsd.toFixed(2)} USDC`);
     res.setHeader('X-Payment-Network',     'eip155:8453 (Base mainnet)');
-    res.setHeader('X-Payment-Recipe-URL',  `${publicBaseUrl}/x402/recipes/${service.id}`);
-    res.setHeader('X-Trial-Access',        `${publicBaseUrl}/api/m2m/credits/trial`);
+    res.setHeader('X-Payment-Recipe-URL',  `${BASE_URL}/x402/recipes/${service.id}`);
+    res.setHeader('X-Trial-Access',        `${BASE_URL}/api/m2m/credits/trial`);
   } catch (_) {
     // Non-fatal — headers are best-effort; JSON-RPC body still delivered
   }
+}
+
+// ---------------------------------------------------------------------------
+// Helper: build machine-readable x402 payment payload for a service price.
+// Mirrors the accepts[] shape from paymentOrchestrator.ts so x402-aware MCP
+// clients (x402-fetch, Cloudflare Agents SDK, CDP SDK) can auto-pay and retry.
+//
+// mcpResourceUrl: the full public URL the agent called (e.g. BASE_URL+"/mcp"
+// or BASE_URL+"/mcp/tools/call"). x402 clients bind payment to this URL and
+// retry it — it must NOT be the internal /x402/... backend endpoint.
+// ---------------------------------------------------------------------------
+function buildMcpX402Payload(service: CanonicalService, reqId: unknown, mcpResourceUrl: string) {
+  const priceUsd    = service.priceUsd;
+  // USDC / USDT use 6 decimals; multiply by 10^6 to get micro-units.
+  const microAmount = Math.ceil(priceUsd * 1_000_000).toString();
+  const facilitator = getFacilitatorUrl();
+  const resource    = mcpResourceUrl;   // the MCP endpoint, not the internal /x402/... backend
+  const description = `${service.name} — ${service.description} ($${priceUsd.toFixed(2)} USDC)`;
+
+  const accepts = [
+    // Base Chain — USDC (primary, preferred)
+    {
+      scheme:               'exact',
+      network:              'base',
+      x402Network:          'eip155:8453',
+      maxAmountRequired:    microAmount,
+      maxAmountRequiredUSD: priceUsd,
+      payTo:                PLATFORM_WALLET_EVM,
+      asset:                USDC_BASE_ADDRESS,
+      facilitator,
+      resource,
+      description,
+      mimeType:             'application/json',
+      maxTimeoutSeconds:    60,
+      extra: { name: 'USD Coin', version: '2', decimals: 6, chainId: 8453, chainName: 'Base' },
+    },
+    // Base Chain — USDT
+    {
+      scheme:               'exact',
+      network:              'base',
+      x402Network:          'eip155:8453',
+      maxAmountRequired:    microAmount,
+      maxAmountRequiredUSD: priceUsd,
+      payTo:                PLATFORM_WALLET_EVM,
+      asset:                USDT_BASE_ADDRESS,
+      facilitator,
+      resource,
+      description,
+      mimeType:             'application/json',
+      maxTimeoutSeconds:    60,
+      extra: { name: 'Tether USD', version: '1', decimals: 6, chainId: 8453, chainName: 'Base' },
+    },
+    // Solana — USDC
+    // Dexter is the dominant Solana + Base facilitator (~50% of daily x402 volume)
+    {
+      scheme:               'exact',
+      network:              'solana',
+      x402Network:          'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+      maxAmountRequired:    microAmount,
+      maxAmountRequiredUSD: priceUsd,
+      payTo:                PLATFORM_WALLET_SOLANA,
+      asset:                USDC_SOLANA_MINT,
+      facilitator:          getDexterFacilitatorUrl(),
+      resource,
+      description,
+      mimeType:             'application/json',
+      maxTimeoutSeconds:    60,
+      extra: { name: 'USD Coin', version: '1', decimals: 6, chainId: '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', chainName: 'Solana' },
+    },
+  ];
+
+  return {
+    // x402 machine-readable fields — x402-fetch / CF Agents SDK / CDP SDK read these
+    x402Version: 2,
+    error:       'X-PAYMENT header is required',
+    accepts,
+    // JSON-RPC 2.0 envelope — preserved for MCP clients that inspect the RPC layer
+    jsonrpc:     '2.0',
+    id:          reqId ?? null,
+    // Human-readable details — preserved for debugging and non-x402 clients
+    details: {
+      priceUsd,
+      tool:        `coinrailz_${service.id.replace(/-/g, '_')}`,
+      service:     service.id,
+      trialKey:    `${BASE_URL}/api/m2m/credits/trial`,
+      purchaseKey: `${BASE_URL}/api/m2m/credits/checkout/session`,
+      x402:        `${BASE_URL}/.well-known/x402.json`,
+      note: 'Add X-PAYMENT header (x402 on-chain USDC) or X-API-KEY header (prepaid credits) and retry. GET /api/m2m/credits/trial for a free $5 trial key.',
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -170,7 +262,6 @@ function enrichInputSchema(raw: unknown): Record<string, unknown> {
 // ---------------------------------------------------------------------------
 function serviceToMcpTool(s: CanonicalService) {
   const price   = s.priceUsd > 0 ? `$${s.priceUsd.toFixed(2)} USDC` : 'free';
-  const category = s.category ?? 'data';
 
   return {
     name:         `coinrailz_${s.id.replace(/-/g, '_')}`,
@@ -270,30 +361,22 @@ router.post('/', async (req: Request, res: Response) => {
     const x402Header = req.headers['x-payment'] as string | undefined;
 
     if (!apiKey && !x402Header) {
-      setMcp402Headers(res, service);
-      return res.status(402).json({
-        jsonrpc: '2.0', id,
-        error: {
-          code: 402,
-          message: 'Payment required. Add X-API-KEY (prepaid credits) or X-PAYMENT (x402 on Base).',
-          details: {
-            trialKey:    '/api/m2m/credits/trial',
-            purchaseKey: '/api/m2m/credits/checkout/session',
-            x402:        '/.well-known/x402.json',
-            priceUsd:    service.priceUsd,
-            network:     'eip155:8453 (Base)',
-            asset:       USDC_BASE_ADDRESS,
-            paymentHeaderName: 'PAYMENT-REQUIRED',
-            paymentHeaderNote: 'Base64-encoded x402 payment requirement — decode to get accepts[].payTo and maxAmountRequired',
-          },
-        },
-      });
+      // Build the canonical payload once — headers and body are both derived from it,
+      // guaranteeing identical accepts[], amounts, and facilitators.
+      // resource = /mcp so x402 clients retry this endpoint (not the internal /x402/...).
+      const mcpPayload = buildMcpX402Payload(service, id, `${BASE_URL}/mcp`);
+      setMcp402Headers(res, service, mcpPayload);   // PAYMENT-REQUIRED base64 + auxiliary headers
+      res.setHeader('X-402-Version', '2');
+      res.setHeader('X-Payment-Required', 'true');
+      return res.status(402).json(mcpPayload);
     }
 
     try {
       const forwardHeaders: Record<string, string> = { 'content-type': 'application/json' };
       if (apiKey)     forwardHeaders['x-api-key'] = apiKey;
       if (x402Header) forwardHeaders['x-payment']  = x402Header;
+      // Forward the original MCP resource URL so the orchestrator can log it for tracing.
+      forwardHeaders['x-forwarded-resource'] = `${BASE_URL}/mcp`;
 
       const baseUrl    = `http://localhost:${process.env.PORT || 5000}`;
       const upstream   = await fetch(`${baseUrl}${service.endpoint}`, {
@@ -403,25 +486,14 @@ router.post('/tools/call', async (req: Request, res: Response) => {
   const x402Header = req.headers['x-payment'] as string | undefined;
 
   if (!apiKey && !x402Header) {
-    setMcp402Headers(res, service);
-    return res.status(402).json({
-      jsonrpc: '2.0',
-      id:      req.body?.id ?? 1,
-      error: {
-        code:    402,
-        message: 'Payment required. Add X-API-KEY (prepaid credits) or X-PAYMENT (x402 on Base).',
-        details: {
-          trialKey:    '/api/m2m/credits/trial',
-          purchaseKey: '/api/m2m/credits/checkout/session',
-          x402:        '/.well-known/x402.json',
-          priceUsd:    service.priceUsd,
-          network:     'eip155:8453 (Base)',
-          asset:       USDC_BASE_ADDRESS,
-          paymentHeaderName: 'PAYMENT-REQUIRED',
-          paymentHeaderNote: 'Base64-encoded x402 payment requirement — decode to get accepts[].payTo and maxAmountRequired',
-        },
-      },
-    });
+    // Build the canonical payload once — headers and body are both derived from it,
+    // guaranteeing identical accepts[], amounts, and facilitators.
+    // resource = /mcp/tools/call so x402 clients retry this endpoint (not the internal /x402/...).
+    const mcpPayload = buildMcpX402Payload(service, req.body?.id ?? 1, `${BASE_URL}/mcp/tools/call`);
+    setMcp402Headers(res, service, mcpPayload);   // PAYMENT-REQUIRED base64 + auxiliary headers
+    res.setHeader('X-402-Version', '2');
+    res.setHeader('X-Payment-Required', 'true');
+    return res.status(402).json(mcpPayload);
   }
 
   try {
@@ -433,9 +505,11 @@ router.post('/tools/call', async (req: Request, res: Response) => {
 
     if (apiKey)     forwardHeaders['x-api-key']  = apiKey;
     if (x402Header) forwardHeaders['x-payment']  = x402Header;
+    // Forward the original MCP resource URL so the orchestrator can log it for tracing.
+    forwardHeaders['x-forwarded-resource'] = `${BASE_URL}/mcp/tools/call`;
 
     // Proxy to the internal service handler
-    const baseUrl = `http://localhost:${process.env.PORT || 5000}`;
+    const baseUrl    = `http://localhost:${process.env.PORT || 5000}`;
     const serviceUrl = `${baseUrl}${service.endpoint}`;
 
     const upstream = await fetch(serviceUrl, {

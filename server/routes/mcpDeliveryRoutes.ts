@@ -388,6 +388,38 @@ router.post('/', async (req: Request, res: Response) => {
       const ct = upstream.headers.get('content-type') ?? '';
       const result = ct.includes('application/json') ? await upstream.json() : { text: await upstream.text() };
 
+      if (upstream.status === 402) {
+        const upstreamBody = result as any;
+        // If the upstream service returned a well-formed x402 v2 challenge,
+        // hoist x402Version, accepts, and error to the top level so x402-fetch
+        // and the Cloudflare Agents SDK can read them and auto-retry.
+        if (upstreamBody?.x402Version === 2 && Array.isArray(upstreamBody?.accepts)) {
+          res.setHeader('X-402-Version', '2');
+          res.setHeader('X-Payment-Required', 'true');
+          try {
+            const headerPayload = { x402Version: upstreamBody.x402Version, accepts: upstreamBody.accepts };
+            const headerValue = Buffer.from(JSON.stringify(headerPayload), 'utf8').toString('base64');
+            res.setHeader('PAYMENT-REQUIRED', headerValue);
+          } catch (_) { /* non-fatal */ }
+          return res.status(402).json({
+            // x402 machine-readable fields at the top level — x402-fetch / CF Agents SDK read these
+            x402Version: upstreamBody.x402Version,
+            accepts:     upstreamBody.accepts,
+            error:       upstreamBody.error ?? 'Payment required',
+            // JSON-RPC envelope preserved for MCP clients
+            jsonrpc:     '2.0',
+            id:          id ?? null,
+            // Human-readable details preserved for debugging
+            details:     upstreamBody,
+          });
+        }
+        // Fallback: upstream returned 402 but without a valid x402 v2 body
+        return res.status(402).json({
+          jsonrpc: '2.0', id,
+          error: { code: 402, message: 'x402 payment required', details: result },
+        });
+      }
+
       if (!upstream.ok) {
         return res.status(upstream.status).json({
           jsonrpc: '2.0', id,
@@ -528,6 +560,31 @@ router.post('/tools/call', async (req: Request, res: Response) => {
     }
 
     if (upstream.status === 402) {
+      const upstreamBody = result as any;
+      // If the upstream service returned a well-formed x402 v2 challenge,
+      // hoist x402Version, accepts, and error to the top level so x402-fetch
+      // and the Cloudflare Agents SDK can read them and auto-retry.
+      if (upstreamBody?.x402Version === 2 && Array.isArray(upstreamBody?.accepts)) {
+        res.setHeader('X-402-Version', '2');
+        res.setHeader('X-Payment-Required', 'true');
+        try {
+          const headerPayload = { x402Version: upstreamBody.x402Version, accepts: upstreamBody.accepts };
+          const headerValue = Buffer.from(JSON.stringify(headerPayload), 'utf8').toString('base64');
+          res.setHeader('PAYMENT-REQUIRED', headerValue);
+        } catch (_) { /* non-fatal */ }
+        return res.status(402).json({
+          // x402 machine-readable fields at the top level — x402-fetch / CF Agents SDK read these
+          x402Version: upstreamBody.x402Version,
+          accepts:     upstreamBody.accepts,
+          error:       upstreamBody.error ?? 'Payment required',
+          // JSON-RPC envelope preserved for MCP clients
+          jsonrpc:     '2.0',
+          id:          req.body?.id ?? 1,
+          // Human-readable details preserved for debugging
+          details:     upstreamBody,
+        });
+      }
+      // Fallback: upstream returned 402 but without a valid x402 v2 body
       return res.status(402).json({
         jsonrpc: '2.0',
         id:      req.body?.id ?? 1,

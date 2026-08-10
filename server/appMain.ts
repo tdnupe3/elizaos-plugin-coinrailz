@@ -978,7 +978,9 @@ app.use(mcpServiceDiscoveryRoutes);
 console.log('✅ MCP service discovery routes registered - 41 services available at /mcp/services');
 
 // Register MCP Delivery Layer (tool list + tool call adapter)
+const { unpaidPostLimiter } = await import('./middleware/unpaidPostLimiter');
 const mcpDeliveryRoutes = (await import('./routes/mcpDeliveryRoutes')).default;
+app.use('/mcp', unpaidPostLimiter); // 🛡️ Rate-limit unpaid POST burst actors (50/15 min, exempt payers + canaries)
 app.use('/mcp', mcpDeliveryRoutes);
 console.log('✅ MCP delivery routes registered at /mcp/tools/list and /mcp/tools/call');
 
@@ -1087,6 +1089,8 @@ console.log('✅ NASA Earthdata routes registered at /api/satellite/earthdata/* 
 // which is incompatible with @x402/fetch and Coinbase CDP facilitator v2
 const { hybridPaymentMiddleware } = await import('./middleware/hybridPaymentMiddleware');
 console.log('🔒 Mounting /x402 routes (V2 microservices + enterprise services)...');
+// unpaidPostLimiter imported above at MCP mount (line ~982); reused here
+app.use('/x402', unpaidPostLimiter); // 🛡️ Unpaid POST gate: 50/15 min per IP+UA, exempt payers + canaries
 app.use('/x402', x402Limiter); // 🛡️ Rate limit: 200 req/min per identity (wallet > api-key > IP), internal IPs exempt
 app.use('/x402', x402MicroserviceRoutes);
 

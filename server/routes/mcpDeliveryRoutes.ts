@@ -20,6 +20,7 @@
 
 import { Router, Request, Response } from 'express';
 import { getCanonicalServices, getCanonicalServiceCount, CanonicalService } from '../utils/serviceCount';
+import { getFacilitatorUrl, USDC_BASE_ADDRESS, PLATFORM_WALLETS } from '../utils/facilitatorHelper';
 
 const router = Router();
 
@@ -37,6 +38,50 @@ function extractApiKey(req: Request): string | null {
   if (auth?.startsWith('Bearer ')) return auth.slice(7);
 
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// Set standard x402 PAYMENT-REQUIRED header + auxiliary payment headers on
+// MCP 402 responses so x402-aware clients can construct payment and retry
+// automatically — identical header format to x402MicroserviceRoutesV2.
+// Call this BEFORE res.status(402).json() — headers must precede the body.
+// ---------------------------------------------------------------------------
+function setMcp402Headers(res: Response, service: CanonicalService): void {
+  try {
+    const publicBaseUrl = process.env.PUBLIC_URL ||
+      (process.env.REPLIT_DEPLOYMENT === '1' ? 'https://coinrailz.com' : 'http://localhost:5000');
+
+    const priceInMicroUnits = Math.round(service.priceUsd * 1_000_000).toString();
+    const payTo = (process.env.PLATFORM_WALLET_ADDRESS || PLATFORM_WALLETS.base) as string;
+
+    // Standard x402 PAYMENT-REQUIRED payload — base64(JSON) matching enricher format
+    const paymentRequired = {
+      x402Version: 2,
+      accepts: [{
+        scheme:            'exact',
+        network:           'base',            // legacy x402-fetch compat; CAIP-2 = eip155:8453
+        maxAmountRequired: priceInMicroUnits,
+        amount:            priceInMicroUnits,
+        resource:          `${publicBaseUrl}${service.endpoint}`,
+        description:       `${service.name} — $${service.priceUsd.toFixed(2)} USDC per call`,
+        mimeType:          'application/json',
+        payTo,
+        maxTimeoutSeconds: 60,
+        asset:             USDC_BASE_ADDRESS, // 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
+        extra: { name: 'USD Coin', version: '2', decimals: 6, chainId: 8453, chainName: 'Base' },
+        facilitator:       getFacilitatorUrl(),
+      }],
+    };
+
+    const headerValue = Buffer.from(JSON.stringify(paymentRequired), 'utf8').toString('base64');
+    res.setHeader('PAYMENT-REQUIRED',      headerValue);
+    res.setHeader('X-Payment-Price',       `$${service.priceUsd.toFixed(2)} USDC`);
+    res.setHeader('X-Payment-Network',     'eip155:8453 (Base mainnet)');
+    res.setHeader('X-Payment-Recipe-URL',  `${publicBaseUrl}/x402/recipes/${service.id}`);
+    res.setHeader('X-Trial-Access',        `${publicBaseUrl}/api/m2m/credits/trial`);
+  } catch (_) {
+    // Non-fatal — headers are best-effort; JSON-RPC body still delivered
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -225,12 +270,22 @@ router.post('/', async (req: Request, res: Response) => {
     const x402Header = req.headers['x-payment'] as string | undefined;
 
     if (!apiKey && !x402Header) {
+      setMcp402Headers(res, service);
       return res.status(402).json({
         jsonrpc: '2.0', id,
         error: {
           code: 402,
-          message: 'Payment required. Add X-API-KEY (prepaid credits) or X-PAYMENT (x402).',
-          details: { trialKey: '/api/m2m/credits/trial', priceUsd: service.priceUsd },
+          message: 'Payment required. Add X-API-KEY (prepaid credits) or X-PAYMENT (x402 on Base).',
+          details: {
+            trialKey:    '/api/m2m/credits/trial',
+            purchaseKey: '/api/m2m/credits/checkout/session',
+            x402:        '/.well-known/x402.json',
+            priceUsd:    service.priceUsd,
+            network:     'eip155:8453 (Base)',
+            asset:       USDC_BASE_ADDRESS,
+            paymentHeaderName: 'PAYMENT-REQUIRED',
+            paymentHeaderNote: 'Base64-encoded x402 payment requirement — decode to get accepts[].payTo and maxAmountRequired',
+          },
         },
       });
     }
@@ -348,17 +403,22 @@ router.post('/tools/call', async (req: Request, res: Response) => {
   const x402Header = req.headers['x-payment'] as string | undefined;
 
   if (!apiKey && !x402Header) {
+    setMcp402Headers(res, service);
     return res.status(402).json({
       jsonrpc: '2.0',
       id:      req.body?.id ?? 1,
       error: {
         code:    402,
-        message: 'Payment required. Add X-API-KEY (prepaid credits) or X-PAYMENT (x402 on-chain).',
+        message: 'Payment required. Add X-API-KEY (prepaid credits) or X-PAYMENT (x402 on Base).',
         details: {
           trialKey:    '/api/m2m/credits/trial',
           purchaseKey: '/api/m2m/credits/checkout/session',
           x402:        '/.well-known/x402.json',
           priceUsd:    service.priceUsd,
+          network:     'eip155:8453 (Base)',
+          asset:       USDC_BASE_ADDRESS,
+          paymentHeaderName: 'PAYMENT-REQUIRED',
+          paymentHeaderNote: 'Base64-encoded x402 payment requirement — decode to get accepts[].payTo and maxAmountRequired',
         },
       },
     });

@@ -4027,6 +4027,88 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   });
   console.log('✅ Admin canary trigger endpoint registered at POST /api/admin/canary/trigger');
 
+  // 🪄 Admin: Bazaar seeder status — GET /api/admin/bazaar-seeder/status
+  app.get('/api/admin/bazaar-seeder/status', async (req, res) => {
+    const key = req.headers['x-admin-key'] || req.headers['authorization']?.replace('Bearer ', '');
+    if (!key || key !== process.env.ADMIN_KEY) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    try {
+      const { X402BazaarSeederJob } = await import('./jobs/x402BazaarSeederJob');
+      const status = X402BazaarSeederJob.getStatus();
+      const seededSlugs = await X402BazaarSeederJob.getSeededSlugs();
+      const bazaarIndex = await X402BazaarSeederJob.queryBazaarIndex();
+      return res.status(200).json({
+        ...status,
+        seededViaWallet: Array.from(seededSlugs),
+        seededViaWalletCount: seededSlugs.size,
+        bazaarIndex,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err?.message ?? String(err) });
+    }
+  });
+  console.log('✅ Admin bazaar seeder status endpoint registered at GET /api/admin/bazaar-seeder/status');
+
+  // 🪄 Admin: trigger one seeder run — POST /api/admin/bazaar-seeder/trigger
+  app.post('/api/admin/bazaar-seeder/trigger', async (req, res) => {
+    const key = req.headers['x-admin-key'] || req.headers['authorization']?.replace('Bearer ', '');
+    if (!key || key !== process.env.ADMIN_KEY) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const { slug } = req.body ?? {};
+    try {
+      const { X402BazaarSeederJob } = await import('./jobs/x402BazaarSeederJob');
+      const statusBefore = X402BazaarSeederJob.getStatus();
+      await X402BazaarSeederJob.triggerNow(slug ?? undefined);
+      const statusAfter = X402BazaarSeederJob.getStatus();
+      return res.status(200).json({
+        triggered: true,
+        slug: slug ?? null,
+        totalSeededBefore: statusBefore.totalSeededThisSession,
+        totalSeededAfter: statusAfter.totalSeededThisSession,
+        lastSeededSlug: statusAfter.lastSeededSlug,
+        message: statusAfter.totalSeededThisSession > statusBefore.totalSeededThisSession
+          ? `Seeded ${statusAfter.lastSeededSlug} successfully`
+          : 'Trigger ran — check logs for result',
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err?.message ?? String(err) });
+    }
+  });
+  console.log('✅ Admin bazaar seeder trigger endpoint registered at POST /api/admin/bazaar-seeder/trigger');
+
+  // 🪄 Admin: query CDP Bazaar index — GET /api/admin/bazaar-seeder/index
+  app.get('/api/admin/bazaar-seeder/index', async (req, res) => {
+    const key = req.headers['x-admin-key'] || req.headers['authorization']?.replace('Bearer ', '');
+    if (!key || key !== process.env.ADMIN_KEY) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    try {
+      const { X402BazaarSeederJob, SEEDABLE_SERVICES } = await import('./jobs/x402BazaarSeederJob');
+      const [bazaarIndex, seededSlugs] = await Promise.all([
+        X402BazaarSeederJob.queryBazaarIndex(),
+        X402BazaarSeederJob.getSeededSlugs(),
+      ]);
+      const allSlugs = SEEDABLE_SERVICES.map(s => s.slug);
+      const indexedSet = new Set(bazaarIndex.indexedSlugs);
+      const unseeded = allSlugs.filter(s => !indexedSet.has(s));
+      return res.status(200).json({
+        bazaarIndexedCount: bazaarIndex.indexedSlugs.length,
+        bazaarIndexedSlugs: bazaarIndex.indexedSlugs,
+        totalInBazaar: bazaarIndex.totalInBazaar,
+        walletSeededCount: seededSlugs.size,
+        walletSeededSlugs: Array.from(seededSlugs),
+        totalSeedableServices: allSlugs.length,
+        unseededInBazaar: unseeded,
+        unseededCount: unseeded.length,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err?.message ?? String(err) });
+    }
+  });
+  console.log('✅ Admin bazaar seeder index endpoint registered at GET /api/admin/bazaar-seeder/index');
+
   // === VLT PRICE PUSH WEBHOOK ===
   // Bankroll Network team can POST signed price updates to bypass CoinGecko polling.
   // HMAC-SHA256 signed with VLT_WEBHOOK_SECRET env var.
@@ -4360,6 +4442,18 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
         }).catch(e => console.warn('🕯️  Canary startup top-up error (non-fatal):', e?.message));
       } catch (canaryErr: any) {
         console.warn('⚠️ x402 canary job failed to start (non-fatal):', canaryErr.message);
+      }
+
+      // Start Bazaar seeder job (production only)
+      // Rotates through all ~70 seedable services and makes a real facilitated payment
+      // to each, triggering indexing in the CDP Bazaar / Bedrock AgentCore discovery layer.
+      // Runs every 2h; one service per cycle; completes first full pass in ~6 days.
+      try {
+        const { X402BazaarSeederJob } = await import('./jobs/x402BazaarSeederJob');
+        X402BazaarSeederJob.start();
+        console.log('🪄  x402 Bazaar seeder job registered');
+      } catch (seederErr: any) {
+        console.warn('⚠️ x402 Bazaar seeder job failed to start (non-fatal):', seederErr.message);
       }
 
       // Start yield vault keeper (rebalance + fee accrual every 6h)

@@ -20,8 +20,14 @@
 import { createWalletClient, createPublicClient, http, Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
-import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm";
+// NOTE: @x402/fetch and @x402/evm are intentionally NOT statically imported here.
+// Both packages have multi-second load times (native bindings + wasm init):
+//   @x402/fetch ≈ 1,800ms, @x402/evm ≈ 7,000ms
+// A static top-level import hoists them into dist/index.js and blocks
+// httpServer.listen() before Cloud Run health checks can receive a 200,
+// causing promote-step failures during publish.
+// They are dynamically imported inside runCanary() so the cost is paid once
+// on first run (every 6h), not at process startup.
 import { db } from "../db";
 import { x402CanaryPayments, x402PaymentIntents } from "@shared/schema";
 import { desc, eq, and, gte, sql } from "drizzle-orm";
@@ -59,6 +65,8 @@ export class X402CanaryJob {
   private static circuitOpen = false;
   private static circuitOpenAt: Date | null = null;
   private static lastSuccessAt: Date | null = null;
+  /** Reentrancy guard — prevents concurrent manual + scheduled runs from double-paying */
+  private static isRunning = false;
 
   static start(intervalMs: number = CANARY_INTERVAL_MS) {
     const isProduction = process.env.REPLIT_DEPLOYMENT === "1" || process.env.NODE_ENV === "production";
@@ -159,6 +167,12 @@ export class X402CanaryJob {
   }
 
   private static async runCanary(isRetry = false): Promise<void> {
+    if (this.isRunning && !isRetry) {
+      console.log("🕯️  X402CanaryJob: previous run still in progress — skipping");
+      return;
+    }
+    if (!isRetry) this.isRunning = true;
+
     if (this.circuitOpen) {
       const msOpen = this.circuitOpenAt ? Date.now() - this.circuitOpenAt.getTime() : Infinity;
       if (msOpen >= CIRCUIT_AUTO_RESET_MS) {
@@ -215,6 +229,12 @@ export class X402CanaryJob {
         estimateFeesPerGas: () => publicClient.estimateFeesPerGas(),
         getTransactionCount: (args: any) => publicClient.getTransactionCount(args),
       };
+      // Dynamic imports: loaded here (at first run) rather than at process startup.
+      // @x402/fetch and @x402/evm have multi-second load times — keeping them out of
+      // the static import graph prevents Cloud Run health-check failures during promote.
+      const { wrapFetchWithPayment, x402Client } = await import("@x402/fetch");
+      const { ExactEvmScheme } = await import("@x402/evm");
+
       const client = new x402Client()
         .register('eip155:8453', new ExactEvmScheme(evmSigner))
         .registerPolicy((_version, reqs) =>
@@ -355,6 +375,10 @@ export class X402CanaryJob {
           `Will auto-reset in ${CIRCUIT_AUTO_RESET_MS / 3600000}h — or call X402CanaryJob.resetCircuit() to reset now.`
         );
       }
+    } finally {
+      // Always release the reentrancy guard, including on the retry path.
+      // The recursive runCanary(true) call re-acquires it on entry.
+      this.isRunning = false;
     }
   }
 

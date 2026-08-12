@@ -51,8 +51,12 @@
 import { createWalletClient, createPublicClient, http, Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
-import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm";
+// NOTE: @x402/fetch and @x402/evm are intentionally NOT statically imported here.
+// Both packages have multi-second load times (native bindings + wasm init).
+// A static top-level import hoists them into dist/index.js and blocks
+// httpServer.listen() before Cloud Run health checks can receive a 200,
+// causing promote-step failures. They are dynamically imported inside
+// runSeeder() so the cost is paid once on first run (every 2h), not at startup.
 import { db } from "../db";
 import { x402PaymentIntents } from "@shared/schema";
 import { eq, and, gte, desc, sql } from "drizzle-orm";
@@ -374,6 +378,12 @@ export class X402BazaarSeederJob {
         estimateFeesPerGas: () => publicClient.estimateFeesPerGas(),
         getTransactionCount: (args: any) => publicClient.getTransactionCount(args),
       };
+
+      // Dynamic imports: loaded here (at first run) rather than at process startup.
+      // @x402/fetch and @x402/evm have multi-second load times — keeping them out of
+      // the static import graph prevents Cloud Run health-check failures during promote.
+      const { wrapFetchWithPayment, x402Client } = await import("@x402/fetch");
+      const { ExactEvmScheme } = await import("@x402/evm");
 
       // Per-service payment cap: service price + 20% buffer (in microdollars).
       // 20% (not 10%) because on-chain fee calculations can slightly exceed the exact

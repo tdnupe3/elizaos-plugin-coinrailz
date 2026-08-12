@@ -56,7 +56,7 @@ curl https://www.a2aregistry.org/registry.json | jq '.[] | select(.name | contai
 
 ---
 
-## Status Tracking (Updated January 18, 2026)
+## Status Tracking (Updated August 12, 2026)
 
 | Platform | Status | Submitted | Listed | Notes |
 |----------|--------|-----------|--------|-------|
@@ -66,6 +66,7 @@ curl https://www.a2aregistry.org/registry.json | jq '.[] | select(.name | contai
 | AI Agents Directory | ❌ Not submitted | - | No | Web form at aiagentsdirectory.com |
 | Coinbase Bazaar | ✅ Auto-indexed | N/A | Yes | Via x402 transactions |
 | x402scan | ✅ Auto-indexed | N/A | Yes | Via on-chain payments |
+| toll402.com | ⏳ Submitted | Aug 12, 2026 | Pending | MCP server with 80 tools; VERIFIED badge pending real paid call from TOLL402-Exact-Quote-Verifier |
 
 ---
 

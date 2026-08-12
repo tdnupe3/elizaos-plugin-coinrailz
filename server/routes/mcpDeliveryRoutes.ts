@@ -705,6 +705,17 @@ router.post('/', async (req: Request, res: Response) => {
     });
   }
 
+  // --- MCP notifications (one-way, no response body per spec) ---
+  // Clients send these after initialize succeeds; returning 404 causes strict
+  // clients to abort the session before any tool calls are attempted.
+  // notifications/initialized is by far the most common; handle all notifications/*.
+  //
+  // Per JSON-RPC 2.0 §4: notifications MUST NOT receive a response envelope.
+  // Per MCP Streamable HTTP transport: return HTTP 202 Accepted with no body.
+  if (method?.startsWith('notifications/')) {
+    return res.sendStatus(202);
+  }
+
   // --- Unknown method ---
   const latencyMs = Date.now() - startTime;
   trackMcpEvent({

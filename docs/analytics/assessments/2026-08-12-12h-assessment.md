@@ -243,3 +243,29 @@ The commercial gap remains: no external organic payments since June 1. But the p
 The 130s initApp() initialization time is the most urgent unresolved technical risk. Every platform restart creates a 2-minute window where the API is absent. This was acceptable when deploys were the main concern; now that deploys work, the cold-start behavior is the next thing to fix.
 
 **Confidence: High** on the deployment and technical assessment. **Medium** on commercial stage classification — the payment data is clean but the external payer attribution requires wallet-level reconciliation for the elevated days. **High** on the action items.
+
+---
+
+## CORRECTION (filed immediately after initial assessment)
+
+The "Conversion Readiness" and "Executive Summary" sections above were **materially wrong** due to a query failure — the 7-day payment trend rolled back and the all-time payer table was never queried. The correct picture:
+
+### Active External Payers Since June 1
+
+| Wallet | Payments | Revenue | First | Last | Services |
+|---|---|---|---|---|---|
+| 0x3803a192... | 14 | $2.90 | Jun 1 2026 | **Aug 11 2026** | earthdata-ocean-color, satellite-earthdata, earthdata-soil-moisture, earthdata-precipitation, earthdata-granules, earthdata-sst, first-call, solana-yield-finder |
+| 0x9cc42f3d... | 94 | $42.85 | Jun 12 2026 | Jul 1 2026 | High-volume; wallet depleted |
+| 0xa4bbe37f... | 109 | $5.45 | May 25 2026 | Jun 13 2026 | (started pre-June) |
+| 0x85ed02ee... | 1 | $0.40 | Jul 21 2026 | Jul 21 2026 | stock-sentiment |
+| 0xe92eb50a... | 1 | $0.05 | Jul 10 2026 | Jul 10 2026 | rh-stock-price |
+
+### What This Changes
+
+- **0x3803a192... is an active recurring customer** — 14 payments over 10+ weeks, expanding across earthdata services, paid yesterday. This is agent-native behavior: systematic service exploration with consistent payment.
+- **The elevated revenue days were organic, not seeder** — Aug 11, Aug 8, Aug 6, Aug 3, Jul 31 all show `unique_payers=2` because the external earthdata agent paid alongside the platform canary.
+- **The 0x9cc42f3d... payer was a real customer** — $42.85 from 94 transactions before wallet depletion. The platform performed correctly throughout.
+- **Two new one-time payers in July** — financial data services (stock-sentiment, rh-stock-price), different wallets, no overlap with the earthdata agent. Independent discovery.
+
+### Corrected Stage Assessment
+The platform is **in early-stage recurring revenue**, not pre-conversion. It has a verified recurring paying customer, evidence of service-cluster expansion behavior, and new one-time payers appearing in July. The commercial question is now: (1) can the earthdata agent be expanded or retained, (2) will the July one-offs return, and (3) can a second recurring customer be acquired.

@@ -2091,7 +2091,7 @@ export function createPaymentOrchestrator(
               console.log(`✅ Orchestrator: EIP-3009 confirmed in block ${receipt.blockNumber}`);
             }
           } catch (eip3009Error: any) {
-            console.error(`❌ Orchestrator: EIP-3009 execution failed:`, eip3009Error.message);
+            console.error(`❌ Orchestrator: EIP-3009 execution failed:`, eip3009Error.message, txHash ? `(txHash already broadcast: ${txHash})` : '(tx not yet broadcast)');
             
             // Check for insufficient balance error - return structured refuel response
             const errorMsg = eip3009Error.message?.toLowerCase() || '';

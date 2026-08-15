@@ -21,7 +21,7 @@ import { getFacilitatorUrl } from '../utils/facilitatorHelper';
 import { x402TrackingMiddleware } from '../middleware/x402TrackingMiddleware';
 import { usageAnalyticsMiddleware } from '../middleware/usageAnalyticsMiddleware';
 import { x402ResponseEnricher } from '../middleware/x402ResponseEnricher';
-import { SERVICE_PRICING_USD, SERVICE_PRICING_MICRO, ServiceName } from '@shared/pricing';
+import { SERVICE_PRICING_USD, SERVICE_PRICING_MICRO, ServiceName, formatUSD } from '@shared/pricing';
 import { markPaymentIntentSucceeded } from '../middleware/hybridPaymentMiddleware';
 
 const router = Router();
@@ -694,10 +694,10 @@ function generateDynamic402Response(serviceSlug: string, req: Request, res: Resp
       tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     },
     recommendedServices: [
-      { id: "ping", name: "x402 Discovery Ping", priceUSD: "$0.25", endpoint: "/x402/ping" },
-      { id: "trade-signals", name: "AI Trade Signals", priceUSD: "$0.75", endpoint: "/x402/trade-signals" },
-      { id: "wallet-risk", name: "Wallet Risk Analysis", priceUSD: "$0.50", endpoint: "/x402/wallet-risk" },
-      { id: "instant-agent-wallet", name: "Agent Wallet Creation", priceUSD: "$1.00", endpoint: "/x402/instant-agent-wallet" },
+      { id: "ping", name: "x402 Discovery Ping", priceUSD: formatUSD(SERVICE_PRICING_USD['ping']), endpoint: "/x402/ping" },
+      { id: "trade-signals", name: "AI Trade Signals", priceUSD: formatUSD(SERVICE_PRICING_USD['trade-signals']), endpoint: "/x402/trade-signals" },
+      { id: "wallet-risk", name: "Wallet Risk Analysis", priceUSD: formatUSD(SERVICE_PRICING_USD['wallet-risk']), endpoint: "/x402/wallet-risk" },
+      { id: "instant-agent-wallet", name: "Agent Wallet Creation", priceUSD: formatUSD(SERVICE_PRICING_USD['instant-agent-wallet']), endpoint: "/x402/instant-agent-wallet" },
     ],
     catalogUrl: `${PUBLIC_BASE_URL}/x402/catalog`,
     totalServicesAvailable: ALL_SERVICE_SLUGS.length,

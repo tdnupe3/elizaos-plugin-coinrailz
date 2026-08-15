@@ -9,7 +9,7 @@ import {
 import { offerLinkService } from "../services/offerLinkService";
 import { getFacilitatorUrl } from "../utils/facilitatorHelper";
 import { Connection } from "@solana/web3.js";
-import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD } from "../../shared/pricing";
+import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD, formatUSD, getServicePriceUSD } from "../../shared/pricing";
 import { getAuthContext, hasValidSession, resolveOrCreateSessionUser, refreshAndValidateAuthContext, AuthContext } from "../services/gptAuthResolver";
 import { creditsService } from "../services/creditsService";
 import { createWalletClient, http, parseAbi, Hex, createPublicClient } from "viem";
@@ -3590,11 +3590,11 @@ function generate402Response(
       }
     },
     recommendedServices: [
-      { id: "gas-price-oracle", name: "Gas Price Oracle", priceUSD: "$0.10", endpoint: "/x402/gas-price-oracle", note: "FIRST CALL FREE for new agents!" },
-      { id: "token-metadata", name: "Token Metadata", priceUSD: "$0.10", endpoint: "/x402/token-metadata", note: "FIRST CALL FREE for new agents!" },
-      { id: "trade-signals", name: "AI Trade Signals", priceUSD: "$0.75", endpoint: "/x402/trade-signals" },
-      { id: "wallet-risk", name: "Wallet Risk Analysis", priceUSD: "$0.50", endpoint: "/x402/wallet-risk" },
-      { id: "agent-create-wallet", name: "Agent Wallet Provisioning", priceUSD: "$2.00", endpoint: "/x402/agent-create-wallet" },
+      { id: "gas-price-oracle", name: "Gas Price Oracle", priceUSD: formatUSD(SERVICE_PRICING_USD['gas-price-oracle']), endpoint: "/x402/gas-price-oracle", note: "FIRST CALL FREE for new agents!" },
+      { id: "token-metadata", name: "Token Metadata", priceUSD: formatUSD(SERVICE_PRICING_USD['token-metadata']), endpoint: "/x402/token-metadata", note: "FIRST CALL FREE for new agents!" },
+      { id: "trade-signals", name: "AI Trade Signals", priceUSD: formatUSD(SERVICE_PRICING_USD['trade-signals']), endpoint: "/x402/trade-signals" },
+      { id: "wallet-risk", name: "Wallet Risk Analysis", priceUSD: formatUSD(SERVICE_PRICING_USD['wallet-risk']), endpoint: "/x402/wallet-risk" },
+      { id: "agent-create-wallet", name: "Agent Wallet Provisioning", priceUSD: formatUSD(SERVICE_PRICING_USD['agent-create-wallet']), endpoint: "/x402/agent-create-wallet" },
     ],
     catalogUrl: `${baseUrl}/x402/catalog`,
     totalServicesAvailable: getCanonicalServiceCount(),
@@ -3614,7 +3614,7 @@ function generate402Response(
     firstCallFree: {
       eligible: FIRST_CALL_FREE_SERVICES.includes(serviceName),
       services: ["gas-price-oracle", "token-metadata"],
-      priceNormally: "$0.10",
+      priceNormally: formatUSD(getServicePriceUSD('gas-price-oracle')),
       note: "New agents get their first call FREE on gas-price-oracle or token-metadata! Just make the request - no payment needed."
     },
     

@@ -714,6 +714,22 @@ export class CoinRailzClient {
   // ==================== Bankroll Network / VLT Vault ====================
 
   /**
+   * vltUSDC plain withdrawal calldata (1-transaction flow)
+   * FREE — returns one unsigned Ethereum vault.redeem(shares, recipient) transaction.
+   * Burns vltUSDC shares and delivers VLT + USDC pro-rata at current pool composition.
+   * No swaps or additional approvals required.
+   * Use vltUsdcZapWithdraw() instead for a USDC-only exit (3-tx flow, automatic VLT→USDC swap).
+   */
+  async vltUsdcWithdraw(params: {
+    /** Raw 18-decimal vltUSDC share amount to redeem (e.g. "1790439768343002") */
+    shares: string;
+    /** Ethereum address to receive the redeemed VLT + USDC output */
+    recipient: string;
+  }): Promise<ServiceResponse<unknown>> {
+    return this.request('vlt-usdc-withdraw', params);
+  }
+
+  /**
    * vltUSDC USDC-only exit calldata builder (3-transaction flow)
    * FREE — returns three unsigned Ethereum transactions to exit the Bankroll Network vltUSDC vault as USDC only.
    * Tx 1: vault.redeem(shares, recipient) — burns shares, delivers VLT + USDC pro-rata.

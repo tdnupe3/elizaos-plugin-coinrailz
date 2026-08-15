@@ -2,7 +2,11 @@
  * SDK Release Script — publishes all updated Coin Railz npm packages.
  * Run via: node scripts/release-sdks.mjs [package-name]
  * If no arg, publishes all packages.
- * Uses --ignore-scripts because dist/ is already built (description-only changes).
+ *
+ * Each package is built from source immediately before publishing so that
+ * the dist/ directory is always fresh. This prevents stale type declarations
+ * or outdated compiled output from reaching npm even if dist/ was already
+ * present from a prior build.
  */
 import { execSync } from 'child_process';
 import { resolve, dirname } from 'path';
@@ -38,9 +42,22 @@ if (toPublish.length === 0) {
 }
 
 for (const pkg of toPublish) {
+  console.log(`\n🔨 Building ${pkg.name} from source...`);
+  try {
+    execSync('npm run build', {
+      cwd: pkg.dir,
+      stdio: 'inherit',
+    });
+    console.log(`✅ ${pkg.name} built successfully.`);
+  } catch (err) {
+    console.error(`❌ Build failed for ${pkg.name}:`, err.message);
+    process.exit(1);
+  }
+
   console.log(`\n📦 Publishing ${pkg.name} from ${pkg.dir}...`);
   try {
     execSync(
+      // --ignore-scripts: skip lifecycle hooks — we already ran build above
       `npm publish --ignore-scripts --access ${pkg.access} --registry https://registry.npmjs.org`,
       {
         cwd: pkg.dir,

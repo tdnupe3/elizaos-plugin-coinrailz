@@ -195,6 +195,63 @@ app.get('/api/monitoring/health', (req, res, next) => {
   res.json({ status: 'starting', ready: false, timestamp: new Date().toISOString() });
 });
 
+// ============================================================================
+// APP READINESS GATE
+// ============================================================================
+// x402 API routes, MCP routes, and all payment endpoints are registered during
+// initApp() which takes 60–130s on cold start. Until they're registered, any
+// request to /x402/*, /mcp/*, /api/* would fall through to Vite's catch-all
+// and return an HTML page — silently breaking paying agents that retry.
+//
+// This gate returns HTTP 503 + Retry-After: 5 for all such requests until
+// markAppReady() is called (right after x402 routes register in appMain.ts).
+//
+// Exempt from the gate (registered above this point and handled directly):
+//   /healthz, /, /.well-known/*, /api/monitoring/health, /readyz
+// ============================================================================
+let appReady = false;
+export function markAppReady() {
+  appReady = true;
+  console.log('✅ App ready — x402 API routes now accepting requests');
+}
+export function isAppReady() { return appReady; }
+
+// Readiness probe endpoint — Cloud Run startup probes can target /readyz
+// to hold traffic until x402 routes are registered.
+app.get('/readyz', (_req, res) => {
+  if (appReady) {
+    return res.status(200).json({ status: 'ready', ready: true, timestamp: new Date().toISOString() });
+  }
+  return res.status(503).set('Retry-After', '5').json({ status: 'starting', ready: false });
+});
+
+// Gate middleware: applies to all paths that are NOT already handled above.
+// Paying cron agents (earthdata, DeFi, IoT) fire on 2h cycles; if one lands
+// during a rolling deploy cold-start, they get 503 + Retry-After instead of
+// 404 from Vite, preventing silent session abandonment.
+app.use((req, res, next) => {
+  if (appReady) return next();
+  const p = req.path;
+  // Let already-registered fast-path routes through
+  if (
+    p === '/' ||
+    p === '/healthz' ||
+    p === '/readyz' ||
+    p.startsWith('/.well-known') ||
+    p.startsWith('/api/monitoring')
+  ) return next();
+  // All other paths are not yet routed — signal retry
+  return res
+    .status(503)
+    .set('Retry-After', '5')
+    .json({
+      error: 'starting',
+      ready: false,
+      message: 'Server is initializing. API routes will be available shortly.',
+      retryAfterSeconds: 5,
+    });
+});
+
 // START LISTENING IMMEDIATELY - before loading heavy modules
 httpServer.listen(port, '0.0.0.0', () => {
   console.log(`🚀 SERVER LISTENING ON PORT ${port} - Health checks now responding`);

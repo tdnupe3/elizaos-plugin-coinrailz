@@ -1,4 +1,4 @@
-import { app, httpServer, port, markFrontendReady, markStartupComplete } from './index.js';
+import { app, httpServer, port, markFrontendReady, markStartupComplete, markAppReady } from './index.js';
 import { getVltMarketData, validateAndPush } from './services/vltMarketCache';
 import { getVltUsdcStatsFresh, getVltUsdcStats } from './services/vltUsdcVaultService';
 import { createSsrMetaRouter } from './ssrMetaRoutes';
@@ -4203,7 +4203,13 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   console.log('✅ VLT holder-check endpoint registered at GET /api/vlt/holder-check');
 
   _lap('pre-serveStatic — all pre-static routes registered');
-  
+
+  // All x402 payment routes, MCP routes, and API routes are now registered.
+  // Signal the readiness gate in index.ts to start serving API traffic.
+  // Paying cron agents (earthdata, DeFi, IoT) will receive 503+Retry-After
+  // until this fires; after this they get proper 402 challenges.
+  markAppReady();
+
   if (isProduction) {
     // Production: use serveStatic from vite.ts (handles paths correctly)
     console.log('🚀 PRODUCTION MODE');

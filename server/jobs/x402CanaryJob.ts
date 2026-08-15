@@ -29,7 +29,7 @@ import { base } from "viem/chains";
 // They are dynamically imported inside runCanary() so the cost is paid once
 // on first run (every 6h), not at process startup.
 import { db } from "../db";
-import { x402CanaryPayments, x402PaymentIntents } from "@shared/schema";
+import { x402CanaryPayments, x402PaymentIntents, x402Interactions } from "@shared/schema";
 import { desc, eq, and, gte, sql } from "drizzle-orm";
 import { invalidateCanaryCache } from "../middleware/x402ResponseEnricher";
 
@@ -340,6 +340,13 @@ export class X402CanaryJob {
 
       console.log(`🕯️  X402CanaryJob: ✅ canary payment succeeded${txHash ? ` — tx ${txHash}` : " (tx hash pending)"}`);
       if (explorerUrl) console.log(`🕯️  X402CanaryJob: 🔗 ${explorerUrl}`);
+
+      // Run the MCP attribution check after the x402 canary succeeds.
+      // This verifies that extractPayerFromXPayment + the MCP tracking path are
+      // wiring wallet_address into x402_interactions on real paid calls.
+      // Non-fatal: a failure here logs loudly but does not increment the circuit breaker
+      // (the x402 canary itself succeeded — only the attribution assertion is at risk).
+      await this.runMcpAttributionCheck();
     } catch (err: any) {
       const msg: string = err?.message ?? String(err);
       const msgLower = msg.toLowerCase();
@@ -379,6 +386,146 @@ export class X402CanaryJob {
       // Always release the reentrancy guard, including on the retry path.
       // The recursive runCanary(true) call re-acquires it on entry.
       this.isRunning = false;
+    }
+  }
+
+  /**
+   * MCP Attribution Check — runs after each successful x402 canary cycle.
+   *
+   * Makes one real paid MCP tools/call (coinrailz_gas_price_oracle, $0.10 USDC) via
+   * POST /mcp using the canary wallet. After success, asserts that x402_interactions
+   * contains a recent 'mcp-x402-authorized' row with non-null wallet_address and
+   * payment_amount — proving that extractPayerFromXPayment() + the DB write path
+   * are wired correctly end-to-end.
+   *
+   * Non-fatal: assertion failures are logged loudly but do not trip the circuit
+   * breaker (the x402 canary payment itself already succeeded).
+   */
+  private static async runMcpAttributionCheck(): Promise<void> {
+    const MCP_CANARY_TOOL   = 'coinrailz_gas_price_oracle';
+    const MCP_MAX_PAYMENT   = BigInt(200_000); // $0.20 cap — service costs $0.10
+    const PAYMENT_TIMEOUT_MS = 90_000;
+
+    const privateKey = process.env.X402_BUYER_PRIVATE_KEY || process.env.PLATFORM_EOA_PRIVATE_KEY;
+    if (!privateKey) {
+      console.warn('🕯️  McpAttributionCheck: no wallet key — skipping');
+      return;
+    }
+
+    const baseUrl = process.env.PUBLIC_URL || 'https://coinrailz.com';
+    const mcpUrl  = `${baseUrl}/mcp`;
+    console.log(`🕯️  McpAttributionCheck: [1/4] firing MCP tools/call → ${mcpUrl} tool=${MCP_CANARY_TOOL}`);
+
+    const startedAt = new Date();
+
+    try {
+      const keyHex: Hex = privateKey.startsWith('0x') ? (privateKey as Hex) : (`0x${privateKey}` as Hex);
+      const account      = privateKeyToAccount(keyHex);
+
+      const publicClient = createPublicClient({ chain: base, transport: http() });
+      const walletClient = createWalletClient({ account, chain: base, transport: http() });
+      const evmSigner = {
+        address:             account.address,
+        signTypedData:       (args: any) => walletClient.signTypedData(args),
+        readContract:        (args: any) => publicClient.readContract(args),
+        estimateFeesPerGas:  () => publicClient.estimateFeesPerGas(),
+        getTransactionCount: (args: any) => publicClient.getTransactionCount(args),
+      };
+
+      // Dynamically imported — same pattern as the main canary (avoids slow startup cost).
+      const { wrapFetchWithPayment, x402Client } = await import('@x402/fetch');
+      const { ExactEvmScheme }                   = await import('@x402/evm');
+
+      const client = new x402Client()
+        .register('eip155:8453', new ExactEvmScheme(evmSigner))
+        .registerPolicy((_version: any, reqs: any[]) =>
+          reqs.filter((r: any) => {
+            try { return BigInt(r.maxAmountRequired) <= MCP_MAX_PAYMENT; }
+            catch { return false; }
+          })
+        );
+
+      const x402Fetch = wrapFetchWithPayment(X402CanaryJob.boundFetch(30_000), client);
+
+      const paymentTimeout = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`MCP attribution check timed out after ${PAYMENT_TIMEOUT_MS / 1000}s`)),
+          PAYMENT_TIMEOUT_MS,
+        )
+      );
+
+      console.log(`🕯️  McpAttributionCheck: [2/4] sending x402Fetch POST (90s cap)`);
+      const response = await Promise.race([
+        x402Fetch(mcpUrl, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'x-canary': 'true' },
+          body:    JSON.stringify({
+            jsonrpc: '2.0',
+            id:      1,
+            method:  'tools/call',
+            params:  { name: MCP_CANARY_TOOL, arguments: {} },
+          }),
+        }),
+        paymentTimeout,
+      ]);
+
+      const responseStatus = response.status;
+      if (responseStatus !== 200) {
+        const body = await response.text().catch(() => '');
+        throw new Error(`MCP canary call returned ${responseStatus}: ${body.substring(0, 200)}`);
+      }
+
+      console.log(`🕯️  McpAttributionCheck: [3/4] POST /mcp returned 200 — waiting for DB write`);
+      await new Promise(r => setTimeout(r, 3000));
+
+      // --- Attribution assertion ---
+      const cutoff     = new Date(startedAt.getTime() - 5000);
+      const canaryAddr = account.address.toLowerCase();
+
+      const DB_TIMEOUT_MS = 10_000;
+      const dbTimeout = <T>(p: Promise<T>, label: string): Promise<T> =>
+        Promise.race([
+          p,
+          new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error(`DB timed out after ${DB_TIMEOUT_MS / 1000}s: ${label}`)), DB_TIMEOUT_MS)
+          ),
+        ]);
+
+      console.log(`🕯️  McpAttributionCheck: [4/4] querying x402_interactions for mcp-x402-authorized row`);
+      const rows = await dbTimeout(
+        db
+          .select({
+            walletAddress: x402Interactions.walletAddress,
+            paymentAmount: x402Interactions.paymentAmount,
+          })
+          .from(x402Interactions)
+          .where(
+            and(
+              eq(x402Interactions.eventType, 'mcp-x402-authorized'),
+              gte(x402Interactions.createdAt, cutoff),
+              sql`lower(${x402Interactions.walletAddress}) = ${canaryAddr}`,
+            )
+          )
+          .orderBy(desc(x402Interactions.createdAt))
+          .limit(1),
+        'lookup mcp-x402-authorized',
+      );
+
+      if (!rows.length || !rows[0].walletAddress || rows[0].paymentAmount == null) {
+        console.error(
+          `🕯️  McpAttributionCheck: ❌ ATTRIBUTION ASSERTION FAILED — ` +
+          `POST /mcp returned 200 but no 'mcp-x402-authorized' row with wallet_address+payment_amount ` +
+          `found in x402_interactions (canary=${canaryAddr}, cutoff=${cutoff.toISOString()}). ` +
+          `Check extractPayerFromXPayment() in mcpDeliveryRoutes.ts and the trackMcpEvent DB path.`
+        );
+      } else {
+        console.log(
+          `🕯️  McpAttributionCheck: ✅ MCP payer attribution confirmed — ` +
+          `wallet=${rows[0].walletAddress} amount=$${rows[0].paymentAmount} USDC`
+        );
+      }
+    } catch (err: any) {
+      console.error(`🕯️  McpAttributionCheck: ❌ error — ${err?.message ?? String(err)}`);
     }
   }
 

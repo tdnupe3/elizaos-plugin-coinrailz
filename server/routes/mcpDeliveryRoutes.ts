@@ -308,7 +308,7 @@ function buildMcpX402Payload(
   const accepts = [
     {
       scheme:               'exact',
-      network:              'base',
+      network:              'eip155:8453',
       maxAmountRequired:    microAmount,
       amount:               microAmount,
       maxAmountRequiredUSD: priceUsd,

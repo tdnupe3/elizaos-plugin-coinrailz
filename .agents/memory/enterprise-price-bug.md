@@ -1,6 +1,6 @@
 ---
 name: Enterprise GET discovery price bug — fixed Aug 15 2026
-description: GET /x402/{enterprise-slug} was returning 100x inflated prices; root cause and fix.
+description: GET /x402/{enterprise-slug} was returning 100x inflated prices; root cause, fix, discovery surface audit, and BD baseline.
 ---
 
 # Enterprise GET Discovery Price Bug (fixed Aug 15 2026)
@@ -15,13 +15,23 @@ The GET handler computed: `const priceInMicro = parseFloat(service.price.replace
 
 This put 500,000,000 in maxAmountRequired for compliance-consultation instead of 5,000,000. POST routes correctly used SERVICE_PRICING_MICRO.
 
-## Impact
-Every agent doing GET discovery on these 3 services was quoted 100x the real price. Agents that tried to pay the real price ($5) got rejected. This blocked all compliance-consultation conversions (5 IPs validating it this window, 0 paid).
+Also found: all 3 services were absent from the awi.json `capabilities[]` hardcoded array (wellKnownRoutes.ts), making them invisible to AWI crawlers. Handler JSDoc comments and profit console.log calculations in ComplianceConsultantHandler, SmartContractAuditHandler, and PaymentProcessorHandler also showed old prices.
 
-## Fix applied
-1. Replaced hardcoded price strings with `$${microToUSD(SERVICE_PRICING_MICRO[slug])}` template literals
-2. Changed line 3156 handler to use `SERVICE_PRICING_MICRO[service.slug as keyof typeof SERVICE_PRICING_MICRO]` — cannot drift
-3. Fixed `maxAmountRequiredUSD` field to derive from priceInMicro
+## All surfaces fixed (Aug 15 2026)
+1. GET handler — `SERVICE_PRICING_MICRO[slug]` replaces hardcoded strings (cannot drift)
+2. `maxAmountRequiredUSD` — derived from computed priceInMicro
+3. awi.json capabilities[] — 3 entries added (22→25); prices $5.00/$10.00/$0.50
+4. Handler JSDoc + profit console.logs — updated in ComplianceConsultantHandler, SmartContractAuditHandler, PaymentProcessorHandler
+
+## BD baseline (dev snapshot, same schema as prod)
+From x402_interactions as of Aug 15 2026:
+| Service | Hits | Unique IPs | Ever paid | First seen |
+|---|---|---|---|---|
+| compliance-consultation | 4,796 | 305 | 2 | Dec 7 2025 |
+| payment-processing | 2,070 | 204 | 1 | Nov 24 2025 |
+| smart-contract-audit | 1,927 | 157 | 1 | Nov 22 2025 |
+
+Payments from x402_payment_intents: compliance-consultation (2 paid, Feb 7 2026), smart-contract-audit (1 paid, Feb 7 2026), payment-processing (0). The 3 payments in Feb 2026 suggest real demand exists — they converted before the price bug fully suppressed them.
 
 **Why:** SERVICE_PRICING_MICRO is the canonical source; POST payment verification already used it. GET discovery must match or agents get rejected when they try to pay.
 
@@ -30,3 +40,4 @@ If any future GET handler builds a 402 body with a hardcoded price string instea
 ```ts
 const priceInMicro = SERVICE_PRICING_MICRO[slug as keyof typeof SERVICE_PRICING_MICRO];
 ```
+Also run: `curl /.well-known/awi.json | python3 -c "import sys,json; d=json.load(sys.stdin); print([c['id'] for c in d['capabilities']])"` after adding any new enterprise service to confirm it appears.

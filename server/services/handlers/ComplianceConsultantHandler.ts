@@ -9,9 +9,9 @@
  * - Multi-provider support (Sanction Scanner, AMLBot, Chainalysis)
  * - AI enhancement for additional insights and recommendations
  * 
- * Service: $500
+ * Service: $5.00
  * AI Cost: ~$0.03
- * Profit Margin: 99.99%
+ * Profit Margin: ~99.4%
  */
 
 import { ServiceHandler, ServiceDeliveryRequest, ServiceDeliveryResult } from '../serviceDeliveryFramework';
@@ -195,7 +195,7 @@ export class ComplianceConsultantHandler implements ServiceHandler {
 
     if (aiEnhancement.success) {
       console.log(`🤖 AI enhancement added to compliance report`);
-      console.log(`   💰 AI Cost: $${aiEnhancement.cost?.totalCost.toFixed(4)}, Profit: $${(500 - (aiEnhancement.cost?.totalCost || 0)).toFixed(2)}`);
+      console.log(`   💰 AI Cost: $${aiEnhancement.cost?.totalCost.toFixed(4)}, Profit: $${(5.00 - (aiEnhancement.cost?.totalCost || 0)).toFixed(2)}`);
     }
 
     return {

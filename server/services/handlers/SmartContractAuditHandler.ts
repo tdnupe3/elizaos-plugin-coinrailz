@@ -2,7 +2,7 @@
  * Smart Contract Audit Service Handler
  * AI-powered security audits using GPT-4o
  * 
- * Service: $1000
+ * Service: $10.00
  * AI Cost: ~$0.02-0.10
  * Profit Margin: 99.99%
  */
@@ -39,7 +39,7 @@ export class SmartContractAuditHandler implements ServiceHandler {
 
       console.log(`✅ AI-powered audit completed for order: ${request.orderId}`);
       console.log(`   Severity: ${aiResult.data.severity}, Score: ${aiResult.data.auditScore}/100`);
-      console.log(`   💰 AI Cost: $${aiResult.cost?.totalCost.toFixed(4)}, Profit: $${(1000 - (aiResult.cost?.totalCost || 0)).toFixed(2)}`);
+      console.log(`   💰 AI Cost: $${aiResult.cost?.totalCost.toFixed(4)}, Profit: $${(10.00 - (aiResult.cost?.totalCost || 0)).toFixed(2)}`);
 
       return {
         success: true,

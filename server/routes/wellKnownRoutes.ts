@@ -5741,6 +5741,27 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
         price: "$0.05 USDC",
       },
       {
+        id: "compliance-consultation",
+        name: "Compliance Consultation",
+        description: "Expert compliance consultation for crypto operations and regulatory requirements. AML/KYC analysis, sanctions screening, and regulatory guidance. $5.00/call.",
+        endpoint: `${baseUrl}/x402/compliance-consultation`,
+        price: "$5.00 USDC",
+      },
+      {
+        id: "smart-contract-audit",
+        name: "Smart Contract Audit",
+        description: "Comprehensive Solidity security audit with severity-classified findings (Critical/High/Medium/Low). Checks reentrancy, access control, oracle manipulation, MEV exposure, and upgrade safety. $10.00/call.",
+        endpoint: `${baseUrl}/x402/smart-contract-audit`,
+        price: "$10.00 USDC",
+      },
+      {
+        id: "payment-processing",
+        name: "Payment Processing",
+        description: "Route any USDC or stablecoin payment across 8 EVM chains + Solana. Returns optimal network for lowest fees, estimated confirmation time, and payment receipt. $0.50/call.",
+        endpoint: `${baseUrl}/x402/payment-processing`,
+        price: "$0.50 USDC",
+      },
+      {
         id: "catalog",
         name: "Full Service Catalog",
         description: `${getCanonicalServiceCount()} services with pricing, schemas, and endpoints.`,

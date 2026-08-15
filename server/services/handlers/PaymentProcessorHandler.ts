@@ -3,7 +3,7 @@
  * 
  * AI-powered payment validation and instruction generation
  * 
- * Service: $50
+ * Service: $0.50
  * AI Cost: ~$0.01
  * Profit Margin: 99.98%
  */

@@ -15,19 +15,19 @@ import { TokenPriceLookupHandler } from './TokenPriceLookupHandler';
 export function initializeServiceHandlers(): void {
   console.log('🔧 Initializing AI-powered service delivery handlers...');
 
-  // Register Smart Contract Auditor ($1000)
+  // Register Smart Contract Auditor ($10.00)
   serviceDeliveryFramework.registerHandler(
     'smart-contract-auditor',
     new SmartContractAuditHandler()
   );
 
-  // Register Payment Processor ($50)
+  // Register Payment Processor ($0.50)
   serviceDeliveryFramework.registerHandler(
     'payment-processor',
     new PaymentProcessorHandler()
   );
 
-  // Register Compliance Consultant ($500)
+  // Register Compliance Consultant ($5.00)
   serviceDeliveryFramework.registerHandler(
     'compliance-consultant',
     new ComplianceConsultantHandler()

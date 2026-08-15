@@ -341,6 +341,11 @@ export class X402CanaryJob {
       console.log(`🕯️  X402CanaryJob: ✅ canary payment succeeded${txHash ? ` — tx ${txHash}` : " (tx hash pending)"}`);
       if (explorerUrl) console.log(`🕯️  X402CanaryJob: 🔗 ${explorerUrl}`);
 
+      // Run the vlt-stats paid canary check after first-call succeeds.
+      // FATAL: any failure throws and is caught by the outer catch, incrementing the
+      // circuit breaker. This surfaces vault RPC / ABI regressions before agents see them.
+      await this.runVltStatsCheck();
+
       // Run the MCP attribution check after the x402 canary succeeds.
       // This verifies that extractPayerFromXPayment + the MCP tracking path are
       // wiring wallet_address into x402_interactions on real paid calls.
@@ -387,6 +392,111 @@ export class X402CanaryJob {
       // The recursive runCanary(true) call re-acquires it on entry.
       this.isRunning = false;
     }
+  }
+
+  /**
+   * vlt-stats Paid Canary Check — runs after the first-call canary succeeds.
+   *
+   * Makes a real $0.05 x402 payment to POST /x402/vlt-stats using the canary wallet
+   * and asserts that the 200 response contains the expected vault stats fields
+   * (vlt.priceUsd, vltUsdc.tvlUsd, vltUsdc.aprDisplay).
+   *
+   * FATAL: throws on any failure. The caller (runCanary try block) lets the exception
+   * propagate to the outer catch, which increments consecutiveFailures and can trip
+   * the circuit breaker. This surfaces vault RPC or ABI regressions before agents
+   * encounter them.
+   */
+  private static async runVltStatsCheck(): Promise<void> {
+    const VLT_STATS_MAX_PAYMENT = BigInt(100_000); // $0.10 cap — service costs $0.05
+    const PAYMENT_TIMEOUT_MS    = 90_000;
+
+    const privateKey = process.env.X402_BUYER_PRIVATE_KEY || process.env.PLATFORM_EOA_PRIVATE_KEY;
+    if (!privateKey) {
+      throw new Error('vlt-stats canary: no wallet key available');
+    }
+
+    const baseUrl   = process.env.PUBLIC_URL || 'https://coinrailz.com';
+    const targetUrl = `${baseUrl}/x402/vlt-stats`;
+    console.log(`🕯️  VltStatsCanary: [1/4] firing paid POST → ${targetUrl}`);
+
+    const keyHex: Hex = privateKey.startsWith('0x') ? (privateKey as Hex) : (`0x${privateKey}` as Hex);
+    const account     = privateKeyToAccount(keyHex);
+
+    const publicClient = createPublicClient({ chain: base, transport: http() });
+    const walletClient = createWalletClient({ account, chain: base, transport: http() });
+    const evmSigner = {
+      address:             account.address,
+      signTypedData:       (args: any) => walletClient.signTypedData(args),
+      readContract:        (args: any) => publicClient.readContract(args),
+      estimateFeesPerGas:  () => publicClient.estimateFeesPerGas(),
+      getTransactionCount: (args: any) => publicClient.getTransactionCount(args),
+    };
+
+    // Dynamic imports — same pattern as the main canary to avoid slow startup cost.
+    const { wrapFetchWithPayment, x402Client } = await import('@x402/fetch');
+    const { ExactEvmScheme }                   = await import('@x402/evm');
+
+    const client = new x402Client()
+      .register('eip155:8453', new ExactEvmScheme(evmSigner))
+      .registerPolicy((_version: any, reqs: any[]) =>
+        reqs.filter((r: any) => {
+          try { return BigInt(r.maxAmountRequired) <= VLT_STATS_MAX_PAYMENT; }
+          catch { return false; }
+        })
+      );
+
+    const x402Fetch = wrapFetchWithPayment(X402CanaryJob.boundFetch(30_000), client);
+
+    const paymentTimeout = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`vlt-stats canary timed out after ${PAYMENT_TIMEOUT_MS / 1000}s`)),
+        PAYMENT_TIMEOUT_MS,
+      )
+    );
+
+    console.log(`🕯️  VltStatsCanary: [2/4] sending x402Fetch POST (90s cap)`);
+    const response = await Promise.race([
+      x402Fetch(targetUrl, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ isCanary: true }),
+      }),
+      paymentTimeout,
+    ]);
+
+    console.log(`🕯️  VltStatsCanary: [3/4] x402Fetch returned status=${response.status}`);
+    if (response.status !== 200) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`vlt-stats canary: unexpected status ${response.status}: ${body.substring(0, 200)}`);
+    }
+
+    let result: any;
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error('vlt-stats canary: response was 200 but body was not valid JSON');
+    }
+
+    // Assert expected vault stats fields are present and correctly typed
+    const missing: string[] = [];
+    if (result?.success !== true)                         missing.push('success !== true');
+    if (typeof result?.vlt?.priceUsd !== 'number')        missing.push('vlt.priceUsd (expected number)');
+    if (typeof result?.vltUsdc?.tvlUsd !== 'number')      missing.push('vltUsdc.tvlUsd (expected number)');
+    if (typeof result?.vltUsdc?.aprDisplay !== 'string')  missing.push('vltUsdc.aprDisplay (expected string)');
+
+    if (missing.length > 0) {
+      throw new Error(
+        `vlt-stats canary: response missing expected fields: ${missing.join(', ')}. ` +
+        `Partial response: ${JSON.stringify(result).substring(0, 300)}`
+      );
+    }
+
+    console.log(
+      `🕯️  VltStatsCanary: [4/4] ✅ vault stats confirmed — ` +
+      `vltPrice=$${(result.vlt.priceUsd as number).toFixed(4)}/VLT ` +
+      `tvl=$${Math.round(result.vltUsdc.tvlUsd as number).toLocaleString()} ` +
+      `apr="${result.vltUsdc.aprDisplay}"`
+    );
   }
 
   /**

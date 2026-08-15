@@ -85,6 +85,46 @@ function getClientIp(req: Request): string {
 }
 
 // ---------------------------------------------------------------------------
+// Helper: extract payer wallet + payment amount from X-PAYMENT header.
+//
+// X-PAYMENT format (EVM/x402 v2):
+//   base64(JSON.stringify({
+//     x402Version: 2, scheme: 'exact', network: 'eip155:8453',
+//     payload: { authorization: { from, to, value, ... }, signature }
+//   }))
+//
+// Returns null on ANY failure — this is analytics attribution only.
+// The upstream /x402/ service is the authoritative payment verifier.
+// NEVER log the raw header value (contains signed authorization data).
+// ---------------------------------------------------------------------------
+interface PayerInfo {
+  walletAddress: string;
+  paymentAmountUsd: number;
+  network: string;
+}
+
+function extractPayerFromXPayment(header: string): PayerInfo | null {
+  try {
+    if (!header || header.length > 4096) return null; // safety bound
+    const decoded = JSON.parse(Buffer.from(header, 'base64').toString('utf8'));
+    const auth = decoded?.payload?.authorization;
+    if (!auth?.from || typeof auth.from !== 'string') return null;
+    const valueRaw = auth.value;
+    const valueMicro = typeof valueRaw === 'string' ? parseInt(valueRaw, 10)
+                     : typeof valueRaw === 'number' ? valueRaw
+                     : null;
+    if (valueMicro === null || isNaN(valueMicro) || valueMicro < 0) return null;
+    return {
+      walletAddress:    auth.from,
+      paymentAmountUsd: valueMicro / 1_000_000,
+      network:          decoded.network ?? 'eip155:8453',
+    };
+  } catch {
+    return null; // malformed, non-base64, or unexpected schema — silent
+  }
+}
+
+// ---------------------------------------------------------------------------
 // MCP Interaction Tracker — writes a row to x402_interactions for every
 // significant MCP event. Fires-and-forgets (non-fatal on error).
 //
@@ -117,6 +157,8 @@ interface McpTrackParams {
   upstreamStatus?: number;
   cacheAgeMs?: number;      // present on cache-hit events
   errorMessage?: string;
+  walletAddress?: string;   // x402 payer — populated on mcp-x402-authorized events only
+  paymentAmount?: number;   // USD amount — populated on mcp-x402-authorized events only
 }
 
 function trackMcpEvent(p: McpTrackParams): void {
@@ -143,6 +185,9 @@ function trackMcpEvent(p: McpTrackParams): void {
     latencyMs:    p.latencyMs,
     paymentReceived: p.paid ?? false,
     errorMessage: p.errorMessage,
+    // x402 payer attribution — only present on mcp-x402-authorized events
+    walletAddress:   p.walletAddress,
+    paymentAmount:   p.paymentAmount,
     metadata: {
       mcpMethod:     p.mcpMethod,
       toolName:      p.toolName,
@@ -623,9 +668,9 @@ router.post('/', async (req: Request, res: Response) => {
           });
         }
 
-        // Fallback: upstream 402 without valid x402 v2 body
-        const fallbackPayload = buildMcpX402Payload({ id: 'unknown', priceUsd: 0.10, name: service.name } as any, id, `${BASE_URL}/mcp`);
-        setMcp402Headers(res, { priceUsd: 0.10, id: serviceId }, fallbackPayload);
+        // Fallback: upstream 402 without valid x402 v2 body — use canonical service price
+        const fallbackPayload = buildMcpX402Payload(service, id, `${BASE_URL}/mcp`);
+        setMcp402Headers(res, service, fallbackPayload);
         const latencyMs = Date.now() - startTime;
         trackMcpEvent({
           req, requestId, authMode, latencyMs,
@@ -666,6 +711,10 @@ router.post('/', async (req: Request, res: Response) => {
       const eventType     = apiKey ? 'mcp-api-key-authorized' : 'mcp-x402-authorized';
       const latencyMs     = Date.now() - startTime;
 
+      // Extract payer attribution for x402 payments — analytics attribution only, non-fatal.
+      // The upstream /x402/ service is the authoritative verifier; we only read the header here.
+      const payer = (!apiKey && x402Header) ? extractPayerFromXPayment(x402Header) : null;
+
       trackMcpEvent({
         req, requestId, authMode, latencyMs,
         serviceId, toolName: name,
@@ -673,6 +722,8 @@ router.post('/', async (req: Request, res: Response) => {
         responseStatus: 200,
         paid:           true,
         eventType,
+        walletAddress:  payer?.walletAddress,
+        paymentAmount:  payer?.paymentAmountUsd,
       });
 
       return res.json({
@@ -989,6 +1040,9 @@ router.post('/tools/call', async (req: Request, res: Response) => {
     const eventType = apiKey ? 'mcp-api-key-authorized' : 'mcp-x402-authorized';
     const latencyMs = Date.now() - startTime;
 
+    // Extract payer attribution for x402 payments — analytics attribution only, non-fatal.
+    const payer = (!apiKey && x402Header) ? extractPayerFromXPayment(x402Header) : null;
+
     trackMcpEvent({
       req, requestId, authMode, latencyMs,
       serviceId, toolName: name,
@@ -996,6 +1050,8 @@ router.post('/tools/call', async (req: Request, res: Response) => {
       responseStatus: 200,
       paid:           true,
       eventType,
+      walletAddress:  payer?.walletAddress,
+      paymentAmount:  payer?.paymentAmountUsd,
     });
 
     // Forward billing headers so agent runtimes can track credit usage

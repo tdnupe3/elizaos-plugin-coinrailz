@@ -30,19 +30,11 @@
 
 import { ethers } from 'ethers';
 import { getVltMarketData } from './vltMarketCache.js';
+import { VAULT_ADDRESS, VLT_TOKEN, USDC_ETH, VAULT_WITHDRAW_ABI } from './vltSharedAbi.js';
 
-const VAULT_ADDRESS = '0xee8d4c5c768AadCd3517Aa8C908De300305D0A7f';
-const VLT_TOKEN     = '0x6b785a0322126826d8226d77e173d75DAfb84d11';
-const USDC_ETH      = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
-const CHAIN_ID      = 1;
-const DEADLINE_SECONDS = 20 * 60; // 20 min (matches zap service)
+const CHAIN_ID             = 1;
+const DEADLINE_SECONDS     = 20 * 60; // 20 min (matches zap service)
 const DEFAULT_SLIPPAGE_BPS = 200n; // 2%
-
-const VAULT_ABI = [
-  'function redeem(uint256 shares, address receiver) returns (uint256 vltOut, uint256 usdcOut)',
-  'function positionLiquidity() external view returns (uint128)',
-  'function totalSupply() external view returns (uint256)',
-];
 
 export interface WithdrawCalldataResult {
   success: boolean;
@@ -129,7 +121,7 @@ async function estimateMinOuts(
   };
 
   try {
-    const vault = new ethers.Contract(VAULT_ADDRESS, VAULT_ABI, provider);
+    const vault = new ethers.Contract(VAULT_ADDRESS, VAULT_WITHDRAW_ABI, provider);
 
     const [posLiqResult, totalSupplyResult, tvlUsd] = await Promise.all([
       vault.positionLiquidity().catch(() => null),
@@ -228,7 +220,7 @@ export async function buildVltUsdcWithdraw(
 
   // Build vault.redeem calldata — 2-arg ABI: redeem(uint256 shares, address receiver)
   // The vault has NO slippage parameters; redemption is pro-rata in-kind (no swap).
-  const vaultIface = new ethers.Interface(VAULT_ABI);
+  const vaultIface = new ethers.Interface(VAULT_WITHDRAW_ABI);
   const redeemData = vaultIface.encodeFunctionData('redeem', [
     sharesRawBig,
     normalizedRecipient,

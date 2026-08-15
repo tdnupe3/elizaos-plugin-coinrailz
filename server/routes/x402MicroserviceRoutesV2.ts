@@ -2811,7 +2811,7 @@ curl -X POST https://coinrailz.com/x402/gas-price-oracle \\
   // Inject execution_guide: full EVM/Solana/Cloudflare payment recipe with example request body.
   // Agents arriving via HEAD probe read this to know exactly what to POST and how to pay.
   try {
-    const priceUsd = parseFloat(routeConfig.price.replace('$', '')) || 0.10;
+    const priceUsd = parseFloat(routeConfig.price.replace('$', '')) || SERVICE_PRICING_USD[serviceSlug as keyof typeof SERVICE_PRICING_USD] || 0;
     const requiredAmount = Math.round(priceUsd * 1_000_000);
     const exampleBody = V2_SERVICE_EXAMPLE_BODIES[serviceSlug] || {};
     response.execution_guide = buildExecutionGuide({

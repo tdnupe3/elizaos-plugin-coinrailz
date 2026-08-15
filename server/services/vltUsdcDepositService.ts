@@ -32,32 +32,16 @@
 import { ethers } from 'ethers';
 import { getVltMarketData } from './vltMarketCache.js';
 import { getVltUsdcStatsFresh } from './vltUsdcVaultService.js';
-
-// Common vault preview ABI (same as zap service)
-const VAULT_PREVIEW_ABI = [
-  'function previewDeposit(uint256 vltAmount, uint256 usdcAmount) view returns (uint256 shares)',
-];
+import { VAULT_ADDRESS, VLT_TOKEN, USDC_ETH, ZAP_HELPER, VAULT_DEPOSIT_ABI, ERC20_APPROVE_ABI } from './vltSharedAbi.js';
 
 const SHARE_SLIPPAGE_BPS = 200n; // 2% — matches zap service
+const CHAIN_ID            = 1;
+const DEADLINE_SECONDS    = 30 * 60; // 30 minutes — stale-tx guard matching Bankroll's UI default
 
-const VAULT_ADDRESS = '0xee8d4c5c768AadCd3517Aa8C908De300305D0A7f'; // vault IS the vltUSDC ERC-20
-const VLT_TOKEN     = '0x6b785a0322126826d8226d77e173d75DAfb84d11';
-const USDC_ETH      = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
-const ZAP_HELPER    = '0x348A57b1dc6E3dCAa645DE6e4E864924B410525D';
-const CHAIN_ID      = 1;
-
-// 30 minutes from now — stale-tx guard matching Bankroll's UI default
-const DEADLINE_SECONDS = 30 * 60;
-
-const ERC20_IFACE = new ethers.Interface([
-  'function approve(address spender, uint256 amount) returns (bool)',
-]);
-
-// vault.deposit(uint256 vltAmount, uint256 usdcAmount, uint256 minShares, uint256 deadline, address recipient)
-const VAULT_IFACE = new ethers.Interface([
-  'function deposit(uint256 vltAmount, uint256 usdcAmount, uint256 minShares, uint256 deadline, address recipient) returns (uint256 shares)',
-  'function previewDeposit(uint256 vltAmount, uint256 usdcAmount) view returns (uint256 shares)',
-]);
+// ethers.Interface instances built from the shared canonical ABI source
+const ERC20_IFACE = new ethers.Interface(ERC20_APPROVE_ABI);
+// VAULT_DEPOSIT_ABI covers both previewDeposit and deposit — used for reads and calldata encoding
+const VAULT_IFACE = new ethers.Interface(VAULT_DEPOSIT_ABI);
 
 export interface DepositCalldataResult {
   success: boolean;
@@ -136,7 +120,7 @@ export async function buildVltUsdcDeposit(
   try {
     const rpcUrl = `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY ?? ''}`;
     const provider = new ethers.JsonRpcProvider(rpcUrl);
-    const vault = new ethers.Contract(VAULT_ADDRESS, VAULT_PREVIEW_ABI, provider);
+    const vault = new ethers.Contract(VAULT_ADDRESS, VAULT_DEPOSIT_ABI, provider);
     const preview = await vault.previewDeposit(vltRaw, usdcRaw);
     const previewShares = BigInt(preview.toString());
     if (previewShares > 0n) {

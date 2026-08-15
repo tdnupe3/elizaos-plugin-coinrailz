@@ -26,17 +26,7 @@
 
 import { ethers } from 'ethers';
 import { getVltMarketData } from './vltMarketCache.js';
-
-const VAULT_ADDRESS = '0xee8d4c5c768AadCd3517Aa8C908De300305D0A7f'; // vault IS the ERC-20
-const VLT_TOKEN     = '0x6b785a0322126826d8226d77e173d75DAfb84d11';
-const USDC_ETH      = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
-const ZAP_HELPER    = '0x348A57b1dc6E3dCAa645DE6e4E864924B410525D';
-
-const VAULT_ABI = [
-  'function positionLiquidity() external view returns (uint128)',
-  'function totalSupply() external view returns (uint256)',
-  'function poolManager() external view returns (address)',
-];
+import { VAULT_ADDRESS, VLT_TOKEN, USDC_ETH, ZAP_HELPER, VAULT_STATS_ABI } from './vltSharedAbi.js';
 
 export interface VltUsdcStats {
   vault: {
@@ -111,7 +101,7 @@ async function getVltUsdcTvlFromDexScreener(): Promise<number> {
 async function fetchLiveStats(): Promise<VltUsdcStats> {
   const rpcUrl = `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY ?? ''}`;
   const provider = new ethers.JsonRpcProvider(rpcUrl);
-  const vault = new ethers.Contract(VAULT_ADDRESS, VAULT_ABI, provider);
+  const vault = new ethers.Contract(VAULT_ADDRESS, VAULT_STATS_ABI, provider);
 
   const [posLiqResult, totalSupplyResult, tvlUsd] = await Promise.all([
     vault.positionLiquidity().catch(() => null),
@@ -255,4 +245,9 @@ export async function getVltUsdcStatsFresh(): Promise<VltUsdcStats> {
   }
 }
 
-getVltUsdcStatsFresh().catch(() => {});
+getVltUsdcStatsFresh().catch((err: any) => {
+  console.error(
+    '[vltUSDC] CRITICAL: Vault startup probe failed — vault services may return degraded data.',
+    `Vault: ${VAULT_ADDRESS} | Error: ${err?.message ?? String(err)}`,
+  );
+});

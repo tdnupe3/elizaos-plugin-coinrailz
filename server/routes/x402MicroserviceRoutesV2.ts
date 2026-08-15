@@ -3108,7 +3108,7 @@ serviceEndpoints.forEach(endpoint => {
 
 const enterpriseDirectEndpoints: Array<{slug: string, price: string, name: string, description: string, inputSchema: any}> = [
   { 
-    slug: "smart-contract-audit", price: "$1000", name: "Smart Contract Auditor", 
+    slug: "smart-contract-audit", price: `$${microToUSD(SERVICE_PRICING_MICRO["smart-contract-audit"])}`, name: "Smart Contract Auditor", 
     description: "Comprehensive smart contract security audit with vulnerability detection",
     inputSchema: {
       type: "object",
@@ -3121,8 +3121,8 @@ const enterpriseDirectEndpoints: Array<{slug: string, price: string, name: strin
     }
   },
   { 
-    slug: "payment-processing", price: "$50", name: "Payment Processor", 
-    description: "Multi-chain payment processing service (hourly rate)",
+    slug: "payment-processing", price: `$${microToUSD(SERVICE_PRICING_MICRO["payment-processing"])}`, name: "Payment Processor", 
+    description: "Multi-chain payment processing service (per-call)",
     inputSchema: {
       type: "object",
       properties: {
@@ -3135,7 +3135,7 @@ const enterpriseDirectEndpoints: Array<{slug: string, price: string, name: strin
     }
   },
   { 
-    slug: "compliance-consultation", price: "$500", name: "Compliance Consultant", 
+    slug: "compliance-consultation", price: `$${microToUSD(SERVICE_PRICING_MICRO["compliance-consultation"])}`, name: "Compliance Consultant", 
     description: "AML/KYC compliance consultation and risk assessment",
     inputSchema: {
       type: "object",
@@ -3153,7 +3153,7 @@ const enterpriseDirectEndpoints: Array<{slug: string, price: string, name: strin
 enterpriseDirectEndpoints.forEach(service => {
   router.get(`/${service.slug}`, (req: Request, res: Response) => {
     console.log(`📡 GET request for /${service.slug} - returning 402 with enterprise pricing, redirecting to /x402/service/${service.slug}`);
-    const priceInMicro = parseFloat(service.price.replace('$', '')) * 1000000;
+    const priceInMicro = SERVICE_PRICING_MICRO[service.slug as keyof typeof SERVICE_PRICING_MICRO] ?? parseFloat(service.price.replace('$', '')) * 1000000;
     const resourceUrl = `${PUBLIC_BASE_URL}/x402/service/${service.slug}`;
     
     const bazaarInput = {
@@ -3183,7 +3183,7 @@ enterpriseDirectEndpoints.forEach(service => {
         x402Network: "eip155:8453",
         amount: String(priceInMicro),
         maxAmountRequired: String(priceInMicro),
-        maxAmountRequiredUSD: service.price,
+        maxAmountRequiredUSD: `$${microToUSD(priceInMicro)}`,
         resource: resourceUrl,
         description: service.description,
         payTo: PLATFORM_WALLET,

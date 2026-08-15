@@ -1544,7 +1544,7 @@ export function createPaymentOrchestrator(
         // Insufficient credits - return 402 with guidance for GPT users
         console.log(`⚠️ Orchestrator: GPT session user ${userId} has insufficient credits ($${balance.toFixed(2)} < $${priceUsd.toFixed(2)})`);
         logGptAuthPath('insufficient-credits', { userId, balance, required: priceUsd, serviceName });
-        return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
+        return await generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
       } catch (gptErr: any) {
         // GPT session resolution failed - return structured error (no silent fall-through)
         console.error(`⚠️ Orchestrator: GPT session resolution failed for ${serviceName}: ${gptErr.message}`);
@@ -1667,7 +1667,7 @@ export function createPaymentOrchestrator(
         }
       });
       
-      return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
+      return await generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
     }
 
     // EARLY VALIDATION: Check payment header format before attempting decode
@@ -2661,7 +2661,7 @@ export function createPaymentOrchestrator(
 
     // No valid payment found - return 402
     console.log(`❌ Orchestrator: No valid payment found for ${serviceName}, returning 402`);
-    return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
+    return await generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
   };
 }
 
@@ -2810,7 +2810,7 @@ export function buildExecutionGuide(params: {
  * Generate a proper x402 402 response with payment requirements
  * Enhanced with partner CTA for known agents and first-call-free info
  */
-function generate402Response(
+async function generate402Response(
   req: Request, 
   res: Response, 
   serviceName: string, 
@@ -3397,6 +3397,63 @@ function generate402Response(
     example: { success: true, result: {}, timestamp: new Date().toISOString() }
   };
   
+  // ── Returning-agent detection ────────────────────────────────────────────
+  // Check whether this IP has made paid calls before. If it has a prior
+  // payment history but is arriving without X-PAYMENT now (depleted wallet),
+  // inject a top-up hint so the agent knows exactly what to do to resume.
+  let returningAgentHint: {
+    wallet: string;
+    prior_payment_count: number;
+    message: string;
+    top_up_steps: string[];
+  } | null = null;
+  try {
+    const requestIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || '';
+    if (requestIp && requestIp !== 'unknown') {
+      const priorRows = await db
+        .select({
+          walletAddress: x402Interactions.walletAddress,
+          count: sql<number>`count(*)`,
+        })
+        .from(x402Interactions)
+        .where(
+          and(
+            eq(x402Interactions.ipAddress, requestIp),
+            sql`${x402Interactions.walletAddress} IS NOT NULL`,
+            or(
+              eq(x402Interactions.paymentReceived, true),
+              eq(x402Interactions.paid, true)
+            )
+          )
+        )
+        .groupBy(x402Interactions.walletAddress)
+        .orderBy(sql`count(*) DESC`)
+        .limit(1);
+
+      if (priorRows.length > 0 && priorRows[0].walletAddress) {
+        const wallet = priorRows[0].walletAddress;
+        const count = Number(priorRows[0].count);
+        const baseUrl_ = getPublicBaseUrl(req);
+        returningAgentHint = {
+          wallet,
+          prior_payment_count: count,
+          message: `We recognise your agent — this IP has ${count} prior paid call${count === 1 ? '' : 's'} from wallet ${wallet}. Your wallet appears to be depleted. Fund ${wallet} with USDC on Base (eip155:8453) to resume paying.`,
+          top_up_steps: [
+            `1. CHECK current balance: curl '${baseUrl_}/x402/multi-chain-balance' -H 'X-API-KEY: <trial_key>' -d '{"address":"${wallet}"}'`,
+            `2. BUY USDC on Base: purchase on Coinbase and withdraw to Base, or swap at base.uniswap.org`,
+            `3. SEND USDC to your wallet address (${wallet}) on Base mainnet (chain ID 8453) — you need ${(requiredAmount / 1_000_000).toFixed(2)} USDC per call + ~$0.001 ETH for gas`,
+            `4. RETRY this request with X-PAYMENT header (use x402-fetch or the EIP-712 recipe in funding_guide)`,
+          ],
+        };
+        console.log(`💰 Returning-agent hint injected for depleted wallet ${wallet} (${count} prior payments) | IP: ${requestIp}`);
+      }
+    }
+  } catch (hintErr: any) {
+    // Non-fatal — never block a 402 response over a hint lookup failure
+    console.warn(`⚠️ generate402Response: returning-agent hint lookup failed: ${hintErr.message}`);
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   const response: any = {
     x402Version: 2,
     error: "X-PAYMENT header is required",
@@ -3651,6 +3708,11 @@ function generate402Response(
   // Lets agents see exactly why their X-PAYMENT was rejected without a separate call.
   if (lastErrorReason) {
     response.last_error_reason = lastErrorReason;
+  }
+
+  // Inject returning_agent_hint for known payers whose wallet appears depleted
+  if (returningAgentHint) {
+    response.returning_agent_hint = returningAgentHint;
   }
 
   // Golden Path: inject dual-track payment recipe for first-call endpoint

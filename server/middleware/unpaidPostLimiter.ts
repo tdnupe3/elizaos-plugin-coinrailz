@@ -123,10 +123,14 @@ export function unpaidPostLimiter(
   // Exempt any request carrying an auth credential.
   // Valid credentials deduct credits / settle on-chain — never throttle.
   // Invalid credentials pass through to upstream validation (correct rejection path).
+  // NOTE: @x402/fetch v2 sends PAYMENT-SIGNATURE (x402Version 2); v1 sends X-PAYMENT.
+  // Both must be exempt — a v2 retry carrying only payment-signature must reach the
+  // MCP gate, not be rate-limited here before payment verification can happen.
   if (
     req.headers['x-api-key']
     || req.headers['authorization']
     || req.headers['x-payment']
+    || req.headers['payment-signature']
   ) {
     next();
     return;

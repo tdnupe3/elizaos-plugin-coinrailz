@@ -55,7 +55,9 @@ type AuthMode = 'api-key' | 'bearer' | 'x402' | 'none';
 function detectAuthMode(req: Request): AuthMode {
   if (req.headers['x-api-key']) return 'api-key';
   if ((req.headers['authorization'] as string | undefined)?.startsWith('Bearer ')) return 'bearer';
-  if (req.headers['x-payment']) return 'x402';
+  // @x402/fetch 2.x sends PAYMENT-SIGNATURE (v2) while older clients send X-PAYMENT (v1).
+  // Both header names carry the same encoded payment proof — treat them identically.
+  if (req.headers['x-payment'] || req.headers['payment-signature']) return 'x402';
   return 'none';
 }
 
@@ -192,8 +194,9 @@ function trackMcpEvent(p: McpTrackParams): void {
       mcpMethod:     p.mcpMethod,
       toolName:      p.toolName,
       authMode:      p.authMode,
-      // Never log credential values — only the mode
-      hasPaymentHeader: !!(p.req.headers['x-payment']),
+      // Never log credential values — only the mode.
+      // Check both header names: @x402/fetch v2 sends PAYMENT-SIGNATURE, v1 sends X-PAYMENT.
+      hasPaymentHeader: !!(p.req.headers['x-payment'] || p.req.headers['payment-signature']),
       mcpSessionId:  p.req.get('x-mcp-session-id') || undefined,
       transport:     'streamable-http',
       upstreamStatus: p.upstreamStatus,
@@ -565,8 +568,10 @@ router.post('/', async (req: Request, res: Response) => {
       });
     }
 
-    const apiKey     = extractApiKey(req);
-    const x402Header = req.headers['x-payment'] as string | undefined;
+    const apiKey = extractApiKey(req);
+    // @x402/fetch 2.x sends PAYMENT-SIGNATURE for x402Version 2; older clients send X-PAYMENT.
+    // Both carry an identical encoded payment proof — accept either so v2 clients aren't gate-looped.
+    const x402Header = (req.headers['x-payment'] || req.headers['payment-signature']) as string | undefined;
 
     // --- 402 Challenge (no auth) ---
     if (!apiKey && !x402Header) {
@@ -892,8 +897,10 @@ router.post('/tools/call', async (req: Request, res: Response) => {
     });
   }
 
-  const apiKey     = extractApiKey(req);
-  const x402Header = req.headers['x-payment'] as string | undefined;
+  const apiKey = extractApiKey(req);
+  // @x402/fetch 2.x sends PAYMENT-SIGNATURE for x402Version 2; older clients send X-PAYMENT.
+  // Both carry an identical encoded payment proof — accept either so v2 clients aren't gate-looped.
+  const x402Header = (req.headers['x-payment'] || req.headers['payment-signature']) as string | undefined;
 
   // --- 402 Challenge (no auth) ---
   if (!apiKey && !x402Header) {

@@ -1,0 +1,3776 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Coin Railz x402 Micropayment Services",
+    "description": "79 production-ready x402 micropayment services spanning crypto intelligence, DeFi analytics, satellite data (NASA/ESA), IoT/DePIN, AI inference, prediction markets, real estate analytics, esports payouts, and cross-chain payment routing. Autonomous AI agent payments via x402 protocol across 9 chains (Base, Ethereum, Polygon, Arbitrum, Optimism, Avalanche, BNB Chain, Fantom, Solana). Pay per request with USDC — no API keys, no accounts needed. Also supports prepaid API-key credits via X-API-KEY header. CDP facilitator: api.cdp.coinbase.com/platform/v2/x402.",
+    "version": "2.1.0",
+    "contact": {
+      "name": "Coin Railz",
+      "url": "https://coinrailz.com",
+      "email": "support@coinrailz.com"
+    },
+    "x-payment-info": {
+      "protocol": "x402",
+      "x402Version": 2,
+      "network": "eip155:8453",
+      "asset": "USDC",
+      "assetAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "recipientWallet": "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+      "facilitator": "https://api.cdp.coinbase.com/platform/v2/x402"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://coinrailz.com",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Discovery",
+      "description": "Test and discovery endpoints"
+    },
+    {
+      "name": "Trading Intelligence",
+      "description": "Real-time market data and analysis"
+    },
+    {
+      "name": "Execution",
+      "description": "Transaction building and wallet services"
+    },
+    {
+      "name": "Premium",
+      "description": "High-value professional services"
+    },
+    {
+      "name": "Real Estate",
+      "description": "Property and construction analytics"
+    },
+    {
+      "name": "Banking",
+      "description": "Credit, fraud, and compliance services"
+    },
+    {
+      "name": "Investment",
+      "description": "Trading signals and portfolio optimization"
+    },
+    {
+      "name": "Market Intelligence",
+      "description": "Arbitrage and risk analysis"
+    },
+    {
+      "name": "Prediction Markets",
+      "description": "Polymarket, Kalshi, and prediction data"
+    },
+    {
+      "name": "Satellite Intelligence",
+      "description": "NASA/ESA satellite data APIs"
+    },
+    {
+      "name": "IoT & DePIN",
+      "description": "IoT device data and fleet telematics"
+    },
+    {
+      "name": "AI Services",
+      "description": "Pay-per-call AI inference"
+    }
+  ],
+  "paths": {
+    "/x402/ping": {
+      "post": {
+        "tags": [
+          "Discovery"
+        ],
+        "summary": "Ping/Echo Service",
+        "description": "Platform health probe — returns service status, current timestamp, and payment infrastructure readiness. Use as a low-cost connectivity test before calling higher-priced services.",
+        "x-price-usd": 0.25,
+        "operationId": "ping",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "Optional message to echo back"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "service": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "echo": {
+                      "type": "string"
+                    },
+                    "servicesAvailable": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required - x402 challenge returned"
+          }
+        },
+        "x-featured": true
+      }
+    },
+    "/x402/first-call": {
+      "post": {
+        "tags": [
+          "Discovery"
+        ],
+        "summary": "x402 Golden Path — First Paid Call",
+        "description": "START HERE. The canonical first payment endpoint for any AI agent integrating with Coin Railz. Pay $0.05 USDC on Base or Solana and receive a verified onboarding receipt, payment confirmation, and executable templates for the next 3 services. Both EVM and Solana accepted.",
+        "x-price-usd": 0.05,
+        "x-featured": true,
+        "operationId": "first-call",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "agentId": {
+                    "type": "string",
+                    "description": "Optional agent identifier for tracking"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "payment": {
+                      "type": "object"
+                    },
+                    "nextServices": {
+                      "type": "array"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required - x402 challenge returned"
+          }
+        }
+      }
+    },
+    "/x402/gas-price-oracle": {
+      "post": {
+        "tags": [
+          "Trading Intelligence"
+        ],
+        "summary": "Gas Price Oracle",
+        "description": "Real-time EIP-1559 gas prices (base fee, priority fee, fast/safe/slow tiers) for Ethereum, Base, Polygon, Arbitrum, and Optimism with USD cost estimates per transaction type.",
+        "x-price-usd": 0.1,
+        "operationId": "gasPriceOracle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "chains": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Chains to check (optional, default: all supported chains)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Gas prices across chains",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "gasPrices": {
+                      "type": "array",
+                      "description": "Gas prices per chain with USD estimates"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": true
+      }
+    },
+    "/x402/token-metadata": {
+      "post": {
+        "tags": [
+          "Trading Intelligence"
+        ],
+        "summary": "Token Metadata Lookup",
+        "description": "Token name, symbol, decimals, total supply, and contract details for any ERC-20 on Ethereum, Base, Polygon, or Arbitrum. Resolves from on-chain state — no centralized API dependency.",
+        "x-price-usd": 0.1,
+        "operationId": "tokenMetadata",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tokenAddress",
+                  "chain"
+                ],
+                "properties": {
+                  "tokenAddress": {
+                    "type": "string",
+                    "description": "Token contract address"
+                  },
+                  "chain": {
+                    "type": "string",
+                    "description": "Blockchain network (ethereum, base, polygon, etc.)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "symbol": {
+                      "type": "string"
+                    },
+                    "decimals": {
+                      "type": "integer"
+                    },
+                    "totalSupply": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/dex-liquidity": {
+      "post": {
+        "tags": [
+          "Trading Intelligence"
+        ],
+        "summary": "DEX Liquidity Monitor",
+        "description": "Real-time liquidity depth, TVL, price impact, and 24h volume for a token pair across Uniswap V2/V3, Curve, and Aerodrome. Input: token pair + chain.",
+        "x-price-usd": 0.2,
+        "operationId": "dexLiquidity",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tokenAddress",
+                  "chain"
+                ],
+                "properties": {
+                  "tokenAddress": {
+                    "type": "string",
+                    "description": "Token contract address"
+                  },
+                  "chain": {
+                    "type": "string",
+                    "description": "Blockchain network"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Liquidity data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pools": {
+                      "type": "array"
+                    },
+                    "totalLiquidity": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/approval-manager": {
+      "post": {
+        "tags": [
+          "Trading Intelligence"
+        ],
+        "summary": "Token Approval Manager",
+        "description": "Check current ERC-20 allowances and generate unsigned approve() calldata for any spender on any EVM chain. Required pre-step before DEX swaps or DeFi protocol interactions.",
+        "x-price-usd": 0.2,
+        "operationId": "approvalManager",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tokenAddress",
+                  "spenderAddress",
+                  "ownerAddress",
+                  "chain"
+                ],
+                "properties": {
+                  "tokenAddress": {
+                    "type": "string",
+                    "description": "Token contract address"
+                  },
+                  "spenderAddress": {
+                    "type": "string",
+                    "description": "Spender address to approve"
+                  },
+                  "ownerAddress": {
+                    "type": "string",
+                    "description": "Token owner address"
+                  },
+                  "chain": {
+                    "type": "string",
+                    "description": "Blockchain network"
+                  },
+                  "amount": {
+                    "type": "string",
+                    "description": "Amount to approve (optional, default: max)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Approval transaction data"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/token-price": {
+      "post": {
+        "tags": [
+          "Trading Intelligence"
+        ],
+        "summary": "Token Price Feed",
+        "description": "Token price, 24h change, volume, and market cap from CoinGecko and DEX Screener. Covers 10,000+ tokens including long-tail assets unavailable on major centralized exchanges.",
+        "x-price-usd": 0.25,
+        "operationId": "tokenPrice",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tokenAddress",
+                  "chain"
+                ],
+                "properties": {
+                  "tokenAddress": {
+                    "type": "string",
+                    "description": "Token contract address"
+                  },
+                  "chain": {
+                    "type": "string",
+                    "description": "Blockchain network"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token price data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "price": {
+                      "type": "number"
+                    },
+                    "change24h": {
+                      "type": "number"
+                    },
+                    "volume24h": {
+                      "type": "number"
+                    },
+                    "marketCap": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/token-sentiment": {
+      "post": {
+        "tags": [
+          "Trading Intelligence"
+        ],
+        "summary": "Token Sentiment Analyzer",
+        "description": "Social sentiment score for any token from X/Twitter and Reddit. Returns bullish/bearish ratio, momentum direction, and top discussion themes over configurable time windows.",
+        "x-price-usd": 0.25,
+        "operationId": "tokenSentiment",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tokenSymbol"
+                ],
+                "properties": {
+                  "tokenSymbol": {
+                    "type": "string",
+                    "description": "Token symbol (e.g., BTC, ETH, PEPE)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sentiment analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sentiment": {
+                      "type": "string",
+                      "enum": [
+                        "bullish",
+                        "bearish",
+                        "neutral"
+                      ]
+                    },
+                    "score": {
+                      "type": "number"
+                    },
+                    "momentum": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/transaction-builder": {
+      "post": {
+        "tags": [
+          "Execution"
+        ],
+        "summary": "Transaction Builder",
+        "description": "Encode and prepare any EVM transaction: ABI encoding, calldata construction, gas estimation, and nonce lookup for Ethereum, Base, Arbitrum, and Optimism.",
+        "x-price-usd": 0.3,
+        "operationId": "transactionBuilder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "fromAddress",
+                  "toAddress",
+                  "chain"
+                ],
+                "properties": {
+                  "fromAddress": {
+                    "type": "string"
+                  },
+                  "toAddress": {
+                    "type": "string"
+                  },
+                  "chain": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string",
+                    "description": "Value in wei"
+                  },
+                  "data": {
+                    "type": "string",
+                    "description": "Transaction data (hex)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Encoded transaction ready for signing"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/whale-alerts": {
+      "post": {
+        "tags": [
+          "Trading Intelligence"
+        ],
+        "summary": "Whale Wallet Alerts",
+        "description": "Recent large-value wallet transfers for any token or address: amount, sender/receiver, exchange flow direction, and historical pattern context. Threshold configurable, defaults to >$50K.",
+        "x-price-usd": 0.35,
+        "operationId": "whaleAlerts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "chain": {
+                    "type": "string",
+                    "description": "Blockchain to monitor"
+                  },
+                  "minValueUsd": {
+                    "type": "number",
+                    "description": "Minimum transaction value in USD"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recent whale transactions"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/batch-quote": {
+      "post": {
+        "tags": [
+          "Trading Intelligence"
+        ],
+        "summary": "Batch Quote Service",
+        "description": "DEX swap quotes for multiple token pairs in a single call. Returns best route, price impact, gas estimate, and minimum received per pair — reduces round-trips for agents comparing multiple swaps.",
+        "x-price-usd": 0.4,
+        "operationId": "batchQuote",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "quotes"
+                ],
+                "properties": {
+                  "quotes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "fromToken": {
+                          "type": "string"
+                        },
+                        "toToken": {
+                          "type": "string"
+                        },
+                        "amount": {
+                          "type": "string"
+                        },
+                        "chain": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch quotes with best prices"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/multi-chain-balance": {
+      "post": {
+        "tags": [
+          "Trading Intelligence"
+        ],
+        "summary": "Multi-Chain Balance Checker",
+        "description": "Native token and ERC-20 balances for an EVM wallet across Ethereum, Base, Polygon, Arbitrum, Optimism, and 2 more chains in a single call. Returns balances with live USD values.",
+        "x-price-usd": 0.5,
+        "operationId": "multiChainBalance",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "walletAddress"
+                ],
+                "properties": {
+                  "walletAddress": {
+                    "type": "string",
+                    "description": "Wallet address to check"
+                  },
+                  "chains": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Specific chains to check"
+                  },
+                  "includeTokens": {
+                    "type": "boolean",
+                    "description": "Include ERC20 token balances"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Balances across chains",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "balances": {
+                      "type": "array"
+                    },
+                    "totalValueUsd": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/trending-tokens": {
+      "post": {
+        "tags": [
+          "Trading Intelligence"
+        ],
+        "summary": "Trending Tokens Feed",
+        "description": "Top trending tokens ranked by composite score: social volume, price momentum, DEX activity, and whale accumulation patterns. Returns ranked list with 24h stats and risk flags.",
+        "x-price-usd": 0.5,
+        "operationId": "trendingTokens",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "chain": {
+                    "type": "string",
+                    "description": "Filter by chain"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "description": "Number of tokens to return",
+                    "default": 10
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of trending tokens"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/portfolio-tracker": {
+      "post": {
+        "tags": [
+          "Trading Intelligence"
+        ],
+        "summary": "Portfolio Tracker",
+        "description": "Real-time portfolio value, PnL, and allocation breakdown for any EVM wallet. Aggregates token balances with live USD prices and 24h performance across multiple chains.",
+        "x-price-usd": 0.5,
+        "operationId": "portfolioTracker",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "walletAddress"
+                ],
+                "properties": {
+                  "walletAddress": {
+                    "type": "string"
+                  },
+                  "includeHistory": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Portfolio analysis"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/wallet-risk": {
+      "post": {
+        "tags": [
+          "Trading Intelligence"
+        ],
+        "summary": "Wallet Risk Analyzer",
+        "description": "Multi-factor wallet risk report: sanctions exposure, mixer interactions, darknet market activity, and concentration risk. Returns risk tier (LOW/MEDIUM/HIGH/CRITICAL) with evidence and recommended actions.",
+        "x-price-usd": 0.5,
+        "operationId": "walletRisk",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "walletAddress",
+                  "chain"
+                ],
+                "properties": {
+                  "walletAddress": {
+                    "type": "string"
+                  },
+                  "chain": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Risk analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "riskScore": {
+                      "type": "number"
+                    },
+                    "complianceFlags": {
+                      "type": "array"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/trade-signals": {
+      "post": {
+        "tags": [
+          "Investment"
+        ],
+        "summary": "AI Trade Signals",
+        "description": "AI crypto trading signals with entry price, stop-loss, take-profit, position size recommendation, and risk/reward ratio. Based on technical indicators and on-chain flow analysis.",
+        "x-price-usd": 0.75,
+        "operationId": "tradeSignals",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "default": "BTC/USDT"
+                  },
+                  "timeframe": {
+                    "type": "string",
+                    "enum": [
+                      "5m",
+                      "15m",
+                      "1h",
+                      "4h",
+                      "1d"
+                    ]
+                  },
+                  "riskLevel": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trading signal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "signal": {
+                      "type": "string"
+                    },
+                    "entry": {
+                      "type": "number"
+                    },
+                    "target": {
+                      "type": "number"
+                    },
+                    "stopLoss": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/payment-processing": {
+      "post": {
+        "tags": [
+          "Execution"
+        ],
+        "summary": "Payment Processing",
+        "description": "Process USDC payments across EVM chains with automatic routing and fee optimization. Returns transaction receipt, confirmed amount, and destination chain confirmation.",
+        "x-price-usd": 0.5,
+        "operationId": "paymentProcessing",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "amount",
+                  "recipient",
+                  "chain"
+                ],
+                "properties": {
+                  "amount": {
+                    "type": "string"
+                  },
+                  "recipient": {
+                    "type": "string"
+                  },
+                  "chain": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment processed"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/contract-scan": {
+      "post": {
+        "tags": [
+          "Execution"
+        ],
+        "summary": "Contract Security Scanner",
+        "description": "Smart contract security scan returning a safety score (0-100) and structured vulnerability findings (reentrancy, overflow, access control, logic flaws) for any deployed EVM contract address.",
+        "x-price-usd": 1,
+        "operationId": "contractScan",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "contractAddress",
+                  "chain"
+                ],
+                "properties": {
+                  "contractAddress": {
+                    "type": "string"
+                  },
+                  "chain": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Security scan results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "safetyScore": {
+                      "type": "number"
+                    },
+                    "vulnerabilities": {
+                      "type": "array"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/instant-agent-wallet": {
+      "post": {
+        "tags": [
+          "Execution"
+        ],
+        "summary": "Instant Agent Wallet",
+        "description": "Create a session-scoped ephemeral EVM wallet for AI agent operations. Returns address and encrypted key material with USDC funding instructions. Designed for single-session autonomous use.",
+        "x-price-usd": 1,
+        "operationId": "instantAgentWallet",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "chain": {
+                    "type": "string",
+                    "default": "base"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet created with address"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": true
+      }
+    },
+    "/x402/agent-create-wallet": {
+      "post": {
+        "tags": [
+          "Execution"
+        ],
+        "summary": "Agent Wallet Provisioning (CDP)",
+        "description": "Create a persistent Coinbase Developer Platform (CDP) managed wallet for AI agents on Base mainnet. Returns wallet address and API credentials for long-running autonomous deployments.",
+        "x-price-usd": 2,
+        "operationId": "agentCreateWallet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "agentId"
+                ],
+                "properties": {
+                  "agentId": {
+                    "type": "string",
+                    "description": "Unique agent identifier"
+                  },
+                  "agentName": {
+                    "type": "string"
+                  },
+                  "networks": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "CDP wallet created"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/seamless-chain-bridge": {
+      "post": {
+        "tags": [
+          "Execution"
+        ],
+        "summary": "Seamless Chain Bridge",
+        "description": "Cross-chain bridge calldata via Across Protocol for Ethereum, Base, Arbitrum, Optimism, and Polygon. Returns unsigned bridge transaction with fee breakdown, estimated settlement time, and minimum received.",
+        "x-price-usd": 2,
+        "operationId": "seamlessChainBridge",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "fromChain",
+                  "toChain",
+                  "token",
+                  "amount"
+                ],
+                "properties": {
+                  "fromChain": {
+                    "type": "string"
+                  },
+                  "toChain": {
+                    "type": "string"
+                  },
+                  "token": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bridge transaction prepared"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/verified-agent-identity": {
+      "post": {
+        "tags": [
+          "Premium"
+        ],
+        "summary": "Verified Agent Identity",
+        "description": "Create a verified on-chain identity for an AI agent per ERC-8004. Registers agent metadata, capabilities, and controller address to the IdentityRegistry on Base mainnet.",
+        "x-price-usd": 5,
+        "operationId": "verifiedAgentIdentity",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "agentId",
+                  "agentName"
+                ],
+                "properties": {
+                  "agentId": {
+                    "type": "string"
+                  },
+                  "agentName": {
+                    "type": "string"
+                  },
+                  "capabilities": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Identity NFT minted"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": true
+      }
+    },
+    "/x402/compliance-consultation": {
+      "post": {
+        "tags": [
+          "Premium"
+        ],
+        "summary": "Compliance Consultation",
+        "description": "AI regulatory analysis for DeFi protocols, token launches, and on-chain operations. Returns jurisdiction-specific risk assessment, applicable regulations, and concrete remediation steps.",
+        "x-price-usd": 5,
+        "operationId": "complianceConsultation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "operationType",
+                  "jurisdiction"
+                ],
+                "properties": {
+                  "operationType": {
+                    "type": "string"
+                  },
+                  "jurisdiction": {
+                    "type": "string"
+                  },
+                  "details": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compliance analysis"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/smart-contract-audit": {
+      "post": {
+        "tags": [
+          "Premium"
+        ],
+        "summary": "Smart Contract Audit",
+        "description": "AI security audit for Solidity contracts: reentrancy, overflow/underflow, access control, and business logic flaws. Returns severity-ranked findings (CRITICAL/HIGH/MEDIUM/LOW) with line references and remediation guidance.",
+        "x-price-usd": 10,
+        "operationId": "smartContractAudit",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "contractAddress",
+                  "chain"
+                ],
+                "properties": {
+                  "contractAddress": {
+                    "type": "string"
+                  },
+                  "chain": {
+                    "type": "string"
+                  },
+                  "sourceCode": {
+                    "type": "string",
+                    "description": "Optional source code for deeper analysis"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Full audit report"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/property-valuation": {
+      "post": {
+        "tags": [
+          "Real Estate"
+        ],
+        "summary": "Property Valuation",
+        "description": "AI-powered real estate property valuation using comparable sales, zoning data, and market trends. Returns estimated value range with confidence interval and key value drivers.",
+        "x-price-usd": 0.75,
+        "operationId": "propertyValuation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "address"
+                ],
+                "properties": {
+                  "address": {
+                    "type": "string"
+                  },
+                  "propertyType": {
+                    "type": "string"
+                  },
+                  "squareFeet": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Property valuation estimate"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/lease-analysis": {
+      "post": {
+        "tags": [
+          "Real Estate"
+        ],
+        "summary": "Lease Analysis",
+        "description": "Commercial lease terms extraction and risk analysis. Returns key clauses (rent escalation, break options, TI allowance), market rate comparison, and red-flag summary.",
+        "x-price-usd": 1,
+        "operationId": "leaseAnalysis",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "leaseTerms"
+                ],
+                "properties": {
+                  "leaseTerms": {
+                    "type": "object"
+                  },
+                  "marketData": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lease analysis report"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/construction-progress": {
+      "post": {
+        "tags": [
+          "Real Estate"
+        ],
+        "summary": "Construction Progress Tracker",
+        "description": "Construction site progress assessment using multi-source satellite imagery and AI analysis. Input site coordinates and date range; returns phase classification and change detection report.",
+        "x-price-usd": 1.5,
+        "operationId": "constructionProgress",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "properties": {
+                  "projectId": {
+                    "type": "string"
+                  },
+                  "milestones": {
+                    "type": "array"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Progress report"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/fraud-detection": {
+      "post": {
+        "tags": [
+          "Banking"
+        ],
+        "summary": "Fraud Detection",
+        "description": "AI fraud risk score for an on-chain transaction or wallet: phishing wallet proximity, mixer involvement, rug-pull exposure, and behavioral anomaly detection. Returns risk tier with evidence.",
+        "x-price-usd": 0.75,
+        "operationId": "fraudDetection",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "transactionData"
+                ],
+                "properties": {
+                  "transactionData": {
+                    "type": "object"
+                  },
+                  "historicalPatterns": {
+                    "type": "array"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Fraud risk assessment"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/credit-risk-score": {
+      "post": {
+        "tags": [
+          "Banking"
+        ],
+        "summary": "Credit Risk Score",
+        "description": "On-chain credit risk score (0-1000) for an EVM wallet: DeFi liquidation history, loan repayment behavior, protocol interactions, and net position health.",
+        "x-price-usd": 1.25,
+        "operationId": "creditRiskScore",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "walletAddress"
+                ],
+                "properties": {
+                  "walletAddress": {
+                    "type": "string"
+                  },
+                  "includeDefi": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Credit risk assessment"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/compliance-check": {
+      "post": {
+        "tags": [
+          "Banking"
+        ],
+        "summary": "Compliance Check",
+        "description": "AML/KYC risk assessment for any EVM wallet: OFAC/EU/UN sanctions screening, mixer exposure, darknet market links, and a structured compliance verdict with supporting evidence.",
+        "x-price-usd": 1.75,
+        "operationId": "complianceCheck",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "walletAddress"
+                ],
+                "properties": {
+                  "walletAddress": {
+                    "type": "string"
+                  },
+                  "checkType": {
+                    "type": "string",
+                    "enum": [
+                      "basic",
+                      "enhanced"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compliance report"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/sentiment-analysis": {
+      "post": {
+        "tags": [
+          "Investment"
+        ],
+        "summary": "Market Sentiment Analysis",
+        "description": "Aggregated market sentiment for any crypto asset from X/Twitter, Reddit, and news sources. Returns bullish/bearish score (0-100), momentum signal, and 24h sentiment delta.",
+        "x-price-usd": 0.5,
+        "operationId": "sentimentAnalysis",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  },
+                  "sources": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sentiment analysis"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/trading-signal": {
+      "post": {
+        "tags": [
+          "Investment"
+        ],
+        "summary": "Trading Signal Generator",
+        "description": "Technical analysis signals — RSI, MACD, Bollinger Bands, volume profile, and trend strength — for any crypto pair. Returns buy/sell/hold verdict with confidence interval and key price levels.",
+        "x-price-usd": 1,
+        "operationId": "tradingSignal",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "pair"
+                ],
+                "properties": {
+                  "pair": {
+                    "type": "string"
+                  },
+                  "timeframe": {
+                    "type": "string"
+                  },
+                  "indicators": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trading signal with confidence"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/portfolio-optimization": {
+      "post": {
+        "tags": [
+          "Investment"
+        ],
+        "summary": "Portfolio Optimization",
+        "description": "AI crypto portfolio rebalancing using Modern Portfolio Theory. Input current holdings and risk tolerance; returns target allocation with projected Sharpe ratio and expected return improvement.",
+        "x-price-usd": 2,
+        "operationId": "portfolioOptimization",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "holdings"
+                ],
+                "properties": {
+                  "holdings": {
+                    "type": "array"
+                  },
+                  "riskTolerance": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  },
+                  "targetReturn": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Optimized portfolio allocation"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/correlation-matrix": {
+      "post": {
+        "tags": [
+          "Market Intelligence"
+        ],
+        "summary": "Correlation Matrix",
+        "description": "Price correlation matrix for up to 10 crypto assets over 7/30/90-day windows. Returns Pearson coefficients to identify diversification gaps and correlated risk in a portfolio.",
+        "x-price-usd": 0.75,
+        "operationId": "correlationMatrix",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "assets"
+                ],
+                "properties": {
+                  "assets": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "timeframe": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correlation matrix"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/risk-metrics": {
+      "post": {
+        "tags": [
+          "Market Intelligence"
+        ],
+        "summary": "Risk Metrics Calculator",
+        "description": "Portfolio risk metrics: Value at Risk (95%/99% confidence), Sharpe ratio, max drawdown, and Sortino ratio for any token or portfolio, based on historical price data.",
+        "x-price-usd": 1,
+        "operationId": "riskMetrics",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "portfolio"
+                ],
+                "properties": {
+                  "portfolio": {
+                    "type": "array"
+                  },
+                  "confidenceLevel": {
+                    "type": "number",
+                    "default": 0.95
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Risk metrics"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/arbitrage-scanner": {
+      "post": {
+        "tags": [
+          "Market Intelligence"
+        ],
+        "summary": "Arbitrage Scanner",
+        "description": "Scan for real-time arbitrage opportunities across Uniswap, Curve, and Balancer. Returns path, estimated gross profit, gas cost, and net yield per opportunity.",
+        "x-price-usd": 1.25,
+        "operationId": "arbitrageScanner",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "minProfitPercent": {
+                    "type": "number",
+                    "default": 0.5
+                  },
+                  "chains": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Arbitrage opportunities"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/polymarket-events": {
+      "post": {
+        "tags": [
+          "Prediction Markets"
+        ],
+        "summary": "Polymarket Events",
+        "description": "Trending Polymarket prediction market events with current yes/no prices, volume, and liquidity across politics, crypto, sports, and science.",
+        "x-price-usd": 0.25,
+        "operationId": "polymarketEvents",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "default": 10
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trending prediction markets"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/polymarket-odds": {
+      "post": {
+        "tags": [
+          "Prediction Markets"
+        ],
+        "summary": "Polymarket Odds",
+        "description": "Current odds and price history for a specific Polymarket event. Returns yes/no bid/ask, 24h volume, and last trade timestamp.",
+        "x-price-usd": 0.5,
+        "operationId": "polymarketOdds",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "eventId"
+                ],
+                "properties": {
+                  "eventId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event odds and volume"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/polymarket-search": {
+      "post": {
+        "tags": [
+          "Prediction Markets"
+        ],
+        "summary": "Polymarket Search",
+        "description": "Search Polymarket prediction markets by keyword or topic. Returns matching events with current prices, volume, and market close date.",
+        "x-price-usd": 0.25,
+        "operationId": "polymarketSearch",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "default": 10
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/prediction-market-odds": {
+      "post": {
+        "tags": [
+          "Prediction Markets"
+        ],
+        "summary": "Prediction Market Odds",
+        "description": "Aggregated prediction market odds from Polymarket and Kalshi for any topic. Returns consensus probability with per-platform breakdown and total volume.",
+        "x-price-usd": 0.5,
+        "operationId": "predictionMarketOdds",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "topic"
+                ],
+                "properties": {
+                  "topic": {
+                    "type": "string"
+                  },
+                  "platforms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Aggregated odds"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/stock-sentiment": {
+      "post": {
+        "tags": [
+          "Investment"
+        ],
+        "summary": "Stock Sentiment Analysis",
+        "description": "AI stock sentiment for any ticker integrating earnings transcripts, news flow, options flow, and institutional positioning. Returns directional bias with short and medium-term signal strength.",
+        "x-price-usd": 0.4,
+        "operationId": "stockSentiment",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "symbol"
+                ],
+                "properties": {
+                  "symbol": {
+                    "type": "string",
+                    "description": "Stock ticker symbol (e.g., AAPL, TSLA, NVDA)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stock sentiment analysis with news and technical indicators"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/forex-sentiment": {
+      "post": {
+        "tags": [
+          "Investment"
+        ],
+        "summary": "Forex Sentiment Analysis",
+        "description": "AI forex sentiment for major currency pairs integrating central bank signals, economic indicators, and news flow. Returns directional bias (bullish/bearish), confidence score, and top driving factors.",
+        "x-price-usd": 0.4,
+        "operationId": "forexSentiment",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "pair"
+                ],
+                "properties": {
+                  "pair": {
+                    "type": "string",
+                    "description": "Currency pair (e.g., EUR/USD, GBP/JPY, USD/CHF)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Forex sentiment analysis with economic indicators"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/kalshi-markets": {
+      "post": {
+        "tags": [
+          "Prediction Markets"
+        ],
+        "summary": "Kalshi Markets",
+        "description": "Active markets from Kalshi, a CFTC-regulated prediction exchange. Returns yes/no ask prices, volume, and open interest. Filter by category or keyword.",
+        "x-price-usd": 0.25,
+        "operationId": "kalshiMarkets",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "default": 20
+                  },
+                  "category": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Active Kalshi markets"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/kalshi-odds": {
+      "post": {
+        "tags": [
+          "Prediction Markets"
+        ],
+        "summary": "Kalshi Odds",
+        "description": "Current yes/no prices and orderbook depth for a specific Kalshi market. Returns bid/ask spread, last price, volume, and open interest for CFTC-regulated event contracts.",
+        "x-price-usd": 0.25,
+        "operationId": "kalshiOdds",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "marketId"
+                ],
+                "properties": {
+                  "marketId": {
+                    "type": "string",
+                    "description": "Kalshi market ticker ID"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Kalshi market odds and orderbook"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/kalshi-search": {
+      "post": {
+        "tags": [
+          "Prediction Markets"
+        ],
+        "summary": "Kalshi Search",
+        "description": "Search Kalshi prediction markets by keyword or event type. Returns matching CFTC-regulated markets with current yes prices, volume, and expiration dates.",
+        "x-price-usd": 0.25,
+        "operationId": "kalshiSearch",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "default": 10
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Kalshi search results"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/prediction-market-spread": {
+      "post": {
+        "tags": [
+          "Prediction Markets"
+        ],
+        "summary": "Prediction Market Cross-Platform Spread",
+        "description": "Live cross-platform spread analysis: Polymarket vs Kalshi for identical real-world events. Returns YES probability divergence, arbitrage opportunity ranking by spread magnitude, matchConfidence, actionHint, and edgeBps per opportunity.",
+        "x-price-usd": 0.25,
+        "x-featured": true,
+        "operationId": "predictionMarketSpread",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "default": 10,
+                    "description": "Max opportunities to return (1-25)"
+                  },
+                  "minSpreadPct": {
+                    "type": "number",
+                    "default": 0,
+                    "description": "Minimum spread in percentage points (e.g. 3 filters out spreads below 3pp)"
+                  },
+                  "minConfidence": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ],
+                    "description": "Minimum match confidence tier to include"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cross-platform spread opportunities ranked by magnitude"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        }
+      }
+    },
+    "/x402/solana-yield-finder": {
+      "post": {
+        "tags": [
+          "Trading Intelligence"
+        ],
+        "summary": "Solana Yield Finder",
+        "description": "Real-time Solana lending and yield rates from Kamino, Marginfi, and Solend. Returns APY, TVL, utilization rate, and risk tier per protocol.",
+        "x-price-usd": 0.25,
+        "operationId": "solanaYieldFinder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "Token symbol to check yield for (e.g., SOL, USDC)"
+                  },
+                  "minApy": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Yield rates across Solana DeFi protocols"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/satellite-earthdata": {
+      "post": {
+        "tags": [
+          "Satellite Intelligence"
+        ],
+        "summary": "NASA Earthdata Gateway",
+        "description": "NASA Earthdata gateway: precipitation, granule search, SST, soil moisture, and ocean color in one endpoint. Specify the product field to select dataset type and coordinates.",
+        "x-price-usd": 0.25,
+        "operationId": "satelliteEarthdata",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "product"
+                ],
+                "properties": {
+                  "product": {
+                    "type": "string",
+                    "enum": [
+                      "precipitation",
+                      "granules",
+                      "sst",
+                      "soil-moisture",
+                      "ocean-color"
+                    ]
+                  },
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lon": {
+                    "type": "number"
+                  },
+                  "date": {
+                    "type": "string",
+                    "description": "ISO date string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "NASA satellite data for selected product"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": true
+      }
+    },
+    "/x402/earthdata-granules": {
+      "post": {
+        "tags": [
+          "Satellite Intelligence"
+        ],
+        "summary": "NASA Earthdata Granule Search",
+        "description": "Search 1B+ NASA satellite granules by bounding box, date range, and collection (Landsat/Sentinel/MODIS/VIIRS). Returns download URLs and granule metadata.",
+        "x-price-usd": 0.25,
+        "operationId": "earthdataGranules",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "bbox": {
+                    "type": "string",
+                    "description": "Bounding box: west,south,east,north"
+                  },
+                  "startDate": {
+                    "type": "string"
+                  },
+                  "endDate": {
+                    "type": "string"
+                  },
+                  "collection": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Matching NASA granules with download URLs"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/earthdata-precipitation": {
+      "post": {
+        "tags": [
+          "Satellite Intelligence"
+        ],
+        "summary": "NASA Precipitation Data",
+        "description": "Real-time observed rain rate at any global coordinate from NASA IMERG. Input: latitude, longitude, and date.",
+        "x-price-usd": 0.25,
+        "operationId": "earthdataPrecipitation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "lat",
+                  "lon"
+                ],
+                "properties": {
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lon": {
+                    "type": "number"
+                  },
+                  "date": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Precipitation rate and accumulation data"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": true
+      }
+    },
+    "/x402/earthdata-sst": {
+      "post": {
+        "tags": [
+          "Satellite Intelligence"
+        ],
+        "summary": "NASA Sea Surface Temperature",
+        "description": "Sea surface temperature at any ocean coordinate from NASA MUR-JPL multi-scale analysis. Sub-meter spatial accuracy. Input: lat/lon and date.",
+        "x-price-usd": 0.25,
+        "operationId": "earthdataSst",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "lat",
+                  "lon"
+                ],
+                "properties": {
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lon": {
+                    "type": "number"
+                  },
+                  "date": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sea surface temperature in Celsius and Kelvin"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/earthdata-soil-moisture": {
+      "post": {
+        "tags": [
+          "Satellite Intelligence"
+        ],
+        "summary": "NASA Soil Moisture",
+        "description": "Soil moisture granule discovery from NASA SMAP SPL3SMP at 36km resolution. Returns nearest granule, volumetric water content estimate, and quality flag.",
+        "x-price-usd": 0.25,
+        "operationId": "earthdataSoilMoisture",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "lat",
+                  "lon"
+                ],
+                "properties": {
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lon": {
+                    "type": "number"
+                  },
+                  "date": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Soil moisture measurements and granule metadata"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/earthdata-ocean-color": {
+      "post": {
+        "tags": [
+          "Satellite Intelligence"
+        ],
+        "summary": "NASA Ocean Color",
+        "description": "MODIS Aqua ocean chlorophyll-a concentration via NASA CMR at 4km resolution. Input: coordinates or bounding box and date range.",
+        "x-price-usd": 0.25,
+        "operationId": "earthdataOceanColor",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "lat",
+                  "lon"
+                ],
+                "properties": {
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lon": {
+                    "type": "number"
+                  },
+                  "date": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ocean chlorophyll-a concentration data"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": true
+      }
+    },
+    "/x402/fire-alerts": {
+      "post": {
+        "tags": [
+          "Satellite Intelligence"
+        ],
+        "summary": "NASA Fire Alerts",
+        "description": "Real-time active fire detections from NASA FIRMS (MODIS + VIIRS). Returns fire radiative power, confidence level, and coordinates for any bounding box within the past 24 hours.",
+        "x-price-usd": 0.15,
+        "operationId": "fireAlerts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lon": {
+                    "type": "number"
+                  },
+                  "radius_km": {
+                    "type": "number",
+                    "default": 100
+                  },
+                  "days": {
+                    "type": "integer",
+                    "default": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Active fire detections with coordinates and confidence"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": true
+      }
+    },
+    "/x402/weather-imagery": {
+      "post": {
+        "tags": [
+          "Satellite Intelligence"
+        ],
+        "summary": "Weather Satellite Imagery",
+        "description": "High-resolution weather satellite imagery from NASA GIBS: GOES, MODIS, and Suomi-NPP. Input: bounding box, date, and imagery type (IR/visible/water vapor).",
+        "x-price-usd": 0.15,
+        "operationId": "weatherImagery",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lon": {
+                    "type": "number"
+                  },
+                  "layer": {
+                    "type": "string",
+                    "description": "GIBS layer identifier"
+                  },
+                  "date": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Satellite imagery tile URL and metadata"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/vegetation": {
+      "post": {
+        "tags": [
+          "Satellite Intelligence"
+        ],
+        "summary": "Vegetation Health (NDVI)",
+        "description": "NDVI vegetation health indices from NASA MODIS and ESA Sentinel-2 for any global coordinate or region. Returns current health score, historical trend, and seasonal anomaly.",
+        "x-price-usd": 0.15,
+        "operationId": "vegetation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lon": {
+                    "type": "number"
+                  },
+                  "date": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "NDVI index and vegetation health classification"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/flood-detection": {
+      "post": {
+        "tags": [
+          "Satellite Intelligence"
+        ],
+        "summary": "Flood Detection",
+        "description": "SAR-based flood extent mapping from ESA Sentinel-1 — all-weather, day/night capable. Input: bounding box and date. Returns flood polygon and affected area estimate in km².",
+        "x-price-usd": 0.25,
+        "operationId": "floodDetection",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lon": {
+                    "type": "number"
+                  },
+                  "bbox": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Flood extent and affected area analysis"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/air-quality": {
+      "post": {
+        "tags": [
+          "Satellite Intelligence"
+        ],
+        "summary": "Air Quality (Sentinel-5P)",
+        "description": "Atmospheric pollutant concentrations (NO2, SO2, CO, O3, aerosols) from ESA Sentinel-5P TROPOMI satellite for any global coordinate or bounding box.",
+        "x-price-usd": 0.15,
+        "x-featured": true,
+        "operationId": "airQuality",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lon": {
+                    "type": "number"
+                  },
+                  "pollutant": {
+                    "type": "string",
+                    "enum": [
+                      "NO2",
+                      "SO2",
+                      "CO",
+                      "O3",
+                      "aerosol"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Atmospheric pollutant concentration data"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        }
+      }
+    },
+    "/x402/land-use": {
+      "post": {
+        "tags": [
+          "Satellite Intelligence"
+        ],
+        "summary": "Land Use Classification",
+        "description": "Land cover classification from NASA Landsat and ESA Sentinel WorldCover. Input: bounding box and date. Returns dominant land class (urban/cropland/forest/water/etc.) with confidence.",
+        "x-price-usd": 0.15,
+        "operationId": "landUse",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lon": {
+                    "type": "number"
+                  },
+                  "year": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Land cover classification and change detection"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/fleet-telematics": {
+      "post": {
+        "tags": [
+          "IoT & DePIN"
+        ],
+        "summary": "Fleet Telematics",
+        "description": "Real-time fleet data from IoT-connected vehicles: GPS location, fuel consumption, driver behavior scores, and route efficiency metrics. Requires registered fleet deviceId.",
+        "x-price-usd": 0.1,
+        "x-featured": true,
+        "operationId": "fleetTelematics",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "deviceId": {
+                    "type": "string"
+                  },
+                  "fleetId": {
+                    "type": "string"
+                  },
+                  "metrics": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Fleet telemetry data"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        }
+      }
+    },
+    "/x402/weather-station-data": {
+      "post": {
+        "tags": [
+          "IoT & DePIN"
+        ],
+        "summary": "Weather Station Data",
+        "description": "Hyperlocal weather data from IoT weather stations: temperature, humidity, pressure, wind speed/direction, and precipitation. Input: coordinates or station ID.",
+        "x-price-usd": 0.1,
+        "operationId": "weatherStationData",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "stationId": {
+                    "type": "string"
+                  },
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lon": {
+                    "type": "number"
+                  },
+                  "radius_km": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hyperlocal weather measurements"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/iot-sensor-reading": {
+      "post": {
+        "tags": [
+          "IoT & DePIN"
+        ],
+        "summary": "IoT Sensor Reading",
+        "description": "Single sensor reading from a registered IoT device: temperature, humidity, pressure, CO2, or motion. Requires a registered deviceId. Returns timestamped value with unit and quality flag.",
+        "x-price-usd": 0.05,
+        "operationId": "iotSensorReading",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "deviceId"
+                ],
+                "properties": {
+                  "deviceId": {
+                    "type": "string"
+                  },
+                  "sensorType": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current sensor reading with timestamp"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": true
+      }
+    },
+    "/x402/iot-device-stream": {
+      "post": {
+        "tags": [
+          "IoT & DePIN"
+        ],
+        "summary": "IoT Device Stream",
+        "description": "Real-time streaming sensor readings from registered IoT devices: temperature, humidity, pressure, CO2, and motion. Returns latest N readings with timestamps, units, and quality flags.",
+        "x-price-usd": 0.1,
+        "operationId": "iotDeviceStream",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "deviceId"
+                ],
+                "properties": {
+                  "deviceId": {
+                    "type": "string"
+                  },
+                  "duration_seconds": {
+                    "type": "integer",
+                    "default": 60
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Real-time device stream data"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/iot-bulk-data": {
+      "post": {
+        "tags": [
+          "IoT & DePIN"
+        ],
+        "summary": "IoT Bulk Data Export",
+        "description": "Historical data export from IoT devices: bulk sensor readings filtered by device, time range, and sensor type. Returns paginated timestamped readings with units and quality flags.",
+        "x-price-usd": 0.25,
+        "operationId": "iotBulkData",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "deviceId"
+                ],
+                "properties": {
+                  "deviceId": {
+                    "type": "string"
+                  },
+                  "startDate": {
+                    "type": "string"
+                  },
+                  "endDate": {
+                    "type": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "json",
+                      "csv"
+                    ],
+                    "default": "json"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Historical sensor data export"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": false
+      }
+    },
+    "/x402/ai-inference": {
+      "post": {
+        "tags": [
+          "AI Services"
+        ],
+        "summary": "AI Inference (GPT-4o-mini)",
+        "description": "Pay-per-call GPT-4o-mini inference via x402 micropayment — no API key required. Supports system prompt, user message, and temperature. Returns completion text.",
+        "x-price-usd": 0.05,
+        "operationId": "aiInference",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "prompt"
+                ],
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "description": "User message to the model"
+                  },
+                  "system": {
+                    "type": "string",
+                    "description": "Optional system prompt"
+                  },
+                  "model": {
+                    "type": "string",
+                    "default": "gpt-4o-mini"
+                  },
+                  "temperature": {
+                    "type": "number",
+                    "default": 0.7
+                  },
+                  "max_tokens": {
+                    "type": "integer",
+                    "default": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AI model response with usage stats"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        },
+        "x-featured": true
+      }
+    },
+    "/x402/instant-api-key": {
+      "post": {
+        "tags": [
+          "Developer Tools"
+        ],
+        "summary": "Instant API Key",
+        "description": "Frictionless API key provisioning via USDC payment. Pay once, receive a prepaid credits key instantly — no sign-up, no OAuth, no waitlist. Works across all 80 x402 services.",
+        "x-price-usd": 1.0,
+        "x-featured": false,
+        "operationId": "instantApiKey",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Optional label for the API key"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "API key with prepaid credits"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        }
+      }
+    },
+    "/x402/b20-token-info": {
+      "post": {
+        "tags": [
+          "Base Native"
+        ],
+        "summary": "B20 Token Info",
+        "description": "Metadata, total supply, compliance mode, and freeze status for any B20 Native Token Standard token on Base mainnet. Returns ERC-20 fields plus B20-specific compliance fields. Gracefully handles plain ERC-20 tokens.",
+        "x-price-usd": 0.05,
+        "x-featured": true,
+        "operationId": "b20TokenInfo",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tokenAddress"
+                ],
+                "properties": {
+                  "tokenAddress": {
+                    "type": "string",
+                    "description": "B20 or ERC-20 token contract address on Base (0x...)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "B20 token metadata and compliance state"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        }
+      }
+    },
+    "/x402/b20-transfer-check": {
+      "post": {
+        "tags": [
+          "Base Native"
+        ],
+        "summary": "B20 Transfer Check",
+        "description": "Simulate whether a B20 token transfer will succeed given current freeze/blocklist/allowlist state on Base mainnet. Returns will_succeed, specific blockers (SENDER_FROZEN, RECIPIENT_BLOCKLISTED, MEMO_REQUIRED). Uses live on-chain state.",
+        "x-price-usd": 0.1,
+        "x-featured": false,
+        "operationId": "b20TransferCheck",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tokenAddress",
+                  "from",
+                  "to"
+                ],
+                "properties": {
+                  "tokenAddress": {
+                    "type": "string",
+                    "description": "B20 token contract address on Base"
+                  },
+                  "from": {
+                    "type": "string",
+                    "description": "Sender wallet address"
+                  },
+                  "to": {
+                    "type": "string",
+                    "description": "Recipient wallet address"
+                  },
+                  "amount": {
+                    "type": "string",
+                    "description": "Transfer amount (human-readable, e.g. \"100.00\")"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transfer simulation result with blockers and warnings"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        }
+      }
+    },
+    "/x402/b20-compliance-scan": {
+      "post": {
+        "tags": [
+          "Base Native"
+        ],
+        "summary": "B20 Compliance Scan",
+        "description": "Deep compliance scan of a wallet across multiple B20 token issuers on Base mainnet. Returns frozen/blocklisted/allowlisted status per token, frozen-until timestamps, and overall risk level (clear/restricted/mixed/unknown).",
+        "x-price-usd": 0.25,
+        "x-featured": false,
+        "operationId": "b20ComplianceScan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "address"
+                ],
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "description": "Wallet address to scan (0x...)"
+                  },
+                  "tokens": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "List of B20 token contract addresses to check against (max 20)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compliance scan results with per-token and overall risk assessment"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        }
+      }
+    },
+    "/x402/robinhood-token-price": {
+      "post": {
+        "tags": [
+          "Robinhood Chain"
+        ],
+        "summary": "Robinhood Chain Token Price",
+        "description": "Real-time token price and pool data for any token on Robinhood Chain (eip155:4663) via Chainlink SVR feeds. Returns price, 24h change, and top liquidity pool.",
+        "x-price-usd": 0.6,
+        "x-featured": true,
+        "operationId": "robinhoodTokenPrice",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "address"
+                ],
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "description": "Token contract address on Robinhood Chain (0x...)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token price, 24h change, volume, liquidity, pool count, confidence, and data source"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        }
+      }
+    },
+    "/x402/robinhood-dex-pools": {
+      "post": {
+        "tags": [
+          "Robinhood Chain"
+        ],
+        "summary": "Robinhood Chain DEX Pools",
+        "description": "Top DEX liquidity pools on Robinhood Chain. Pass a token address for token-specific pools, or omit for chain-wide top pools by liquidity. Includes fee tier, 24h volume, and pool addresses.",
+        "x-price-usd": 1.25,
+        "x-featured": true,
+        "operationId": "robinhoodDexPools",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "Optional token contract address to filter pools (omit for top pools chain-wide)"
+                  },
+                  "minLiquidity": {
+                    "type": "number",
+                    "description": "Minimum pool liquidity in USD (default: 0)"
+                  },
+                  "limit": {
+                    "type": "number",
+                    "description": "Maximum number of pools to return (default: 20, max: 50)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Array of DEX pools with liquidity, volume, fee tier, and pair details"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        }
+      }
+    },
+    "/x402/robinhood-chain-stats": {
+      "post": {
+        "tags": [
+          "Robinhood Chain"
+        ],
+        "summary": "Robinhood Chain Health Stats",
+        "description": "Chain-level health metrics for Robinhood Chain (eip155:4663): current block height, gas price, validator count, and network TPS via Chainlink on-chain reads.",
+        "x-price-usd": 0.75,
+        "x-featured": false,
+        "operationId": "robinhoodChainStats",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chain stats: latestBlock, gasPriceGwei, totalPools, totalVolume24hUSD, totalLiquidityUSD, topTokens"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        }
+      }
+    },
+    "/x402/rh-stock-price": {
+      "post": {
+        "tags": [
+          "Robinhood Chain"
+        ],
+        "summary": "Robinhood Chain Stock Price Feed",
+        "description": "Live Chainlink SVR price feeds for 35+ stock tokens (AAPL, NVDA, SPY, TSLA, META, AMZN, MSFT, GOOGL, COIN, PLTR, and more) on Robinhood Chain. 8-decimal precision. Batch up to 10 symbols per call.",
+        "x-price-usd": 0.05,
+        "x-featured": false,
+        "operationId": "rhStockPrice",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "symbol": {
+                    "type": "string",
+                    "description": "Single stock/ETF/crypto symbol (e.g. 'AAPL')"
+                  },
+                  "symbols": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Batch of up to 10 symbols (e.g. ['AAPL','NVDA','SPY'])"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "prices[]: {symbol, priceUSD, updatedAt, staleSeconds, fresh, feedAddress, chainId}"
+          },
+          "402": {
+            "description": "Payment Required"
+          }
+        }
+      }
+    },
+    "/x402/rh-bridge-usdc": {
+      "post": {
+        "tags": [
+          "Robinhood Chain"
+        ],
+        "summary": "Robinhood Chain Bootstrap Bridge",
+        "description": "Bridge 0.50 USDC from Base (chainId 8453) to USDG on Robinhood Chain (chainId 4663) via Across Protocol. Treasury-funded — no pre-approval required. Returns unsigned bridge calldata; USDG arrives in ~30 seconds. Ideal for bootstrapping an RH Chain agent wallet.",
+        "x-price-usd": 0.75,
+        "x-featured": false,
+        "operationId": "rhBridgeUsdc",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "recipient"
+                ],
+                "properties": {
+                  "recipient": {
+                    "type": "string",
+                    "description": "0x wallet address on Robinhood Chain to receive USDG"
+                  },
+                  "note": {
+                    "type": "string",
+                    "description": "Optional memo for your records"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "depositTx, recipient, amountBridgedUSDC, estimatedUSDGOutput, estimatedFillTimeSec, baseScan, rhScan"
+          },
+          "402": {
+            "description": "Payment Required"
+          },
+          "500": {
+            "description": "Bridge failed (e.g. treasury balance insufficient)"
+          }
+        }
+      }
+    },
+    "/x402/rwa-nav-oracle": {
+      "post": {
+        "tags": [
+          "RWA & Tokenization"
+        ],
+        "summary": "RWA Synthetic NAV Oracle",
+        "description": "Synthetic market-based NAV estimate for RWA tokens (real estate, private credit, tokenized treasuries). Returns current NAV per share, implied yield, and protocol metadata.",
+        "x-price-usd": 0.5,
+        "operationId": "rwaNavOracle",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "asset_name": {
+                    "type": "string",
+                    "description": "RWA token name or identifier"
+                  },
+                  "rwa_address": {
+                    "type": "string",
+                    "description": "On-chain contract address of the RWA token"
+                  },
+                  "asset_type": {
+                    "type": "string",
+                    "enum": [
+                      "real-estate",
+                      "private-credit",
+                      "treasury",
+                      "commodity",
+                      "other"
+                    ]
+                  },
+                  "chain": {
+                    "type": "string",
+                    "default": "base"
+                  },
+                  "include_signature": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Include EIP-712 signed attestation"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Synthetic NAV estimate with EIP-712 attestation"
+          },
+          "402": {
+            "description": "Payment Required — $0.50 USDC on Base"
+          }
+        },
+        "x-featured": true
+      }
+    },
+    "/x402/vlt-usdc-deposit": {
+      "post": {
+        "tags": [
+          "DeFi & Yield"
+        ],
+        "summary": "vltUSDC Vault Deposit Calldata",
+        "description": "FREE — No payment required. Returns unsigned approve + deposit calldata for the Bankroll Network vltUSDC vault on Ethereum mainnet. Two modes: balanced (VLT+USDC, 3 txs) or USDC-only via ZapHelper with live swap quote (2 txs). Vault auto-compounds VLT/USDC Uniswap V4 1% LP fees. Builder Pattern — zero custody. Use vlt-usdc-withdraw to exit.",
+        "x-price-usd": 0,
+        "x-featured": false,
+        "operationId": "vltUsdcDeposit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "amountUsdc",
+                  "recipient"
+                ],
+                "properties": {
+                  "amountUsdc": {
+                    "type": "string",
+                    "description": "USDC deposit amount (stays in agent wallet, encoded into calldata)"
+                  },
+                  "recipient": {
+                    "type": "string",
+                    "description": "Ethereum address to receive vltUSDC shares"
+                  },
+                  "usdcOnly": {
+                    "type": "boolean",
+                    "description": "Set true for USDC-only mode via ZapHelper (no VLT needed). Default: false (balanced deposit requires both VLT and USDC)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "steps[]: [{step, action, to, data, value, gasEstimate}], vaultStats, agentInstructions"
+          },
+          "400": {
+            "description": "Invalid input or live quote unavailable"
+          }
+        }
+      }
+    },
+    "/x402/vlt-usdc-withdraw": {
+      "post": {
+        "tags": [
+          "DeFi & Yield"
+        ],
+        "summary": "vltUSDC Vault Withdraw Calldata",
+        "description": "FREE — No payment required. Returns 1 unsigned vault.redeem(shares, receiver) transaction. Redemption is pro-rata in-kind (no swap, no slippage parameters on-chain). Estimated VLT + USDC output amounts are included as informational context only — they are NOT encoded in the calldata. Builder Pattern — zero custody. For a USDC-only exit (VLT sold via Uniswap V2), use vlt-usdc-zap-withdraw instead.",
+        "x-price-usd": 0,
+        "x-featured": false,
+        "operationId": "vltUsdcWithdraw",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "shares",
+                  "recipient"
+                ],
+                "properties": {
+                  "shares": {
+                    "type": "string",
+                    "description": "vltUSDC shares to redeem as raw 18-decimal integer string (e.g. '1000000000000000000' for 1 share)"
+                  },
+                  "recipient": {
+                    "type": "string",
+                    "description": "Ethereum address to receive VLT + USDC after redemption"
+                  },
+                  "slippageBps": {
+                    "type": "integer",
+                    "description": "Slippage tolerance in basis points (default: 200 = 2%, max: 1000 = 10%). Set 0 to disable floors.",
+                    "default": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "step: {to, data, value, gasEstimate}, shareValue: {estimatedVltOut, estimatedUsdcOut, vltPriceUsd, fractionPct}, agentInstructions"
+          },
+          "400": {
+            "description": "Invalid input (bad address, non-positive shares)"
+          }
+        }
+      }
+    },
+    "/x402/vlt-usdc-zap-withdraw": {
+      "post": {
+        "tags": [
+          "DeFi & Yield"
+        ],
+        "summary": "vltUSDC Vault USDC-Only Exit Calldata",
+        "description": "FREE — No payment required. Returns 3 unsigned Ethereum transactions that convert vltUSDC shares entirely to USDC: (1) vault.redeem(shares, recipient) — burns shares, sends VLT + USDC to recipient; (2) VLT.approve(uniswapV2Router, vltAmount); (3) v2Router.swapExactTokensForTokens(VLT → WETH → USDC). VLT and USDC amounts from step 1 use vault.previewRedeem (exact on-chain, no approximation). minAmountOut for the V2 swap is computed from live getReserves with 2% slippage and enforced on-chain. Fails closed if any on-chain data is unavailable. Builder Pattern — zero custody. For a 1-tx exit that keeps VLT, use vlt-usdc-withdraw instead.",
+        "x-price-usd": 0,
+        "x-featured": false,
+        "operationId": "vltUsdcZapWithdraw",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "shares",
+                  "recipient"
+                ],
+                "properties": {
+                  "shares": {
+                    "type": "string",
+                    "description": "vltUSDC shares to redeem as raw 18-decimal integer string (e.g. '1790439768343002' for the platform's current position)"
+                  },
+                  "recipient": {
+                    "type": "string",
+                    "description": "Ethereum address to receive all USDC output (lowercase accepted, auto-normalized)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "steps[]: [{step, action, to, data, value, gasEstimate, note}], totalEstimatedUsdc, minUsdcFromSwap, previewVltOut, previewUsdcFromVault, quotedUsdcFromSwap, agentInstructions"
+          },
+          "400": {
+            "description": "Invalid input (bad address, non-positive shares, or on-chain data unavailable)"
+          }
+        }
+      }
+    },
+    "/x402/vlt-stats": {
+      "post": {
+        "tags": [
+          "DeFi & Yield"
+        ],
+        "summary": "VLT + vltUSDC Vault Stats",
+        "description": "Live VLT token price, market cap, liquidity, and vltUSDC vault stats (TVL, estimated LP fee APR, L/share). Sources: CoinGecko + DexScreener (market) and Alchemy on-chain reads (vault state). Use for autonomous allocation decisions alongside vlt-usdc-deposit and vlt-usdc-withdraw.",
+        "x-price-usd": 0.05,
+        "x-featured": false,
+        "operationId": "vltStats",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "description": "No parameters required — full snapshot returned"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "vlt: {priceUsd, marketCapUsd, liquidityUsd, vol24hUsd, priceChangePercent24h}, vltUsdc: {tvlUsd, aprPct, aprDisplay, lPerShare, totalShares, positionLiquidity}, pool: {fee, feeBps, tickSpacing, dex}, dataAge: {vltMarketAgeSeconds, vaultStatsUpdatedAt}"
+          },
+          "402": {
+            "description": "Payment required — $0.05 USDC per call"
+          }
+        }
+      }
+    },
+    "/x402/tokenized-yield-compare": {
+      "post": {
+        "tags": [
+          "RWA & Tokenization"
+        ],
+        "summary": "Tokenized Treasury Yield Comparison",
+        "description": "Live APY comparison across tokenized RWA protocols: Ondo (USDY), Backed (bIB01), Superstate (USTB), Mountain Protocol (USDM), OpenEden (TBILL), Hashnote (USYC), Maple Finance. Sourced from DeFi Llama.",
+        "x-price-usd": 0.25,
+        "operationId": "tokenizedYieldCompare",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tokens": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Filter by token symbols (e.g. [\"USDY\",\"USTB\"]). Omit for all."
+                  },
+                  "chain": {
+                    "type": "string",
+                    "description": "Filter by chain"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Yield comparison table with benchmark statistics"
+          },
+          "402": {
+            "description": "Payment Required — $0.25 USDC on Base"
+          }
+        },
+        "x-featured": true
+      }
+    }
+  }
+}

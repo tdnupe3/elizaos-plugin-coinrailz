@@ -34,3 +34,5 @@ cdp_*.json
 # CDP Credential Files
 attached_assets/cdp_api_key_*.json
 *.json
+# Canonical OpenAPI spec — must be versioned (not a credential)
+!public/openapi-x402-services.json

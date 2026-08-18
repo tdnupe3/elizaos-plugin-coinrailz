@@ -6410,6 +6410,7 @@ router.post("/vlt-usdc-withdraw", async (req: Request, res: Response) => {
     sendWithdrawJson(res, 200, { free: true, ...result });
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
+    (req as any).serviceError = error.message;
     await trackRequest("vlt-usdc-withdraw", req.body, null, responseTime, 0, req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
@@ -6531,6 +6532,7 @@ router.post("/vlt-usdc-zap-withdraw", async (req: Request, res: Response) => {
     res.status(200).set('Content-Type', 'application/json').send(safe);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
+    (req as any).serviceError = error.message;
     await trackRequest("vlt-usdc-zap-withdraw", req.body, null, responseTime, 0, req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
@@ -6688,6 +6690,7 @@ router.post("/vlt-usdc-deposit", async (req: Request, res: Response) => {
     res.json({ free: true, ...result });
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
+    (req as any).serviceError = error.message;
     await trackRequest("vlt-usdc-deposit", req.body, null, responseTime, 0, req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }

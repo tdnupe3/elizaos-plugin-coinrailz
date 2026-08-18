@@ -233,6 +233,7 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
       paymentReceived: paid,
       paymentAmount,
       offerTrackingId,
+      errorMessage: responseStatus >= 500 ? ((req as any).serviceError || undefined) : undefined,
       metadata: {
         originalUrl: req.originalUrl,
         hasPaymentHeader,

@@ -1,0 +1,75 @@
+Implementation Invalid
+2 checks failed. Fix the issues below and re-validate.
+
+Simulation Result
+no bazaar discovery extension found
+
+Diagnostic Checklist
+
+Transport & URL
+1 failed
+URL is well-formed
+URL is well-formed
+URL uses HTTPS
+Resource URL uses HTTPS
+Endpoint is reachable
+Endpoint responded with status 402
+Returns HTTP 402
+Endpoint correctly returns HTTP 402 Payment Required
+Valid JSON response
+Response body parsed as JSON
+Resource object present
+Missing resource object or resource.url field
+Response must declare the resource. On v2 this is a top-level `resource` object with `url`, `description`, and `mimeType`.
+
+Fix in setup wizard →
+
+Payment Requirements
+9/9
+
+Bazaar Extension
+1 failed
+Bazaar extension present
+No bazaar extension in top-level extensions object
+Add the bazaar extension under top-level `extensions.bazaar`. Register `bazaarResourceServerExtension` and call `declareDiscoveryExtension()`.
+
+Fix in setup wizard →
+Bazaar info block
+Skipped: bazaar extension is missing
+Input metadata present
+Skipped: bazaar extension is missing
+Input type set
+Skipped: bazaar extension is missing
+Input method set
+Skipped: bazaar extension is missing
+Output metadata
+advisory
+Skipped: bazaar extension is missing
+Output example provided
+advisory
+Skipped: bazaar extension is missing
+Bazaar schema present
+Skipped: bazaar extension is missing
+Bazaar discovery extension parsed
+Bazaar discovery extension parsed successfully
+Similar Indexed Endpoints
+402rates.com
+Paid ping to test the Compass x402 payment rails end to end. Returns pong with server time and the rail you paid on.
+https://www.qrbase.xyz/api/x402/ping
+Ping - 0.001 USDC on Base
+basefeed
+x402 settlement test
+WebberSites x402 Data API
+Cheapest liveness ping: ONE request to any public URL — is anything answering, and how fast? Returns up/down, HTTP status, and latency in ms. Any HTTP response below 500 counts as up; redirects are reported, not followed. High-frequency monitoring loops belong here; step up to /api/uptime for redirect following and headers, /api/uptime/report for the full timing/TLS/CDN report.
+ChainAnalyzer
+Cheap connectivity-check endpoint. Verifies the full x402 settlement path (signature -> CDP facilitator -> on-chain transferWithAuthorization) for $0.01 so AI agents can validate wallet + network + facilitator wiring before committing to higher-value AML calls.
+FAQ
+
+Do I need to register to get my service/endpoints discoverable via Search?
+If your service/endpoints are indexed on the Bazaar, you'll automatically show up on agentic.market.
+
+If you don't see all your endpoints, we recommend using dynamic routes for discovery.
+
+View dynamic routes documentation →
+
+View Bazaar server example →

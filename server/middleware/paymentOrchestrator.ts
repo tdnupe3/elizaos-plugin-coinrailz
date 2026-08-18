@@ -2721,8 +2721,9 @@ export function buildExecutionGuide(params: {
     `            'payload': {'authorization': auth, 'signature': sig.signature.hex()}}`,
     `x_payment = base64.b64encode(json.dumps(envelope).encode()).decode()`,
     ``,
-    `# 5. Retry with X-PAYMENT header`,
-    `result = requests.post(url, json=body, headers={'X-PAYMENT': x_payment})`,
+    `# 5. Retry with PAYMENT-SIGNATURE (x402 v2, preferred) or X-PAYMENT (x402 v1)`,
+    `result = requests.post(url, json=body, headers={'PAYMENT-SIGNATURE': x_payment})`,
+    `# Alternative (x402 v1 clients): headers={'X-PAYMENT': x_payment}`,
     `print(result.json())`,
   ].join('\n');
 
@@ -2764,11 +2765,11 @@ export function buildExecutionGuide(params: {
         facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
         signingNote: `X-PAYMENT is base64(JSON.stringify({x402Version:2,scheme:'exact',network:'eip155:8453',payload:{authorization:{from,to,value,validAfter,validBefore,nonce},signature}})) — NOT a raw tx hash. Sign off-chain via EIP-712 (no gas). Use x402-fetch wrapFetchWithPayment for automatic handling, or follow the pythonExample for manual signing with eth_account.`,
         steps: [
-          `1. POST ${endpoint} without X-PAYMENT to receive 402 challenge — read accepts[0].payTo and maxAmountRequired`,
+          `1. POST ${endpoint} without payment header to receive 402 challenge — read accepts[0].payTo and maxAmountRequired`,
           `2. Build EIP-3009 authorization: {from:<your_wallet>, to:accepts[0].payTo, value:${requiredAmount}, validAfter:0, validBefore:<unix+300s>, nonce:<random_32_bytes>}`,
           `3. Sign with EIP-712: domain={name:'USD Coin',version:'2',chainId:8453,verifyingContract:'0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'} — no gas required`,
-          `4. Set X-PAYMENT: base64(JSON.stringify({x402Version:2,scheme:'exact',network:'eip155:8453',payload:{authorization:<step2_object>,signature:<step3_sig>}}))`,
-          `5. Retry POST ${endpoint} with X-PAYMENT header — receive 200 OK with ${successDescription}`
+          `4. Encode payment envelope: base64(JSON.stringify({x402Version:2,scheme:'exact',network:'eip155:8453',payload:{authorization:<step2_object>,signature:<step3_sig>}}))`,
+          `5. Retry POST ${endpoint} with PAYMENT-SIGNATURE (x402 v2, preferred) or X-PAYMENT (x402 v1) header set to the encoded envelope — receive 200 OK with ${successDescription}`
         ],
         pythonExample,
         typescriptExample,

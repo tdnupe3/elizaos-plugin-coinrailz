@@ -2274,6 +2274,11 @@ const x402Routes = {
 // Example request bodies for services in generate402ResponseForGet — used to populate
 // execution_guide.requestBody so agents see exactly what to POST, not just an empty {}.
 const V2_SERVICE_EXAMPLE_BODIES: Record<string, Record<string, any>> = {
+  // High-priority services — recipe endpoint uses these for execution_guide examples
+  "gas-price-oracle":  { chains: ["ethereum", "base"] },
+  "token-metadata":    { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", chain: "base" },
+  "wallet-risk":       { walletAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", chain: "ethereum" },
+  "approval-manager":  { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", spenderAddress: "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD", ownerAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", chain: "base" },
   "trading-signal":        { symbol: "SOL/USDC", timeframe: "1d" },
   "dex-liquidity":         { tokenA: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", tokenB: "0x4200000000000000000000000000000000000006", chain: "base" },
   "polymarket-odds":       { slug: "will-btc-hit-100k-2026" },

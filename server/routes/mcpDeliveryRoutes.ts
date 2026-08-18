@@ -328,7 +328,7 @@ function buildMcpX402Payload(
 
   return {
     x402Version: 2,
-    error:       'X-PAYMENT header is required',
+    error:       'PAYMENT-SIGNATURE (x402 v2) or X-PAYMENT (x402 v1) header is required',
     accepts,
     jsonrpc:     '2.0',
     id:          reqId ?? null,
@@ -339,7 +339,13 @@ function buildMcpX402Payload(
       trialKey:    `${BASE_URL}/api/m2m/credits/trial`,
       purchaseKey: `${BASE_URL}/api/m2m/credits/checkout/session`,
       x402:        `${BASE_URL}/.well-known/x402.json`,
-      note: 'Add X-PAYMENT header (x402 on-chain USDC) or X-API-KEY header (prepaid credits) and retry. GET /api/m2m/credits/trial for a free $5 trial key.',
+      recipeUrl:   `${BASE_URL}/x402/recipes/${service.id}`,
+      paymentHeaders: {
+        v2: 'PAYMENT-SIGNATURE',
+        v1: 'X-PAYMENT',
+        note: 'Both headers carry an identical base64-encoded x402 payment envelope. Retry the identical tools/call with the signed header — no changes to arguments required.',
+      },
+      note: 'Sign an EIP-3009 USDC authorization off-chain (no gas) and add PAYMENT-SIGNATURE (x402 v2) or X-PAYMENT (x402 v1) header, or use X-API-KEY for prepaid credits. GET /api/m2m/credits/trial for a free $5 trial key. Full recipe with code examples: ' + `${BASE_URL}/x402/recipes/${service.id}`,
     },
   };
 }
@@ -443,6 +449,27 @@ function serviceToMcpTool(s: CanonicalService) {
       readOnlyHint:    true,
       destructiveHint: false,
       idempotentHint:  true,
+    },
+    _meta: {
+      category:  s.category,
+      featured:  s.featured,
+      priceUsd:  s.priceUsd,
+      payment: s.priceUsd > 0
+        ? {
+            protocol:        'x402',
+            versions:        ['1', '2'],
+            headers:         { v2: 'PAYMENT-SIGNATURE', v1: 'X-PAYMENT' },
+            network:         'eip155:8453',
+            networkName:     'Base mainnet',
+            asset:           'USDC',
+            assetAddress:    '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+            amountMicroUSDC: Math.round(s.priceUsd * 1_000_000),
+            retrySemantics:  'Retry the identical tools/call request with the signed payment header — arguments unchanged',
+            recipeUrl:       `${BASE_URL}/x402/recipes/${s.id}`,
+            trialUrl:        `${BASE_URL}/api/m2m/credits/trial`,
+            apiKeyAlt:       'X-API-KEY header with prepaid credits — GET trialUrl for a free $5 key',
+          }
+        : { note: 'No payment required for this tool' },
     },
   };
 }
@@ -820,9 +847,12 @@ router.get('/tools/list', (req: Request, res: Response) => {
           provider:   'Coin Railz',
           totalTools: tools.length,
           paymentInfo: {
-            apiKey: 'Add X-API-KEY: cr_live_... header (prepaid credits)',
-            trial:  'GET /api/m2m/credits/trial for free $5 trial key',
-            x402:   'Add X-PAYMENT header for native on-chain USDC payments',
+            apiKey:             'Add X-API-KEY: cr_live_... header (prepaid credits)',
+            trial:              'GET /api/m2m/credits/trial for free $5 trial key',
+            x402_v2:            'Add PAYMENT-SIGNATURE header (x402 v2) — preferred for @x402/fetch 2.x clients',
+            x402_v1:            'Add X-PAYMENT header (x402 v1) — supported for legacy clients',
+            x402_note:          'Both headers carry a base64-encoded EIP-3009 USDC authorization signed off-chain (no gas). Retry the identical request with the header after receiving a 402.',
+            recipeBaseUrl:      `${BASE_URL}/x402/recipes/{serviceId}`,
           },
         },
       },

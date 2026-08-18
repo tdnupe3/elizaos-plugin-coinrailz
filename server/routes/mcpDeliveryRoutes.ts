@@ -394,6 +394,66 @@ const PARAM_DESCRIPTIONS: Record<string, string> = {
   productId:      'Data product identifier for satellite or sensor data',
 };
 
+// ---------------------------------------------------------------------------
+// Quickstart tool IDs — appear in coinrailz://starter-pack and get
+// quickstart:true in _meta. Chosen to be cheap, zero-setup, and broadly useful.
+// ---------------------------------------------------------------------------
+const QUICKSTART_TOOL_IDS = new Set([
+  'ping',             // free connectivity / latency check — no payment needed
+  'first-call',       // $0.05 — lowest-cost intro to x402 payment flow
+  'ai-inference',     // $0.05 — general-purpose LLM inference
+  'iot-sensor-reading', // $0.025 — cheapest live-data service
+  'gas-price-oracle', // $0.10 — essential on-chain utility for any tx workflow
+]);
+
+// ---------------------------------------------------------------------------
+// Category display-order — controls the ordering bucket for tools/list.
+// Categories not in this list are placed at the end in alphabetical order.
+// ---------------------------------------------------------------------------
+const CATEGORY_ORDER: Record<string, number> = {
+  'discovery':              0,
+  'iot-&-depin':            1,
+  'ai-services':            2,
+  'trading-intelligence':   3,
+  'satellite-intelligence': 4,
+  'base-native':            5,
+  'defi-&-yield':           6,
+  'prediction-markets':     7,
+  'execution':              8,
+  'investment':             9,
+  'market-intelligence':    10,
+  'robinhood-chain':        11,
+  'rwa-&-tokenization':     12,
+  'real-estate':            13,
+  'banking':                14,
+  'developer-tools':        15,
+  'premium':                16,
+};
+
+/**
+ * Sort services for MCP tools/list:
+ *  1. ping + first-call always lead (by explicit position)
+ *  2. Remaining quickstart tools next
+ *  3. Then all others, grouped by CATEGORY_ORDER, price ascending within category
+ */
+function orderServicesForMcp(services: CanonicalService[]): CanonicalService[] {
+  const LEAD = ['ping', 'first-call'];
+
+  const lead      = LEAD.map(id => services.find(s => s.id === id)).filter(Boolean) as CanonicalService[];
+  const quickRest = services.filter(s => QUICKSTART_TOOL_IDS.has(s.id) && !LEAD.includes(s.id));
+  const rest      = services.filter(s => !QUICKSTART_TOOL_IDS.has(s.id));
+
+  quickRest.sort((a, b) => a.priceUsd - b.priceUsd);
+  rest.sort((a, b) => {
+    const catA = CATEGORY_ORDER[a.category] ?? 99;
+    const catB = CATEGORY_ORDER[b.category] ?? 99;
+    if (catA !== catB) return catA - catB;
+    return a.priceUsd - b.priceUsd;
+  });
+
+  return [...lead, ...quickRest, ...rest];
+}
+
 // Standard MCP output schema (content array format)
 const MCP_OUTPUT_SCHEMA = {
   type: 'object',
@@ -453,6 +513,7 @@ function serviceToMcpTool(s: CanonicalService) {
     _meta: {
       category:  s.category,
       featured:  s.featured,
+      quickstart: QUICKSTART_TOOL_IDS.has(s.id),
       priceUsd:  s.priceUsd,
       payment: s.priceUsd > 0
         ? {
@@ -542,7 +603,7 @@ router.post('/', async (req: Request, res: Response) => {
 
   // --- tools/list ---
   if (method === 'tools/list') {
-    const services = getCanonicalServices();
+    const services = orderServicesForMcp(getCanonicalServices());
     const tools    = services.map(serviceToMcpTool);
     const latencyMs = Date.now() - startTime;
     trackMcpEvent({
@@ -780,11 +841,170 @@ router.post('/', async (req: Request, res: Response) => {
     }
   }
 
-  // --- resources/list, prompts/list (capability stubs) ---
-  if (method === 'resources/list' || method === 'prompts/list') {
+  // --- resources/list ---
+  if (method === 'resources/list') {
     return res.json({
       jsonrpc: '2.0', id,
-      result: { [method.split('/')[0]]: [] },
+      result: {
+        resources: [
+          {
+            uri:         'coinrailz://catalog',
+            name:        'Coin Railz Tool Catalog',
+            description: 'All available tools grouped by category with names, prices, and brief descriptions. Read this first to understand what is available before calling tools/list.',
+            mimeType:    'application/json',
+          },
+          {
+            uri:         'coinrailz://starter-pack',
+            name:        'Starter Pack — Curated First Tools',
+            description: `5 hand-picked tools that are cheap, zero-setup, and broadly useful for new callers. Each includes a ready-to-use tools/call example. Tools: ${[...QUICKSTART_TOOL_IDS].join(', ')}.`,
+            mimeType:    'application/json',
+          },
+        ],
+      },
+    });
+  }
+
+  // --- resources/read ---
+  if (method === 'resources/read') {
+    const uri = (params as any)?.uri as string | undefined;
+
+    if (uri === 'coinrailz://catalog') {
+      const allServices = getCanonicalServices();
+      // Build category-grouped index
+      const byCategory: Record<string, Array<{ id: string; name: string; priceUsd: number; description: string; quickstart: boolean }>> = {};
+      for (const s of allServices) {
+        const cat = s.category;
+        if (!byCategory[cat]) byCategory[cat] = [];
+        byCategory[cat].push({
+          id:          s.id,
+          name:        s.name,
+          priceUsd:    s.priceUsd,
+          description: s.description,
+          quickstart:  QUICKSTART_TOOL_IDS.has(s.id),
+        });
+      }
+      // Sort within each category by price
+      for (const items of Object.values(byCategory)) {
+        items.sort((a, b) => a.priceUsd - b.priceUsd);
+      }
+      const catalog = {
+        provider:    'Coin Railz',
+        totalTools:  allServices.length,
+        note:        'Use coinrailz://starter-pack to see the 5 recommended first tools. Call tools/list for full MCP-formatted tool definitions.',
+        categories:  byCategory,
+      };
+      return res.json({
+        jsonrpc: '2.0', id,
+        result: {
+          contents: [{ uri, mimeType: 'application/json', text: JSON.stringify(catalog, null, 2) }],
+        },
+      });
+    }
+
+    if (uri === 'coinrailz://starter-pack') {
+      const allServices = getCanonicalServices();
+      const starterTools = [...QUICKSTART_TOOL_IDS]
+        .map(toolId => allServices.find(s => s.id === toolId))
+        .filter(Boolean) as CanonicalService[];
+
+      const pack = {
+        title:       'Coin Railz Starter Pack',
+        description: 'These 5 tools are the recommended starting point. Each costs $0.025–$0.10 USDC per call and covers a distinct domain. Call any of them via tools/call with the coinrailz_ prefix.',
+        paymentQuickstart: {
+          option1: 'GET /api/m2m/credits/trial for a free $5 API key, then add X-API-KEY header.',
+          option2: 'Use x402: on tools/call 402 response, sign the EIP-3009 USDC authorization and retry with PAYMENT-SIGNATURE header.',
+        },
+        tools: starterTools.map(s => ({
+          toolName:    `coinrailz_${s.id.replace(/-/g, '_')}`,
+          serviceId:   s.id,
+          priceUsd:    s.priceUsd,
+          category:    s.category,
+          description: s.description,
+          exampleCall: {
+            method:  'tools/call',
+            params:  { name: `coinrailz_${s.id.replace(/-/g, '_')}`, arguments: {} },
+          },
+          recipeUrl: `${BASE_URL}/x402/recipes/${s.id}`,
+        })),
+      };
+      return res.json({
+        jsonrpc: '2.0', id,
+        result: {
+          contents: [{ uri, mimeType: 'application/json', text: JSON.stringify(pack, null, 2) }],
+        },
+      });
+    }
+
+    // Unknown resource URI
+    return res.status(404).json({
+      jsonrpc: '2.0', id,
+      error: { code: -32002, message: `Unknown resource URI: ${uri ?? '(none)'}` },
+    });
+  }
+
+  // --- prompts/list ---
+  if (method === 'prompts/list') {
+    return res.json({
+      jsonrpc: '2.0', id,
+      result: {
+        prompts: [
+          {
+            name:        'find-the-right-tool',
+            description: 'Given a task description, identifies the best Coin Railz tool(s) to call and explains how to pay.',
+            arguments: [
+              {
+                name:        'task',
+                description: 'Describe what you are trying to accomplish (e.g. "get the current ETH gas price", "check if a wallet has been flagged", "query a weather station").',
+                required:    true,
+              },
+            ],
+          },
+        ],
+      },
+    });
+  }
+
+  // --- prompts/get ---
+  if (method === 'prompts/get') {
+    const promptName = (params as any)?.name as string | undefined;
+    const taskArg    = (params as any)?.arguments?.task as string | undefined;
+
+    if (promptName === 'find-the-right-tool') {
+      const allServices = getCanonicalServices();
+      const catalogSummary = allServices
+        .map(s => `- coinrailz_${s.id.replace(/-/g, '_')} [${s.category}, $${s.priceUsd.toFixed(3)}]: ${s.description}`)
+        .join('\n');
+
+      const systemText =
+        `You are a routing assistant for the Coin Railz MCP server. The server exposes ${allServices.length} paid tools via x402 micropayments (USDC on Base).\n\n` +
+        `PAYMENT: Every tool call requires either X-API-KEY (prepaid credits) or PAYMENT-SIGNATURE (x402 v2). ` +
+        `A free $5 trial key is available at GET /api/m2m/credits/trial.\n\n` +
+        `TOOL CATALOG:\n${catalogSummary}\n\n` +
+        `STARTER PACK (cheapest + most useful for new callers):\n` +
+        [...QUICKSTART_TOOL_IDS].map(id => {
+          const s = allServices.find(x => x.id === id);
+          return s ? `- coinrailz_${s.id.replace(/-/g, '_')} [$${s.priceUsd.toFixed(3)}]: ${s.description}` : '';
+        }).filter(Boolean).join('\n') +
+        `\n\nFor detailed payment recipes: ${BASE_URL}/x402/recipes/{serviceId}`;
+
+      const userText = taskArg
+        ? `My task: ${taskArg}\n\nWhich Coin Railz tool(s) should I call? Provide the exact tool name, a brief rationale, and the tools/call JSON-RPC payload.`
+        : 'List the top 5 most relevant Coin Railz tools for my use case and show me how to call each one.';
+
+      return res.json({
+        jsonrpc: '2.0', id,
+        result: {
+          description: 'Find the right Coin Railz tool for a task',
+          messages: [
+            { role: 'user', content: { type: 'text', text: systemText + '\n\n' + userText } },
+          ],
+        },
+      });
+    }
+
+    return res.status(404).json({
+      jsonrpc: '2.0', id,
+      error: { code: -32002, message: `Unknown prompt: ${promptName ?? '(none)'}` },
     });
   }
 
@@ -824,7 +1044,7 @@ router.get('/tools/list', (req: Request, res: Response) => {
   const requestId = nanoid(12);
 
   try {
-    const services = getCanonicalServices();
+    const services = orderServicesForMcp(getCanonicalServices());
     const tools    = services.map(serviceToMcpTool);
     const latencyMs = Date.now() - startTime;
 

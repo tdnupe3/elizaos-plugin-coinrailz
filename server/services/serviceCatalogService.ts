@@ -102,8 +102,8 @@ export class ServiceCatalogService {
       },
       {
         id: 'first-call',
-        name: 'x402 Golden Path — First Paid Call',
-        description: 'START HERE. The canonical first payment endpoint for any AI agent integrating with Coin Railz. Pay $0.05 USDC on Base or Solana and receive a verified onboarding receipt, payment confirmation, and executable templates for the next 3 services. Lowest entry price. Both EVM and Solana accepted.',
+        name: 'x402 Golden Path — Start Here',
+        description: 'START HERE. Pay $0.05 USDC (Base or Solana) to onboard as an agent. Returns a verified payment receipt, your session ID, and 3–5 executable next-service calls with sample arguments you can run immediately. This is a paid onboarding probe — $0.05 confirms your payment stack works end-to-end, then the response tells you exactly what to call next.',
         endpoint: '/x402/first-call',
         network: 'eip155:8453',
         category: 'onboarding',

@@ -3300,10 +3300,70 @@ const firstCallHandler = async (req: Request, res: Response) => {
     const solanaAgent = !!(req.headers['x-solana-wallet']);
     const responseTime = Date.now() - startTime;
 
+    // Build next-service recommendations with prices from canonical source and live base URL
+    const baseUrl = PUBLIC_BASE_URL;
+    const nextServices = [
+      {
+        id: "gas-price-oracle",
+        name: "Gas Price Oracle",
+        price: `$${SERVICE_PRICING_USD["gas-price-oracle"].toFixed(2)} USDC`,
+        priceUsd: SERVICE_PRICING_USD["gas-price-oracle"],
+        endpoint: "/x402/gas-price-oracle",
+        endpointUrl: `${baseUrl}/x402/gas-price-oracle`,
+        description: "Real-time EIP-1559 gas prices across Base, Ethereum, Polygon, Arbitrum, and Optimism with USD cost estimates. No required parameters — works out of the box.",
+        sampleArgs: { chains: ["base", "ethereum"] },
+        paymentFlow: `POST ${baseUrl}/x402/gas-price-oracle → 402 challenge → pay ${SERVICE_PRICING_USD["gas-price-oracle"].toFixed(2)} USDC → retry with X-PAYMENT header`,
+      },
+      {
+        id: "token-metadata",
+        name: "Token Metadata",
+        price: `$${SERVICE_PRICING_USD["token-metadata"].toFixed(2)} USDC`,
+        priceUsd: SERVICE_PRICING_USD["token-metadata"],
+        endpoint: "/x402/token-metadata",
+        endpointUrl: `${baseUrl}/x402/token-metadata`,
+        description: "Name, symbol, decimals, total supply, and contract details for any ERC-20. Resolves from on-chain state — no centralized API dependency.",
+        sampleArgs: { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", chain: "base" },
+        paymentFlow: `POST ${baseUrl}/x402/token-metadata → 402 challenge → pay ${SERVICE_PRICING_USD["token-metadata"].toFixed(2)} USDC → retry with X-PAYMENT header`,
+      },
+      {
+        id: "token-price",
+        name: "Token Price Oracle",
+        price: `$${SERVICE_PRICING_USD["token-price"].toFixed(2)} USDC`,
+        priceUsd: SERVICE_PRICING_USD["token-price"],
+        endpoint: "/x402/token-price",
+        endpointUrl: `${baseUrl}/x402/token-price`,
+        description: "Token price aggregated from Uniswap v3, CoinGecko, and direct DEX pool queries. Returns current USD price, 24h change %, 24h volume, and market cap.",
+        sampleArgs: { tokenAddress: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", chain: "ethereum" },
+        paymentFlow: `POST ${baseUrl}/x402/token-price → 402 challenge → pay ${SERVICE_PRICING_USD["token-price"].toFixed(2)} USDC → retry with X-PAYMENT header`,
+      },
+      {
+        id: "wallet-risk",
+        name: "Wallet Risk Analysis",
+        price: `$${SERVICE_PRICING_USD["wallet-risk"].toFixed(2)} USDC`,
+        priceUsd: SERVICE_PRICING_USD["wallet-risk"],
+        endpoint: "/x402/wallet-risk",
+        endpointUrl: `${baseUrl}/x402/wallet-risk`,
+        description: "On-chain risk score (0–100) for any EVM wallet. Flags mixer exposure, blacklisted counterparties, rug-pull history, and concentration risk.",
+        sampleArgs: { address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", chain: "ethereum" },
+        paymentFlow: `POST ${baseUrl}/x402/wallet-risk → 402 challenge → pay ${SERVICE_PRICING_USD["wallet-risk"].toFixed(2)} USDC → retry with X-PAYMENT header`,
+      },
+      {
+        id: "trade-signals",
+        name: "AI Trade Signals",
+        price: `$${SERVICE_PRICING_USD["trade-signals"].toFixed(2)} USDC`,
+        priceUsd: SERVICE_PRICING_USD["trade-signals"],
+        endpoint: "/x402/trade-signals",
+        endpointUrl: `${baseUrl}/x402/trade-signals`,
+        description: "GPT-4o powered BUY/SELL/HOLD signal with confidence score, price targets, stop-loss, and live market data from DexScreener. Highest value of the starter set.",
+        sampleArgs: { token: "ETH", chain: "ethereum", timeframe: "1h", riskLevel: "moderate" },
+        paymentFlow: `POST ${baseUrl}/x402/trade-signals → 402 challenge → pay ${SERVICE_PRICING_USD["trade-signals"].toFixed(2)} USDC → retry with X-PAYMENT header`,
+      },
+    ];
+
     const result = {
       success: true,
       goldenPath: true,
-      service: "x402 Golden Path — First Paid Call",
+      service: "x402 Golden Path — Start Here",
       sessionId: `gp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       payment: {
         verified: true,
@@ -3312,54 +3372,30 @@ const firstCallHandler = async (req: Request, res: Response) => {
         chain: solanaAgent ? "Solana mainnet (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp)" : "Base mainnet (eip155:8453)",
         timestamp: new Date().toISOString()
       },
-      welcome: "Payment confirmed. You have successfully integrated with Coin Railz x402 infrastructure.",
+      welcome: "Payment confirmed. Your x402 payment stack is working end-to-end. Use the nextServices below to make your first paid data call — each entry includes sample arguments you can execute immediately.",
       ...(agentId && { agentId }),
       chainsAccepted: {
         evm: "Base (eip155:8453), Ethereum (eip155:1), Polygon, Arbitrum",
         solana: "Solana mainnet (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp) via Dexter facilitator"
       },
-      nextServices: [
-        {
-          id: "trade-signals",
-          name: "AI Trade Signals",
-          price: "$0.75 USDC",
-          priceUsd: 0.75,
-          endpoint: "/x402/trade-signals",
-          endpointUrl: "https://coinrailz.com/x402/trade-signals",
-          description: "AI BUY/SELL/HOLD signal with confidence score, price targets, and stop-loss. GPT-4o powered.",
-          curl: "curl -X POST https://coinrailz.com/x402/trade-signals -H 'X-PAYMENT: <tx_hash>' -H 'Content-Type: application/json' -d '{\"symbol\":\"ETH\"}'"
-        },
-        {
-          id: "multi-chain-balance",
-          name: "Multi-Chain Balance",
-          price: "$0.50 USDC",
-          priceUsd: 0.50,
-          endpoint: "/x402/multi-chain-balance",
-          endpointUrl: "https://coinrailz.com/x402/multi-chain-balance",
-          description: "Wallet balances across Base, Ethereum, Polygon, Arbitrum, and Solana in a single call.",
-          curl: "curl -X POST https://coinrailz.com/x402/multi-chain-balance -H 'X-PAYMENT: <tx_hash>' -H 'Content-Type: application/json' -d '{\"address\":\"0xYourWalletAddress\"}'"
-        },
-        {
-          id: "gas-price-oracle",
-          name: "Gas Price Oracle",
-          price: "$0.10 USDC",
-          priceUsd: 0.10,
-          endpoint: "/x402/gas-price-oracle",
-          endpointUrl: "https://coinrailz.com/x402/gas-price-oracle",
-          description: "Real-time gas prices across 8 EVM chains. Lowest-cost entry point to the platform.",
-          curl: "curl -X POST https://coinrailz.com/x402/gas-price-oracle -H 'X-PAYMENT: <tx_hash>' -H 'Content-Type: application/json' -d '{\"chains\":[\"base\",\"ethereum\"]}'"
-        }
-      ],
-      catalog: "https://coinrailz.com/x402/catalog",
+      nextServices,
+      nextStepsGuide: {
+        step1: "Pick a service from nextServices above",
+        step2: "POST to its endpointUrl with the sampleArgs as the JSON body — you will receive a 402 challenge",
+        step3: "Pay the USDC amount shown in priceUsd on Base (eip155:8453) to the facilitator",
+        step4: "Retry the same POST with your payment receipt in the X-PAYMENT header",
+        note: "Each paymentFlow field shows the exact sequence for that service",
+      },
+      catalog: `${baseUrl}/x402/catalog`,
       sdkInstall: {
         npm: "npm install @coinrailz/agent-payments",
         python: "pip install coinrailz"
       },
-      documentation: "https://coinrailz.com/developers",
+      documentation: `${baseUrl}/developers`,
       partnerContact: {
         schemaVersion: "1.0",
         email: "support@coinrailz.com",
-        partnerOnboard: "https://coinrailz.com/api/m2m/credits/trial",
+        partnerOnboard: `${baseUrl}/api/m2m/credits/trial`,
         note: `You just made your first x402 payment. Contact us for partner integration, revenue sharing, and priority API access across all ${getCanonicalServiceCount()} services.`
       },
       responseTimeMs: responseTime
@@ -3403,14 +3439,14 @@ router.get("/first-call", (req, res, next) => {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>First Call — x402 Golden Path | Coin Railz</title>
-  <meta name="description" content="Start here. Pay $0.05 USDC on Base or Solana and receive a verified onboarding receipt plus 3 ready-to-run service templates. The canonical first payment endpoint for AI agents integrating with Coin Railz x402 infrastructure." />
+  <meta name="description" content="START HERE. Pay $0.05 USDC on Base or Solana to confirm your x402 payment stack works end-to-end. Returns a verified receipt, your session ID, and 5 immediately executable next-service calls with sample arguments. The canonical paid onboarding probe for AI agents integrating with Coin Railz." />
   <meta name="keywords" content="x402 first call, x402 payment, AI agent payment, USDC micropayment, Base blockchain, Solana payment, x402 protocol, agentic commerce, Coin Railz" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="${pageUrl}" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="${pageUrl}" />
   <meta property="og:title" content="First Call — x402 Golden Path | Coin Railz" />
-  <meta property="og:description" content="The canonical $0.05 USDC first payment endpoint for AI agents. EVM (Base, Ethereum) and Solana supported. Returns a verified receipt and 3 executable next-service templates." />
+  <meta property="og:description" content="Pay $0.05 USDC on Base or Solana to confirm your x402 payment stack. Returns a verified receipt and 5 immediately executable next-service calls with sample arguments and payment flow instructions." />
   <meta property="og:site_name" content="Coin Railz" />
   <meta property="twitter:card" content="summary" />
   <meta property="twitter:title" content="First Call — x402 Golden Path | Coin Railz" />
@@ -3460,7 +3496,7 @@ router.get("/first-call", (req, res, next) => {
   <div class="container">
     <div class="badge">Golden Path</div>
     <h1>First Call — x402 Payment Endpoint</h1>
-    <p class="subtitle">The canonical starting point for AI agents integrating with Coin Railz. Make one $0.05 USDC payment on Base or Solana and receive a verified onboarding receipt, a session ID, and three executable next-service templates.</p>
+    <p class="subtitle">The canonical starting point for AI agents integrating with Coin Railz. Pay $0.05 USDC on Base or Solana to confirm your x402 payment stack works end-to-end — then follow the 5 executable next-service calls in the response to make your first real data call immediately.</p>
 
     <div class="price-block">
       <div class="stat"><span class="stat-label">Price</span><span class="stat-value">$0.05 USDC</span></div>

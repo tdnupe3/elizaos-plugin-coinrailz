@@ -198,6 +198,16 @@ _lap('pre-validateProductionReadiness');
 const { validateProductionReadiness } = await import('./healthChecks');
 validateProductionReadiness();
 _lap('validateProductionReadiness done');
+
+// MCP catalog consistency check — validates openapi-x402-services.json IDs and
+// prices match shared/pricing.ts so /mcp/services and tools/list agree.
+// Logs console.error loudly for any mismatch; non-fatal (never blocks startup).
+try {
+  const { assertMcpCatalogConsistency } = await import('./utils/serviceCount');
+  assertMcpCatalogConsistency();
+} catch (e: any) {
+  console.error('[startup] assertMcpCatalogConsistency import failed (non-fatal):', e?.message);
+}
 // ============= END BOOT-TIME VALIDATION =============
 
 // ============= IP BLOCKLIST =============
@@ -975,7 +985,7 @@ console.log('✅ A2A mass discovery routes registered - Can crawl agents via .we
 // Register MCP (Model Context Protocol) Service Discovery
 console.log('🔌 Registering MCP service discovery routes for AI agent tooling...');
 app.use(mcpServiceDiscoveryRoutes);
-console.log('✅ MCP service discovery routes registered - 41 services available at /mcp/services');
+console.log('✅ MCP service discovery routes registered — sourced from getCanonicalServices() (same as tools/list)');
 
 // Register MCP Delivery Layer (tool list + tool call adapter)
 const { unpaidPostLimiter } = await import('./middleware/unpaidPostLimiter');

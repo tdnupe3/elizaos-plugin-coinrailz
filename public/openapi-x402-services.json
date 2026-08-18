@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Coin Railz x402 Micropayment Services",
-    "description": "79 production-ready x402 micropayment services spanning crypto intelligence, DeFi analytics, satellite data (NASA/ESA), IoT/DePIN, AI inference, prediction markets, real estate analytics, esports payouts, and cross-chain payment routing. Autonomous AI agent payments via x402 protocol across 9 chains (Base, Ethereum, Polygon, Arbitrum, Optimism, Avalanche, BNB Chain, Fantom, Solana). Pay per request with USDC — no API keys, no accounts needed. Also supports prepaid API-key credits via X-API-KEY header. CDP facilitator: api.cdp.coinbase.com/platform/v2/x402.",
+    "description": "80 production-ready x402 micropayment services spanning crypto intelligence, DeFi analytics, satellite data (NASA/ESA), IoT/DePIN, AI inference, prediction markets, real estate analytics, esports payouts, and cross-chain payment routing. Autonomous AI agent payments via x402 protocol across 9 chains (Base, Ethereum, Polygon, Arbitrum, Optimism, Avalanche, BNB Chain, Fantom, Solana). Pay per request with USDC \u2014 no API keys, no accounts needed. Also supports prepaid API-key credits via X-API-KEY header. CDP facilitator: api.cdp.coinbase.com/platform/v2/x402.",
     "version": "2.1.0",
     "contact": {
       "name": "Coin Railz",
@@ -82,7 +82,7 @@
           "Discovery"
         ],
         "summary": "Ping/Echo Service",
-        "description": "Platform health probe — returns service status, current timestamp, and payment infrastructure readiness. Use as a low-cost connectivity test before calling higher-priced services.",
+        "description": "Platform health probe \u2014 returns service status, current timestamp, and payment infrastructure readiness. Use as a low-cost connectivity test before calling higher-priced services.",
         "x-price-usd": 0.25,
         "operationId": "ping",
         "requestBody": {
@@ -140,7 +140,7 @@
         "tags": [
           "Discovery"
         ],
-        "summary": "x402 Golden Path — First Paid Call",
+        "summary": "x402 Golden Path \u2014 First Paid Call",
         "description": "START HERE. The canonical first payment endpoint for any AI agent integrating with Coin Railz. Pay $0.05 USDC on Base or Solana and receive a verified onboarding receipt, payment confirmation, and executable templates for the next 3 services. Both EVM and Solana accepted.",
         "x-price-usd": 0.05,
         "x-featured": true,
@@ -248,7 +248,7 @@
           "Trading Intelligence"
         ],
         "summary": "Token Metadata Lookup",
-        "description": "Token name, symbol, decimals, total supply, and contract details for any ERC-20 on Ethereum, Base, Polygon, or Arbitrum. Resolves from on-chain state — no centralized API dependency.",
+        "description": "Token name, symbol, decimals, total supply, and contract details for any ERC-20 on Ethereum, Base, Polygon, or Arbitrum. Resolves from on-chain state \u2014 no centralized API dependency.",
         "x-price-usd": 0.1,
         "operationId": "tokenMetadata",
         "requestBody": {
@@ -650,7 +650,7 @@
           "Trading Intelligence"
         ],
         "summary": "Batch Quote Service",
-        "description": "DEX swap quotes for multiple token pairs in a single call. Returns best route, price impact, gas estimate, and minimum received per pair — reduces round-trips for agents comparing multiple swaps.",
+        "description": "DEX swap quotes for multiple token pairs in a single call. Returns best route, price impact, gas estimate, and minimum received per pair \u2014 reduces round-trips for agents comparing multiple swaps.",
         "x-price-usd": 0.4,
         "operationId": "batchQuote",
         "requestBody": {
@@ -1654,7 +1654,7 @@
           "Investment"
         ],
         "summary": "Trading Signal Generator",
-        "description": "Technical analysis signals — RSI, MACD, Bollinger Bands, volume profile, and trend strength — for any crypto pair. Returns buy/sell/hold verdict with confidence interval and key price levels.",
+        "description": "Technical analysis signals \u2014 RSI, MACD, Bollinger Bands, volume profile, and trend strength \u2014 for any crypto pair. Returns buy/sell/hold verdict with confidence interval and key price levels.",
         "x-price-usd": 1,
         "operationId": "tradingSignal",
         "requestBody": {
@@ -2156,7 +2156,7 @@
         ],
         "summary": "Kalshi Odds",
         "description": "Current yes/no prices and orderbook depth for a specific Kalshi market. Returns bid/ask spread, last price, volume, and open interest for CFTC-regulated event contracts.",
-        "x-price-usd": 0.25,
+        "x-price-usd": 0.5,
         "operationId": "kalshiOdds",
         "requestBody": {
           "required": true,
@@ -2287,7 +2287,7 @@
         ],
         "summary": "Solana Yield Finder",
         "description": "Real-time Solana lending and yield rates from Kamino, Marginfi, and Solend. Returns APY, TVL, utilization rate, and risk tier per protocol.",
-        "x-price-usd": 0.25,
+        "x-price-usd": 0.05,
         "operationId": "solanaYieldFinder",
         "requestBody": {
           "content": {
@@ -2605,7 +2605,7 @@
         ],
         "summary": "NASA Fire Alerts",
         "description": "Real-time active fire detections from NASA FIRMS (MODIS + VIIRS). Returns fire radiative power, confidence level, and coordinates for any bounding box within the past 24 hours.",
-        "x-price-usd": 0.15,
+        "x-price-usd": 0.05,
         "operationId": "fireAlerts",
         "requestBody": {
           "content": {
@@ -2650,7 +2650,7 @@
         ],
         "summary": "Weather Satellite Imagery",
         "description": "High-resolution weather satellite imagery from NASA GIBS: GOES, MODIS, and Suomi-NPP. Input: bounding box, date, and imagery type (IR/visible/water vapor).",
-        "x-price-usd": 0.15,
+        "x-price-usd": 0.05,
         "operationId": "weatherImagery",
         "requestBody": {
           "content": {
@@ -2694,7 +2694,7 @@
         ],
         "summary": "Vegetation Health (NDVI)",
         "description": "NDVI vegetation health indices from NASA MODIS and ESA Sentinel-2 for any global coordinate or region. Returns current health score, historical trend, and seasonal anomaly.",
-        "x-price-usd": 0.15,
+        "x-price-usd": 0.1,
         "operationId": "vegetation",
         "requestBody": {
           "content": {
@@ -2733,8 +2733,8 @@
           "Satellite Intelligence"
         ],
         "summary": "Flood Detection",
-        "description": "SAR-based flood extent mapping from ESA Sentinel-1 — all-weather, day/night capable. Input: bounding box and date. Returns flood polygon and affected area estimate in km².",
-        "x-price-usd": 0.25,
+        "description": "SAR-based flood extent mapping from ESA Sentinel-1 \u2014 all-weather, day/night capable. Input: bounding box and date. Returns flood polygon and affected area estimate in km\u00b2.",
+        "x-price-usd": 0.1,
         "operationId": "floodDetection",
         "requestBody": {
           "content": {
@@ -2774,7 +2774,7 @@
         ],
         "summary": "Air Quality (Sentinel-5P)",
         "description": "Atmospheric pollutant concentrations (NO2, SO2, CO, O3, aerosols) from ESA Sentinel-5P TROPOMI satellite for any global coordinate or bounding box.",
-        "x-price-usd": 0.15,
+        "x-price-usd": 0.05,
         "x-featured": true,
         "operationId": "airQuality",
         "requestBody": {
@@ -2904,7 +2904,7 @@
         ],
         "summary": "Weather Station Data",
         "description": "Hyperlocal weather data from IoT weather stations: temperature, humidity, pressure, wind speed/direction, and precipitation. Input: coordinates or station ID.",
-        "x-price-usd": 0.1,
+        "x-price-usd": 0.05,
         "operationId": "weatherStationData",
         "requestBody": {
           "content": {
@@ -2947,7 +2947,7 @@
         ],
         "summary": "IoT Sensor Reading",
         "description": "Single sensor reading from a registered IoT device: temperature, humidity, pressure, CO2, or motion. Requires a registered deviceId. Returns timestamped value with unit and quality flag.",
-        "x-price-usd": 0.05,
+        "x-price-usd": 0.025,
         "operationId": "iotSensorReading",
         "requestBody": {
           "required": true,
@@ -2988,7 +2988,7 @@
         ],
         "summary": "IoT Device Stream",
         "description": "Real-time streaming sensor readings from registered IoT devices: temperature, humidity, pressure, CO2, and motion. Returns latest N readings with timestamps, units, and quality flags.",
-        "x-price-usd": 0.1,
+        "x-price-usd": 0.25,
         "operationId": "iotDeviceStream",
         "requestBody": {
           "required": true,
@@ -3030,7 +3030,7 @@
         ],
         "summary": "IoT Bulk Data Export",
         "description": "Historical data export from IoT devices: bulk sensor readings filtered by device, time range, and sensor type. Returns paginated timestamped readings with units and quality flags.",
-        "x-price-usd": 0.25,
+        "x-price-usd": 0.5,
         "operationId": "iotBulkData",
         "requestBody": {
           "required": true,
@@ -3081,7 +3081,7 @@
           "AI Services"
         ],
         "summary": "AI Inference (GPT-4o-mini)",
-        "description": "Pay-per-call GPT-4o-mini inference via x402 micropayment — no API key required. Supports system prompt, user message, and temperature. Returns completion text.",
+        "description": "Pay-per-call GPT-4o-mini inference via x402 micropayment \u2014 no API key required. Supports system prompt, user message, and temperature. Returns completion text.",
         "x-price-usd": 0.05,
         "operationId": "aiInference",
         "requestBody": {
@@ -3136,7 +3136,7 @@
           "Developer Tools"
         ],
         "summary": "Instant API Key",
-        "description": "Frictionless API key provisioning via USDC payment. Pay once, receive a prepaid credits key instantly — no sign-up, no OAuth, no waitlist. Works across all 80 x402 services.",
+        "description": "Frictionless API key provisioning via USDC payment. Pay once, receive a prepaid credits key instantly \u2014 no sign-up, no OAuth, no waitlist. Works across all 80 x402 services.",
         "x-price-usd": 1.0,
         "x-featured": false,
         "operationId": "instantApiKey",
@@ -3459,7 +3459,7 @@
           "Robinhood Chain"
         ],
         "summary": "Robinhood Chain Bootstrap Bridge",
-        "description": "Bridge 0.50 USDC from Base (chainId 8453) to USDG on Robinhood Chain (chainId 4663) via Across Protocol. Treasury-funded — no pre-approval required. Returns unsigned bridge calldata; USDG arrives in ~30 seconds. Ideal for bootstrapping an RH Chain agent wallet.",
+        "description": "Bridge 0.50 USDC from Base (chainId 8453) to USDG on Robinhood Chain (chainId 4663) via Across Protocol. Treasury-funded \u2014 no pre-approval required. Returns unsigned bridge calldata; USDG arrives in ~30 seconds. Ideal for bootstrapping an RH Chain agent wallet.",
         "x-price-usd": 0.75,
         "x-featured": false,
         "operationId": "rhBridgeUsdc",
@@ -3551,7 +3551,7 @@
             "description": "Synthetic NAV estimate with EIP-712 attestation"
           },
           "402": {
-            "description": "Payment Required — $0.50 USDC on Base"
+            "description": "Payment Required \u2014 $0.50 USDC on Base"
           }
         },
         "x-featured": true
@@ -3563,7 +3563,7 @@
           "DeFi & Yield"
         ],
         "summary": "vltUSDC Vault Deposit Calldata",
-        "description": "FREE — No payment required. Returns unsigned approve + deposit calldata for the Bankroll Network vltUSDC vault on Ethereum mainnet. Two modes: balanced (VLT+USDC, 3 txs) or USDC-only via ZapHelper with live swap quote (2 txs). Vault auto-compounds VLT/USDC Uniswap V4 1% LP fees. Builder Pattern — zero custody. Use vlt-usdc-withdraw to exit.",
+        "description": "FREE \u2014 No payment required. Returns unsigned approve + deposit calldata for the Bankroll Network vltUSDC vault on Ethereum mainnet. Two modes: balanced (VLT+USDC, 3 txs) or USDC-only via ZapHelper with live swap quote (2 txs). Vault auto-compounds VLT/USDC Uniswap V4 1% LP fees. Builder Pattern \u2014 zero custody. Use vlt-usdc-withdraw to exit.",
         "x-price-usd": 0,
         "x-featured": false,
         "operationId": "vltUsdcDeposit",
@@ -3610,7 +3610,7 @@
           "DeFi & Yield"
         ],
         "summary": "vltUSDC Vault Withdraw Calldata",
-        "description": "FREE — No payment required. Returns 1 unsigned vault.redeem(shares, receiver) transaction. Redemption is pro-rata in-kind (no swap, no slippage parameters on-chain). Estimated VLT + USDC output amounts are included as informational context only — they are NOT encoded in the calldata. Builder Pattern — zero custody. For a USDC-only exit (VLT sold via Uniswap V2), use vlt-usdc-zap-withdraw instead.",
+        "description": "FREE \u2014 No payment required. Returns 1 unsigned vault.redeem(shares, receiver) transaction. Redemption is pro-rata in-kind (no swap, no slippage parameters on-chain). Estimated VLT + USDC output amounts are included as informational context only \u2014 they are NOT encoded in the calldata. Builder Pattern \u2014 zero custody. For a USDC-only exit (VLT sold via Uniswap V2), use vlt-usdc-zap-withdraw instead.",
         "x-price-usd": 0,
         "x-featured": false,
         "operationId": "vltUsdcWithdraw",
@@ -3659,7 +3659,7 @@
           "DeFi & Yield"
         ],
         "summary": "vltUSDC Vault USDC-Only Exit Calldata",
-        "description": "FREE — No payment required. Returns 3 unsigned Ethereum transactions that convert vltUSDC shares entirely to USDC: (1) vault.redeem(shares, recipient) — burns shares, sends VLT + USDC to recipient; (2) VLT.approve(uniswapV2Router, vltAmount); (3) v2Router.swapExactTokensForTokens(VLT → WETH → USDC). VLT and USDC amounts from step 1 use vault.previewRedeem (exact on-chain, no approximation). minAmountOut for the V2 swap is computed from live getReserves with 2% slippage and enforced on-chain. Fails closed if any on-chain data is unavailable. Builder Pattern — zero custody. For a 1-tx exit that keeps VLT, use vlt-usdc-withdraw instead.",
+        "description": "FREE \u2014 No payment required. Returns 3 unsigned Ethereum transactions that convert vltUSDC shares entirely to USDC: (1) vault.redeem(shares, recipient) \u2014 burns shares, sends VLT + USDC to recipient; (2) VLT.approve(uniswapV2Router, vltAmount); (3) v2Router.swapExactTokensForTokens(VLT \u2192 WETH \u2192 USDC). VLT and USDC amounts from step 1 use vault.previewRedeem (exact on-chain, no approximation). minAmountOut for the V2 swap is computed from live getReserves with 2% slippage and enforced on-chain. Fails closed if any on-chain data is unavailable. Builder Pattern \u2014 zero custody. For a 1-tx exit that keeps VLT, use vlt-usdc-withdraw instead.",
         "x-price-usd": 0,
         "x-featured": false,
         "operationId": "vltUsdcZapWithdraw",
@@ -3714,7 +3714,7 @@
               "schema": {
                 "type": "object",
                 "properties": {},
-                "description": "No parameters required — full snapshot returned"
+                "description": "No parameters required \u2014 full snapshot returned"
               }
             }
           }
@@ -3724,7 +3724,7 @@
             "description": "vlt: {priceUsd, marketCapUsd, liquidityUsd, vol24hUsd, priceChangePercent24h}, vltUsdc: {tvlUsd, aprPct, aprDisplay, lPerShare, totalShares, positionLiquidity}, pool: {fee, feeBps, tickSpacing, dex}, dataAge: {vltMarketAgeSeconds, vaultStatsUpdatedAt}"
           },
           "402": {
-            "description": "Payment required — $0.05 USDC per call"
+            "description": "Payment required \u2014 $0.05 USDC per call"
           }
         }
       }
@@ -3766,7 +3766,7 @@
             "description": "Yield comparison table with benchmark statistics"
           },
           "402": {
-            "description": "Payment Required — $0.25 USDC on Base"
+            "description": "Payment Required \u2014 $0.25 USDC on Base"
           }
         },
         "x-featured": true

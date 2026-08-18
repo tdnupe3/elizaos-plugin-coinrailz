@@ -1,6 +1,5 @@
 import { Router, Request, Response } from "express";
-import { ServiceCatalogService } from "../services/serviceCatalogService";
-import { SERVICE_PRICING_USD, isServiceName, ServiceName } from "../../shared/pricing";
+import { getCanonicalServices, getCanonicalServiceCount } from "../utils/serviceCount";
 
 const router = Router();
 
@@ -16,43 +15,34 @@ function getBaseUrl(): string {
 
 // MCP-compatible service discovery endpoint for AI agents
 // Based on Model Context Protocol specification for service discovery
-// NOW USES: ServiceCatalogService for authoritative 44-service list
+// SOURCE: getCanonicalServices() from serviceCount.ts (same source as tools/list)
+// This guarantees /mcp/services and tools/list always serve identical IDs and prices.
 router.get("/mcp/services", async (req: Request, res: Response) => {
   try {
     const baseUrl = getBaseUrl();
-    const catalogService = ServiceCatalogService.getInstance();
-    const fullCatalog = catalogService.getCatalog();
+    const canonicalServices = getCanonicalServices();
 
-    // Transform catalog entries to MCP format
-    // Filter to only x402-compatible services
-    const services = fullCatalog.services
-      .filter(entry => entry.x402Compatible)
-      .map(entry => {
-        // Get price from canonical source
-        const priceValue = isServiceName(entry.id) 
-          ? SERVICE_PRICING_USD[entry.id as ServiceName]
-          : 0;
-
-        return {
-          id: entry.id,
-          name: entry.name,
-          description: entry.description,
-          category: entry.category,
-          pricing: {
-            model: "pay-per-use",
-            amount: priceValue,
-            currency: "USD"
-          },
-          // CANONICAL ENDPOINT: /x402/{serviceId} (verified working in production)
-          endpoint: `${baseUrl}${entry.endpoint}`,
-          protocol: "x402",
-          inputSchema: getInputSchema(entry.id),
-          capabilities: entry.capabilities,
-          network: entry.network,
-          stripeCompatible: entry.stripeCompatible,
-          paymentOptions: ["x402-crypto", "stripe-fiat"] // credits removed until implemented
-        };
-      });
+    // Transform canonical OpenAPI-sourced services to MCP discovery format.
+    // Using the same getCanonicalServices() root as tools/list ensures zero drift.
+    const services = canonicalServices.map(entry => ({
+      id: entry.id,
+      name: entry.name,
+      description: entry.description,
+      category: entry.category,
+      pricing: {
+        model: "pay-per-use",
+        amount: entry.priceUsd,
+        currency: "USD"
+      },
+      // CANONICAL ENDPOINT: /x402/{serviceId} (verified working in production)
+      endpoint: `${baseUrl}${entry.endpoint}`,
+      protocol: "x402",
+      inputSchema: entry.inputSchema ?? {},
+      // Tags from the OpenAPI spec serve as capabilities
+      capabilities: entry.tags,
+      featured: entry.featured,
+      paymentOptions: ["x402-crypto", "stripe-fiat"],
+    }));
 
     // Group by category for convenience
     const categoryGroups = services.reduce((acc, service) => {
@@ -68,13 +58,15 @@ router.get("/mcp/services", async (req: Request, res: Response) => {
       count: svcs.length
     }));
 
+    const serviceCount = getCanonicalServiceCount();
+
     // MCP-compatible response format
     res.json({
       protocol: "x402",
       version: 2,
       provider: {
         name: "Coin Railz",
-        description: "Universal payment infrastructure for AI agents - Crypto (x402), Fiat (Stripe), Credits, and FREE wallet provisioning for autonomous agents",
+        description: `Universal payment infrastructure for AI agents — ${serviceCount} x402 micropayment services spanning crypto analytics, DeFi, satellite data (NASA/ESA), IoT/DePIN, AI inference, and prediction markets. Crypto (x402), Fiat (Stripe), and FREE wallet provisioning for autonomous agents.`,
         url: baseUrl,
         facilitator: "https://facilitator.cdp.coinbase.com",
         cloudflareGateway: "https://coinrailz-x402-gateway.coinrailz.workers.dev",
@@ -84,7 +76,7 @@ router.get("/mcp/services", async (req: Request, res: Response) => {
           checkoutEndpoint: `${baseUrl}/api/mcp/payments/checkout`,
           servicesEndpoint: `${baseUrl}/api/mcp/payments/services`,
           healthEndpoint: `${baseUrl}/api/mcp/payments/health`,
-          supportedMethods: ["stripe", "x402"], // credits coming soon
+          supportedMethods: ["stripe", "x402"],
           testModeSupported: true,
           idempotencySupported: true,
           fulfillmentGuarantee: "credit_refund_on_failure"
@@ -93,7 +85,7 @@ router.get("/mcp/services", async (req: Request, res: Response) => {
       services: services,
       totalServices: services.length,
       categories: categoryCounts,
-      paymentMethods: ["x402-erc20-usdc", "stripe-fiat"], // credits removed until implemented
+      paymentMethods: ["x402-erc20-usdc", "stripe-fiat"],
       paymentCapabilities: {
         crypto: { protocol: "x402", networks: ["base", "ethereum", "polygon", "arbitrum", "optimism", "bnb", "solana"], token: "USDC" },
         fiat: { provider: "stripe", methods: ["card", "bank"] },
@@ -134,88 +126,30 @@ function formatCategoryName(id: string): string {
     'prediction-markets': 'Prediction Markets',
     'traditional-markets': 'Traditional Markets',
     'solana-defi': 'Solana DeFi',
-    'sdk-payments': 'SDK Payments'
+    'sdk-payments': 'SDK Payments',
+    'satellite-intelligence': 'Satellite Intelligence',
+    'iot-depin': 'IoT & DePIN',
+    'ai-services': 'AI Services',
+    'rwa-tokenization': 'RWA & Tokenization',
   };
   return names[id] || id;
 }
 
-// Helper: Get input schema for a service (simplified for MCP)
-function getInputSchema(serviceId: string): Record<string, any> {
-  const schemas: Record<string, Record<string, any>> = {
-    'multi-chain-balance': {
-      walletAddress: { type: "string", required: true, description: "Wallet address to check" },
-      chains: { type: "array", required: false, description: "Chains to check (default: all)" }
-    },
-    'gas-price-oracle': {
-      chains: { type: "array", required: false, description: "Chains to check (default: all)" }
-    },
-    'token-price': {
-      tokenAddress: { type: "string", required: true },
-      chain: { type: "string", required: true }
-    },
-    'contract-scan': {
-      contractAddress: { type: "string", required: true },
-      chain: { type: "string", required: true }
-    },
-    'wallet-risk': {
-      walletAddress: { type: "string", required: true },
-      chain: { type: "string", required: true }
-    },
-    'trade-signals': {
-      token: { type: "string", required: false, default: "BTC/USDT" },
-      timeframe: { type: "string", required: false, default: "15m" }
-    },
-    'trending-tokens': {
-      timeframe: { type: "string", required: false, default: "24h" },
-      chain: { type: "string", required: false }
-    },
-    'whale-alerts': {
-      chains: { type: "array", required: false },
-      minValueUsd: { type: "number", required: false }
-    },
-    'instant-agent-wallet': {
-      agentId: { type: "string", required: true },
-      description: { type: "string", required: false }
-    },
-    'verified-agent-identity': {
-      agentId: { type: "string", required: true },
-      walletAddress: { type: "string", required: true }
-    },
-    'seamless-chain-bridge': {
-      fromChain: { type: "string", required: true },
-      toChain: { type: "string", required: true },
-      amount: { type: "string", required: true }
-    },
-    'solana-yield-finder': {
-      asset: { type: "string", required: false, description: "Token symbol (SOL, USDC, etc.)" },
-      minApy: { type: "number", required: false, description: "Minimum APY filter" }
-    }
-  };
-  return schemas[serviceId] || {};
-}
-
-// Service detail endpoint (MCP-compatible)
+// Service detail endpoint (MCP-compatible) — sourced from canonical OpenAPI spec
 router.get("/mcp/services/:serviceId", async (req: Request, res: Response) => {
   try {
     const { serviceId } = req.params;
     const baseUrl = getBaseUrl();
-    
-    // Get service from catalog
-    const catalogService = ServiceCatalogService.getInstance();
-    const fullCatalog = catalogService.getCatalog();
-    const service = fullCatalog.services.find(s => s.id === serviceId);
-    
+
+    const canonicalServices = getCanonicalServices();
+    const service = canonicalServices.find(s => s.id === serviceId);
+
     if (!service) {
       return res.status(404).json({ error: "Service not found", serviceId });
     }
 
-    // Get price from canonical source
-    const priceValue = isServiceName(serviceId) 
-      ? SERVICE_PRICING_USD[serviceId as ServiceName]
-      : 0;
-
     res.json({
-      id: serviceId,
+      id: service.id,
       name: service.name,
       description: service.description,
       category: service.category,
@@ -223,7 +157,7 @@ router.get("/mcp/services/:serviceId", async (req: Request, res: Response) => {
       protocol: "x402",
       pricing: {
         model: "pay-per-use",
-        amount: priceValue,
+        amount: service.priceUsd,
         currency: "USD"
       },
       facilitator: "https://facilitator.cdp.coinbase.com",
@@ -233,10 +167,9 @@ router.get("/mcp/services/:serviceId", async (req: Request, res: Response) => {
         symbol: "USDC",
         decimals: 6
       },
-      inputSchema: getInputSchema(serviceId),
-      capabilities: service.capabilities,
-      x402Compatible: service.x402Compatible,
-      stripeCompatible: service.stripeCompatible
+      inputSchema: service.inputSchema ?? {},
+      capabilities: service.tags,
+      featured: service.featured,
     });
   } catch (error: any) {
     console.error('MCP service detail error:', error);

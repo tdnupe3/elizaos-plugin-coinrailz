@@ -29,6 +29,10 @@ const UTILITY_PATH_EXACT = new Set([
   '/payment-docs',
   '/test-payment-flow',
   '/ping',         // internal health check, not a billable service (overridden below)
+  // Infrastructure endpoints registered in the x402 router but not real services:
+  '/',                    // root catch-all handler
+  '/discovery/resources', // agent discovery manifest (not a paid tool)
+  '/payment-manifest.json', // machine-readable payment manifest (not a paid tool)
 ]);
 
 // Re-include ping because it IS in the spec as a real service

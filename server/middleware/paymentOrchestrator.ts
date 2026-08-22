@@ -154,6 +154,10 @@ function generatePaymentErrorResponse(
     recoverable?: boolean;
     expectedFormat?: X402ErrorResponse['error']['expectedFormat'];
     httpStatus?: number;
+    /** Minimal accepts[] hint so agents can reformulate and retry after a decode failure */
+    retryAccepts?: Array<{ network: string; asset: string; payTo: string; maxAmountRequired: string; facilitator?: string }>;
+    /** Endpoint agent can GET to retrieve a fresh 402 challenge with full accepts[] */
+    retryChallengeEndpoint?: string;
   }
 ): Response {
   const httpStatus = options?.httpStatus || 400;
@@ -173,6 +177,19 @@ function generatePaymentErrorResponse(
   
   if (options?.expectedFormat) {
     response.error.expectedFormat = options.expectedFormat;
+  }
+
+  // For decode failures on payment attempts, inject a minimal accepts[] so the agent
+  // can inspect the expected format and reformulate its X-PAYMENT header without needing
+  // a second round-trip to get a fresh challenge. Also add a retryChallengeEndpoint for
+  // agents that prefer to re-fetch the full 402 challenge.
+  if (options?.retryAccepts) {
+    (response as any).retry_accepts = options.retryAccepts;
+  }
+  if (options?.retryChallengeEndpoint) {
+    (response as any).retry_challenge_endpoint = options.retryChallengeEndpoint;
+    (response as any).retry_challenge_method = "GET";
+    (response as any).retry_challenge_note = "GET this endpoint to receive a fresh 402 challenge with full payment instructions";
   }
 
   // Surface last_error_reason at top level so agents can parse exactly why
@@ -1896,7 +1913,13 @@ export function createPaymentOrchestrator(
           }
         });
         
-        // Return machine-readable error instead of generic 402
+        // Return machine-readable error instead of generic 402.
+        // Include a minimal retry_accepts[] so agents can inspect the expected format
+        // and a retry_challenge_endpoint so they can fetch a fresh full challenge without
+        // another decode attempt. This prevents compatibility probers from marking the
+        // service non-compliant after a single format mismatch.
+        const _retryPriceUsd = SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD] || 1.00;
+        const _retryAmountStr = String(Math.round(_retryPriceUsd * 1_000_000));
         return generatePaymentErrorResponse(
           res,
           'PAYMENT_DECODE_FAILED',
@@ -1914,7 +1937,17 @@ export function createPaymentOrchestrator(
                 'Raw Solana: 5VERv8NM... (87-88 characters)',
                 'JSON payload: {"txHash":"0x...","network":"eip155:8453"}'
               ]
-            }
+            },
+            retryAccepts: [
+              {
+                network: 'eip155:8453',
+                asset: 'USDC',
+                payTo: PLATFORM_WALLET,
+                maxAmountRequired: _retryAmountStr,
+                facilitator: 'https://api.cdp.coinbase.com/platform/v2/x402'
+              }
+            ],
+            retryChallengeEndpoint: `${baseUrl}/x402/${serviceName}`
           }
         );
       }
@@ -3518,15 +3551,23 @@ async function generate402Response(
         note: "Base is preferred for lowest gas. Ethereum mainnet also accepted — send tx hash in X-PAYMENT header."
       }
     },
+    recommended_next_step_agent: {
+      action: "get_free_trial_key",
+      description: `Fastest autonomous path — no crypto wallet or card required. GET this URL to receive a cr_live_ API key with $5 credits (~80-100 calls). Then retry any /x402/* request with X-API-KEY: cr_live_... header.`,
+      method: "GET",
+      endpoint: `${baseUrl}/api/m2m/credits/trial`,
+      usage: "X-API-KEY: cr_live_... on any /x402/* request instead of X-PAYMENT",
+      note: "Use this if you have no funded wallet. For on-chain USDC payment see accepts[] below."
+    },
     recommended_next_step: {
       action: "purchase_api_key",
-      description: `Get an API key with a card — no crypto wallet required. Works on all ${getCanonicalServiceCount()} services.`,
-      endpoint: `${baseUrl}/api/m2m/credits/purchase`,
-      method: "POST",
-      body: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "replace-with-uuid-v4" },
+      requires_human_interaction: true,
+      description: `Human operator path — requires a browser and a Stripe card. Not executable by autonomous agents. Open checkoutUrl in a browser to purchase a cr_live_ key, or use recommended_next_step_agent for the autonomous path.`,
+      checkout_endpoint: `${baseUrl}/api/m2m/credits/checkout/session`,
+      checkout_method: "POST",
+      checkout_body: { amountUsd: 10 },
       expected_time: "~60 seconds from card to working API key",
-      usage: "Attach to every request as: X-API-KEY: cr_live_...",
-      advanced_alternative: "On-chain USDC payment via accepts[] below (crypto wallet required)"
+      usage: "Attach to every request as: X-API-KEY: cr_live_..."
     },
     non_x402: {
       description: `Card-first payment paths — no crypto wallet required. API key works on all ${getCanonicalServiceCount()} /x402/* services.`,

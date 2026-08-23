@@ -1278,7 +1278,11 @@ router.post("/wallet-risk", async (req: Request, res: Response) => {
 });
 
 // Trade Signals Service - GPT-4o powered with real market data from DexScreener
-const _openaiForTradeSignals = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
+let _openaiForTradeSignals: OpenAI | null = null;
+function getTradeSignalsOpenAI(): OpenAI {
+  if (!_openaiForTradeSignals) _openaiForTradeSignals = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+  return _openaiForTradeSignals;
+}
 
 async function tradeSignalsService(params: {
   token?: string;
@@ -1394,7 +1398,7 @@ Respond with ONLY valid JSON (no markdown) in this exact structure:
 }`;
 
   try {
-    const completion = await _openaiForTradeSignals.chat.completions.create({
+    const completion = await getTradeSignalsOpenAI().chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,

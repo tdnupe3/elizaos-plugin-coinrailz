@@ -1920,6 +1920,7 @@ export function createPaymentOrchestrator(
         // service non-compliant after a single format mismatch.
         const _retryPriceUsd = SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD] || 1.00;
         const _retryAmountStr = String(Math.round(_retryPriceUsd * 1_000_000));
+        const _retryBaseUrl = getPublicBaseUrl(req);
         return generatePaymentErrorResponse(
           res,
           'PAYMENT_DECODE_FAILED',
@@ -1947,7 +1948,7 @@ export function createPaymentOrchestrator(
                 facilitator: 'https://api.cdp.coinbase.com/platform/v2/x402'
               }
             ],
-            retryChallengeEndpoint: `${baseUrl}/x402/${serviceName}`
+            retryChallengeEndpoint: `${_retryBaseUrl}/x402/${serviceName}`
           }
         );
       }

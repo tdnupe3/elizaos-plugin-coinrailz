@@ -19,7 +19,11 @@ import { ethers } from "ethers";
 import { getCachedData, setCachedData } from "../routes/microservices/common";
 import { CoinbaseCDPService } from "./coinbaseCDPService";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+  return _openai;
+}
 
 // EIP-712 domain for Coin Railz RWA attestations on Base (chainId 8453)
 const EIP712_DOMAIN = {
@@ -138,7 +142,7 @@ If real estate, use recent comparable sales + cap rate analysis for the relevant
 If private credit, use comparable private credit fund yields and default-adjusted valuations.
 Be explicit about data limitations in your methodology description.`;
 
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: "gpt-4o",
     messages: [
       { role: "system", content: SYSTEM_PROMPT },

@@ -4,7 +4,11 @@ import { microserviceRequests, microserviceMetrics } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { eq, and } from "drizzle-orm";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || '' });
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+  return _openai;
+}
 
 export const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
 
@@ -206,7 +210,7 @@ export async function callOpenAI(systemPrompt: string, userPrompt: string, respo
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const attemptStartTime = Date.now();
     try {
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model: "gpt-4o",
         messages: [
           { role: "system", content: systemPrompt },

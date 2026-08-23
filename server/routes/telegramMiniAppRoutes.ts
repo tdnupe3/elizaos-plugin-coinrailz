@@ -20,10 +20,12 @@ const bot = new TelegramBot(TELEGRAM_BOT_TOKEN);
 // Initialize trading service with the shared bot instance (no second polling instance)
 const tradingService = getTradingService(bot);
 
-// Initialize OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-});
+// Initialize OpenAI (lazy — avoids crash at module load when key is absent in dev)
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+  return _openai;
+}
 
 // Platform configuration
 const WEBAPP_URL = process.env.REPLIT_DOMAINS 
@@ -246,7 +248,7 @@ Base your assessment on address format, known scam patterns, and general heurist
 
       let riskText = '';
       try {
-        const resp = await openai.chat.completions.create({
+        const resp = await getOpenAI().chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 120,
@@ -1297,7 +1299,7 @@ router.post("/agent-chat", async (req: Request, res: Response) => {
     ];
 
     // Call OpenAI with tools
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
@@ -1377,7 +1379,7 @@ If user asks for a service and lacks funds, politely inform them and suggest top
       }
 
       // Send tool results back to OpenAI for final response
-      const finalCompletion = await openai.chat.completions.create({
+      const finalCompletion = await getOpenAI().chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           {

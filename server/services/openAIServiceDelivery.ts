@@ -12,9 +12,11 @@
 
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || ''
-});
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+  return _openai;
+}
 
 export interface ServiceDeliveryCost {
   inputTokens: number;
@@ -126,7 +128,7 @@ Return ONLY valid JSON with this exact structure:
   "recommendations": ["string array of actionable items"]
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {
@@ -240,7 +242,7 @@ Return ONLY valid JSON with this exact structure:
   "supportContact": "How to get help if something goes wrong"
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {
@@ -361,7 +363,7 @@ Return ONLY valid JSON with this exact structure:
   "executiveSummary": "string - high level overview for decision makers"
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {
@@ -502,7 +504,7 @@ Return ONLY valid JSON with this exact structure:
   "taxConsiderations": ["important tax notes"]
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: 'You are a crypto portfolio analyst.' },
@@ -657,7 +659,7 @@ Return ONLY valid JSON with this exact structure:
   "moneySavingTips": ["array of tips"]
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: 'You are a blockchain gas fee expert.' },
@@ -771,7 +773,7 @@ Return ONLY valid JSON with this exact structure:
   "tradingRecommendations": ["array of recommendations"]
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: 'You are a cryptocurrency market analyst.' },
@@ -867,7 +869,7 @@ Return ONLY valid JSON with this exact structure:
   "actionItems": ["array of specific actions to take"]
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: 'You are a smart contract security expert specializing in vulnerability analysis.' },
@@ -964,7 +966,7 @@ Return ONLY valid JSON with this exact structure:
   "recommendations": ["array of actionable recommendations"]
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: 'You are a blockchain forensics and risk analysis expert.' },

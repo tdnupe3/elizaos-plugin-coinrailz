@@ -37,6 +37,16 @@ const router = Router();
 
 // MCP protocol version we advertise
 const MCP_VERSION = '2024-11-05';
+const SUPPORTED_MCP_METHODS = [
+  'initialize',
+  'tools/list',
+  'tools/call',
+  'resources/list',
+  'resources/read',
+  'prompts/list',
+  'prompts/get',
+  'notifications/*',
+] as const;
 
 // ---------------------------------------------------------------------------
 // Platform wallet + base URL — resolved once at module load.
@@ -135,6 +145,8 @@ function extractPayerFromXPayment(header: string): PayerInfo | null {
 //   mcp-tools-list           — tools/list method (GET or POST)
 //   mcp-challenge-issued     — tools/call with no auth → 402
 //   mcp-challenge-cache-hit  — challenge served from in-process cache
+//   mcp-payment-presented    — client retried tools/call with an x402 proof
+//   mcp-payment-rejected     — upstream rejected that x402 proof
 //   mcp-api-key-authorized   — tools/call with API key → upstream 200
 //   mcp-x402-authorized      — tools/call with X-PAYMENT → upstream 200
 //   mcp-upstream-hoisted     — upstream 402 rewritten and hoisted to client
@@ -159,13 +171,14 @@ interface McpTrackParams {
   upstreamStatus?: number;
   cacheAgeMs?: number;      // present on cache-hit events
   errorMessage?: string;
-  walletAddress?: string;   // x402 payer — populated on mcp-x402-authorized events only
-  paymentAmount?: number;   // USD amount — populated on mcp-x402-authorized events only
+  walletAddress?: string;   // x402 payer — populated only when the signed proof is parseable
+  paymentAmount?: number;   // USD amount — populated only when the signed proof is parseable
+  paymentStage?: 'presented' | 'rejected' | 'verified-and-delivered';
 }
 
 function trackMcpEvent(p: McpTrackParams): void {
   const interactionType =
-    p.paid                    ? 'payment'
+    p.paid || p.eventType === 'mcp-payment-presented' ? 'payment'
     : p.responseStatus === 402 ? 'attempt'
     : p.responseStatus >= 400  ? 'error'
     : 'view';
@@ -187,7 +200,7 @@ function trackMcpEvent(p: McpTrackParams): void {
     latencyMs:    p.latencyMs,
     paymentReceived: p.paid ?? false,
     errorMessage: p.errorMessage,
-    // x402 payer attribution — only present on mcp-x402-authorized events
+    // x402 payer attribution — present only when a signed proof is parseable.
     walletAddress:   p.walletAddress,
     paymentAmount:   p.paymentAmount,
     metadata: {
@@ -200,7 +213,8 @@ function trackMcpEvent(p: McpTrackParams): void {
       mcpSessionId:  p.req.get('x-mcp-session-id') || undefined,
       transport:     'streamable-http',
       upstreamStatus: p.upstreamStatus,
-      cacheAgeMs:    p.cacheAgeMs,
+       cacheAgeMs:    p.cacheAgeMs,
+       paymentStage:  p.paymentStage,
     },
   }).catch(() => { /* non-fatal — tracking must never break the delivery path */ });
 }
@@ -660,6 +674,20 @@ router.post('/', async (req: Request, res: Response) => {
     // @x402/fetch 2.x sends PAYMENT-SIGNATURE for x402Version 2; older clients send X-PAYMENT.
     // Both carry an identical encoded payment proof — accept either so v2 clients aren't gate-looped.
     const x402Header = (req.headers['x-payment'] || req.headers['payment-signature']) as string | undefined;
+    const presentedPayer = (!apiKey && x402Header) ? extractPayerFromXPayment(x402Header) : null;
+
+    if (x402Header && !apiKey) {
+      trackMcpEvent({
+        req, requestId, authMode, latencyMs: Date.now() - startTime,
+        serviceId, toolName: name,
+        mcpMethod: 'tools/call',
+        responseStatus: 202,
+        eventType: 'mcp-payment-presented',
+        walletAddress: presentedPayer?.walletAddress,
+        paymentAmount: presentedPayer?.paymentAmountUsd,
+        paymentStage: 'presented',
+      });
+    }
 
     // --- 402 Challenge (no auth) ---
     if (!apiKey && !x402Header) {
@@ -677,9 +705,10 @@ router.post('/', async (req: Request, res: Response) => {
           eventType:      'mcp-challenge-cache-hit',
           cacheAgeMs,
         });
-        serveCachedChallenge(res, cached, id);
+        // serveCachedChallenge() commits the body, so headers must be set first.
         res.setHeader('X-402-Version', '2');
         res.setHeader('X-Payment-Required', 'true');
+        serveCachedChallenge(res, cached, id);
         return;
       }
 
@@ -748,8 +777,11 @@ router.post('/', async (req: Request, res: Response) => {
             serviceId, toolName: name,
             mcpMethod:      'tools/call',
             responseStatus: 402,
-            eventType:      'mcp-upstream-hoisted',
+            eventType:      x402Header && !apiKey ? 'mcp-payment-rejected' : 'mcp-upstream-hoisted',
             upstreamStatus: 402,
+            walletAddress:  presentedPayer?.walletAddress,
+            paymentAmount:  presentedPayer?.paymentAmountUsd,
+            paymentStage:   x402Header && !apiKey ? 'rejected' : undefined,
           });
           return res.status(402).json({
             x402Version: 2,
@@ -770,9 +802,12 @@ router.post('/', async (req: Request, res: Response) => {
           serviceId, toolName: name,
           mcpMethod:      'tools/call',
           responseStatus: 402,
-          eventType:      'mcp-upstream-error',
+          eventType:      x402Header && !apiKey ? 'mcp-payment-rejected' : 'mcp-upstream-error',
           upstreamStatus: 402,
           errorMessage:   'Upstream 402 without x402 v2 body',
+          walletAddress:  presentedPayer?.walletAddress,
+          paymentAmount:  presentedPayer?.paymentAmountUsd,
+          paymentStage:   x402Header && !apiKey ? 'rejected' : undefined,
         });
         return res.status(402).json({
           jsonrpc: '2.0', id,
@@ -817,6 +852,7 @@ router.post('/', async (req: Request, res: Response) => {
         eventType,
         walletAddress:  payer?.walletAddress,
         paymentAmount:  payer?.paymentAmountUsd,
+        paymentStage:   !apiKey ? 'verified-and-delivered' : undefined,
       });
 
       return res.json({
@@ -1031,7 +1067,18 @@ router.post('/', async (req: Request, res: Response) => {
   });
   return res.status(404).json({
     jsonrpc: '2.0', id,
-    error: { code: -32601, message: `Method not found: ${method}` },
+    error: {
+      code: -32601,
+      message: `Method not found: ${method}`,
+      data: {
+        supportedMethods: SUPPORTED_MCP_METHODS,
+        discovery: {
+          transport: 'POST /mcp',
+          catalog: `${BASE_URL}/mcp/services`,
+          note: 'server/discover is not an MCP method. Start with initialize, then tools/list.',
+        },
+      },
+    },
   });
 });
 
@@ -1151,6 +1198,20 @@ router.post('/tools/call', async (req: Request, res: Response) => {
   // @x402/fetch 2.x sends PAYMENT-SIGNATURE for x402Version 2; older clients send X-PAYMENT.
   // Both carry an identical encoded payment proof — accept either so v2 clients aren't gate-looped.
   const x402Header = (req.headers['x-payment'] || req.headers['payment-signature']) as string | undefined;
+  const presentedPayer = (!apiKey && x402Header) ? extractPayerFromXPayment(x402Header) : null;
+
+  if (x402Header && !apiKey) {
+    trackMcpEvent({
+      req, requestId, authMode, latencyMs: Date.now() - startTime,
+      serviceId, toolName: name,
+      mcpMethod: 'POST /mcp/tools/call',
+      responseStatus: 202,
+      eventType: 'mcp-payment-presented',
+      walletAddress: presentedPayer?.walletAddress,
+      paymentAmount: presentedPayer?.paymentAmountUsd,
+      paymentStage: 'presented',
+    });
+  }
 
   // --- 402 Challenge (no auth) ---
   if (!apiKey && !x402Header) {
@@ -1167,9 +1228,10 @@ router.post('/tools/call', async (req: Request, res: Response) => {
         eventType:      'mcp-challenge-cache-hit',
         cacheAgeMs,
       });
-      serveCachedChallenge(res, cached, req.body?.id ?? 1);
+      // serveCachedChallenge() commits the body, so headers must be set first.
       res.setHeader('X-402-Version', '2');
       res.setHeader('X-Payment-Required', 'true');
+      serveCachedChallenge(res, cached, req.body?.id ?? 1);
       return;
     }
 
@@ -1242,8 +1304,11 @@ router.post('/tools/call', async (req: Request, res: Response) => {
           serviceId, toolName: name,
           mcpMethod:      'POST /mcp/tools/call',
           responseStatus: 402,
-          eventType:      'mcp-upstream-hoisted',
+          eventType:      x402Header && !apiKey ? 'mcp-payment-rejected' : 'mcp-upstream-hoisted',
           upstreamStatus: 402,
+          walletAddress:  presentedPayer?.walletAddress,
+          paymentAmount:  presentedPayer?.paymentAmountUsd,
+          paymentStage:   x402Header && !apiKey ? 'rejected' : undefined,
         });
         return res.status(402).json({
           x402Version: 2,
@@ -1264,9 +1329,12 @@ router.post('/tools/call', async (req: Request, res: Response) => {
         serviceId, toolName: name,
         mcpMethod:      'POST /mcp/tools/call',
         responseStatus: 402,
-        eventType:      'mcp-upstream-error',
+        eventType:      x402Header && !apiKey ? 'mcp-payment-rejected' : 'mcp-upstream-error',
         upstreamStatus: 402,
         errorMessage:   'Upstream 402 without x402 v2 body',
+        walletAddress:  presentedPayer?.walletAddress,
+        paymentAmount:  presentedPayer?.paymentAmountUsd,
+        paymentStage:   x402Header && !apiKey ? 'rejected' : undefined,
       });
       return res.status(402).json({
         jsonrpc: '2.0', id: req.body?.id ?? 1,
@@ -1309,6 +1377,7 @@ router.post('/tools/call', async (req: Request, res: Response) => {
       eventType,
       walletAddress:  payer?.walletAddress,
       paymentAmount:  payer?.paymentAmountUsd,
+      paymentStage:   !apiKey ? 'verified-and-delivered' : undefined,
     });
 
     // Forward billing headers so agent runtimes can track credit usage

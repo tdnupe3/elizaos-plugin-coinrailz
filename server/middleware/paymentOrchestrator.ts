@@ -12,7 +12,7 @@ import { Connection } from "@solana/web3.js";
 import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD, formatUSD, getServicePriceUSD } from "../../shared/pricing";
 import { getAuthContext, hasValidSession, resolveOrCreateSessionUser, refreshAndValidateAuthContext, AuthContext } from "../services/gptAuthResolver";
 import { creditsService } from "../services/creditsService";
-import { createWalletClient, http, parseAbi, Hex, createPublicClient, formatUnits } from "viem";
+import { createWalletClient, http, parseAbi, Hex, createPublicClient } from "viem";
 import { base } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { x402InteractionTracker } from "../services/x402InteractionTracker";
@@ -22,6 +22,11 @@ import { db } from "../db";
 import { sql, and, eq, gt, or, isNull } from "drizzle-orm";
 import { x402Interactions, x402PaymentIntents, creditsAccounts } from "@shared/schema";
 import { stripe as _stripeForRecharge } from '../services/stripeClient';
+import {
+  buildEvmInsufficientBalanceFailure,
+  buildSolanaUnderpaymentFailure,
+  getEvmBalanceDetails,
+} from './paymentFailureResponses';
 
 /**
  * Fire-and-forget auto-recharge trigger.
@@ -1858,29 +1863,29 @@ export function createPaymentOrchestrator(
       } else {
         console.error(`❌ Orchestrator: Solana payment verification failed: ${solanaResult.error}`);
 
-        // Detect underpayment from the trusted verifySolanaPayment result ONLY.
-        // Match "Insufficient amount: X < Y" — the exact string emitted by verifySolanaPayment when a
-        // confirmed on-chain transaction paid too little. This is NOT a wallet balance shortfall; the
-        // payer may have ample USDC but simply authorized too small an amount.
-        // Do NOT use broad patterns that could match arbitrary RPC errors at the catch-all.
-        const isSolanaUnderpayment = (solanaResult.error || '').toLowerCase().includes('insufficient amount:');
+        // Only the verifier's exact "Insufficient amount: received < required"
+        // result is eligible for an underpayment response. Arbitrary RPC errors
+        // must not become top-up instructions.
+        const priceUsd = SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD] || 1.00;
+        const activeSolNetwork = SOLANA_RPC_URL.includes('devnet') ? 'solana-devnet' : 'solana-mainnet';
+        const activeSolMint = SOLANA_RPC_URL.includes('devnet')
+          ? 'Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr'
+          : USDC_SOLANA;
+        const failure = buildSolanaUnderpaymentFailure({
+          serviceName,
+          priceUsd,
+          verifierError: solanaResult.error,
+          payerWallet: solanaResult.fromWallet || null,
+          network: activeSolNetwork,
+          tokenMint: activeSolMint,
+          paymentRecipient: SOLANA_PLATFORM_WALLET,
+          publicBaseUrl: getPublicBaseUrl(req),
+        });
 
-        if (isSolanaUnderpayment) {
-          const priceUsd = SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD] || 1.00;
-          const priceStr = priceUsd.toFixed(6);
+        if (failure) {
           const knownPayerWallet = solanaResult.fromWallet || null;
-          // Derive active network from RPC URL — never hardcode
-          const activeSolNetwork = SOLANA_RPC_URL.includes('devnet') ? 'solana-devnet' : 'solana-mainnet';
-          const activeSolMint = SOLANA_RPC_URL.includes('devnet')
-            ? 'Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr'  // Solana devnet USDC
-            : USDC_SOLANA;
-          // Parse received amount from "Insufficient amount: X < Y" (X=received, Y=required in USD)
-          const amtMatch = (solanaResult.error || '').match(/insufficient amount:\s*([\d.]+)\s*<\s*([\d.]+)/i);
-          const receivedAmountStr = amtMatch ? parseFloat(amtMatch[1]).toFixed(6) : null;
-          const shortfallStr = (amtMatch && receivedAmountStr !== null)
-            ? Math.max(0, parseFloat(amtMatch[2]) - parseFloat(amtMatch[1])).toFixed(6)
-            : null;
-          console.log(`💳 Solana underpayment for ${serviceName} on ${activeSolNetwork}: received=${receivedAmountStr ?? '?'} required=${priceStr} (payer: ${knownPayerWallet ?? 'unknown'})`);
+          const priceStr = priceUsd.toFixed(6);
+          console.log(`💳 Solana underpayment for ${serviceName} on ${activeSolNetwork}: received=${failure.body.payment_required.received_amount_usdc} required=${priceStr} (payer: ${knownPayerWallet ?? 'unknown'})`);
 
           await x402InteractionTracker.trackInteraction({
             serviceId: serviceName,
@@ -1896,40 +1901,15 @@ export function createPaymentOrchestrator(
             serviceName,
             latencyMs: Date.now() - startTime,
             paymentReceived: false,
-            errorMessage: `Solana underpayment: received ${receivedAmountStr ?? '?'} USDC, required ${priceStr}`,
-            walletAddress: knownPayerWallet || undefined,
+            errorMessage: failure.tracking.errorMessage,
+            walletAddress: failure.tracking.walletAddress,
             offerTrackingId,
-            metadata: { reason: 'underpayment', network: activeSolNetwork, received: receivedAmountStr, required: priceStr, payerWallet: knownPayerWallet }
+            metadata: failure.tracking.metadata,
           });
 
-          const _baseUrl = getPublicBaseUrl(req);
-          const retryEndpoint = `${_baseUrl}/x402/${serviceName}`;
           res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
           res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
-          return res.status(402).json({
-            error: {
-              code: "insufficient_payment_amount",
-              message: `Payment for ${serviceName} was below the required amount.`,
-              retryable: true
-            },
-            payment_required: {
-              service: serviceName,
-              network: activeSolNetwork,
-              token: "USDC",
-              token_mint: activeSolMint,
-              payment_recipient: SOLANA_PLATFORM_WALLET,
-              minimum_required_usdc: priceStr,
-              ...(receivedAmountStr !== null ? { received_amount_usdc: receivedAmountStr } : {}),
-              ...(shortfallStr !== null ? { shortfall_usdc: shortfallStr } : {}),
-              ...(knownPayerWallet ? { payer_wallet: knownPayerWallet } : {}),
-              retry: {
-                method: "POST",
-                endpoint: retryEndpoint,
-                instruction: `Create a new signed X-PAYMENT transaction for at least ${priceStr} USDC to ${SOLANA_PLATFORM_WALLET} on ${activeSolNetwork} (mint: ${activeSolMint}). Fund ${knownPayerWallet ?? 'your payer wallet'} first if its available USDC balance is below ${priceStr}.`
-              }
-            },
-            requestId
-          });
+          return res.status(402).json({ ...failure.body, requestId });
         }
         
         // Other Solana verification errors (tx not found, wrong amount confirmed on chain, etc.)
@@ -2217,8 +2197,7 @@ export function createPaymentOrchestrator(
               // Attempt an authoritative balanceOf(payer) read on Base USDC.
               // Required vs available lets us compute an exact shortfall.
               // Wrap in try/catch with a 3-second timeout — a read failure must not delay the 402.
-              let availableBalanceStr: string | null = null;
-              let shortfallBalanceStr: string | null = null;
+              let balanceDetails: ReturnType<typeof getEvmBalanceDetails> | null = null;
               if (payerWallet && platformPublicClient) {
                 try {
                   const BALANCE_OF_ABI = parseAbi(['function balanceOf(address account) view returns (uint256)']);
@@ -2237,18 +2216,23 @@ export function createPaymentOrchestrator(
                   // Convert required price to base units via string to avoid binary-float drift.
                   // SERVICE_PRICING_USD values are constrained to ≤6 decimal places; multiply as
                   // integer math: e.g. 0.10 USD → "100000" base units.
-                  const requiredBaseUnits = BigInt(Math.round(priceUsd * 1_000_000));
-                  const shortfallBaseUnits = requiredBaseUnits > balanceRaw
-                    ? requiredBaseUnits - balanceRaw
-                    : 0n;
-                  // Use viem formatUnits for bigint-safe decimal formatting (no Number() precision loss)
-                  availableBalanceStr = formatUnits(balanceRaw, 6);
-                  shortfallBalanceStr = formatUnits(shortfallBaseUnits, 6);
-                  console.log(`💰 balanceOf(${payerWallet.slice(0, 10)}…) = ${availableBalanceStr} USDC, shortfall = ${shortfallBalanceStr}`);
+                  balanceDetails = getEvmBalanceDetails(priceUsd, balanceRaw);
+                  console.log(`💰 balanceOf(${payerWallet.slice(0, 10)}…) = ${balanceDetails.availableBalanceUsdc} USDC, shortfall = ${balanceDetails.shortfallUsdc}`);
                 } catch (balErr: any) {
                   console.warn(`⚠️ balanceOf read skipped (${balErr.message}) — omitting available_balance_usdc from response`);
                 }
               }
+
+              const failure = buildEvmInsufficientBalanceFailure({
+                serviceName,
+                priceUsd,
+                payerWallet,
+                balanceDetails,
+                usdcContract: USDC_BASE,
+                paymentRecipient: PLATFORM_WALLET,
+                publicBaseUrl: getPublicBaseUrl(req),
+                knownAgent: knownAgent.name,
+              });
 
               // FUNNEL TRACKING: Insufficient balance error
               await x402InteractionTracker.trackInteraction({
@@ -2265,71 +2249,15 @@ export function createPaymentOrchestrator(
                 serviceName,
                 latencyMs: Date.now() - startTime,
                 paymentReceived: false,
-                errorMessage: 'Agent wallet has insufficient USDC balance',
-                walletAddress: payerWallet || undefined,
+                errorMessage: failure.tracking.errorMessage,
+                walletAddress: failure.tracking.walletAddress,
                 offerTrackingId,
-                metadata: { 
-                  reason: 'insufficient-balance',
-                  network: 'base-mainnet',
-                  knownAgent: knownAgent.name,
-                  requiredAmount: priceUsd,
-                  availableBalance: availableBalanceStr,
-                  shortfall: shortfallBalanceStr,
-                  payerWallet
-                }
+                metadata: failure.tracking.metadata,
               });
 
-              const _baseUrl = getPublicBaseUrl(req);
-              const retryEndpoint = `${_baseUrl}/x402/${serviceName}`;
-              
               res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
               res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
-              return res.status(402).json({
-                error: {
-                  code: "insufficient_balance",
-                  message: `Insufficient USDC balance for ${serviceName}.`,
-                  retryable: true
-                },
-                funding_required: {
-                  service: serviceName,
-                  network: "base-mainnet",
-                  token: "USDC",
-                  token_contract: USDC_BASE,
-                  payment_recipient: PLATFORM_WALLET,
-                  minimum_required_usdc: priceStr,
-                  ...(payerWallet ? { payer_wallet: payerWallet } : {}),
-                  ...(availableBalanceStr !== null ? { available_balance_usdc: availableBalanceStr } : {}),
-                  ...(shortfallBalanceStr !== null ? { shortfall_usdc: shortfallBalanceStr } : {}),
-                  retry: {
-                    method: "POST",
-                    endpoint: retryEndpoint,
-                    instruction: payerWallet
-                      ? `Fund payer wallet ${payerWallet} with at least ${shortfallBalanceStr ?? priceStr} USDC on Base mainnet (eip155:8453), then generate a new signed X-PAYMENT header and submit it to this endpoint.`
-                      : `Fund your agent wallet with at least ${priceStr} USDC on Base mainnet (eip155:8453), then generate a new signed X-PAYMENT header and submit it to this endpoint.`
-                  }
-                },
-                alternative_payment_methods: {
-                  api_key: {
-                    recommended: true,
-                    description: "Card-based M2M API key — no blockchain or crypto wallet required. Get a cr_live_ key in ~60 seconds.",
-                    purchase_endpoint: `${_baseUrl}/api/m2m/credits/purchase`,
-                    purchase_method: "POST",
-                    purchase_body: { paymentMethodId: "pm_...", amountUsd: 10, idempotencyKey: "<uuid-v4>" },
-                    idempotency_key_format: "Any unique string, min 8 chars. UUID v4 recommended. Reuse on retry — safe for duplicate prevention.",
-                    success_response: { apiKey: "cr_live_...", creditsAdded: 200, note: "SAVE apiKey — returned once only" },
-                    usage: "X-API-KEY: cr_live_... header or Authorization: Bearer cr_live_... on any /x402/* request instead of X-PAYMENT",
-                    tiers: [
-                      { amountUsd: 5,   label: "Intro",   calls: "~80-100 service calls", note: "Try it — no commitment" },
-                      { amountUsd: 10,  label: "Starter", calls: "~200 service calls" },
-                      { amountUsd: 25,  label: "Growth",  calls: "~500 service calls", recommended: true },
-                      { amountUsd: 100, label: "Pro",     calls: "~2,000 service calls" }
-                    ],
-                    rate_limit: "5 purchases per IP per hour",
-                    error_codes: { "400": "Invalid paymentMethodId or idempotencyKey too short", "409": "Already processed — use new idempotencyKey", "429": "Rate limit exceeded" }
-                  }
-                },
-                requestId
-              });
+              return res.status(402).json({ ...failure.body, requestId });
             }
             
             // Other EIP-3009 errors (expired, already used, invalid signature)
@@ -2600,27 +2528,27 @@ export function createPaymentOrchestrator(
       // Solana (Dexter) verification failed — detect insufficient balance vs other errors
       console.warn(`❌ Orchestrator: Solana (Dexter) payment NOT verified for ${serviceName}: ${solanaResult.error}`);
 
-      // Detect underpayment from the trusted verifySolanaPayment result ONLY.
-      // Match "Insufficient amount: X < Y" — confirmed tx that paid too little.
-      // This is NOT a wallet balance failure; do not assert top-up is required.
-      const isDexterUnderpayment = (solanaResult.error || '').toLowerCase().includes('insufficient amount:');
+      const priceUsd = SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD] || 1.00;
+      const activeSolNetwork = SOLANA_RPC_URL.includes('devnet') ? 'solana-devnet' : 'solana-mainnet';
+      const activeSolMint = SOLANA_RPC_URL.includes('devnet')
+        ? 'Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr'
+        : USDC_SOLANA;
+      const failure = buildSolanaUnderpaymentFailure({
+        serviceName,
+        priceUsd,
+        verifierError: solanaResult.error,
+        payerWallet: solanaResult.fromWallet || null,
+        network: activeSolNetwork,
+        tokenMint: activeSolMint,
+        paymentRecipient: SOLANA_PLATFORM_WALLET,
+        publicBaseUrl: getPublicBaseUrl(req),
+        facilitator: 'dexter',
+      });
 
-      if (isDexterUnderpayment) {
-        const priceUsd = SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD] || 1.00;
-        const priceStr = priceUsd.toFixed(6);
+      if (failure) {
         const knownPayerWallet = solanaResult.fromWallet || null;
-        // Derive active network from RPC URL — never hardcode
-        const activeSolNetwork = SOLANA_RPC_URL.includes('devnet') ? 'solana-devnet' : 'solana-mainnet';
-        const activeSolMint = SOLANA_RPC_URL.includes('devnet')
-          ? 'Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr'  // Solana devnet USDC
-          : USDC_SOLANA;
-        // Parse received amount from "Insufficient amount: X < Y"
-        const amtMatch = (solanaResult.error || '').match(/insufficient amount:\s*([\d.]+)\s*<\s*([\d.]+)/i);
-        const receivedAmountStr = amtMatch ? parseFloat(amtMatch[1]).toFixed(6) : null;
-        const shortfallStr = (amtMatch && receivedAmountStr !== null)
-          ? Math.max(0, parseFloat(amtMatch[2]) - parseFloat(amtMatch[1])).toFixed(6)
-          : null;
-        console.log(`💳 Solana (Dexter) underpayment for ${serviceName} on ${activeSolNetwork}: received=${receivedAmountStr ?? '?'} required=${priceStr} (payer: ${knownPayerWallet ?? 'unknown'})`);
+        const priceStr = priceUsd.toFixed(6);
+        console.log(`💳 Solana (Dexter) underpayment for ${serviceName} on ${activeSolNetwork}: received=${failure.body.payment_required.received_amount_usdc} required=${priceStr} (payer: ${knownPayerWallet ?? 'unknown'})`);
 
         await x402InteractionTracker.trackInteraction({
           serviceId: serviceName,
@@ -2636,40 +2564,15 @@ export function createPaymentOrchestrator(
           serviceName,
           latencyMs: Date.now() - startTime,
           paymentReceived: false,
-          errorMessage: `Solana underpayment: received ${receivedAmountStr ?? '?'} USDC, required ${priceStr}`,
-          walletAddress: knownPayerWallet || undefined,
+          errorMessage: failure.tracking.errorMessage,
+          walletAddress: failure.tracking.walletAddress,
           offerTrackingId,
-          metadata: { reason: 'underpayment', network: activeSolNetwork, facilitator: 'dexter', received: receivedAmountStr, required: priceStr, payerWallet: knownPayerWallet }
+          metadata: failure.tracking.metadata,
         });
 
-        const _baseUrl = getPublicBaseUrl(req);
-        const retryEndpoint = `${_baseUrl}/x402/${serviceName}`;
         res.setHeader('X-Agent-Instructions', 'https://coinrailz.com/.well-known/agent-instructions.json');
         res.setHeader('Link', '<https://coinrailz.com/.well-known/agent-instructions.json>; rel="agent-instructions"');
-        return res.status(402).json({
-          error: {
-            code: "insufficient_payment_amount",
-            message: `Payment for ${serviceName} was below the required amount.`,
-            retryable: true
-          },
-          payment_required: {
-            service: serviceName,
-            network: activeSolNetwork,
-            token: "USDC",
-            token_mint: activeSolMint,
-            payment_recipient: SOLANA_PLATFORM_WALLET,
-            minimum_required_usdc: priceStr,
-            ...(receivedAmountStr !== null ? { received_amount_usdc: receivedAmountStr } : {}),
-            ...(shortfallStr !== null ? { shortfall_usdc: shortfallStr } : {}),
-            ...(knownPayerWallet ? { payer_wallet: knownPayerWallet } : {}),
-            retry: {
-              method: "POST",
-              endpoint: retryEndpoint,
-              instruction: `Create a new signed X-PAYMENT transaction for at least ${priceStr} USDC to ${SOLANA_PLATFORM_WALLET} on ${activeSolNetwork} (mint: ${activeSolMint}). Fund ${knownPayerWallet ?? 'your payer wallet'} first if its available USDC balance is below ${priceStr}.`
-            }
-          },
-          requestId
-        });
+        return res.status(402).json({ ...failure.body, requestId });
       }
 
       return generatePaymentErrorResponse(

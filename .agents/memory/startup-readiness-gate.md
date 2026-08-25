@@ -38,3 +38,18 @@ full application initialization is still ongoing.
 **How to apply:** Use `/readyz` for external full-readiness checks and verify that
 the deployment's startup health contract cannot mark the paid surface healthy merely
 because `/` is reachable.
+
+## Architect review boundary
+
+The production x402/MCP retry behavior is already correctly gated; do not duplicate
+it as a production hardening change without a demonstrated bypass. The remaining
+test gap is useful but non-blocking. One separate caveat is the development-only
+`/api/mcp/payments` route mounted after `markAppReady()`; clarify that contract
+before treating it as a production readiness defect.
+
+**Why:** `markFrontendReady()` and the startup watchdog control frontend/root
+serving, while `markAppReady()` independently controls API-route access.
+
+**How to apply:** Preserve the current production gate. If adding coverage, use one
+focused test for the pre-ready 503/`Retry-After` behavior and post-ready dispatch,
+and inspect the development-only payment-kit route separately.

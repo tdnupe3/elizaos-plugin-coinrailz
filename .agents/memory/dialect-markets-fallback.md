@@ -32,3 +32,15 @@ Callers in solanaYieldPortalRoutes.ts and solanaYieldKeeper.ts reference `kamino
 `YieldOpportunity` object — but `YieldOpportunity` has `totalApy` not `apy`. This always evaluates
 to `undefined`, meaning the callers always fell through to their own DeFiLlama fallback even when
 Dialect was working. Dialect was never actually powering the keeper or portal APY values.
+
+## Fallback availability constraint
+
+Production keeper logs on August 24, 2026 recorded DeFiLlama fallback aborts and
+six-second timeouts. The fallback is therefore not a guaranteed live dependency.
+
+**Why:** When Dialect is unavailable, a timeout from the only active upstream can
+otherwise make yield data slow or appear unavailable.
+
+**How to apply:** Keep serving the most recent verified result with freshness
+metadata during a failed refresh, and bound retry/backoff rather than treating an
+upstream timeout as a reason to block a user request.

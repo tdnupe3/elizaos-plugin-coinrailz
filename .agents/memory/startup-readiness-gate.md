@@ -23,3 +23,18 @@ All paths that are NOT registered in `server/index.ts` fast-path block must retu
 - `/.well-known/x402.json`, `/.well-known/agent-card.json` — cold-start minimal responses
 - `/api/monitoring/health` — cold-start starting response
 - `/readyz` — the readiness probe itself
+
+## Production operational nuance
+
+On August 24, 2026, production logs showed the root/listener health signal becoming
+available before full initialization finished; a watchdog also released the frontend
+before post-listen initialization completed. This does not invalidate the route gate,
+but it means a root-level deployment health check is not proof that all paid routes
+are ready.
+
+**Why:** A process can accept connections and serve exempt fast-path routes while
+full application initialization is still ongoing.
+
+**How to apply:** Use `/readyz` for external full-readiness checks and verify that
+the deployment's startup health contract cannot mark the paid surface healthy merely
+because `/` is reachable.

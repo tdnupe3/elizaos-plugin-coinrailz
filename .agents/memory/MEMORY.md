@@ -86,3 +86,4 @@
 - [Cloudflare Wallets compatibility](cf-wallets-compatibility.md) — CF header names unconfirmed (docs 404); use cfAgentId for logging only; NEVER as eligibility key (replay attack); FIRST_CALL_FREE_SERVICES excludes first-call
 - [Assessment editorial rules](assessment-editorial-rules.md) — dormant API keys: never raise as action item (A2A only if contactable, else move on); MetaVision CVE Oracle: do not pursue (platform already has smart-contract-audit; they're a vendor not a customer)
 - [Claude MCP payment boundary](claude-mcp-payment-boundary.md) — Claude MCP docs cover remote tools and OAuth Bearer auth, not native x402 signing/retry; never market automatic Claude x402 payment without a live client proof.
+- [Direct v2 payment telemetry](direct-v2-payment-telemetry.md) — production safe probe showed PAYMENT-SIGNATURE reaches parsing but direct interaction tracking can mark it as header-absent; do not treat this as an unpaid retry.

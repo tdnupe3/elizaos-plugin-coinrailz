@@ -87,3 +87,4 @@
 - [Assessment editorial rules](assessment-editorial-rules.md) — dormant API keys: never raise as action item (A2A only if contactable, else move on); MetaVision CVE Oracle: do not pursue (platform already has smart-contract-audit; they're a vendor not a customer)
 - [Claude MCP payment boundary](claude-mcp-payment-boundary.md) — Claude MCP docs cover remote tools and OAuth Bearer auth, not native x402 signing/retry; never market automatic Claude x402 payment without a live client proof.
 - [Direct v2 payment telemetry](direct-v2-payment-telemetry.md) — production safe probe showed PAYMENT-SIGNATURE reaches parsing but direct interaction tracking can mark it as header-absent; do not treat this as an unpaid retry.
+- [Standard x402 v2 direct-payment proof](standard-x402-v2-payment-proof.md) — a fresh-wallet @x402/fetch v2 payment to direct /x402/ping settled successfully; direct rails are proven, MCP paid execution remains separate.

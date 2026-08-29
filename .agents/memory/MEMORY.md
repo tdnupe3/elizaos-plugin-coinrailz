@@ -90,4 +90,4 @@
 - [Standard x402 v2 direct-payment proof](standard-x402-v2-payment-proof.md) — a fresh-wallet @x402/fetch v2 payment to direct /x402/ping settled successfully; direct rails are proven, MCP paid execution remains separate.
 - [Coinbase CDP facilitator proof](coinbase-cdp-facilitator-proof.md) — CDP /settle accepted a standard v2 MCP payment payload and Coin Railz delivered the paid tool call from its returned transaction hash.
 - [Trial credit provenance](trial-credit-provenance.md) — credit rows labeled purchase can be free-trial grants; reconcile payment provenance before counting revenue or conversion.
-- [Grok Bot commerce boundary](grok-bot-commerce-boundary.md) — browser shopping and custom MCP are real; payments remain human-approved, with no verified native x402 buyer path as of Aug 2026.
+- [Grok Bot commerce boundary](grok-bot-commerce-boundary.md) — Cursor plugins are the concrete Grok distribution path; payments stay human-approved, with no verified native x402 buyer path.

@@ -7,4 +7,6 @@ Treat Grok Bot as a capable persistent computer agent with browser automation an
 
 **Why:** Secondary reporting can blur browser checkout, Stripe's general agent-wallet capability, and native protocol support. A third-party project named `grok-cli` implements x402 but is not the xAI Grok Bot product. Coin Railz should not infer buyer compatibility from names or generic agent claims.
 
-**How to apply:** Require an authoritative external payment-intent success and paid result delivery before calling Grok a converting channel. Until a live test proves otherwise, keep the generic MCP surface compatible, avoid bespoke Grok payment work, and label direct Grok–Stripe Link integration claims as reported rather than primary-source confirmed.
+Cursor Marketplace is the concrete current route to Grok Bot distribution: Cursor officially accepts plugins that bundle skills and hosted MCP servers, and vendors document one plugin working in both Cursor and Grok. Treat this as a cross-agent packaging channel, not evidence of buyer demand.
+
+**How to apply:** Require an authoritative external payment-intent success and paid result delivery before calling Grok a converting channel. Test a focused, read-only workflow through a portable Cursor/Agent plugin before direct xAI outreach. Until a live test proves otherwise, keep the generic MCP surface compatible, use trial/API-key access for initial value validation, avoid bespoke Grok payment work, and label direct Grok–Stripe Link integration claims as reported rather than primary-source confirmed.

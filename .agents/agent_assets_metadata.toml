@@ -17,8 +17,8 @@ title = "Coin Railz — 66 x402 Endpoints (Circle Agent Directory Upload)"
 id = "BEODN7_y0dw-sSPabRP2I"
 uri = "file://research/notes.md"
 type = "text"
-title = "Grok Bot Research Notes"
-description = "Research scope, evidence checklist, findings, conflicts, and limitations."
+title = "Grok Bot Discovery Research Notes"
+description = "Running research plan and findings spine for making Coin Railz discoverable and usable by Grok Bot agents."
 
 [[outputs]]
 id = "_DSKn9iPglyexVYIhKAZP"
@@ -26,3 +26,10 @@ uri = "file://research/grok-bot-agentic-commerce.md"
 type = "text"
 title = "Grok Bot and Agentic Commerce"
 description = "Founder decision brief on Grok Bot shopping, payment approvals, MCP/x402 compatibility, security, Coin Railz telemetry, and go/no-go recommendation."
+
+[[outputs]]
+id = "eD8EGUbqW-VdOcj-zd5vx"
+uri = "file://research/coinrailz-grok-bot-readiness-2026-08-29.md"
+type = "text"
+title = "Coin Railz Readiness for Grok Bot Agents"
+description = "Deep, source-linked founder brief covering Grok Bot discovery paths, Coin Railz MCP gaps, a prioritized no-code checklist, a safe compatibility experiment, and go/no-go gates."

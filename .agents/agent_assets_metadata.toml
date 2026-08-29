@@ -12,3 +12,17 @@ id = "6HDPXOinaxawlFlGKbXsH"
 uri = "file://public/coin-railz-x402-endpoints.csv"
 type = "table"
 title = "Coin Railz — 66 x402 Endpoints (Circle Agent Directory Upload)"
+
+[[outputs]]
+id = "BEODN7_y0dw-sSPabRP2I"
+uri = "file://research/notes.md"
+type = "text"
+title = "Grok Bot Research Notes"
+description = "Research scope, evidence checklist, findings, conflicts, and limitations."
+
+[[outputs]]
+id = "_DSKn9iPglyexVYIhKAZP"
+uri = "file://research/grok-bot-agentic-commerce.md"
+type = "text"
+title = "Grok Bot and Agentic Commerce"
+description = "Founder decision brief on Grok Bot shopping, payment approvals, MCP/x402 compatibility, security, Coin Railz telemetry, and go/no-go recommendation."

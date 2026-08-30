@@ -39,6 +39,7 @@ import { getCanonicalServiceCount } from '../utils/serviceCount';
 import { creditsService } from '../services/creditsService';
 import { db } from '../db';
 import { a2aInteractions } from '../../shared/schema';
+import { getCanonicalPayableNetworks, PUBLIC_DISCOVERY_VERSIONS } from '../config/publicDiscoveryConfig';
 
 function trackAP2Hit(req: Request, opts: {
   requestId?: string;
@@ -80,13 +81,6 @@ function toAp2Service(entry: any) {
     endpoint: `${BASE_URL}${entry.endpoint}`
   };
 }
-
-const PLATFORM_WALLET_BASE = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
-const USDC_BASE_CONTRACT = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-const PLATFORM_WALLET_SOLANA = 'BmUPzSupHJu2kW4cL27dF7Vc2JaZTwXKzFsRuagPDtL8';
-const USDC_SOLANA_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-const FACILITATOR_CDP = 'https://api.cdp.coinbase.com/platform/v2/x402';
-const FACILITATOR_DEXTER = 'https://x402.dexter.cash';
 
 const MANDATE_TTL_MS = 5 * 60 * 1000;
 const AMOUNT_TOLERANCE = 0.20;
@@ -229,13 +223,14 @@ function agentUserId(merchantAgent: string | undefined, mandateId: string): stri
  */
 router.get('/ap2/v1/merchant', (_req: Request, res: Response) => {
   const catalog = serviceCatalogService.getCatalog();
+  const payableNetworks = getCanonicalPayableNetworks();
   res.json({
     ap2Version: '0.2',
     merchant: 'Coin Railz',
-    description: `x402 micropayment APIs for AI agents — ${getCanonicalServiceCount()} pay-per-call services on Base + Solana. Crypto analytics, trading signals, contract security, satellite data, prediction markets, and more.`,
+    description: `x402 micropayment APIs for AI agents — ${getCanonicalServiceCount()} pay-per-call services on canonical USDC rails. Crypto analytics, trading signals, contract security, satellite data, prediction markets, and more.`,
     supportedPaymentMethods: ['X402', 'CARD', 'VISA', 'MASTERCARD', 'AMEX', 'STRIPE'],
     supportedCurrencies: ['USDC', 'USD'],
-    supportedChains: ['base', 'solana'],
+    supportedChains: payableNetworks.map(network => network.id),
     a2aEndpoint: `${BASE_URL}/ap2/v1/merchant`,
     serviceCatalog: `${BASE_URL}/.well-known/agent-instructions.json`,
     agentCard: `${BASE_URL}/.well-known/agent-card.json`,
@@ -244,7 +239,11 @@ router.get('/ap2/v1/merchant', (_req: Request, res: Response) => {
     mppManifest: `${BASE_URL}/.well-known/mpp.json`,
     integrationGuide: `${BASE_URL}/mcp-integration-guide`,
     x402SpecVersion: 2,
-    facilitators: [FACILITATOR_CDP, FACILITATOR_DEXTER],
+    facilitators: [...new Set(
+      payableNetworks
+        .map(network => network.facilitator)
+        .filter((facilitator): facilitator is string => Boolean(facilitator)),
+    )],
     priceRange: '$0.05–$10.00 per call',
     mandateAuthorization: {
       format: 'sha256:<hex>',
@@ -653,23 +652,18 @@ router.post('/ap2/v1/merchant', async (req: Request, res: Response) => {
           x402Endpoint: `${BASE_URL}${service.endpoint}`,
           amount: servicePrice.toFixed(2),
           currency: 'USDC',
-          x402Version: 2,
-          networks: [
-            {
-              chain: 'base',
-              caip2: 'eip155:8453',
-              payTo: PLATFORM_WALLET_BASE,
-              tokenContract: USDC_BASE_CONTRACT,
-              facilitator: FACILITATOR_CDP
-            },
-            {
-              chain: 'solana',
-              caip2: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
-              payTo: PLATFORM_WALLET_SOLANA,
-              tokenMint: USDC_SOLANA_MINT,
-              facilitator: FACILITATOR_DEXTER
-            }
-          ],
+          x402Version: PUBLIC_DISCOVERY_VERSIONS.x402Protocol,
+          networks: getCanonicalPayableNetworks()
+            .filter(network => network.id === 'base' || network.id === 'solana')
+            .map(network => ({
+              chain: network.id,
+              caip2: network.caip2,
+              payTo: network.recipient,
+              ...(network.id === 'solana'
+                ? { tokenMint: network.assetAddress }
+                : { tokenContract: network.assetAddress }),
+              facilitator: network.facilitator,
+            })),
           mandateId: contents.payment_mandate_id,
           mandateAccepted: true,
           instructions: '1. POST to x402Endpoint → 2. Receive HTTP 402 challenge → 3. Pay USDC to payTo on Base or Solana → 4. Resubmit with X-PAYMENT header → 5. Receive service data'

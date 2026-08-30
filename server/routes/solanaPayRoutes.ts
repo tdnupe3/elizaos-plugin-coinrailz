@@ -25,10 +25,14 @@ import {
 import { trackSolanaEndpoint, trackSolanaWebhook } from '../middleware/solanaTracking.js';
 import { pingDiscoveryCrawlers, getRegistryStatus } from '../services/solanaRegistryService.js';
 import { coinbaseCDPService } from '../services/coinbaseCDPService.js';
+import { PLATFORM_WALLETS } from '../utils/facilitatorHelper.js';
+import { getCanonicalPayableNetworks } from '../config/publicDiscoveryConfig.js';
 
 const router = Router();
 
-const PLATFORM_WALLET = process.env.SOLANA_PUBLIC_KEY || 'Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k';
+const PLATFORM_WALLET = PLATFORM_WALLETS.solana;
+const SOLANA_PAYMENT_NETWORK = getCanonicalPayableNetworks().find(network => network.id === 'solana')!;
+const SOLANA_PAYMENT_TOKEN = SOLANA_PAYMENT_NETWORK.asset as 'USDC';
 
 // Protocol headers middleware for Solana Actions discovery
 router.use((req: Request, res: Response, next) => {
@@ -101,7 +105,7 @@ const webhookRateLimiter = rateLimit({
 
 const createIntentSchema = z.object({
   amount: z.string().regex(/^\d+(\.\d+)?$/, 'Amount must be a valid number'),
-  tokenSymbol: z.enum(['SOL', 'USDC', 'USDT']),
+  tokenSymbol: z.literal(SOLANA_PAYMENT_TOKEN),
   serviceName: z.string().min(1).max(100),
   serviceSlug: z.string().optional(),
   customerWallet: z.string().optional(),
@@ -123,7 +127,7 @@ router.get('/intents', async (req: Request, res: Response) => {
     type: 'action',
     icon: `${baseUrl}/favicon.ico`,
     title: 'Create Payment Intent',
-    description: 'Create a Solana payment intent for AI agent services. Supports SOL, USDC, and USDT payments.',
+    description: 'Create a USDC payment intent on Solana for AI agent services.',
     label: 'Create Intent',
     links: {
       actions: [
@@ -152,11 +156,7 @@ router.get('/intents', async (req: Request, res: Response) => {
               label: 'Token',
               required: true,
               type: 'select',
-              options: [
-                { label: 'SOL', value: 'SOL' },
-                { label: 'USDC', value: 'USDC' },
-                { label: 'USDT', value: 'USDT' }
-              ]
+              options: [{ label: SOLANA_PAYMENT_TOKEN, value: SOLANA_PAYMENT_TOKEN }]
             },
             {
               name: 'serviceName',
@@ -355,10 +355,7 @@ router.get('/pricing', async (req: Request, res: Response) => {
         name: tier.name,
         description: tier.description,
         percentageFee: `${(parseFloat(tier.percentageFee) * 100).toFixed(2)}%`,
-        minimumFee: {
-          SOL: `${tier.minimumFeeSol} SOL`,
-          USDC: `$${tier.minimumFeeUsdc} USDC`,
-        },
+        minimumFee: { USDC: `$${tier.minimumFeeUsdc} USDC` },
         isDefault: tier.isDefault,
       })),
       note: 'Platform fee is the greater of percentage or minimum',
@@ -376,7 +373,7 @@ router.get('/tokens', async (req: Request, res: Response) => {
     const tokens = await solanaPaymentService.getSupportedTokens();
     
     return res.json({
-      tokens: tokens.map(token => ({
+      tokens: tokens.filter(token => token.symbol === SOLANA_PAYMENT_TOKEN).map(token => ({
         symbol: token.symbol,
         name: token.name,
         mint: token.mint,
@@ -424,7 +421,7 @@ router.get('/status', async (req: Request, res: Response) => {
       intents: isReady,
       webhooks: hasWebhookSecret,
       wallet: hasWalletKey,
-      tokens: ['SOL', 'USDC', 'USDT'],
+      tokens: [SOLANA_PAYMENT_TOKEN],
       poller: pollerStatus,
     },
     ...(warnings.length > 0 && { warnings }),
@@ -471,7 +468,7 @@ router.get('/services', async (req: Request, res: Response) => {
     services,
     paymentInfo: {
       chain: 'solana',
-      tokens: ['SOL', 'USDC', 'USDT'],
+      tokens: [SOLANA_PAYMENT_TOKEN],
       createIntentEndpoint: '/solana-pay/intents',
     },
   });
@@ -488,17 +485,17 @@ router.get('/catalog', async (req: Request, res: Response) => {
     description: "Payment processing and data services for Solana-native AI agents. 0.5% fees, instant webhook settlement.",
     
     platform: {
-      wallet: process.env.SOLANA_PUBLIC_KEY || "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k",
+      wallet: PLATFORM_WALLET,
       fee_percentage: 0.005,
       minimum_fee_usdc: 0.25,
-      minimum_fee_sol: 0.001
+      payment_asset: SOLANA_PAYMENT_TOKEN
     },
     
-    supported_tokens: [
-      { symbol: "SOL", mint: "native", decimals: 9 },
-      { symbol: "USDC", mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", decimals: 6 },
-      { symbol: "USDT", mint: "Es9vMFrzaCERmnn4Xw4Jp9Dzk1XjCK8dygBBhPokv9wg", decimals: 6 }
-    ],
+    supported_tokens: [{
+      symbol: SOLANA_PAYMENT_NETWORK.asset,
+      mint: SOLANA_PAYMENT_NETWORK.assetAddress,
+      decimals: SOLANA_PAYMENT_NETWORK.decimals
+    }],
     
     categories: ["data", "intelligence", "infrastructure"],
     
@@ -514,7 +511,7 @@ router.get('/catalog', async (req: Request, res: Response) => {
         price_sol: "0.0005",
         category: "data",
         capabilities: ["price-feed", "real-time", "dex-data"],
-        input: { mint: "Token mint address (e.g., SOL, USDC mint)" },
+        input: { mint: "Token mint address (for example, the USDC mint)" },
         auth: "x-intent-id header"
       },
       {
@@ -1179,14 +1176,6 @@ router.get('/ping', async (req: Request, res: Response) => {
           amount: PING_PRICING.priceUSDC,
           amountUSD: PING_PRICING.priceUSD,
           recipient: PLATFORM_WALLET
-        },
-        {
-          scheme: 'solana-pay',
-          network: 'solana-mainnet',
-          token: 'SOL',
-          amount: PING_PRICING.priceSol,
-          amountUSD: PING_PRICING.priceUSD,
-          recipient: PLATFORM_WALLET
         }
       ]
     });
@@ -1224,11 +1213,11 @@ router.get('/ping', async (req: Request, res: Response) => {
       }
       
       // Validate token and amount based on payment type
-      const validTokens = ['USDC', 'SOL', 'USDT'];
+      const validTokens = [SOLANA_PAYMENT_TOKEN];
       if (!validTokens.includes(tokenSymbol || '')) {
         return res.status(402).json({
           error: 'Invalid payment token',
-          message: `Ping service accepts USDC, SOL, or USDT. Received ${tokenSymbol}`,
+          message: `Ping service accepts ${SOLANA_PAYMENT_TOKEN}. Received ${tokenSymbol}`,
           pricing: PING_PRICING,
           createIntentEndpoint: '/solana-pay/intents',
           serviceSlug: PING_PRICING.serviceSlug
@@ -1239,14 +1228,8 @@ router.get('/ping', async (req: Request, res: Response) => {
       let expectedAmount: number;
       let tokenLabel: string;
       
-      if (tokenSymbol === 'SOL') {
-        expectedAmount = 0.001;
-        tokenLabel = 'SOL';
-      } else {
-        // USDC and USDT use same pricing
-        expectedAmount = 0.25;
-        tokenLabel = tokenSymbol || 'USDC';
-      }
+      expectedAmount = 0.25;
+      tokenLabel = SOLANA_PAYMENT_TOKEN;
       
       if (Math.abs(intentAmount - expectedAmount) > 0.0001) {
         return res.status(402).json({

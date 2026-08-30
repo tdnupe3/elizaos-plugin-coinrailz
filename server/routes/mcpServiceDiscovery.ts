@@ -1,5 +1,10 @@
 import { Router, Request, Response } from "express";
 import { getCanonicalServices, getCanonicalServiceCount } from "../utils/serviceCount";
+import {
+  DATA_QUERY_NETWORKS,
+  getCanonicalPayableNetworks,
+  PUBLIC_DISCOVERY_VERSIONS,
+} from "../config/publicDiscoveryConfig";
 
 const router = Router();
 
@@ -59,11 +64,12 @@ router.get("/mcp/services", async (req: Request, res: Response) => {
     }));
 
     const serviceCount = getCanonicalServiceCount();
+    const payableNetworks = getCanonicalPayableNetworks();
 
     // MCP-compatible response format
     res.json({
       protocol: "x402",
-      version: 2,
+      version: PUBLIC_DISCOVERY_VERSIONS.x402Protocol,
       provider: {
         name: "Coin Railz",
         description: `Universal payment infrastructure for AI agents — ${serviceCount} x402 micropayment services spanning crypto analytics, DeFi, satellite data (NASA/ESA), IoT/DePIN, AI inference, and prediction markets. Crypto (x402), Fiat (Stripe), and FREE wallet provisioning for autonomous agents.`,
@@ -83,16 +89,17 @@ router.get("/mcp/services", async (req: Request, res: Response) => {
         }
       },
       services: services,
-      totalServices: services.length,
+      totalServices: serviceCount,
       categories: categoryCounts,
       paymentMethods: ["x402-erc20-usdc", "stripe-fiat"],
       paymentCapabilities: {
-        crypto: { protocol: "x402", networks: ["base", "ethereum", "polygon", "arbitrum", "optimism", "bnb", "solana"], token: "USDC" },
+        crypto: { protocol: "x402", networks: payableNetworks.map(network => network.caip2), token: "USDC" },
         fiat: { provider: "stripe", methods: ["card", "bank"] },
         credits: { enabled: false, description: "Pre-purchased credit bundles (coming soon)" },
         walletProvisioning: { description: "FREE instant wallet creation for AI agents", endpoint: "/api/agent-wallet/create" }
       },
-      supportedNetworks: ["base", "base-sepolia", "ethereum", "polygon", "arbitrum", "optimism", "bnb", "solana"],
+      payableNetworks: payableNetworks.map(network => network.caip2),
+      dataQueryNetworks: [...DATA_QUERY_NETWORKS],
       documentation: `${baseUrl}/docs/x402`,
       catalogUrl: `${baseUrl}/api/x402/catalog`,
       discoveryManifests: {

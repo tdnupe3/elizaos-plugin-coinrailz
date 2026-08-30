@@ -25,10 +25,11 @@ import {
   getTokenBySymbol,
   type SupportedToken,
 } from './constants.js';
+import { PLATFORM_WALLETS } from '../../../utils/facilitatorHelper.js';
 
 export interface CreateIntentRequest {
   amount: string;
-  tokenSymbol: 'SOL' | 'USDC' | 'USDT';
+  tokenSymbol: 'USDC';
   serviceName: string;
   serviceSlug?: string;
   customerWallet?: string;
@@ -121,20 +122,16 @@ class SolanaPaymentService {
     return `CRPAY-${memoAlphabet()}`;
   }
 
-  async calculateFees(amount: number, tokenSymbol: string): Promise<FeeCalculation> {
+  async calculateFees(amount: number, _tokenSymbol: 'USDC'): Promise<FeeCalculation> {
     const tier = this.defaultFeeTier;
     
     const percentageFee = tier ? parseFloat(tier.percentageFee) : 0.005;
-    const minFeeSol = tier ? parseFloat(tier.minimumFeeSol) : 0.001;
     const minFeeUsdc = tier ? parseFloat(tier.minimumFeeUsdc) : 0.25;
     const tierName = tier?.name || 'standard';
 
     const calculatedFee = amount * percentageFee;
-    const minimumFee = tokenSymbol === 'SOL' ? minFeeSol : minFeeUsdc;
-    const feeAmount = Math.max(calculatedFee, minimumFee);
-
-    const solPrice = 150;
-    const feeAmountUsd = tokenSymbol === 'SOL' ? feeAmount * solPrice : feeAmount;
+    const feeAmount = Math.max(calculatedFee, minFeeUsdc);
+    const feeAmountUsd = feeAmount;
 
     return {
       baseAmount: amount,
@@ -147,12 +144,9 @@ class SolanaPaymentService {
   }
 
   async createIntent(request: CreateIntentRequest): Promise<CreateIntentResponse> {
-    const recipientAddress = solanaWalletManager.getPublicKeyString();
-    if (!recipientAddress) {
-      throw new Error('Solana wallet not initialized');
-    }
+    const recipientAddress = PLATFORM_WALLETS.solana;
 
-    const token = getTokenBySymbol(request.tokenSymbol);
+    const token = getTokenBySymbol('USDC');
     if (!token) {
       throw new Error(`Unsupported token: ${request.tokenSymbol}`);
     }
@@ -167,8 +161,7 @@ class SolanaPaymentService {
     const memoTag = this.generateMemoTag();
     const expiresAt = new Date(Date.now() + DEFAULT_INTENT_EXPIRATION_MINUTES * 60 * 1000);
 
-    const solPrice = 150;
-    const amountUsd = request.tokenSymbol === 'SOL' ? amount * solPrice : amount;
+    const amountUsd = amount;
 
     const intent: InsertSolanaPaymentIntent = {
       id: intentId,

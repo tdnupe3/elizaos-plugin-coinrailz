@@ -50,6 +50,7 @@ import { db } from "../db";
 import { microserviceRequests, x402PaymentIntents, users } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { eq, sql } from "drizzle-orm";
+import { getCanonicalPayableNetworks } from "../config/publicDiscoveryConfig";
 // CreditsPaymentService not used - using simplified atomic deduction instead
 
 const router = Router();
@@ -783,14 +784,15 @@ router.post("/checkout", async (req: Request, res: Response) => {
       await logAuditTrail(transactionId, serviceId, effectiveAgentId, "x402", "x402_redirected",
         Date.now() - startTime, { testMode, agentId }, { redirectedTo: `/x402/${serviceId}` });
       
+      const basePayment = getCanonicalPayableNetworks().find(network => network.id === 'base')!;
       return res.status(402).json({
         success: false,
         error: "x402 payment requires on-chain transaction",
         x402Challenge: {
-          payTo: process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+          payTo: basePayment.recipient,
           amount: priceUSD.toFixed(2),
           asset: "USDC",
-          network: "eip155:8453",
+          network: basePayment.caip2,
           serviceEndpoint: `/x402/${serviceId}`
         },
         transactionId,

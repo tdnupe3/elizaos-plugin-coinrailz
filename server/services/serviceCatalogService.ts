@@ -12,6 +12,8 @@
  */
 
 import { SERVICE_PRICING_USD, formatUSD, ServiceName, isServiceName } from "../../shared/pricing";
+import { getCanonicalServiceCount } from "../utils/serviceCount";
+import { getCanonicalPaymentRecipients, PUBLIC_DISCOVERY_VERSIONS } from "../config/publicDiscoveryConfig";
 
 interface ServiceCatalogEntry {
   id: string;
@@ -52,7 +54,6 @@ interface ServiceCatalog {
 }
 
 const BASE_URL = process.env.PUBLIC_BASE_URL || 'https://coinrailz.com';
-const PAY_TO = process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
 
 const CATEGORY_ORDER = [
   'discovery',
@@ -1040,13 +1041,13 @@ export class ServiceCatalogService {
    */
   getCatalog(): ServiceCatalog {
     return {
-      version: '1.1.0',
+      version: PUBLIC_DISCOVERY_VERSIONS.serviceCatalog,
       updated: new Date().toISOString(),
       baseUrl: BASE_URL,
-      payTo: PAY_TO,
+      payTo: getCanonicalPaymentRecipients().base,
       services: this.catalog,
       categories: CATEGORY_ORDER,
-      totalServices: this.catalog.length
+      totalServices: getCanonicalServiceCount()
     };
   }
 
@@ -1128,7 +1129,7 @@ export class ServiceCatalogService {
     
     return {
       catalogUrl: `${BASE_URL}/x402/catalog`,
-      totalServices: this.catalog.length,
+      totalServices: getCanonicalServiceCount(),
       categories: CATEGORY_ORDER,
       priceRange: {
         min: `$${minPrice.toFixed(2)}`,

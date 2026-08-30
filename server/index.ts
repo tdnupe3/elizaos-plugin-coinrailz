@@ -67,6 +67,16 @@ import express, { Router } from "express";
 import http from "http";
 import path from "path";
 import fs from "fs";
+import {
+  NETWORK_CAIP2,
+  PLATFORM_WALLETS,
+  USDC_BASE_ADDRESS,
+} from "./utils/facilitatorHelper";
+import {
+  DATA_QUERY_NETWORKS,
+  getCanonicalPayableNetworks,
+  PUBLIC_DISCOVERY_VERSIONS,
+} from "./config/publicDiscoveryConfig";
 
 // Create Express app and HTTP server IMMEDIATELY
 const app = express();
@@ -105,9 +115,11 @@ if (isProduction) {
   }
 }
 
-// Platform constants — used in fast-path discovery responses during cold-start
-const PLATFORM_PAY_TO = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
-const CDP_FACILITATOR_URL = 'https://api.cdp.coinbase.com/platform/v2/x402';
+// Canonical Base rail — used in fast-path discovery responses during cold-start.
+// This must be resolved through the same configuration as the full handlers.
+function getColdStartBasePayment() {
+  return getCanonicalPayableNetworks().find(network => network.id === 'base')!;
+}
 
 // CRITICAL: Health check endpoints FIRST - before ANY other code
 app.get('/healthz', (_req, res) => {
@@ -148,13 +160,18 @@ app.get('/.well-known/x402.json', (req, res, next) => {
   console.log('⚡ Fast-path x402.json (cold-start)');
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-cache');
+  const payableNetworks = getCanonicalPayableNetworks();
+  const basePayment = getColdStartBasePayment();
   res.json({
-    x402Version: 2,
-    facilitatorUrl: CDP_FACILITATOR_URL,
-    payTo: PLATFORM_PAY_TO,
-    facilitator: CDP_FACILITATOR_URL,
-    description: 'Coin Railz - Universal payment infrastructure for AI agents. Multi-chain USDC across 9 networks (8 EVM + Solana).',
-    version: 'x402-2.3',
+    x402Version: PUBLIC_DISCOVERY_VERSIONS.x402Protocol,
+    facilitatorUrl: basePayment.facilitator,
+    payTo: basePayment.recipient,
+    facilitator: basePayment.facilitator,
+    description: 'Coin Railz - Universal payment infrastructure for AI agents with canonical multi-chain USDC payment rails.',
+    version: PUBLIC_DISCOVERY_VERSIONS.x402Label,
+    specVersion: PUBLIC_DISCOVERY_VERSIONS.x402Spec,
+    payableNetworks: payableNetworks.map(network => network.caip2),
+    dataQueryNetworks: [...DATA_QUERY_NETWORKS],
     updated: '2026-05-05T00:00:00Z',
     platformUrl: 'https://coinrailz.com',
     services: [],
@@ -167,21 +184,22 @@ app.get('/.well-known/agent-card.json', (req, res, next) => {
   console.log('⚡ Fast-path agent-card.json (cold-start)');
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-cache');
+  const basePayment = getColdStartBasePayment();
   res.json({
     name: 'Coin Railz Payment Infrastructure',
     description: 'Universal payment layer for the AI agent economy — x402 micropayments, multi-chain USDC, DEX aggregation, and IoT payment infrastructure.',
     url: 'https://coinrailz.com',
-    version: '1.0.0',
+    version: PUBLIC_DISCOVERY_VERSIONS.manifest,
     capabilities: {
       x402Payments: true,
       x402: {
-        protocolVersion: '2.0.0',
-        facilitatorUrl: CDP_FACILITATOR_URL,
-        payTo: PLATFORM_PAY_TO,
-        paymentNetwork: 'eip155:8453',
+        protocolVersion: PUBLIC_DISCOVERY_VERSIONS.x402Spec,
+        facilitatorUrl: basePayment.facilitator,
+        payTo: basePayment.recipient,
+        paymentNetwork: NETWORK_CAIP2,
         paymentToken: {
           symbol: 'USDC',
-          address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+          address: USDC_BASE_ADDRESS,
           decimals: 6,
         },
       },

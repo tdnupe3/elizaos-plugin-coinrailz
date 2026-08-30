@@ -5,7 +5,7 @@
 
 import { Connection, PublicKey, ParsedTransactionWithMeta } from '@solana/web3.js';
 import { solanaPaymentService } from './solanaPaymentService.js';
-import { solanaWalletManager } from './constants.js';
+import { PLATFORM_WALLETS } from '../../../utils/facilitatorHelper.js';
 
 const HELIUS_RPC = process.env.HELIUS_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=demo';
 const POLL_INTERVAL_MS = 30000; // Poll every 30 seconds
@@ -28,11 +28,7 @@ class PaymentPoller {
       return;
     }
 
-    const platformWallet = solanaWalletManager.getPublicKeyString();
-    if (!platformWallet) {
-      console.error('❌ Cannot start poller - platform wallet not initialized');
-      return;
-    }
+    const platformWallet = PLATFORM_WALLETS.solana;
 
     this.isRunning = true;
     console.log('🔄 Payment poller started (fallback for webhooks)');
@@ -59,8 +55,7 @@ class PaymentPoller {
 
   private async pollForPayments(): Promise<void> {
     try {
-      const platformWallet = solanaWalletManager.getPublicKeyString();
-      if (!platformWallet) return;
+      const platformWallet = PLATFORM_WALLETS.solana;
 
       const pubkey = new PublicKey(platformWallet);
       
@@ -125,12 +120,12 @@ class PaymentPoller {
       }
 
       // Extract transfer amount
-      const transferAmount = this.extractTransferAmount(tx, solanaWalletManager.getPublicKeyString()!);
+      const transferAmount = this.extractTransferAmount(tx, PLATFORM_WALLETS.solana);
       
       // Mark as paid
       await solanaPaymentService.markIntentPaid(intent.id, signature, transferAmount);
       console.log(`✅ POLLER: Payment confirmed for ${intent.id}`);
-      console.log(`   Amount: ${transferAmount} SOL`);
+      console.log(`   Amount: ${transferAmount} USDC`);
 
     } catch (error) {
       console.error('❌ Error processing polled transaction:', error);

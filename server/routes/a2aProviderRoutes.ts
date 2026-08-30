@@ -8,6 +8,7 @@
 import { Router } from 'express';
 import { A2ABridgeAdapter } from '../adapters/a2aBridgeAdapter.js';
 import { ProviderType } from '../services/a2aAPIWrapperService.js';
+import { getCanonicalPayableNetworks } from '../config/publicDiscoveryConfig';
 
 const bridgeAdapter = new A2ABridgeAdapter();
 
@@ -73,7 +74,7 @@ export function createProviderRouter(provider: ProviderType): Router {
       pricing: {
         model: "per_request_x402",
         range: "$0.10 - $5.00 per request",
-        currency: "USDC on Base",
+        currency: "USDC",
         no_registration: true,
         no_setup_fees: true
       },
@@ -81,8 +82,11 @@ export function createProviderRouter(provider: ProviderType): Router {
       payment: {
         method: "x402_http_402",
         token: "USDC",
-        chain: "Base (8453)",
-        wallet: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+        payableNetworks: getCanonicalPayableNetworks().map(network => ({
+          network: network.caip2,
+          wallet: network.recipient,
+          asset: network.asset,
+        })),
         finality_seconds: 12
       },
       

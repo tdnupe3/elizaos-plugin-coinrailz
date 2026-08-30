@@ -208,6 +208,11 @@ try {
 } catch (e: any) {
   console.error('[startup] assertMcpCatalogConsistency import failed (non-fatal):', e?.message);
 }
+
+// Public payment discovery is safety-critical. Unlike descriptive catalog
+// warnings, invalid recipient/network mappings must stop startup.
+const { assertPublicDiscoveryConsistency } = await import('./config/publicDiscoveryConfig');
+assertPublicDiscoveryConsistency();
 // ============= END BOOT-TIME VALIDATION =============
 
 // ============= IP BLOCKLIST =============

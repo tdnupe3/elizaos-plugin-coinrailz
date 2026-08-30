@@ -117,11 +117,23 @@ export const USDT_SOLANA_MINT = 'Es9vMFrzaCERmnn4Xw4Jp9Dzk1XjCK8dygBBhPokv9wg';
 
 // Platform wallet addresses for each chain (same EVM address works on Ethereum, Base, and Arbitrum)
 export const PLATFORM_WALLETS = {
-  ethereum: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
-  base: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
-  arbitrum: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
-  solana: 'Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k',
+  ethereum: process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
+  base: process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
+  arbitrum: process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
+  // Migration rule: DEXTER_SOLANA_WALLET is authoritative. SOLANA_PUBLIC_KEY
+  // remains a lower-priority compatibility fallback until deployments migrate.
+  // Every payment and discovery surface imports this single resolved recipient.
+  solana:
+    process.env.DEXTER_SOLANA_WALLET
+    || process.env.SOLANA_PUBLIC_KEY
+    || 'BmUPzSupHJu2kW4cL27dF7Vc2JaZTwXKzFsRuagPDtL8',
 } as const;
+
+// Accepted only when verifying historical Solana payments issued before the
+// active-recipient migration. Never advertise these addresses to new payers.
+export const LEGACY_SOLANA_PAYMENT_RECIPIENTS = [
+  'Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k',
+] as const;
 
 // Stablecoin configurations per chain
 export const STABLECOIN_CONFIG = {

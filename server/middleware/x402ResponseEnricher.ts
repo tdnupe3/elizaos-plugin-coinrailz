@@ -18,10 +18,10 @@ import { serviceCatalogService } from "../services/serviceCatalogService";
 import { db } from "../db";
 import { x402PaymentIntents, x402CanaryPayments } from "@shared/schema";
 import { sql, gte, eq, desc, and } from "drizzle-orm";
-import { getFacilitatorUrl, getDexterFacilitatorUrl, NETWORK_LEGACY, NETWORK_CAIP2 } from "../utils/facilitatorHelper";
+import { getFacilitatorUrl, getDexterFacilitatorUrl, NETWORK_LEGACY, NETWORK_CAIP2, PLATFORM_WALLETS } from "../utils/facilitatorHelper";
 import { buildBazaarDiscoveryMetadata } from "../discovery/officialBazaarIntegration";
+import { getCanonicalPayableNetworks } from "../config/publicDiscoveryConfig";
 
-const DEXTER_SOLANA_WALLET = process.env.DEXTER_SOLANA_WALLET || "BmUPzSupHJu2kW4cL27dF7Vc2JaZTwXKzFsRuagPDtL8";
 const USDC_SOLANA_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const SOLANA_MAINNET = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 
@@ -65,11 +65,11 @@ function normalizeResourceUrl(resource: string | undefined, endpoint: string): s
 
 /**
  * Creates payment instructions object for 402 responses
- * Supports both USDC and USDT on Ethereum and Base chains
+ * Uses the canonical public USDC payment rails.
  * 
  * PAYMENT METHODS:
- * - EIP-3009 (transferWithAuthorization): USDC only (USDT doesn't support EIP-3009)
- * - Raw transaction hash: Both USDC and USDT supported
+ * - EIP-3009 (transferWithAuthorization): USDC
+ * - Raw transaction hash: USDC
  */
 // Cache for confidence metrics (refresh every 5 minutes)
 let confidenceCache: { data: any; timestamp: number } | null = null;
@@ -252,37 +252,41 @@ function formatAge(isoTimestamp: string): string {
 }
 
 function createPaymentInstructions() {
+  const payableNetworks = getCanonicalPayableNetworks();
+  const evmNetworks = payableNetworks.filter(network => network.id !== 'solana');
   return {
-    step1: "Obtain USDC or USDT on Ethereum (chainId: 1) or Base (chainId: 8453)",
-    step2_eip3009: "For USDC: Sign EIP-3009 authorization for the exact amount (USDC only)",
-    step2_rawTx: "For USDT or USDC: Send stablecoin to payTo address on either Ethereum or Base",
+    step1: "Obtain USDC on a payable network listed below",
+    step2_eip3009: "For Base USDC: Sign EIP-3009 authorization for the exact amount",
+    step2_rawTx: "Send USDC to the listed recipient on the selected payable network",
     step3: "Include payment proof in X-PAYMENT header with network field",
     step3_eip3009: "EIP-3009: Base64-encoded authorization JSON",
     step3_rawTx: "Raw tx: Transaction hash (0x...) or Base64-encoded {txHash, amount, network} JSON",
     step4: "Retry the request with X-PAYMENT header",
     supportedMethods: [
       { method: "eip3009-authorization", tokens: ["USDC"], description: "Gasless transfer via EIP-3009 signature" },
-      { method: "raw-transaction-hash", tokens: ["USDC", "USDT"], description: "Direct transfer verified on-chain" },
+      { method: "raw-transaction-hash", tokens: ["USDC"], description: "Direct transfer verified on-chain" },
       { method: "api-key", tokens: ["prepaid-credits"], description: "Use prepaid credits with X-API-KEY header (no blockchain required)" }
     ],
-    supportedNetworks: [
-      { network: "eip155:1", networkLegacy: "ethereum", chainId: 1, name: "Ethereum" },
-      { network: "eip155:8453", networkLegacy: "base", chainId: 8453, name: "Base" }
-    ],
+    payableNetworks: payableNetworks.map(network => ({
+      network: network.caip2,
+      chainId: network.chainId,
+      name: network.name,
+      token: network.asset,
+    })),
     network: "eip155:8453",
     networkLegacy: "base",
     x402Network: "eip155:8453",
     chainId: 8453,
-    acceptedTokens: {
-      ethereum: [
-        { symbol: "USDC", address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", name: "USD Coin", chainId: 1, supportsEIP3009: true },
-        { symbol: "USDT", address: "0xdAC17F958D2ee523a2206206994597C13D831ec7", name: "Tether USD", chainId: 1, supportsEIP3009: false }
-      ],
-      base: [
-        { symbol: "USDC", address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", name: "USD Coin", chainId: 8453, supportsEIP3009: true },
-        { symbol: "USDT", address: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2", name: "Tether USD", chainId: 8453, supportsEIP3009: false }
-      ]
-    },
+    acceptedTokens: Object.fromEntries(evmNetworks.map(network => [
+      network.id,
+      [{
+        symbol: network.asset,
+        address: network.assetAddress,
+        name: "USD Coin",
+        chainId: network.chainId,
+        supportsEIP3009: network.id === 'base',
+      }],
+    ])),
     token: "USDC",
     tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     sdkExamples: {
@@ -441,10 +445,12 @@ export function x402ResponseEnricher() {
             }
           }
 
-          enriched.supportedNetworks = [
-            { network: 'eip155:1', legacy: 'ethereum', chainId: 1 },
-            { network: 'eip155:8453', legacy: 'base', chainId: 8453 },
-          ];
+          enriched.payableNetworks = getCanonicalPayableNetworks().map(network => ({
+            network: network.caip2,
+            chainId: network.chainId,
+            name: network.name,
+            token: network.asset,
+          }));
 
           if (enriched.maxAmountRequired && !enriched.amount) {
             enriched.amount = enriched.maxAmountRequired;
@@ -457,19 +463,14 @@ export function x402ResponseEnricher() {
           if (!enriched.extra) {
             enriched.extra = {};
           }
-          const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-          const USDT_BASE = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2";
-          const USDC_ETH = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-          const USDT_ETH = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
           const assetLower = (enriched.asset || "").toLowerCase();
-          if (assetLower === USDT_BASE.toLowerCase() || assetLower === USDT_ETH.toLowerCase()) {
-            enriched.extra.name = enriched.extra.name || "Tether USD";
-          } else {
-            enriched.extra.name = enriched.extra.name || "USD Coin";
-          }
+          const matchingNetwork = getCanonicalPayableNetworks().find(
+            network => network.assetAddress.toLowerCase() === assetLower,
+          );
+          enriched.extra.name = "USD Coin";
           enriched.extra.version = enriched.extra.version || "2";
           enriched.extra.decimals = enriched.extra.decimals || 6;
-          const detectedChainId = assetLower === USDC_ETH.toLowerCase() || assetLower === USDT_ETH.toLowerCase() ? 1 : 8453;
+          const detectedChainId = matchingNetwork?.chainId || 8453;
           enriched.extra.chainId = enriched.extra.chainId || detectedChainId;
           enriched.extra.chainName = enriched.extra.chainName || (detectedChainId === 1 ? "Ethereum" : "Base");
           
@@ -490,7 +491,7 @@ export function x402ResponseEnricher() {
             maxAmountRequired: evmEntry.maxAmountRequired,
             amount: evmEntry.maxAmountRequired,
             maxAmountRequiredUSD: evmEntry.maxAmountRequiredUSD,
-            payTo: DEXTER_SOLANA_WALLET,
+            payTo: PLATFORM_WALLETS.solana,
             resource: evmEntry.resource,
             description: evmEntry.description,
             mimeType: evmEntry.mimeType || "application/json",

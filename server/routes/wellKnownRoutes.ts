@@ -7,7 +7,7 @@
 
 import { Router, Request, Response } from 'express';
 import { SERVICE_PRICING_USD, formatUSD, ServiceName, isServiceName, getServicePriceUSD } from '@shared/pricing';
-import { getFacilitatorUrl, getAllFacilitatorUrls } from '../utils/facilitatorHelper';
+import { getFacilitatorUrl, getAllFacilitatorUrls, PLATFORM_WALLETS, USDC_BASE_ADDRESS } from '../utils/facilitatorHelper';
 import { trackDiscovery } from '../middleware/hitTracker';
 import { db } from '../db';
 import { discoveredAgents } from '@shared/schema';
@@ -15,6 +15,13 @@ import { eq, or } from 'drizzle-orm';
 import { emitFirstContactAsync } from '../services/funnelHelper.js';
 import { getCanonicalServiceCount, getCanonicalServices } from '../utils/serviceCount';
 import { serviceCatalogService } from '../services/serviceCatalogService';
+import {
+  buildCanonicalPaymentManifest,
+  DATA_QUERY_NETWORKS,
+  getCanonicalPayableNetworks,
+  getCanonicalPaymentRecipients,
+  PUBLIC_DISCOVERY_VERSIONS,
+} from '../config/publicDiscoveryConfig';
 
 const MPP_PROTOCOL_VERSION = "1.0";
 
@@ -150,6 +157,7 @@ router.get('/.well-known/mcp-server.json', async (req: Request, res: Response) =
  */
 function buildServerCard(baseUrl: string) {
   const services = getCanonicalServices();
+  const payableNetworks = getCanonicalPayableNetworks();
 
   const tools = services.map(s => {
     const price = s.priceUsd > 0 ? `$${s.priceUsd.toFixed(2)} USDC` : 'free';
@@ -164,7 +172,7 @@ function buildServerCard(baseUrl: string) {
   return {
     serverInfo: {
       name: "coinrailz/x402-payment-infrastructure",
-      version: "1.1.0",
+      version: PUBLIC_DISCOVERY_VERSIONS.manifest,
     },
     title: "Coin Railz x402 Payment Infrastructure",
     description: `Production-grade x402 USDC payment infrastructure for AI agents. Coinbase AgentKit compatible. ${services.length} paid services across 9 blockchains (8 EVM + Solana). Categories: Crypto Intelligence, Trading Signals, Market Intelligence, Prediction Markets (Kalshi/Polymarket), Satellite Data (NASA Earthdata + ESA Sentinel), IoT & DePIN, AI Inference (GPT-4o-mini), Real Estate, Banking, and Compliance. Prices $0.05–$10.00 per call. Free $5 trial key at /api/m2m/credits/trial. AP2 v0.1, A2A 0.3.0, x402 v2.12 compatible.`,
@@ -186,7 +194,7 @@ function buildServerCard(baseUrl: string) {
       rel: "payment-policy",
       rails: ["x402", "stripe"],
       settlementToken: "USDC",
-      settlementChains: ["base", "solana"],
+      settlementChains: payableNetworks.map(network => network.caip2),
     },
     tools,
     resources: [],
@@ -245,8 +253,8 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
   const a2aAgentCard = {
     name: "Coin Railz Multi-Chain Payment Infrastructure",
     description: `Production-grade blockchain infrastructure for AI agents. ${getCanonicalServiceCount()} x402 micropayment services across 9 chains (8 EVM + Solana) + Native Coinbase Agentic Wallet support + OWS (Open Wallet Standard) compatible + MoonPay Agents compatible + NASA Earthdata Intelligence (5 services, $0.25/call) + ESA Satellite Data + AI Inference Gateway (GPT-4o-mini, $0.05/call) + IoT/DePIN data + SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker) + Real Estate + Banking + Trading + Market Intelligence + Prediction Markets. Processing fee: 1.5% + $0.01 per transaction.`,
-    version: "0.6.1",
-    x402ManifestVersion: "x402-2.3",
+    version: PUBLIC_DISCOVERY_VERSIONS.manifest,
+    x402ManifestVersion: PUBLIC_DISCOVERY_VERSIONS.x402Label,
     agentId: "coinrailz-x402-infrastructure",
     securityContact: "mailto:security@coinrailz.com",
     
@@ -367,7 +375,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
         amountMicroUSDC: 50000,
         chainsAccepted: ["eip155:8453", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"],
         facilitators: {
-          evm: "https://api.cdp.coinbase.com/platform/v2/x402",
+          evm: getCanonicalPayableNetworks().find(network => network.id === 'base')!.facilitator,
           solana: "https://x402.dexter.cash"
         },
         inputSchema: {
@@ -2684,7 +2692,7 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
               action: "Make Your First Paid Call",
               description: "Start with the Golden Path endpoint — $0.05 USDC, lowest price on platform. Receive 402, pay via facilitator, retry with X-PAYMENT header.",
               facilitator: {
-                evm: "https://api.cdp.coinbase.com/platform/v2/x402",
+                evm: getCanonicalPayableNetworks().find(network => network.id === 'base')!.facilitator,
                 solana: "https://x402.dexter.cash"
               },
               goldenPathEndpoint: `${baseUrl}/x402/first-call`,
@@ -2753,9 +2761,9 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
             "4. Retry request with X-PAYMENT header containing tx hash",
             "5. Receive service response"
           ],
-          facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
-          platformWallet: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
-          network: "eip155:8453",
+          facilitator: getCanonicalPayableNetworks().find(network => network.id === 'base')!.facilitator,
+          platformWallet: PLATFORM_WALLETS.base,
+          network: getCanonicalPayableNetworks().find(network => network.id === 'base')!.caip2,
           token: "USDC"
         },
         {
@@ -2799,7 +2807,7 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
         {
           issue: "402 Payment Required but payment not recognized",
           solutions: [
-            "Verify transaction was sent to correct wallet: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+            `Verify transaction was sent to the payTo address from ${baseUrl}/.well-known/payment-manifest.json`,
             "Confirm transaction is on Base mainnet (not Ethereum or other chains)",
             "Ensure payment is in USDC (not ETH or other tokens)",
             "Wait for transaction confirmation (1-2 blocks)"
@@ -2923,7 +2931,7 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
           "import httpx, json",
           "",
           `ENDPOINT = '${baseUrl}/x402/gas-price-oracle'`,
-          "FACILITATOR = 'https://api.cdp.coinbase.com/platform/v2/x402'",
+          `FACILITATOR = '${getCanonicalPayableNetworks().find(network => network.id === 'base')!.facilitator}'`,
           "",
           "# Step 1: probe — expect 402",
           "resp = httpx.post(ENDPOINT, json={})",
@@ -2997,6 +3005,8 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
  */
 router.get('/.well-known/agent-card.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
+  const payableNetworks = getCanonicalPayableNetworks();
+  const recipients = getCanonicalPaymentRecipients();
   
   // A2A Protocol v0.3.0 compliant agent card
   const svcCount = getCanonicalServiceCount();
@@ -3005,9 +3015,9 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
     name: "Coin Railz",
     description: `Multi-chain x402 micropayment infrastructure for AI agents. ${svcCount} pay-per-call API services for crypto analytics, trading signals, security audits, satellite data (NASA Earthdata Intelligence + ESA), real estate, banking, market intelligence, prediction markets, IoT/DePIN data, and AI inference. Native Coinbase Agentic Wallet compatible. Cloudflare Wallets compatible (launched Aug 2026). OWS (Open Wallet Standard) compatible. Pay with USDC on Ethereum or Base - prices from $0.05 to $10.00 per request.`,
     url: `${baseUrl}/a2a/v1`,
-    version: "3.1.0",
+    version: PUBLIC_DISCOVERY_VERSIONS.manifest,
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
-    payment_manifest: `${baseUrl}/x402/payment-manifest.json`,
+    payment_manifest: `${baseUrl}/.well-known/payment-manifest.json`,
 
     capabilities: {
       streaming: false,
@@ -3016,13 +3026,13 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       x402Payments: true,
       serviceCategories: ["Execution", "Treasury Management", "Market Intelligence", "Prediction Markets", "Satellite Intelligence", "IoT & DePIN", "AI Inference", "Real Estate", "Identity"],
       x402: {
-        protocolVersion: "2.12.0",
-        facilitatorUrl: "https://api.cdp.coinbase.com/platform/v2/x402",
-        payTo: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
-        paymentNetwork: "eip155:8453",
+        protocolVersion: PUBLIC_DISCOVERY_VERSIONS.x402Spec,
+        facilitatorUrl: payableNetworks.find(network => network.id === 'base')!.facilitator,
+        payTo: recipients.base,
+        paymentNetwork: payableNetworks.find(network => network.id === 'base')!.caip2,
         paymentToken: {
           symbol: "USDC",
-          address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          address: payableNetworks.find(network => network.id === 'base')!.assetAddress,
           decimals: 6
         },
         cloudflareWalletsCompatible: true,
@@ -3060,7 +3070,8 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       endpoint: `${baseUrl}/ap2/v1/merchant`,
       supportedPaymentMethods: ["X402", "CARD", "VISA", "MASTERCARD", "AMEX", "STRIPE"],
       supportedCurrencies: ["USDC", "USD"],
-      supportedChains: ["base", "solana"],
+      payableNetworks: payableNetworks.map(network => network.caip2),
+      dataQueryNetworks: [...DATA_QUERY_NETWORKS],
       cardPayment: {
         processor: "Stripe",
         minAmount: 1.00,
@@ -3902,7 +3913,8 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       paymentRails: ["x402-USDC", "stripe", "sdk-payments", "agentic-wallet"],  // Available payment methods
       totalServicesAvailable: getCanonicalServiceCount(),
       agenticWalletCompatible: true,    // Native Coinbase Agentic Wallet support
-      networksSupported: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "eip155:4663", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"],   // Primary blockchain networks (CAIP-2 format)
+      dataQueryNetworks: [...DATA_QUERY_NETWORKS],
+      payableNetworks: getCanonicalPayableNetworks().map(network => network.caip2),
       networkSupported: "eip155:8453",   // Primary blockchain network (CAIP-2 format) - kept for backwards compatibility
       paymentAsset: "USDC",              // Primary payment token
       sdkPackages: {
@@ -3952,7 +3964,7 @@ router.get('/.well-known/service-manifest.json', async (req: Request, res: Respo
 
   const manifest = {
     platform: "Coin Railz",
-    version: "2.1.0",
+    version: PUBLIC_DISCOVERY_VERSIONS.manifest,
     total_services: services.length,
     services,
     discoveryManifests: {
@@ -3977,60 +3989,45 @@ router.get('/.well-known/service-manifest.json', async (req: Request, res: Respo
  */
 router.get('/.well-known/payment-methods.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
+  const payableNetworks = getCanonicalPayableNetworks();
+  const recipients = getCanonicalPaymentRecipients();
+  const basePayment = payableNetworks.find(network => network.id === 'base')!;
   const paymentMethods = {
     platform: "Coin Railz",
-    version: "2.0.0",
+    version: PUBLIC_DISCOVERY_VERSIONS.manifest,
     
     crypto: {
       enabled: true,
-      wallet_address: process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+      wallet_address: recipients.base,
+      networks: payableNetworks
+        .filter(network => network.id !== 'solana')
+        .map(network => ({
+          chain: network.id,
+          chain_id: network.chainId,
+          caip2: network.caip2,
+          recipient: network.recipient,
+          tokens: [network.asset],
+          settlement_mode: network.settlementMode,
+          preferred: network.id === 'base',
+        })),
       
-      networks: [
-        {
-          chain: "base",
-          chain_id: 8453,
-          tokens: ["USDC", "USDT", "ETH", "DAI"],
-          preferred: true
-        },
-        {
-          chain: "ethereum",
-          chain_id: 1,
-          tokens: ["USDC", "USDT", "ETH", "DAI", "WBTC"]
-        },
-        {
-          chain: "polygon",
-          chain_id: 137,
-          tokens: ["USDC", "USDT", "MATIC", "DAI"]
-        },
-        {
-          chain: "arbitrum",
-          chain_id: 42161,
-          tokens: ["USDC", "USDT", "ETH", "DAI"]
-        },
-        {
-          chain: "optimism",
-          chain_id: 10,
-          tokens: ["USDC", "USDT", "ETH", "DAI"]
-        }
-      ],
-      
-      stablecoins: ["USDC", "USDT", "DAI"],
+      stablecoins: [...new Set(payableNetworks.map(network => network.asset))],
       preferred_token: "USDC"
     },
     
     x402: {
       enabled: true,
-      protocol_version: "2.0.0",
-      facilitator: "x402.org",
-      settlement_network: "eip155:8453",
+      protocol_version: PUBLIC_DISCOVERY_VERSIONS.x402Spec,
+      facilitator: basePayment.facilitator,
+      settlement_network: basePayment.caip2,
       minimum_payment: 0.10
     },
     
     solana: {
       enabled: true,
-      wallet_address: process.env.SOLANA_PUBLIC_KEY || "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k",
-      network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-      tokens: ["SOL", "USDC", "USDT"],
+      wallet_address: recipients.solana,
+      network: payableNetworks.find(network => network.id === 'solana')!.caip2,
+      tokens: ["USDC"],
       preferred_token: "USDC",
       fee_percentage: 0.005,
       minimum_payment: 0.10,
@@ -4073,11 +4070,11 @@ router.get('/.well-known/payment-methods.json', async (req: Request, res: Respon
         endpoint: `${baseUrl}/x402/first-call`,
         method: "POST",
         price_usdc: 0.05,
-        network: "eip155:8453",
+        network: payableNetworks.find(network => network.id === 'base')!.caip2,
         token: "USDC",
-        token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-        facilitator_url: "https://api.cdp.coinbase.com/platform/v2/x402",
-        pay_to: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+        token_address: payableNetworks.find(network => network.id === 'base')!.assetAddress,
+        facilitator_url: basePayment.facilitator,
+        pay_to: recipients.base,
         description: "Canonical $0.05 USDC onboarding call — returns platform overview and available services"
       },
       free_trial: {
@@ -4092,6 +4089,15 @@ router.get('/.well-known/payment-methods.json', async (req: Request, res: Respon
   res.status(200).json(paymentMethods);
 });
 
+function sendCanonicalPaymentManifest(req: Request, res: Response) {
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.setHeader('Content-Type', 'application/json');
+  res.status(200).json(buildCanonicalPaymentManifest(getBaseUrl(req)));
+}
+
+router.get('/.well-known/payment-manifest', sendCanonicalPaymentManifest);
+router.get('/.well-known/payment-manifest.json', sendCanonicalPaymentManifest);
+
 /**
  * GET /.well-known/x402.json
  * 
@@ -4100,23 +4106,29 @@ router.get('/.well-known/payment-methods.json', async (req: Request, res: Respon
  */
 router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
+  const payableNetworks = getCanonicalPayableNetworks();
+  const recipients = getCanonicalPaymentRecipients();
+  const basePayment = payableNetworks.find(network => network.id === 'base')!;
+  const canonicalFacilitators = [...new Set(
+    payableNetworks.map(network => network.facilitator).filter(Boolean),
+  )];
   
   const x402Manifest = {
     name: "Coin Railz",
     homepage: "https://coinrailz.com",
     contact: "support@coinrailz.com",
     description: "AI agent marketplace with x402 autonomous payment endpoints, native Coinbase Agentic Wallet support, A2A 2.0 discovery, SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker), satellite data APIs (NASA/ESA), and multi-chain support across 9 networks (8 EVM + Solana). Processing fee: 1.5% + $0.01 per transaction.",
-    version: "x402-2.12",
-    specVersion: "2.12.0",
-    x402Version: 2,
-    facilitatorUrl: getFacilitatorUrl(),
-    payTo: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
-    facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+    version: PUBLIC_DISCOVERY_VERSIONS.x402Label,
+    specVersion: PUBLIC_DISCOVERY_VERSIONS.x402Spec,
+    x402Version: PUBLIC_DISCOVERY_VERSIONS.x402Protocol,
+    facilitatorUrl: basePayment.facilitator,
+    payTo: recipients.base,
+    facilitator: basePayment.facilitator,
     service_count: getCanonicalServiceCount(),
     updated: new Date().toISOString().split('T')[0] + 'T00:00:00Z',
     instructions: `${baseUrl}/.well-known/agent-instructions.json`,
     agent_instructions: `${baseUrl}/.well-known/agent-instructions.json`,
-    payment_manifest: `${baseUrl}/x402/payment-manifest.json`,
+    payment_manifest: `${baseUrl}/.well-known/payment-manifest.json`,
     registrationEndpoint: `${baseUrl}/.well-known/agent-registration.json`,
     quickstart: {
       summary: "Three paths to start using Coin Railz services. Fastest: free trial key in one GET request.",
@@ -4138,7 +4150,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         recommended_first_service: `POST ${baseUrl}/x402/first-call`,
         price_usd: 0.05,
         payment_header: "X-PAYMENT: <base64url-encoded x402 signed payload>",
-        facilitators: ["https://api.cdp.coinbase.com/platform/v2/x402", "https://x402.dexter.cash"]
+        facilitators: canonicalFacilitators
       }
     },
     sdk: {
@@ -4149,13 +4161,11 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       docker: "tdnupe3/agent-payments",
       processingFee: "1.5% + $0.01"
     },
-    networks: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "eip155:4663", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"],
+    payableNetworks: payableNetworks.map(network => network.caip2),
+    dataQueryNetworks: [...DATA_QUERY_NETWORKS],
     walletProviders: ["coinbase-cdp", "moonpay-agents", "any-evm"],
     categories: ["Execution", "Treasury Management", "Market Intelligence", "Prediction Markets", "Satellite Intelligence", "IoT & DePIN", "AI Inference", "Real Estate", "RWA & Tokenization", "Identity"],
-    facilitators: [
-      "https://api.cdp.coinbase.com/platform/v2/x402",
-      "https://x402.dexter.cash"
-    ],
+    facilitators: canonicalFacilitators,
     gateways: [
       {
         name: "Cloudflare Worker Gateway",
@@ -4191,7 +4201,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         decimals: 6
       },
-      platform_wallet: process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+      platform_wallet: recipients.base,
       agenticWalletCompatible: true,
       agenticWalletVersion: "0.10.3",
       walletProvisioning: {
@@ -4384,15 +4394,15 @@ router.get('/.well-known/pricing.json', async (req: Request, res: Response) => {
   const pricing = {
     platform: "Coin Railz",
     description: "Universal x402 payment infrastructure for the AI agent economy. Pay-per-call USDC micropayments on Base. No API keys, no subscriptions required.",
-    version: "3.0.0",
+    version: PUBLIC_DISCOVERY_VERSIONS.manifest,
     updated: new Date().toISOString().split('T')[0],
-    total_services: totalServices,
+    total_services: getCanonicalServiceCount(),
     payment: {
       protocol: "x402",
       currency: "USDC",
       primary_network: "Base (eip155:8453)",
       also_accepted: ["Solana mainnet (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp)"],
-      facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+      facilitator: getCanonicalPayableNetworks().find(network => network.id === 'base')!.facilitator,
       how_to_pay: "Send POST to any /x402/* endpoint. Receive HTTP 402 with payment requirements. Submit USDC payment on Base. Include X-PAYMENT header on retry.",
       onboarding_endpoint: `${baseUrl}/x402/first-call`,
       onboarding_price_usd: 0.05,
@@ -4437,40 +4447,27 @@ router.get('/.well-known/pricing.json', async (req: Request, res: Response) => {
  */
 router.get('/.well-known/solana.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
+  const solanaPaymentNetwork = getCanonicalPayableNetworks().find(network => network.id === 'solana')!;
   
   const solanaManifest = {
     name: "Coin Railz Solana Payment Processor",
     homepage: "https://coinrailz.com/solana-pay",
     contact: "support@coinrailz.com",
-    description: "Payment processing as a service for Solana-native AI agents. 0.5% fees, instant webhook settlement, SOL/USDC/USDT support. Built for Truth Terminal, pump.fun traders, and Jito MEV bots.",
-    version: "1.0.0",
-    network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+    description: "USDC payment processing for Solana-native AI agents with instant webhook settlement.",
+    version: PUBLIC_DISCOVERY_VERSIONS.manifest,
+    network: solanaPaymentNetwork.caip2,
     
     wallet: {
-      address: process.env.SOLANA_PUBLIC_KEY || "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k",
+      address: solanaPaymentNetwork.recipient,
       type: "platform_wallet"
     },
     
-    tokens: [
-      {
-        symbol: "SOL",
-        mint: "native",
-        decimals: 9,
-        name: "Solana"
-      },
-      {
-        symbol: "USDC",
-        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        decimals: 6,
-        name: "USD Coin"
-      },
-      {
-        symbol: "USDT",
-        mint: "Es9vMFrzaCERmnn4Xw4Jp9Dzk1XjCK8dygBBhPokv9wg",
-        decimals: 6,
-        name: "Tether USD"
-      }
-    ],
+    tokens: [{
+      symbol: solanaPaymentNetwork.asset,
+      mint: solanaPaymentNetwork.assetAddress,
+      decimals: solanaPaymentNetwork.decimals,
+      name: "USD Coin"
+    }],
     
     payment_flow: {
       type: "intent-based",
@@ -4486,9 +4483,8 @@ router.get('/.well-known/solana.json', async (req: Request, res: Response) => {
     
     fees: {
       percentage: 0.005,
-      minimum_sol: 0.001,
       minimum_usdc: 0.25,
-      description: "0.5% fee with minimum thresholds per token"
+      description: "0.5% fee with a USDC minimum"
     },
     
     endpoints: {
@@ -4558,14 +4554,15 @@ router.get('/.well-known/solana.json', async (req: Request, res: Response) => {
  */
 router.get('/.well-known/solana-actions.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
-  const platformWallet = process.env.SOLANA_PUBLIC_KEY || "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k";
+  const solanaPaymentNetwork = getCanonicalPayableNetworks().find(network => network.id === 'solana')!;
+  const platformWallet = solanaPaymentNetwork.recipient;
   
   const solanaActionsManifest = {
     name: "Coin Railz Payment Actions",
     description: "Solana Actions for AI agent payments and data services. Create payment intents, check token prices, get trending tokens, and whale alerts.",
     icon: `${baseUrl}/logo.jpg`,
-    blockchain: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-    version: "2.4",
+    blockchain: solanaPaymentNetwork.caip2,
+    version: PUBLIC_DISCOVERY_VERSIONS.manifest,
     
     rules: [
       {
@@ -4599,7 +4596,7 @@ router.get('/.well-known/solana-actions.json', async (req: Request, res: Respons
         method: "POST",
         parameters: {
           amount: { type: "string", required: true, description: "Payment amount" },
-          tokenSymbol: { type: "string", required: true, enum: ["SOL", "USDC", "USDT"] },
+          tokenSymbol: { type: "string", required: true, enum: ["USDC"] },
           serviceName: { type: "string", required: true, description: "Service to pay for" }
         },
         recipient: platformWallet
@@ -4670,11 +4667,11 @@ router.get('/.well-known/solana-actions.json', async (req: Request, res: Respons
     
     identity: {
       wallet: platformWallet,
-      network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"
+      network: solanaPaymentNetwork.caip2
     },
     
     metadata: {
-      version: "1.0.0",
+      version: PUBLIC_DISCOVERY_VERSIONS.manifest,
       created: "2025-12-23",
       updated: new Date().toISOString().split('T')[0],
       contact: "support@coinrailz.com",
@@ -4699,14 +4696,14 @@ router.get('/.well-known/solana-actions.json', async (req: Request, res: Respons
  */
 router.get('/.well-known/solana-pay.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
-  const platformWallet = process.env.SOLANA_PUBLIC_KEY || "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k";
+  const platformWallet = getCanonicalPaymentRecipients().solana;
   
   const solanaPayManifest = {
-    schema_version: "1.0.0",
+    schema_version: PUBLIC_DISCOVERY_VERSIONS.manifest,
     
     merchant: {
       name: "Coin Railz",
-      description: "Multi-chain payment infrastructure for AI agents. Accept SOL, USDC, USDT payments with automatic webhook settlement.",
+      description: "USDC payment infrastructure for AI agents on Solana with automatic webhook settlement.",
       logo: `${baseUrl}/logo.jpg`,
       website: "https://coinrailz.com",
       support_email: "support@coinrailz.com",
@@ -4718,26 +4715,12 @@ router.get('/.well-known/solana-pay.json', async (req: Request, res: Response) =
       network: "mainnet-beta",
       cluster: "mainnet",
       
-      accepted_tokens: [
-        {
-          symbol: "SOL",
-          mint: "native",
-          decimals: 9,
-          minimum: 0.001
-        },
-        {
-          symbol: "USDC",
-          mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-          decimals: 6,
-          minimum: 0.25
-        },
-        {
-          symbol: "USDT",
-          mint: "Es9vMFrzaCERmnn4Xw4Jp9Dzk1XjCK8dygBBhPokv9wg",
-          decimals: 6,
-          minimum: 0.25
-        }
-      ],
+      accepted_tokens: [{
+        symbol: "USDC",
+        mint: getCanonicalPayableNetworks().find(network => network.id === 'solana')!.assetAddress,
+        decimals: 6,
+        minimum: 0.25
+      }],
       
       memo_required: true,
       memo_format: "CRPAY-[A-Z0-9]{8}",
@@ -4781,7 +4764,7 @@ router.get('/.well-known/solana-pay.json', async (req: Request, res: Response) =
       "intent_based_payments",
       "webhook_notifications",
       "memo_matching",
-      "multi_token_support",
+      "canonical_usdc_rail",
       "automatic_settlement"
     ],
     
@@ -4795,7 +4778,7 @@ router.get('/.well-known/solana-pay.json', async (req: Request, res: Response) =
     metadata: {
       created: "2025-12-23",
       updated: new Date().toISOString().split('T')[0],
-      version: "1.0.0"
+      version: PUBLIC_DISCOVERY_VERSIONS.manifest
     }
   };
   
@@ -4831,7 +4814,7 @@ router.get('/.well-known/helius.json', async (req: Request, res: Response) => {
       ],
       
       addresses_monitored: [
-        process.env.SOLANA_PUBLIC_KEY || "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k"
+        getCanonicalPaymentRecipients().solana
       ]
     },
     
@@ -4856,14 +4839,14 @@ router.get('/.well-known/helius.json', async (req: Request, res: Response) => {
  */
 router.get('/solana-openrpc.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
-  const platformWallet = process.env.SOLANA_PUBLIC_KEY || "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k";
+  const platformWallet = getCanonicalPaymentRecipients().solana;
   
   const openrpcSpec = {
     openrpc: "1.2.6",
     info: {
       title: "Coin Railz Solana Pay API",
-      description: "Payment processing API for Solana-native AI agents. Create payment intents, check status, and access paid data services using SOL, USDC, or USDT.",
-      version: "1.0.0",
+      description: "USDC payment processing API for Solana-native AI agents. Create payment intents, check status, and access paid data services.",
+      version: PUBLIC_DISCOVERY_VERSIONS.manifest,
       contact: {
         name: "Coin Railz Support",
         email: "support@coinrailz.com",
@@ -4884,7 +4867,7 @@ router.get('/solana-openrpc.json', async (req: Request, res: Response) => {
         tags: [{name: "payments"}],
         params: [
           { name: "amount", required: true, schema: { type: "string" } },
-          { name: "tokenSymbol", required: true, schema: { type: "string", enum: ["SOL", "USDC", "USDT"] } },
+          { name: "tokenSymbol", required: true, schema: { type: "string", enum: ["USDC"] } },
           { name: "serviceName", required: true, schema: { type: "string" } }
         ],
         result: {
@@ -5044,21 +5027,17 @@ router.get('/.well-known/agent-registration.json', (req: Request, res: Response)
 
     payments: {
       protocol: 'x402',
-      x402Version: 2,
-      supportedChains: [
-        { id: 'eip155:8453', name: 'Base', token: 'USDC', contractAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
-        { id: 'eip155:1', name: 'Ethereum', token: 'USDC', contractAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' },
-        { id: 'eip155:137', name: 'Polygon', token: 'USDC', contractAddress: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' },
-        { id: 'eip155:42161', name: 'Arbitrum', token: 'USDC', contractAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' },
-        process.env.ROBINHOOD_CHAIN_CCTP_ENABLED === 'true'
-          ? { id: 'eip155:4663', name: 'Robinhood Chain', token: 'USDC', contractAddress: process.env.USDC_ROBINHOOD_ADDRESS || '', cctpDomain: process.env.CCTP_DOMAIN_ROBINHOOD ? parseInt(process.env.CCTP_DOMAIN_ROBINHOOD, 10) : undefined }
-          : { id: 'eip155:4663', name: 'Robinhood Chain', token: 'USDC', contractAddress: null, status: 'pending_cctp', note: 'Awaiting Circle CCTP domain assignment for eip155:4663. Set ROBINHOOD_CHAIN_CCTP_ENABLED=true + USDC_ROBINHOOD_ADDRESS to activate.' },
-        { id: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', name: 'Solana', token: 'USDC', contractAddress: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' },
-      ],
-      facilitators: {
-        evm: 'https://api.cdp.coinbase.com/platform/v2/x402',
-        solana: 'https://x402.dexter.cash',
-      },
+      x402Version: PUBLIC_DISCOVERY_VERSIONS.x402Protocol,
+      payableNetworks: getCanonicalPayableNetworks().map(network => ({
+        id: network.caip2,
+        name: network.name,
+        token: network.asset,
+        contractAddress: network.assetAddress,
+        recipient: network.recipient,
+      })),
+      facilitators: Object.fromEntries(
+        getCanonicalPayableNetworks().map(network => [network.id, network.facilitator]),
+      ),
       pricingModel: {
         type: 'per-call',
         range: '$0.05 — $10.00 per request',
@@ -5131,7 +5110,8 @@ router.get('/.well-known/agent-registration.json', (req: Request, res: Response)
             catalogUrl: `${baseUrl}/x402/catalog`,
             docsUrl: `${baseUrl}/.well-known/agent-instructions.json`,
             recommendedFundingToken: 'USDC',
-            supportedChains: ['Base', 'Ethereum', 'Polygon', 'Arbitrum', 'Robinhood Chain', 'Solana'],
+            payableNetworks: getCanonicalPayableNetworks().map(network => network.caip2),
+            dataQueryNetworks: [...DATA_QUERY_NETWORKS],
           },
         },
       },
@@ -5401,7 +5381,7 @@ router.get('/.well-known/mpp.json', (req: Request, res: Response) => {
     credentialScheme: "Authorization: Payment <base64-credential-json>",
     settlementCurrency: "pathUSD",
     settlementNetwork: "Tempo",
-    tempoRecipient: process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+    tempoRecipient: PLATFORM_WALLETS.base,
     services: [
       {
         id: "ping",
@@ -5797,7 +5777,7 @@ router.get('/.well-known/awi.json', (req: Request, res: Response) => {
     pricing: {
       model: "pay-per-call",
       settlementCurrency: "USDC",
-      settlementChains: ["Base", "Ethereum", "Polygon", "Arbitrum", "Solana"],
+      settlementChains: getCanonicalPayableNetworks().map(network => network.caip2),
       processingFee: "1.5% + $0.01/tx",
       range: "$0.05–$10.00 per call",
       freeTrial: "$5 USDC equivalent, no payment required",
@@ -6046,14 +6026,14 @@ router.get('/.well-known/x402-services.json', (req: Request, res: Response) => {
   res.setHeader('Cache-Control', 'public, max-age=300');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.status(200).json({
-    version: '2.0',
+    version: PUBLIC_DISCOVERY_VERSIONS.manifest,
     protocol: 'x402',
-    specVersion: '2.12.0',
+    specVersion: PUBLIC_DISCOVERY_VERSIONS.x402Spec,
     platform: {
       name: 'Coin Railz',
       url: baseUrl,
-      payTo: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
-      facilitator: 'https://api.cdp.coinbase.com/platform/v2/x402',
+      payTo: PLATFORM_WALLETS.base,
+      facilitator: getCanonicalPayableNetworks().find(network => network.id === 'base')!.facilitator,
       trialKey: `${baseUrl}/api/m2m/credits/trial`,
       contact: 'support@coinrailz.com',
     },
@@ -6087,9 +6067,11 @@ router.get('/.well-known/x402-services.json', (req: Request, res: Response) => {
 router.get('/.well-known/x402/discovery/resources', (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
   const catalog = serviceCatalogService.getCatalog();
-  const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-  const PLATFORM_WALLET = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
-  const PRIMARY_FACILITATOR = 'https://api.cdp.coinbase.com/platform/v2/x402';
+  const USDC_BASE = USDC_BASE_ADDRESS;
+  const PLATFORM_WALLET = PLATFORM_WALLETS.base;
+  const payableNetworks = getCanonicalPayableNetworks();
+  const basePayment = payableNetworks.find(network => network.id === 'base')!;
+  const PRIMARY_FACILITATOR = basePayment.facilitator!;
 
   const resources = catalog.services
     .filter(s => s.x402Compatible)
@@ -6104,10 +6086,10 @@ router.get('/.well-known/x402/discovery/resources', (req: Request, res: Response
         capabilities: s.capabilities,
         accepts: [{
           scheme: 'exact',
-          network: s.network || 'eip155:8453',
+          network: basePayment.caip2,
           maxAmountRequired: String(Math.round(priceUsd * 1_000_000)),
-          payTo: PLATFORM_WALLET,
-          asset: USDC_BASE,
+          payTo: basePayment.recipient,
+          asset: basePayment.assetAddress,
         }],
       };
     });
@@ -6118,7 +6100,9 @@ router.get('/.well-known/x402/discovery/resources', (req: Request, res: Response
     resources,
     total: resources.length,
     facilitator: PRIMARY_FACILITATOR,
-    facilitators: [PRIMARY_FACILITATOR, 'https://x402.dexter.cash'],
+    facilitators: [...new Set(
+      payableNetworks.map(network => network.facilitator).filter(Boolean),
+    )],
     baseUrl,
     timestamp: new Date().toISOString(),
   });
@@ -6134,20 +6118,21 @@ router.get('/.well-known/x402/discovery/resources', (req: Request, res: Response
 router.get('/.well-known/api-catalog', (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
   const catalog = serviceCatalogService.getCatalog();
-  const categories = [...new Set(catalog.services.map(s => s.category))];
+  const categories = Array.from(new Set(catalog.services.map(s => s.category)));
 
   res.setHeader('Cache-Control', 'public, max-age=300');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.status(200).json({
-    catalog_version: '1.0',
+    catalog_version: PUBLIC_DISCOVERY_VERSIONS.manifest,
     platform: 'Coin Railz',
     description: 'Multi-chain x402 USDC micropayment infrastructure for AI agents. Pay-per-call across 9 blockchains with no accounts required.',
     openapi: `${baseUrl}/openapi.json`,
-    services_total: catalog.services.length,
+    services_total: getCanonicalServiceCount(),
     x402_services: catalog.services.filter(s => s.x402Compatible).length,
     categories,
     pricing_range: { min_usd: 0.05, max_usd: 0.50, currency: 'USDC' },
-    networks: ['base', 'ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'solana'],
+    payableNetworks: getCanonicalPayableNetworks().map(network => network.caip2),
+    dataQueryNetworks: [...DATA_QUERY_NETWORKS],
     trial_key: `${baseUrl}/api/m2m/credits/trial`,
     discovery: {
       x402_manifest: `${baseUrl}/.well-known/x402.json`,
@@ -6173,12 +6158,15 @@ router.get('/.well-known/api-catalog', (req: Request, res: Response) => {
  */
 router.get('/.well-known/autopay-guide.json', (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
+  const payableNetworks = getCanonicalPayableNetworks();
+  const basePayment = payableNetworks.find(network => network.id === 'base')!;
+  const solanaPayment = payableNetworks.find(network => network.id === 'solana')!;
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'public, max-age=300');
   res.json({
     title: "Coin Railz Auto-Pay Guide",
-    version: "1.0.0",
+    version: PUBLIC_DISCOVERY_VERSIONS.manifest,
     protocol: "x402",
     specVersion: "2",
     audience: "AI agents and autonomous frameworks that received an HTTP 402 Payment Required and need to complete the payment programmatically.",
@@ -6200,12 +6188,12 @@ router.get('/.well-known/autopay-guide.json', (req: Request, res: Response) => {
         example_402_body: {
           x402Version: 2,
           accepts: [{
-            network: "base",
-            asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            network: basePayment.caip2,
+            asset: basePayment.assetAddress,
             maxAmountRequired: "50000",
-            payTo: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+            payTo: basePayment.recipient,
             extra: {
-              facilitatorUrl: "https://api.cdp.coinbase.com/platform/v2/x402",
+              facilitatorUrl: basePayment.facilitator,
               name: "USDC"
             }
           }]
@@ -6218,7 +6206,7 @@ router.get('/.well-known/autopay-guide.json', (req: Request, res: Response) => {
         facilitators: {
           cdp: {
             name: "Coinbase CDP (primary)",
-            url: "https://api.cdp.coinbase.com/platform/v2/x402",
+            url: basePayment.facilitator,
             sdk: "npm install @coinbase/cdp-sdk",
             chains: ["base", "ethereum", "polygon", "arbitrum"],
             docs: "https://docs.cdp.coinbase.com"
@@ -6261,19 +6249,19 @@ router.get('/.well-known/autopay-guide.json', (req: Request, res: Response) => {
 
     networks: {
       base: {
-        caip2: "eip155:8453",
-        asset: "USDC",
-        contractAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-        payTo: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
-        facilitatorUrl: "https://api.cdp.coinbase.com/platform/v2/x402",
+        caip2: basePayment.caip2,
+        asset: basePayment.asset,
+        contractAddress: basePayment.assetAddress,
+        payTo: basePayment.recipient,
+        facilitatorUrl: basePayment.facilitator,
         minAmount: "$0.05 USDC"
       },
       solana: {
-        caip2: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-        asset: "USDC",
-        tokenMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        payTo: "BmUPzSupHJu2kW4cL27dF7Vc2JaZTwXKzFsRuagPDtL8",
-        facilitatorUrl: "https://x402.dexter.cash",
+        caip2: solanaPayment.caip2,
+        asset: solanaPayment.asset,
+        tokenMint: solanaPayment.assetAddress,
+        payTo: solanaPayment.recipient,
+        facilitatorUrl: solanaPayment.facilitator,
         minAmount: "$0.05 USDC"
       }
     },
@@ -6283,7 +6271,7 @@ router.get('/.well-known/autopay-guide.json', (req: Request, res: Response) => {
       url: `${baseUrl}/x402/first-call`,
       method: "POST",
       price: "$0.05 USDC",
-      networks: ["base", "solana"],
+      networks: payableNetworks.map(network => network.caip2),
       expected_response: { success: true, message: "First call completed successfully." }
     },
 
@@ -6328,6 +6316,8 @@ router.all('/.well-known/*', (req: Request, res: Response) => {
       '/.well-known/ai-plugin.json',
       '/.well-known/service-manifest.json',
       '/.well-known/payment-methods.json',
+      '/.well-known/payment-manifest',
+      '/.well-known/payment-manifest.json',
       '/.well-known/pricing.json',
       '/.well-known/solana.json',
       '/.well-known/solana-actions.json',

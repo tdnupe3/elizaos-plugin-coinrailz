@@ -16,6 +16,7 @@ import crypto from 'crypto';
 import { db } from '../db';
 import { endpointHits, a2aInteractions } from '../../shared/schema';
 import { serviceCatalogService } from '../services/serviceCatalogService';
+import { getCanonicalPayableNetworks, PUBLIC_DISCOVERY_VERSIONS } from '../config/publicDiscoveryConfig';
 
 const router = Router();
 
@@ -488,7 +489,7 @@ router.get('/a2a/v1', (req: Request, res: Response) => {
     documentationUrl: `${BASE_URL}/.well-known/agent-instructions.json`,
     agentCard: `${BASE_URL}/.well-known/agent-card.json`,
     paymentProtocol: 'x402',
-    supportedChains: ['ethereum', 'base', 'polygon', 'arbitrum', 'solana'],
+    supportedChains: getCanonicalPayableNetworks().map(network => network.id),
     priceRange: '$0.10 – $10.00 USDC per request',
     interactionEndpoint: `${BASE_URL}/a2a/v1/message/send`,
     usage: 'POST /a2a/v1/message/send with { "message": { "parts": [{ "text": "your request" }] } }'
@@ -521,7 +522,7 @@ function handleCensusGet(req: Request, res: Response) {
     documentationUrl: `${BASE_URL}/.well-known/agent-instructions.json`,
     agentCard: `${BASE_URL}/.well-known/agent-card.json`,
     paymentProtocol: 'x402',
-    supportedChains: ['ethereum', 'base', 'polygon', 'arbitrum', 'solana'],
+    supportedChains: getCanonicalPayableNetworks().map(network => network.id),
     priceRange: '$0.05 – $10.00 USDC per request',
     interactionEndpoint: `${BASE_URL}/a2a/v1/message/send`,
     usage: 'POST /a2a/v1/message/send with { "message": { "parts": [{ "text": "your request" }] } }'
@@ -564,7 +565,7 @@ function handleMessageSend(req: Request, res: Response) {
       documentationUrl: `${BASE_URL}/.well-known/agent-instructions.json`,
       agentCard: `${BASE_URL}/.well-known/agent-card.json`,
       paymentProtocol: 'x402',
-      supportedChains: ['ethereum', 'base', 'polygon', 'arbitrum', 'solana'],
+      supportedChains: getCanonicalPayableNetworks().map(network => network.id),
       priceRange: '$0.05 – $10.00 USDC per request',
       interactionEndpoint: `${BASE_URL}/a2a/v1/message/send`,
       usage: 'POST /a2a/v1/message/send with { "message": { "parts": [{ "text": "your request" }] } }'
@@ -674,6 +675,17 @@ function handleMessageSend(req: Request, res: Response) {
   }
 
   const top = matches[0];
+  const paymentNetworks = getCanonicalPayableNetworks()
+    .filter(network => network.id === 'base' || network.id === 'solana')
+    .map(network => ({
+      chain: network.id,
+      caip2: network.caip2,
+      payTo: network.recipient,
+      ...(network.id === 'solana'
+        ? { tokenMint: network.assetAddress }
+        : { tokenContract: network.assetAddress }),
+      facilitator: network.facilitator,
+    }));
 
   const responseText = matches.length === 1
     ? formatServiceText(top)
@@ -698,27 +710,12 @@ function handleMessageSend(req: Request, res: Response) {
     alternateMatches: matches.slice(1, 4).map(s => ({ id: s.id, name: s.name, priceUsd: s.priceUsd, x402Endpoint: s.x402Endpoint })),
     paymentRequest: {
       protocol: 'x402',
-      version: 2,
+      version: PUBLIC_DISCOVERY_VERSIONS.x402Protocol,
       endpoint: top.x402Endpoint,
       method: 'POST',
       amount: top.priceUsd.toFixed(2),
       currency: 'USDC',
-      networks: [
-        {
-          chain: 'base',
-          caip2: 'eip155:8453',
-          payTo: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
-          tokenContract: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-          facilitator: 'https://api.cdp.coinbase.com/platform/v2/x402'
-        },
-        {
-          chain: 'solana',
-          caip2: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
-          payTo: 'BmUPzSupHJu2kW4cL27dF7Vc2JaZTwXKzFsRuagPDtL8',
-          tokenMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
-          facilitator: 'https://x402.dexter.cash'
-        }
-      ],
+      networks: paymentNetworks,
       flow: '1. POST to endpoint 2. Receive HTTP 402 challenge 3. Pay amount to payTo wallet 4. Resubmit with X-PAYMENT header containing payment proof 5. Receive data response'
     },
     actions: [{

@@ -7,7 +7,11 @@ import {
   markPaymentIntentFailed 
 } from "./hybridPaymentMiddleware";
 import { offerLinkService } from "../services/offerLinkService";
-import { getFacilitatorUrl } from "../utils/facilitatorHelper";
+import {
+  getFacilitatorUrl,
+  LEGACY_SOLANA_PAYMENT_RECIPIENTS,
+  PLATFORM_WALLETS,
+} from "../utils/facilitatorHelper";
 import { Connection } from "@solana/web3.js";
 import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD, formatUSD, getServicePriceUSD } from "../../shared/pricing";
 import { getAuthContext, hasValidSession, resolveOrCreateSessionUser, refreshAndValidateAuthContext, AuthContext } from "../services/gptAuthResolver";
@@ -27,6 +31,7 @@ import {
   buildSolanaUnderpaymentFailure,
   getEvmBalanceDetails,
 } from './paymentFailureResponses';
+import { getCanonicalPayableNetworks } from '../config/publicDiscoveryConfig';
 
 /**
  * Fire-and-forget auto-recharge trigger.
@@ -945,11 +950,9 @@ async function isEligibleForFirstCallFree(ipAddress: string, userAgent: string |
 }
 
 // Platform wallets to receive payments (EVM and Solana)
-const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || "0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91";
-// SOLANA_PLATFORM_WALLET: original platform Solana wallet
-// DEXTER_SOLANA_WALLET: wallet assigned by Dexter facilitator during onboarding (receives Dexter-routed Solana payments)
-const SOLANA_PLATFORM_WALLET = process.env.DEXTER_SOLANA_WALLET || "BmUPzSupHJu2kW4cL27dF7Vc2JaZTwXKzFsRuagPDtL8";
-const SOLANA_PLATFORM_WALLET_LEGACY = "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k";
+const PLATFORM_WALLET = PLATFORM_WALLETS.base;
+const SOLANA_PLATFORM_WALLET = PLATFORM_WALLETS.solana;
+const CANONICAL_PAYABLE_NETWORK_IDS = getCanonicalPayableNetworks().map(network => network.caip2);
 
 // Stablecoin contract addresses on Ethereum mainnet
 const USDC_ETHEREUM = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" as const;
@@ -1055,7 +1058,7 @@ async function getAllPlatformTokenAccounts(mintAddress: string): Promise<string[
     const { PublicKey } = await import("@solana/web3.js");
     const { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } = await import("@solana/spl-token");
     const mint = new PublicKey(mintAddress);
-    for (const walletAddr of [SOLANA_PLATFORM_WALLET, SOLANA_PLATFORM_WALLET_LEGACY]) {
+    for (const walletAddr of [SOLANA_PLATFORM_WALLET, ...LEGACY_SOLANA_PAYMENT_RECIPIENTS]) {
       try {
         // Correct order: mint first, owner (wallet) second
         const ata = getAssociatedTokenAddressSync(mint, new PublicKey(walletAddr), false, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
@@ -1917,7 +1920,7 @@ export function createPaymentOrchestrator(
           res,
           'SOLANA_VERIFICATION_FAILED',
           `Solana payment verification failed: ${solanaResult.error}`,
-          `Ensure you sent USDC or USDT to wallet ${SOLANA_PLATFORM_WALLET}. Wait for transaction confirmation before submitting.`,
+          `Ensure you sent USDC to wallet ${SOLANA_PLATFORM_WALLET}. Wait for transaction confirmation before submitting.`,
           requestId,
           {
             recoverable: true,
@@ -1925,7 +1928,7 @@ export function createPaymentOrchestrator(
             expectedFormat: {
               txHash: 'Solana transaction signature (base58, 87-88 characters)',
               examples: [
-                `Send USDC/USDT to ${SOLANA_PLATFORM_WALLET}`,
+                `Send USDC to ${SOLANA_PLATFORM_WALLET}`,
                 'Wait for transaction confirmation',
                 'Submit confirmed tx signature in X-PAYMENT header'
               ]
@@ -1999,7 +2002,7 @@ export function createPaymentOrchestrator(
                 asset: 'USDC',
                 payTo: PLATFORM_WALLET,
                 maxAmountRequired: _retryAmountStr,
-                facilitator: 'https://api.cdp.coinbase.com/platform/v2/x402'
+                facilitator: getCanonicalPayableNetworks().find(network => network.id === 'base')!.facilitator
               }
             ],
             retryChallengeEndpoint: `${_retryBaseUrl}/x402/${serviceName}`
@@ -2074,7 +2077,7 @@ export function createPaymentOrchestrator(
               return res.status(400).json({
                 error: "Payment network not yet supported",
                 message: "Robinhood Chain (eip155:4663) USDC payments are pending Circle CCTP domain assignment. Use Base (eip155:8453) or Solana instead.",
-                supportedNetworks: ["base", "eip155:8453", "ethereum", "eip155:1", "arbitrum", "eip155:42161", "solana"],
+                supportedNetworks: CANONICAL_PAYABLE_NETWORK_IDS,
                 comingSoon: { network: "eip155:4663", name: "Robinhood Chain", status: "Awaiting Circle CCTP domain assignment" }
               });
             }
@@ -2086,8 +2089,8 @@ export function createPaymentOrchestrator(
             console.log(`❌ Orchestrator: Unsupported network in payload: ${payloadNetwork}`);
             return res.status(400).json({
               error: "Invalid payment proof format",
-              message: `Unsupported network: ${payloadNetwork}. Supported: base, eip155:8453, ethereum, eip155:1, arbitrum, eip155:42161`,
-              supportedNetworks: ["base", "eip155:8453", "ethereum", "eip155:1", "arbitrum", "eip155:42161", "solana"]
+              message: `Unsupported network: ${payloadNetwork}. Supported: ${CANONICAL_PAYABLE_NETWORK_IDS.join(', ')}`,
+              supportedNetworks: CANONICAL_PAYABLE_NETWORK_IDS
             });
           }
           console.log(`🔐 Orchestrator: Network detected from payload: ${payloadNetwork} -> chain: ${paymentChain}`);
@@ -2387,7 +2390,7 @@ export function createPaymentOrchestrator(
                 res,
                 'SOLANA_VERIFICATION_FAILED',
                 `Solana payment verification failed: ${solanaResult.error}`,
-                `Ensure you sent USDC or USDT to wallet ${SOLANA_PLATFORM_WALLET}. Wait for confirmation before retrying.`,
+                `Ensure you sent USDC to wallet ${SOLANA_PLATFORM_WALLET}. Wait for confirmation before retrying.`,
                 requestId,
                 { recoverable: true, httpStatus: 402 }
               );
@@ -2720,7 +2723,7 @@ export function createPaymentOrchestrator(
             res,
             'PAYMENT_VERIFICATION_FAILED',
             `On-chain verification failed for transaction ${txHash?.substring(0, 20)}... - payment not confirmed on Ethereum, Base, or Arbitrum`,
-            `Verify: (1) Transaction is confirmed on Ethereum, Base, or Arbitrum, (2) Payment sent to platform wallet 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91, (3) Amount is at least $${microToUSD(requiredAmount)} USDC`,
+            `Verify: (1) Transaction is confirmed on a listed payable network, (2) Payment sent to platform wallet ${PLATFORM_WALLET}, (3) Amount is at least $${microToUSD(requiredAmount)} USDC`,
             requestId,
             {
               recoverable: true,
@@ -2728,7 +2731,7 @@ export function createPaymentOrchestrator(
               expectedFormat: {
                 txHash: 'Confirmed Ethereum, Base, or Arbitrum transaction hash (0x + 64 hex chars)',
                 examples: [
-                  `Send $${microToUSD(requiredAmount)}+ USDC to 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
+                  `Send $${microToUSD(requiredAmount)}+ USDC to ${PLATFORM_WALLET}`,
                   'Wait for transaction confirmation',
                   'Submit confirmed tx hash in X-PAYMENT header'
                 ]
@@ -2889,7 +2892,7 @@ export function buildExecutionGuide(params: {
         asset: "USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)",
         amount: amountStr,
         payTo: PLATFORM_WALLET,
-        facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+        facilitator: getCanonicalPayableNetworks().find(network => network.id === 'base')!.facilitator,
         signingNote: `X-PAYMENT is base64(JSON.stringify({x402Version:2,scheme:'exact',network:'eip155:8453',payload:{authorization:{from,to,value,validAfter,validBefore,nonce},signature}})) — NOT a raw tx hash. Sign off-chain via EIP-712 (no gas). Use x402-fetch wrapFetchWithPayment for automatic handling, or follow the pythonExample for manual signing with eth_account.`,
         steps: [
           `1. POST ${endpoint} without payment header to receive 402 challenge — read accepts[0].payTo and maxAmountRequired`,
@@ -2920,7 +2923,7 @@ export function buildExecutionGuide(params: {
       cloudflarePath: {
         description: "Cloudflare Wallet — zero setup if you already have one. Your wallet uses the same Coinbase CDP facilitator we accept (api.cdp.coinbase.com/platform/v2/x402).",
         compatible: true,
-        facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+        facilitator: getCanonicalPayableNetworks().find(network => network.id === 'base')!.facilitator,
         steps: [
           `1. Your Cloudflare Wallet handles EIP-712 signing and X-PAYMENT construction automatically`,
           `2. Use the Cloudflare Agents SDK or wrapFetchWithPayment — no manual signing required`,
@@ -3351,8 +3354,8 @@ async function generate402Response(
   // Clients should send X-Solana-Wallet header with their public key.
   const solanaFeePayer = (req.headers['x-solana-wallet'] as string | undefined)?.trim() || null;
 
-  // Multi-chain accepts array: Base/USDC, Base/USDT, Solana/USDC, Solana/USDT
-  // Robinhood Chain (eip155:4663) entry appended when ROBINHOOD_CHAIN_CCTP_ENABLED=true
+  // Payment selection list is intentionally limited to canonical USDC rails.
+  // Additional verification-only compatibility paths must never be advertised here.
   const acceptsArray = [
     // Base Chain - USDC (primary)
     {
@@ -3390,32 +3393,6 @@ async function generate402Response(
         }
       }
     },
-    // Base Chain - USDT
-    {
-      scheme: "exact",
-      network: "base",
-      networkLegacy: "base",
-      x402Network: "eip155:8453",
-      amount: requiredAmount.toString(),
-      maxAmountRequired: requiredAmount.toString(),
-      maxAmountRequiredUSD: priceUsd,
-      resource: resource,
-      description: baseDescription,
-      mimeType: "application/json",
-      payTo: PLATFORM_WALLET,
-      maxTimeoutSeconds: 60,
-      asset: USDT_BASE,
-      // REQUIRED by x402 spec: same CDP facilitator handles USDT on Base
-      facilitator: getFacilitatorUrl(),
-      extra: {
-        name: "Tether USD",
-        version: "1",
-        decimals: 6,
-        chainId: 8453,
-        chainName: "Base"
-      },
-      discoverable: false
-    },
     // Solana - USDC
     {
       scheme: "exact",
@@ -3440,59 +3417,7 @@ async function generate402Response(
         ...(solanaFeePayer ? { feePayer: solanaFeePayer } : {})
       },
       discoverable: false
-    },
-    // Solana - USDT
-    {
-      scheme: "exact",
-      network: "solana",
-      networkLegacy: "solana",
-      x402Network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-      amount: requiredAmount.toString(),
-      maxAmountRequired: requiredAmount.toString(),
-      maxAmountRequiredUSD: priceUsd,
-      resource: resource,
-      description: baseDescription,
-      mimeType: "application/json",
-      payTo: SOLANA_PLATFORM_WALLET,
-      maxTimeoutSeconds: 60,
-      asset: USDT_SOLANA,
-      extra: {
-        name: "Tether USD",
-        version: "1",
-        decimals: 6,
-        chainId: "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-        chainName: "Solana",
-        ...(solanaFeePayer ? { feePayer: solanaFeePayer } : {})
-      },
-      discoverable: false
-    },
-    // Robinhood Chain (eip155:4663) - USDC
-    // Gated by ROBINHOOD_CHAIN_CCTP_ENABLED=true + USDC_ROBINHOOD_ADDRESS env vars
-    // Activate once Circle assigns a CCTP domain to eip155:4663 and publishes native USDC address
-    ...(ROBINHOOD_CHAIN_CCTP_ENABLED && USDC_ROBINHOOD ? [{
-      scheme: "exact",
-      network: "robinhood",
-      networkLegacy: "robinhood",
-      x402Network: "eip155:4663",
-      amount: requiredAmount.toString(),
-      maxAmountRequired: requiredAmount.toString(),
-      maxAmountRequiredUSD: priceUsd,
-      resource: resource,
-      description: baseDescription,
-      mimeType: "application/json",
-      payTo: PLATFORM_WALLET,
-      maxTimeoutSeconds: 60,
-      asset: USDC_ROBINHOOD,
-      extra: {
-        name: "USD Coin",
-        version: "2",
-        decimals: 6,
-        chainId: 4663,
-        chainName: "Robinhood Chain",
-        ...(CCTP_DOMAIN_ROBINHOOD !== null ? { cctpDomain: CCTP_DOMAIN_ROBINHOOD } : {})
-      },
-      discoverable: true
-    }] : [])
+    }
   ];
   
   const serviceExampleBodies: Record<string, any> = {
@@ -3524,6 +3449,13 @@ async function generate402Response(
     format: "json",
     example: { success: true, result: {}, timestamp: new Date().toISOString() }
   };
+  const canonicalPaymentRails = getCanonicalPayableNetworks().map(network => ({
+    network: network.caip2,
+    name: network.name,
+    asset: network.asset,
+    assetAddress: network.assetAddress,
+    recipient: network.recipient,
+  }));
   
   // ── Returning-agent detection ────────────────────────────────────────────
   // Check whether this IP has made paid calls before. If it has a prior
@@ -3597,7 +3529,7 @@ async function generate402Response(
     },
     // Structured system prompt for LLM-based agents encountering this 402
     agent_instructions: {
-      system_prompt: `402 Payment Required for ${resource}. Five paths to proceed:\n1. FREE TRIAL (fastest, no payment): GET ${baseUrl}/api/m2m/credits/trial → receive cr_live_ key with $5 credits (~80-100 calls). Retry with X-API-KEY header.\n2. HOSTED CHECKOUT (operator pays once, key auto-provisioned): POST ${baseUrl}/api/m2m/credits/checkout/session with {"amountUsd":10}. Response includes checkoutUrl (open in browser) + retrievalToken (save it). Poll statusEndpoint?token=<retrievalToken> for key after payment.\n3. DIRECT CARD (if you have a Stripe paymentMethodId): POST ${baseUrl}/api/m2m/credits/purchase with {paymentMethodId, amountUsd, idempotencyKey}.\n4. ON-CHAIN USDC: Send ${priceUsd} USDC to payTo address in accepts[] on Base (eip155:8453) or Solana, include signed payload in X-PAYMENT header and retry. Ethereum mainnet (eip155:1) is also accepted for verification — send USDC (0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) or USDT (0xdAC17F958D2ee523a2206206994597C13D831ec7) to the platform_wallet in alternativePaymentMethods.rawTransaction.platformWallets.ethereum and include the tx hash as X-PAYMENT.\n5. CLOUDFLARE WALLET (if you are a CF Wallet agent): You are already set up — your wallet uses the Coinbase CDP facilitator we accept. Send cloudflare-agent-id header and retry with your wallet active via the Cloudflare Agents SDK or wrapFetchWithPayment. No manual signing required.`,
+      system_prompt: `402 Payment Required for ${resource}. Five paths to proceed:\n1. FREE TRIAL (fastest, no payment): GET ${baseUrl}/api/m2m/credits/trial → receive cr_live_ key with $5 credits (~80-100 calls). Retry with X-API-KEY header.\n2. HOSTED CHECKOUT (operator pays once, key auto-provisioned): POST ${baseUrl}/api/m2m/credits/checkout/session with {"amountUsd":10}. Response includes checkoutUrl (open in browser) + retrievalToken (save it). Poll statusEndpoint?token=<retrievalToken> for key after payment.\n3. DIRECT CARD (if you have a Stripe paymentMethodId): POST ${baseUrl}/api/m2m/credits/purchase with {paymentMethodId, amountUsd, idempotencyKey}.\n4. ON-CHAIN USDC: Use the exact network, asset address, and recipient in accepts[] or alternativePaymentMethods.rawTransaction.paymentRails, include the signed payload or transaction hash in X-PAYMENT, and retry.\n5. CLOUDFLARE WALLET (if you are a CF Wallet agent): You are already set up — your wallet uses the Coinbase CDP facilitator we accept. Send cloudflare-agent-id header and retry with your wallet active via the Cloudflare Agents SDK or wrapFetchWithPayment. No manual signing required.`,
       recommended_action: "GET /api/m2m/credits/trial",
       docs: `${baseUrl}/.well-known/agent-instructions.json`,
       ...(req.method === 'POST' && !req.headers['x-payment'] && !req.headers['x-api-key'] ? {
@@ -3620,7 +3552,6 @@ async function generate402Response(
             name: "Base mainnet (chain ID 8453)",
             network: "eip155:8453",
             usdc_contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-            usdt_contract: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
             minimum_balance: `${priceUsd} USDC + ~$0.001 ETH for gas`,
             platform_wallet: PLATFORM_WALLET,
             funding_steps: [
@@ -3634,10 +3565,9 @@ async function generate402Response(
             name: "Ethereum mainnet (chain ID 1)",
             network: "eip155:1",
             usdc_contract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-            usdt_contract: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
             minimum_balance: `${priceUsd} USDC + ~$0.02 ETH for gas`,
             platform_wallet: PLATFORM_WALLET,
-            payment_method: "Send USDC or USDT to platform_wallet, then include the tx hash as X-PAYMENT: <0x...> and retry the request",
+            payment_method: "Send USDC to platform_wallet, then include the tx hash as X-PAYMENT: <0x...> and retry the request",
             note: "Ethereum verification is fully supported. Send the tx hash directly in X-PAYMENT."
           }
         ],
@@ -3678,45 +3608,14 @@ async function generate402Response(
     // Top-level network capability discovery — informational, not the payment selection list.
     // Agents can read this to know which chains are supported before constructing a payment.
     // eip155:1 is listed here for discovery; Ethereum tx hashes are verified by the orchestrator.
-    supportedNetworks: [
-      {
-        network: "eip155:8453",
-        name: "Base",
-        token: "USDC",
-        contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-        active: true
-      },
-      {
-        network: "eip155:8453",
-        name: "Base",
-        token: "USDT",
-        contract: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
-        active: true
-      },
-      {
-        network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-        name: "Solana",
-        token: "USDC",
-        contract: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        active: true
-      },
-      {
-        network: "eip155:1",
-        name: "Ethereum",
-        token: "USDC",
-        contract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-        active: true,
-        note: "Send USDC to platform_wallet (see alternativePaymentMethods.rawTransaction.platformWallets.ethereum), include tx hash as X-PAYMENT header"
-      },
-      {
-        network: "eip155:1",
-        name: "Ethereum",
-        token: "USDT",
-        contract: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-        active: true,
-        note: "Send USDT to platform_wallet, include tx hash as X-PAYMENT header"
-      }
-    ],
+    payableNetworks: getCanonicalPayableNetworks().map(network => ({
+      network: network.caip2,
+      name: network.name,
+      token: network.asset,
+      contract: network.assetAddress,
+      recipient: network.recipient,
+      active: true,
+    })),
     resource: {
       url: resource,
       description: baseDescription,
@@ -3742,13 +3641,14 @@ async function generate402Response(
     },
     facilitatorUrl: getFacilitatorUrl(),
     paymentInstructions: {
-      step1: "Obtain USDC or USDT on Ethereum, Base, or Solana",
+      step1: "Obtain USDC on a payable network listed in paymentRails",
       step2: "Send exact amount to platform wallet",
       step3: "Include transaction hash in X-PAYMENT header",
       step4: "Retry the request with X-PAYMENT header",
       supportedMethods: ["raw-transaction-hash", "eip3009-authorization", "api-key"],
-      supportedChains: ["ethereum (eip155:1)", "base (eip155:8453)", "arbitrum (eip155:42161)", "solana (solana:mainnet)"],
-      supportedTokens: ["USDC", "USDT"]
+      paymentRails: canonicalPaymentRails,
+      supportedChains: canonicalPaymentRails.map(rail => rail.network),
+      supportedTokens: [...new Set(canonicalPaymentRails.map(rail => rail.asset))]
     },
     alternativePaymentMethods: {
       apiKey: {
@@ -3771,15 +3671,9 @@ async function generate402Response(
         example: `curl -X POST "${resource}" -H "X-API-KEY: cr_live_..." -H "Content-Type: application/json" -d '{}'`
       },
       rawTransaction: {
-        description: "Send USDC/USDT to platform wallet, include tx hash in X-PAYMENT header",
+        description: "Send USDC using one of the canonical payment rails, then include the transaction hash in X-PAYMENT",
         usage: "X-PAYMENT: <transaction-hash> (0x... for EVM, base58 for Solana)",
-        platformWallets: {
-          base: PLATFORM_WALLET,
-          ethereum: PLATFORM_WALLET,
-          arbitrum: PLATFORM_WALLET,
-          ...(ROBINHOOD_CHAIN_CCTP_ENABLED ? { robinhood: PLATFORM_WALLET } : {}),
-          solana: SOLANA_PLATFORM_WALLET
-        }
+        paymentRails: canonicalPaymentRails
       }
     },
     recommendedServices: [
@@ -3869,7 +3763,7 @@ async function generate402Response(
           asset: "USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)",
           amount: gcAmountStr,
           payTo: PLATFORM_WALLET,
-          facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+          facilitator: getCanonicalPayableNetworks().find(network => network.id === 'base')!.facilitator,
           signingNote: `X-PAYMENT is base64(JSON.stringify({x402Version:2,scheme:'exact',network:'eip155:8453',payload:{authorization:{from,to,value,validAfter,validBefore,nonce},signature}})) — NOT a raw tx hash. Sign off-chain via EIP-712 (no gas). Use x402-fetch wrapFetchWithPayment for automatic handling, or follow the pythonExample for manual signing with eth_account.`,
           steps: [
             `1. POST /x402/first-call without X-PAYMENT to receive this 402 — read accepts[0].payTo and maxAmountRequired`,
@@ -3901,7 +3795,7 @@ async function generate402Response(
         cloudflarePath: {
           description: "Cloudflare Wallet — zero setup if you already have one. Your wallet uses the Coinbase CDP facilitator we accept (api.cdp.coinbase.com/platform/v2/x402). Pay $0.05 USDC on Base automatically.",
           compatible: true,
-          facilitator: "https://api.cdp.coinbase.com/platform/v2/x402",
+          facilitator: getCanonicalPayableNetworks().find(network => network.id === 'base')!.facilitator,
           steps: [
             "1. Your Cloudflare Wallet handles EIP-712 signing and X-PAYMENT construction automatically — no manual signing",
             "2. Use the Cloudflare Agents SDK fetch() — it intercepts 402 responses and retries with payment",

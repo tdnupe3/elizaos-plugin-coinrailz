@@ -35,9 +35,17 @@ import { x402InteractionTracker } from '../services/x402InteractionTracker';
 
 const router = Router();
 
-// MCP protocol version we advertise
-const MCP_VERSION = '2024-11-05';
+// MCP protocol versions supported by this dual-era endpoint.
+// 2026-07-28 uses per-request negotiation and server/discover; the older
+// revisions remain available for clients that still begin with initialize.
+const MCP_VERSION = '2026-07-28';
+const SUPPORTED_MCP_VERSIONS = [
+  MCP_VERSION,
+  '2025-11-25',
+  '2024-11-05',
+] as const;
 const SUPPORTED_MCP_METHODS = [
+  'server/discover',
   'initialize',
   'tools/list',
   'tools/call',
@@ -47,6 +55,89 @@ const SUPPORTED_MCP_METHODS = [
   'prompts/get',
   'notifications/*',
 ] as const;
+
+type SupportedMcpVersion = typeof SUPPORTED_MCP_VERSIONS[number];
+
+function isSupportedMcpVersion(value: unknown): value is SupportedMcpVersion {
+  return typeof value === 'string'
+    && (SUPPORTED_MCP_VERSIONS as readonly string[]).includes(value);
+}
+
+function getBodyProtocolVersion(params: unknown): string | undefined {
+  if (!params || typeof params !== 'object') return undefined;
+  const meta = (params as Record<string, unknown>)._meta;
+  if (!meta || typeof meta !== 'object') return undefined;
+  const version = (meta as Record<string, unknown>)['io.modelcontextprotocol/protocolVersion'];
+  return typeof version === 'string' ? version : undefined;
+}
+
+function validateAndSetProtocolVersion(
+  req: Request,
+  res: Response,
+  id: unknown,
+  method: string,
+  params: unknown,
+): boolean {
+  const headerVersion = req.get('MCP-Protocol-Version') || undefined;
+  const bodyVersion = getBodyProtocolVersion(params);
+  const methodHeader = req.get('Mcp-Method') || undefined;
+  const initializeVersion = method === 'initialize' && params && typeof params === 'object'
+    ? (params as Record<string, unknown>).protocolVersion
+    : undefined;
+
+  const declaredVersions = [
+    ['MCP-Protocol-Version', headerVersion],
+    ['body protocol version', bodyVersion],
+    ['initialize protocol version', typeof initializeVersion === 'string' ? initializeVersion : undefined],
+  ].filter((entry): entry is [string, string] => typeof entry[1] === 'string');
+
+  const conflictingVersion = declaredVersions.find(([, value]) => value !== declaredVersions[0]?.[1]);
+  if (conflictingVersion) {
+    res.status(400).json({
+      jsonrpc: '2.0',
+      id: id ?? null,
+      error: {
+        code: -32020,
+        message: `Protocol version mismatch: ${declaredVersions.map(([source, value]) => `${source} '${value}'`).join(', ')}`,
+      },
+    });
+    return false;
+  }
+
+  if (methodHeader && methodHeader !== method) {
+    res.status(400).json({
+      jsonrpc: '2.0',
+      id: id ?? null,
+      error: {
+        code: -32020,
+        message: `Header mismatch: Mcp-Method '${methodHeader}' does not match body method '${method}'`,
+      },
+    });
+    return false;
+  }
+
+  const requestedVersion = headerVersion
+    || bodyVersion
+    || (typeof initializeVersion === 'string' ? initializeVersion : undefined);
+  if (requestedVersion && !isSupportedMcpVersion(requestedVersion)) {
+    res.status(400).json({
+      jsonrpc: '2.0',
+      id: id ?? null,
+      error: {
+        code: -32022,
+        message: 'Unsupported protocol version',
+        data: {
+          supported: SUPPORTED_MCP_VERSIONS,
+          requested: requestedVersion,
+        },
+      },
+    });
+    return false;
+  }
+
+  res.setHeader('MCP-Protocol-Version', requestedVersion || MCP_VERSION);
+  return true;
+}
 
 // ---------------------------------------------------------------------------
 // Platform wallet + base URL — resolved once at module load.
@@ -552,7 +643,8 @@ function serviceToMcpTool(s: CanonicalService) {
 // ---------------------------------------------------------------------------
 // POST /mcp  — Streamable HTTP MCP transport (JSON-RPC 2.0)
 // Smithery and other MCP gateways probe this endpoint for tool discovery.
-// Handles: initialize, tools/list, tools/call, resources/list, prompts/list
+// Handles: server/discover, initialize, tools/list, tools/call,
+// resources/list, prompts/list
 // ---------------------------------------------------------------------------
 router.post('/', async (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'application/json');
@@ -589,13 +681,61 @@ router.post('/', async (req: Request, res: Response) => {
     });
   }
 
+  if (!validateAndSetProtocolVersion(req, res, id, method, params)) {
+    const latencyMs = Date.now() - startTime;
+    trackMcpEvent({
+      req, requestId, authMode, latencyMs,
+      serviceId:      'mcp-server',
+      mcpMethod:      method,
+      responseStatus: 400,
+      eventType:      'mcp-invalid-request',
+      errorMessage:   'Invalid MCP transport metadata',
+    });
+    return;
+  }
+
+  // --- server/discover (MCP 2026-07-28) ---
+  if (method === 'server/discover') {
+    const latencyMs = Date.now() - startTime;
+    trackMcpEvent({
+      req, requestId, authMode, latencyMs,
+      serviceId:      'mcp-server',
+      mcpMethod:      'server/discover',
+      responseStatus: 200,
+      eventType:      'mcp-initialize',
+    });
+    return res.json({
+      jsonrpc: '2.0',
+      id,
+      result: {
+        resultType: 'complete',
+        supportedVersions: SUPPORTED_MCP_VERSIONS,
+        capabilities: { tools: {}, resources: {}, prompts: {} },
+        _meta: {
+          'io.modelcontextprotocol/serverInfo': {
+            name:    'coinrailz-mcp',
+            version: '1.2.0',
+          },
+        },
+        instructions: `Coin Railz provides ${getCanonicalServiceCount()} x402 tools. Call tools/list to discover tools, then tools/call with an API key or x402 payment proof.`,
+        ttlMs: 3_600_000,
+        cacheScope: 'public',
+      },
+    });
+  }
+
   // --- initialize ---
   if (method === 'initialize') {
+    const requestedLegacyVersion = (params as any)?.protocolVersion;
+    const negotiatedVersion = isSupportedMcpVersion(requestedLegacyVersion)
+      ? requestedLegacyVersion
+      : '2025-11-25';
+    res.setHeader('MCP-Protocol-Version', negotiatedVersion);
     const result = {
       jsonrpc: '2.0',
       id,
       result: {
-        protocolVersion: MCP_VERSION,
+        protocolVersion: negotiatedVersion,
         capabilities: { tools: {}, resources: {}, prompts: {} },
         serverInfo: {
           name:        'coinrailz-mcp',
@@ -1052,7 +1192,7 @@ router.post('/', async (req: Request, res: Response) => {
   // Per JSON-RPC 2.0 §4: notifications MUST NOT receive a response envelope.
   // Per MCP Streamable HTTP transport: return HTTP 202 Accepted with no body.
   if (method?.startsWith('notifications/')) {
-    return res.sendStatus(202);
+    return res.status(202).end();
   }
 
   // --- Unknown method ---
@@ -1075,7 +1215,7 @@ router.post('/', async (req: Request, res: Response) => {
         discovery: {
           transport: 'POST /mcp',
           catalog: `${BASE_URL}/mcp/services`,
-          note: 'server/discover is not an MCP method. Start with initialize, then tools/list.',
+          note: 'Call server/discover for current protocol capabilities, or initialize for legacy clients.',
         },
       },
     },

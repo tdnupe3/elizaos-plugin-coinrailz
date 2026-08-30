@@ -2190,8 +2190,10 @@ export function createPaymentOrchestrator(
               
               const priceUsd = SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD] || 1.00;
               const priceStr = priceUsd.toFixed(6);
-              // Capture payer wallet from EIP-3009 auth object (in scope here)
-              const payerWallet: string | null = (auth?.from as string) || null;
+              // The authorization declared inside the try block is not visible
+              // in this catch block; read the same validated payload directly.
+              const payerWallet: string | null =
+                (payloadObj.authorization?.from as string | undefined) || null;
               console.log(`💰 Insufficient balance detected for ${serviceName} (payer: ${payerWallet ?? 'unknown'}) - returning refuel response`);
 
               // Attempt an authoritative balanceOf(payer) read on Base USDC.

@@ -51,10 +51,7 @@ describe('MCP notifications/initialized', () => {
     );
 
     expect(res.status).toBe(202);
-    // Express sendStatus(202) puts "Accepted" as the body text — any non-JSON
-    // body confirms no JSON-RPC envelope was returned.
-    expect(typeof res.data === 'object' ? JSON.stringify(res.data) : String(res.data))
-      .not.toContain('"jsonrpc"');
+    expect(res.data).toBe('');
   });
 
   test('does not return a JSON-RPC error envelope for notifications/initialized', async () => {
@@ -102,13 +99,20 @@ describe('MCP notifications/* catch-all', () => {
 // ---------------------------------------------------------------------------
 
 describe('MCP unknown non-notification method', () => {
-  test('sampling/createMessage still returns HTTP 404 with JSON-RPC error', async () => {
+  test('sampling/createMessage returns deterministic HTTP 404 with JSON-RPC error', async () => {
     const res = await axios.post(
       MCP_URL,
       { jsonrpc: '2.0', id: 42, method: 'sampling/createMessage', params: {} },
       { validateStatus: () => true },
     );
     expect(res.status).toBe(404);
-    expect(res.data).toMatchObject({ jsonrpc: '2.0', error: { code: -32601 } });
+    expect(res.data).toMatchObject({
+      jsonrpc: '2.0',
+      id: 42,
+      error: {
+        code: -32601,
+        message: 'Method not found: sampling/createMessage',
+      },
+    });
   });
 });

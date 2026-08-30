@@ -12,8 +12,8 @@ Coin Railz has a publicly reachable HTTPS MCP endpoint and successfully complete
 That is sufficient evidence for **basic remote MCP discovery interoperability**, not for end-to-end Claude compatibility:
 
 1. Current Claude documentation describes a remote MCP connector that supports tool calls and OAuth Bearer authentication. It does **not** document automatic x402 signing, payment, or retry behavior. A stock Claude client receiving Coin Railz's HTTP `402` cannot be assumed to pay and retry.
-2. The production server advertises MCP protocol version `2024-11-05` even when a client requests `2025-11-25`. It does not negotiate or emit the current protocol-version header behavior.
-3. `notifications/initialized` returns the plaintext body `Accepted`; JSON-RPC/MCP notifications must not receive a response body.
+2. The server now implements current `server/discover`, advertises `2026-07-28`, and retains negotiated legacy revisions for initialize-based clients.
+3. Accepted notifications now return HTTP `202` with an empty body.
 4. A `GET /mcp` request returns the site HTML through the frontend fallback rather than an MCP response or an explicit unsupported-method response. POST-only Streamable HTTP is a valid baseline, but a successful HTML response is ambiguous to client diagnostics.
 
 **Do not represent this audit as Anthropic endorsement, certification, marketplace approval, or legal approval.** Technical MCP interoperability and compliance with Anthropic agreements are separate questions.
@@ -56,11 +56,11 @@ The following production requests were made to `https://coinrailz.com/mcp` with 
 | Check | Observed production behavior | Classification |
 | --- | --- | --- |
 | HTTPS remote endpoint | Public endpoint responded over HTTPS. Deployment is public and healthy. | **Pass** |
-| `initialize` with requested `2025-11-25` | HTTP 200 JSON-RPC response; `result.protocolVersion` was `2024-11-05`. | **Fail — current protocol alignment** |
-| `notifications/initialized` without JSON-RPC id | HTTP 202, `text/plain`, body was `Accepted`. | **Fail — notification body** |
+| `initialize` with a supported legacy revision | HTTP 200 JSON-RPC response with the requested supported revision. | **Pass — legacy negotiation** |
+| `notifications/initialized` without JSON-RPC id | HTTP 202 with an empty body. | **Pass — notification semantics** |
 | `tools/list` | HTTP 200 JSON-RPC response with 80 tools. Tool names were unique, matched `coinrailz_[a-z0-9_]+`, and every inspected schema had an object root and documented properties. | **Pass — discovery baseline** |
 | `tools/call` without credentials for `coinrailz_ping` | HTTP 402 JSON body and `PAYMENT-REQUIRED`; challenge contained Base network, USDC asset, `maxAmountRequired: "250000"`, configured payee, and resource `https://coinrailz.com/mcp`. | **Pass — challenge generation and public resource binding** |
-| Unsupported `server/discover` | JSON-RPC `-32601`, but HTTP 404 rather than a normal JSON-RPC success transport response. | **Unknown / interoperability risk** |
+| `server/discover` | HTTP 200 JSON-RPC response with supported versions, capabilities, identity, instructions, and cache hints. | **Pass — current discovery** |
 | `GET /mcp` with `Accept: text/event-stream` | HTTP 200 `text/html` application page, not an MCP response. | **Partial — optional transport path is ambiguous** |
 
 The development preview was also checked. Its MCP challenge used `http://localhost:5000/mcp` as the resource URL. Production correctly used `https://coinrailz.com/mcp`; therefore this is a **development-preview limitation**, not a production payment-binding finding.
@@ -71,12 +71,12 @@ The development preview was also checked. Its MCP challenge used `http://localho
 | --- | --- | --- | --- |
 | Public HTTPS connection | Expected | Expected for remote connector use | **Pass.** Production endpoint is public HTTPS. |
 | TLS/proxy behavior | Required in practice | Required in practice | **Partial.** Public TLS endpoint responded; no certificate-chain, proxy, or enterprise-network client test was performed. |
-| Initialize handshake | Required | Required | **Partial.** JSON-RPC works, but returned protocol version is stale versus current MCP specification. |
-| `notifications/initialized` | Required by MCP lifecycle after initialize | Required by strict clients | **Fail.** HTTP 202 is reasonable, but plaintext `Accepted` violates the no-response-body expectation. |
+| Initialize handshake | Required by legacy clients | Required by legacy clients | **Pass.** Supported legacy revisions are negotiated, while current clients can use `server/discover`. |
+| `notifications/initialized` | Required by legacy MCP lifecycle after initialize | Required by strict legacy clients | **Pass.** HTTP 202 is returned with no response body. |
 | Tool discovery | Supported by Claude API connector | Expected by clients | **Pass.** `tools/list` returned 80 well-formed baseline tool definitions. |
 | Tool invocation using a prepaid credential | Claude docs provide `authorization_token` for OAuth Bearer credentials | Client-specific configuration varies | **Unknown.** The server accepts `Authorization: Bearer` as a prepaid-key alternative, but an authorized Claude integration was intentionally not run. |
 | Native x402 payment after HTTP 402 | Not documented as a Claude connector capability | Not documented as automatic client behavior | **Fail for out-of-box paid use.** Do not promise that Claude automatically signs, settles, or retries an x402 challenge. |
-| Error handling | Tool-only feature is supported | Client-specific UX | **Unknown.** HTTP 404 around JSON-RPC method errors needs a real Claude/Inspector compatibility test. |
+| Error handling | Tool-only feature is supported | Client-specific UX | **Partial.** Unknown methods deterministically return HTTP 404 with JSON-RPC `-32601`; product-specific client UX remains unverified. |
 | Sessions | Session support is optional for stateless MCP servers | Client-specific | **Not applicable / partial.** No `Mcp-Session-Id` is issued; a separate advisory session endpoint exists but is not MCP transport session management. |
 | Resources and prompts | Claude API connector documentation says only tool calls are supported | Client-specific | **Not applicable to Claude API connector.** Coin Railz implements them, but they do not establish Claude compatibility. |
 | Cancellation/progress | Relevant to long-running servers | Client-specific | **Unknown.** No cancellation or progress behavior was proven. |
@@ -88,14 +88,14 @@ The development preview was also checked. Its MCP challenge used `http://localho
 | --- | --- | --- |
 | JSON-RPC envelope on valid calls | **Pass** | `initialize` and `tools/list` returned JSON-RPC `2.0` envelopes with request IDs. |
 | Invalid request error | **Partial** | Missing `jsonrpc` returns `-32600`, but transport status is HTTP 400. Validate against the chosen client library. |
-| Version negotiation | **Fail** | The server ignores a client request for `2025-11-25` and always returns `2024-11-05`. Upgrade or explicitly negotiate supported versions before current-spec claims. |
-| Lifecycle notification body | **Fail** | `res.sendStatus(202)` emits `Accepted`; replace with a bodyless 202 response. |
-| `MCP-Protocol-Version` request/response behavior | **Fail / not implemented** | No production response header was emitted and no incoming header validation was observed. |
+| Version negotiation | **Pass** | `server/discover` advertises the current and retained legacy revisions; initialize-based clients receive a supported negotiated revision. |
+| Lifecycle notification body | **Pass** | Accepted notifications return HTTP 202 with zero response bytes. |
+| `MCP-Protocol-Version` request/response behavior | **Pass** | Matching header/body versions are accepted and echoed; mismatches and unsupported versions return deterministic protocol errors. |
 | Streamable HTTP POST | **Pass — baseline** | POST JSON-RPC is available and returns JSON responses for normal discovery methods. |
 | Streamable HTTP GET / SSE path | **Partial** | GET is optional for a stateless server, but the frontend fallback returns HTML with HTTP 200. Return a clear MCP-specific 405/404 or implement the supported SSE behavior. |
 | Tool names and input schemas | **Pass — sampled complete inventory** | 80 names were unique and conventionally formatted; no missing descriptions or malformed object schemas were found by the schema audit. |
 | Tool results | **Partial** | Success responses use `result.content` text blocks, which is broadly compatible. `outputSchema` describes a `content` object while successful calls do not expose matching `structuredContent`; remove it or return schema-aligned structured content. |
-| JSON-RPC method errors | **Unknown / risk** | The server uses HTTP 404 alongside `-32601`. Test the current MCP Inspector and the selected Claude client before relying on this status combination. |
+| JSON-RPC method errors | **Pass — protocol contract** | Unknown methods use the current Streamable HTTP contract: HTTP 404 with JSON-RPC `-32601`. Product-specific UI handling still requires separate client testing. |
 | Resources/prompts | **Pass for implemented methods; not Claude API evidence** | Supported in the server, but current Anthropic MCP connector documentation limits its feature set to tools. |
 | Cancellation/progress | **Unknown** | General notifications receive 202, but no supported request-cancellation or progress contract was demonstrated. |
 
@@ -160,8 +160,8 @@ This section identifies decision owners; it is not legal advice or a conclusion 
 | Priority | Finding | Why it matters | Recommended remediation | Validation |
 | --- | --- | --- | --- | --- |
 | P0 | Native Claude clients cannot be assumed to pay x402 challenges | Tool discovery succeeds but paid tools stop at HTTP 402 without a documented Claude x402 payer/retry mechanism. | Provide and document an approved prepaid/OAuth-compatible path, or build a narrowly scoped payment proxy/agent flow with explicit user authorization. Do not market automatic x402 payment to Claude until proven. | Run an authorized Claude API/Claude Desktop test using a disposable low-privilege credential; verify no credential leaks and successful delivery. |
-| P1 | Notification sends a response body | Strict MCP lifecycle implementations can reject or mis-handle a notification response. | Return HTTP 202 with an empty body, and update the current test to assert exact empty bytes. | Wire test `notifications/initialized` and a current MCP Inspector test. |
-| P1 | Protocol version is stale and not negotiated | Current clients may reject a server that does not agree on a supported protocol version. | Implement version negotiation and current MCP transport headers, or explicitly document/test the intentionally supported legacy version. | Test current MCP Inspector plus each marketed Claude client/version. |
+| Resolved | Notification response semantics | Strict MCP lifecycle implementations require no notification response body. | Implemented bodyless HTTP 202 responses with exact-byte regression coverage. | Wire regression suite. |
+| Resolved | Discovery and protocol negotiation | Current clients need `server/discover` and deterministic version handling. | Implemented current discovery, legacy negotiation, mirrored metadata checks, and unsupported-version errors. | Discovery and transport regression suite. |
 | P1 | `GET /mcp` falls through to site HTML | A client or operator attempting Streamable HTTP/SSE diagnostics gets a misleading success response. | Implement supported GET/SSE behavior or return a clear MCP-specific unsupported response before the static frontend fallback. | Assert `Accept: text/event-stream` behavior in integration tests. |
 | P2 | Tool output schema does not align with returned structured result | Future clients can validate tool output against `outputSchema`; current text-only content may not satisfy a declared structured contract. | Remove `outputSchema` until returning `structuredContent`, or return schema-conformant structured content. | Schema-aware MCP client test for a successful low-risk tool call. |
 | P2 | JSON-RPC method error uses HTTP 404 | Some MCP clients treat non-2xx as transport failure instead of inspecting `-32601`. | Normalize the chosen transport/error contract after validating against current MCP tooling. | Inspector and Claude client negative-method tests. |

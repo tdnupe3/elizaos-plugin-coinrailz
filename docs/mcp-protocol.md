@@ -4,16 +4,21 @@
 
 Use the streamable HTTP JSON-RPC transport at `POST /mcp`.
 
-1. Call `initialize`.
-2. Send `notifications/initialized`.
-3. Call `tools/list`.
-4. Call a listed `coinrailz_*` tool with `tools/call`.
+Current clients can call `server/discover` first, then call `tools/list` and
+`tools/call`. Coin Railz also remains compatible with legacy clients that use
+`initialize` followed by `notifications/initialized`.
+
+For MCP `2026-07-28` requests, send matching
+`MCP-Protocol-Version`, `Mcp-Method`, and request `_meta` protocol-version
+values. Coin Railz advertises `2026-07-28` and retains the legacy
+`2025-11-25` and `2024-11-05` revisions.
 
 A read-only catalog is also available at `GET /mcp/services`, and a
 REST-style tool-call endpoint is available at `POST /mcp/tools/call`.
 
 ## Supported JSON-RPC methods
 
+- `server/discover`
 - `initialize`
 - `tools/list`
 - `tools/call`
@@ -23,8 +28,13 @@ REST-style tool-call endpoint is available at `POST /mcp/tools/call`.
 - `prompts/get`
 - `notifications/*`
 
-`server/discover` is **not** an MCP method. When it is requested, the server
-returns JSON-RPC `-32601` with this supported-method list and catalog guidance.
+`server/discover` returns supported versions, capabilities, server identity,
+instructions, and public cache hints. Unsupported versions return HTTP `400`
+with JSON-RPC code `-32022`; mismatched mirrored transport metadata returns
+HTTP `400` with code `-32020`; unknown methods return HTTP `404` with code
+`-32601`.
+
+Accepted notifications return HTTP `202` with an empty body.
 
 ## Payment flow
 

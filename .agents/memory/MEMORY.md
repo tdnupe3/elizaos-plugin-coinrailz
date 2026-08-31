@@ -89,6 +89,7 @@
 - [Direct v2 payment telemetry](direct-v2-payment-telemetry.md) — production safe probe showed PAYMENT-SIGNATURE reaches parsing but direct interaction tracking can mark it as header-absent; do not treat this as an unpaid retry.
 - [Standard x402 v2 direct-payment proof](standard-x402-v2-payment-proof.md) — a fresh-wallet @x402/fetch v2 payment to direct /x402/ping settled successfully; direct rails are proven, MCP paid execution remains separate.
 - [Coinbase CDP facilitator proof](coinbase-cdp-facilitator-proof.md) — CDP /settle accepted a standard v2 MCP payment payload and Coin Railz delivered the paid tool call from its returned transaction hash.
+- [Paid MCP settlement proof](paid-mcp-settlement-proof.md) — standard @x402/fetch completed a production MCP tools/call payment, settlement, delivery, and telemetry cycle.
 - [Trial credit provenance](trial-credit-provenance.md) — credit rows labeled purchase can be free-trial grants; reconcile payment provenance before counting revenue or conversion.
 - [Grok Bot commerce boundary](grok-bot-commerce-boundary.md) — Cursor plugins are the concrete Grok distribution path; payments stay human-approved, with no verified native x402 buyer path.
 - [MCP 2026 server discovery](mcp-2026-server-discovery.md) — server/discover became mandatory in the 2026-07-28 spec; older assumptions that it is not an MCP method are stale.

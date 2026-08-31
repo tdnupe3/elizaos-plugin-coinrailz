@@ -22,6 +22,28 @@ beforeAll(async () => {
 }, 30_000);
 
 describe('MCP 2026-07-28 discovery and negotiation', () => {
+  test.each(['get', 'delete'] as const)(
+    '%s /mcp is rejected as a non-transport method instead of returning frontend HTML',
+    async method => {
+      const res = await axios[method](
+        MCP_URL,
+        { validateStatus: () => true },
+      );
+
+      expect(res.status).toBe(405);
+      expect(res.headers.allow).toBe('POST');
+      expect(res.headers['content-type']).toMatch(/^application\/json/);
+      expect(res.data).toMatchObject({
+        jsonrpc: '2.0',
+        id: null,
+        error: {
+          code: -32600,
+          message: 'MCP transport only supports POST requests at /mcp',
+        },
+      });
+    },
+  );
+
   test('server/discover returns versions, capabilities, identity, and cache hints', async () => {
     const res = await axios.post(
       MCP_URL,

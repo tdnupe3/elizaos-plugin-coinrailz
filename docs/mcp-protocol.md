@@ -2,7 +2,10 @@
 
 ## Endpoint and transport
 
-Use the streamable HTTP JSON-RPC transport at `POST /mcp`.
+Use the streamable HTTP JSON-RPC transport at `POST /mcp`. The root MCP
+transport is POST-only: `GET /mcp` and `DELETE /mcp` return HTTP `405` with
+`Allow: POST` rather than falling through to the website frontend. A
+read-only tool catalog remains available separately at `GET /mcp/tools/list`.
 
 Current clients can call `server/discover` first, then call `tools/list` and
 `tools/call`. Coin Railz also remains compatible with legacy clients that use

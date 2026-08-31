@@ -646,6 +646,25 @@ function serviceToMcpTool(s: CanonicalService) {
 // Handles: server/discover, initialize, tools/list, tools/call,
 // resources/list, prompts/list
 // ---------------------------------------------------------------------------
+function rejectNonPostMcpTransport(_req: Request, res: Response) {
+  return res
+    .status(405)
+    .set('Allow', 'POST')
+    .json({
+      jsonrpc: '2.0',
+      id: null,
+      error: {
+        code: -32600,
+        message: 'MCP transport only supports POST requests at /mcp',
+      },
+    });
+}
+
+// Keep unsupported root methods inside the MCP router so they cannot fall
+// through to Vite's frontend fallback and look like successful HTML responses.
+router.get('/', rejectNonPostMcpTransport);
+router.delete('/', rejectNonPostMcpTransport);
+
 router.post('/', async (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'application/json');
 

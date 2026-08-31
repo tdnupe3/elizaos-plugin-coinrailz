@@ -67,11 +67,7 @@ import express, { Router } from "express";
 import http from "http";
 import path from "path";
 import fs from "fs";
-import {
-  NETWORK_CAIP2,
-  PLATFORM_WALLETS,
-  USDC_BASE_ADDRESS,
-} from "./utils/facilitatorHelper";
+import { PLATFORM_WALLETS } from "./utils/facilitatorHelper";
 import {
   DATA_QUERY_NETWORKS,
   getCanonicalPayableNetworks,
@@ -85,6 +81,7 @@ const httpServer = http.createServer(app);
 
 // Readiness flag - frontend is NOT ready until appMain completes setup
 let frontendReady = false;
+let appReady = false;
 export function markFrontendReady() {
   frontendReady = true;
   console.log('✅ Frontend ready - / will now serve the app');
@@ -180,32 +177,82 @@ app.get('/.well-known/x402.json', (req, res, next) => {
 });
 
 app.get('/.well-known/agent-card.json', (req, res, next) => {
-  if (frontendReady) return next();
+  if (appReady) return next();
   console.log('⚡ Fast-path agent-card.json (cold-start)');
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-cache');
-  const basePayment = getColdStartBasePayment();
+  const forwardedProto = req.get('x-forwarded-proto');
+  const protocol = forwardedProto || (req.get('host')?.includes('localhost') ? 'http' : 'https');
+  const baseUrl = `${protocol}://${req.get('host') || 'coinrailz.com'}`;
   res.json({
-    name: 'Coin Railz Payment Infrastructure',
+    protocolVersion: PUBLIC_DISCOVERY_VERSIONS.a2aProtocol,
+    name: 'Coin Railz',
     description: 'Universal payment layer for the AI agent economy — x402 micropayments, multi-chain USDC, DEX aggregation, and IoT payment infrastructure.',
-    url: 'https://coinrailz.com',
+    url: `${baseUrl}/a2a/v1`,
     version: PUBLIC_DISCOVERY_VERSIONS.manifest,
+    preferredTransport: 'JSONRPC',
     capabilities: {
-      x402Payments: true,
-      x402: {
-        protocolVersion: PUBLIC_DISCOVERY_VERSIONS.x402Spec,
-        facilitatorUrl: basePayment.facilitator,
-        payTo: basePayment.recipient,
-        paymentNetwork: NETWORK_CAIP2,
-        paymentToken: {
-          symbol: 'USDC',
-          address: USDC_BASE_ADDRESS,
-          decimals: 6,
-        },
-      },
+      streaming: false,
+      pushNotifications: false,
+      stateTransitionHistory: false,
     },
-    _cold_start: true,
+    defaultInputModes: ['text/plain', 'application/json'],
+    defaultOutputModes: ['text/plain', 'application/json'],
+    skills: [{
+      id: 'service-discovery',
+      name: 'Coin Railz Service Discovery',
+      description: 'Find the appropriate Coin Railz x402 service and receive payment instructions.',
+      tags: ['x402', 'payments', 'service-discovery'],
+      inputModes: ['text/plain', 'application/json'],
+      outputModes: ['text/plain', 'application/json'],
+      examples: ['Find the Coin Railz service for current Base gas prices.'],
+    }],
+    provider: {
+      organization: 'Coin Railz',
+      url: baseUrl,
+    },
+    documentationUrl: `${baseUrl}/.well-known/agent-instructions.json`,
+    iconUrl: `${baseUrl}/favicon.ico`,
+    supportsAuthenticatedExtendedCard: false,
   });
+});
+
+const coldStartA2aJsonParser = express.json({ limit: '64kb' });
+app.post('/a2a/v1', (req, res, next) => {
+  if (appReady) return next('route');
+  coldStartA2aJsonParser(req, res, (error?: unknown) => {
+    if (!error) return next();
+    return res.status(400).json({
+      jsonrpc: '2.0',
+      id: null,
+      error: {
+        code: -32700,
+        message: 'Parse error',
+      },
+    });
+  });
+}, (req, res, next) => {
+  if (appReady) return next();
+  if (!Object.prototype.hasOwnProperty.call(req.body || {}, 'id')) {
+    return res.status(204).end();
+  }
+  const requestId = typeof req.body?.id === 'string'
+    || typeof req.body?.id === 'number'
+    || req.body?.id === null
+    ? req.body.id
+    : null;
+  return res
+    .status(503)
+    .set('Retry-After', '5')
+    .json({
+      jsonrpc: '2.0',
+      id: requestId,
+      error: {
+        code: -32000,
+        message: 'A2A service is initializing; retry shortly.',
+        data: { retryAfterSeconds: 5 },
+      },
+    });
 });
 
 app.get('/api/monitoring/health', (req, res, next) => {
@@ -227,7 +274,6 @@ app.get('/api/monitoring/health', (req, res, next) => {
 // Exempt from the gate (registered above this point and handled directly):
 //   /healthz, /, /.well-known/*, /api/monitoring/health, /readyz
 // ============================================================================
-let appReady = false;
 export function markAppReady() {
   appReady = true;
   console.log('✅ App ready — x402 API routes now accepting requests');

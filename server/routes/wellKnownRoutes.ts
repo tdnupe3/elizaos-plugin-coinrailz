@@ -22,6 +22,7 @@ import {
   getCanonicalPaymentRecipients,
   PUBLIC_DISCOVERY_VERSIONS,
 } from '../config/publicDiscoveryConfig';
+import { buildCoinRailzAgentCard } from '../a2a/protocol';
 
 const MPP_PROTOCOL_VERSION = "1.0";
 
@@ -2996,14 +2997,23 @@ router.get('/.well-known/agent-instructions.json', async (req: Request, res: Res
 
 /**
  * GET /.well-known/agent-card.json
- * 
- * A2A Protocol v0.3.0 compliant agent card for registry submission
- * Main platform agent card - describes Coin Railz as a service provider
- * Discoverable by ChatGPT, Google AI, x402 indexers, A2A Registry, and other A2A platforms
- * 
- * UPDATED: Jul 8 2026 - Now includes all 72 x402 services with correct pricing
+ *
+ * Canonical strict A2A v0.3 card. The extended historical discovery document
+ * remains available at /.well-known/agent-card-extended.json.
  */
-router.get('/.well-known/agent-card.json', async (req: Request, res: Response) => {
+router.get('/.well-known/agent-card.json', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.status(200).json(buildCoinRailzAgentCard(getBaseUrl(req)));
+});
+
+/**
+ * GET /.well-known/agent-card-extended.json
+ * 
+ * Compatibility document containing Coin Railz-specific payment and registry
+ * extensions that are intentionally excluded from the strict A2A card.
+ */
+router.get('/.well-known/agent-card-extended.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
   const payableNetworks = getCanonicalPayableNetworks();
   const recipients = getCanonicalPaymentRecipients();
@@ -6298,6 +6308,7 @@ router.all('/.well-known/*', (req: Request, res: Response) => {
     knownPaths: [
       '/.well-known/agent.json',
       '/.well-known/agent-card.json',
+      '/.well-known/agent-card-extended.json',
       '/.well-known/agent-directory.json',
       '/.well-known/agent-instructions.json',
       '/.well-known/agent-registration.json',

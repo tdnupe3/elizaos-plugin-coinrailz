@@ -17,6 +17,7 @@ import { db } from '../db';
 import { endpointHits, a2aInteractions } from '../../shared/schema';
 import { serviceCatalogService } from '../services/serviceCatalogService';
 import { getCanonicalPayableNetworks, PUBLIC_DISCOVERY_VERSIONS } from '../config/publicDiscoveryConfig';
+import { buildCompletedTask, SUPPORTED_A2A_VERSION } from '../a2a/protocol';
 
 const router = Router();
 
@@ -150,13 +151,44 @@ interface ServiceEntry {
 
 const BASE_URL = process.env.PUBLIC_BASE_URL || 'https://coinrailz.com';
 
-function buildTaskResponse(taskId: string, artifacts: Array<{ parts: Array<{ type: string; text: string }> }>, metadata: Record<string, unknown>) {
-  return {
-    id: taskId,
-    status: { state: 'completed' },
-    artifacts,
-    metadata
-  };
+function buildTaskResponse(
+  taskId: string,
+  artifacts: Array<{ parts: Array<{ type?: string; kind?: string; text: string }> }>,
+  metadata: Record<string, unknown>,
+  contextId?: string,
+) {
+  return buildCompletedTask(taskId, artifacts, metadata, contextId);
+}
+
+function sendJsonRpcError(
+  res: Response,
+  id: string | number | null,
+  code: number,
+  message: string,
+  suppressResponse = false,
+) {
+  if (suppressResponse) {
+    return res.status(204).end();
+  }
+  return res.status(200).json({
+    jsonrpc: '2.0',
+    id,
+    error: { code, message },
+  });
+}
+
+function sendTaskResult(res: Response, requestBody: any, task: ReturnType<typeof buildTaskResponse>) {
+  if (requestBody?.jsonrpc === '2.0') {
+    if (!Object.prototype.hasOwnProperty.call(requestBody, 'id')) {
+      return res.status(204).end();
+    }
+    return res.status(200).json({
+      jsonrpc: '2.0',
+      id: requestBody.id,
+      result: task,
+    });
+  }
+  return res.status(200).json(task);
 }
 
 // Stop words that are too generic to be meaningful match signals
@@ -484,7 +516,7 @@ router.get('/a2a/v1', (req: Request, res: Response) => {
     name: 'Coin Railz',
     description: `Multi-chain x402 micropayment infrastructure for AI agents. ${catalog.totalServices}+ pay-per-call API services across crypto analytics, trading signals, security audits, satellite data, prediction markets, and more.`,
     version: '3.1.0',
-    protocolVersion: '0.3.0',
+    protocolVersion: SUPPORTED_A2A_VERSION,
     skillCount: catalog.totalServices,
     documentationUrl: `${BASE_URL}/.well-known/agent-instructions.json`,
     agentCard: `${BASE_URL}/.well-known/agent-card.json`,
@@ -499,7 +531,7 @@ router.get('/a2a/v1', (req: Request, res: Response) => {
 });
 
 /**
- * POST /a2a/v1 — Alias for /a2a/v1/message/send (some clients omit the sub-path)
+ * POST /a2a/v1 — Canonical A2A v0.3 JSON-RPC endpoint advertised by the agent card.
  */
 router.post('/a2a/v1', handleMessageSend);
 
@@ -517,7 +549,7 @@ function handleCensusGet(req: Request, res: Response) {
     name: 'Coin Railz',
     description: `Multi-chain x402 micropayment infrastructure for AI agents. ${catalog.totalServices}+ pay-per-call API services across crypto analytics, trading signals, security audits, satellite data, prediction markets, and more.`,
     version: '3.1.0',
-    protocolVersion: '0.3.0',
+    protocolVersion: SUPPORTED_A2A_VERSION,
     skillCount: catalog.totalServices,
     documentationUrl: `${BASE_URL}/.well-known/agent-instructions.json`,
     agentCard: `${BASE_URL}/.well-known/agent-card.json`,
@@ -548,9 +580,59 @@ function handleMessageSend(req: Request, res: Response) {
   const userAgent = req.headers['user-agent'];
 
   const body = req.body || {};
+  const isJsonRpc = body.jsonrpc !== undefined || body.method !== undefined;
+  if (isJsonRpc) {
+    const hasRequestId = Object.prototype.hasOwnProperty.call(body, 'id');
+    const validRequestId = !hasRequestId
+      || typeof body.id === 'string'
+      || typeof body.id === 'number'
+      || body.id === null;
+    const requestId = validRequestId && hasRequestId ? body.id : null;
+    if (body.jsonrpc !== '2.0') {
+      return sendJsonRpcError(res, requestId, -32600, 'Invalid Request: jsonrpc must be "2.0"');
+    }
+    if (!validRequestId) {
+      return sendJsonRpcError(res, null, -32600, 'Invalid Request: id must be a string, number, null, or omitted');
+    }
+    if (body.method !== 'message/send') {
+      return sendJsonRpcError(
+        res,
+        requestId,
+        -32601,
+        `Method not found: ${String(body.method ?? '')}`,
+        !hasRequestId,
+      );
+    }
+    const incomingMessage = body.params?.message;
+    const validMessage = incomingMessage
+      && incomingMessage.kind === 'message'
+      && typeof incomingMessage.messageId === 'string'
+      && (incomingMessage.role === 'user' || incomingMessage.role === 'agent')
+      && Array.isArray(incomingMessage.parts)
+      && incomingMessage.parts.length > 0
+      && incomingMessage.parts.every((part: any) =>
+        part
+        && part.kind === 'text'
+        && typeof part.text === 'string'
+        && part.text.trim().length > 0
+      );
+    if (!validMessage) {
+      return sendJsonRpcError(
+        res,
+        requestId,
+        -32602,
+        'Invalid params: params.message must be an A2A v0.3 Message',
+        !hasRequestId,
+      );
+    }
+  } else if (req.path === '/a2a/v1') {
+    return sendJsonRpcError(res, null, -32600, 'Invalid Request: the canonical endpoint requires JSON-RPC 2.0');
+  }
+
   const message = body.message || body.params?.message || {};
-  const parts: Array<{ type?: string; text?: string }> = message.parts || [];
+  const parts: Array<{ type?: string; kind?: string; text?: string }> = message.parts || [];
   const text = parts.map((p: any) => p.text || '').join(' ').trim() || (body.text || '');
+  const contextId = typeof message.contextId === 'string' ? message.contextId : taskId;
 
   if (!text) {
     const catalog = serviceCatalogService.getCatalog();
@@ -560,7 +642,7 @@ function handleMessageSend(req: Request, res: Response) {
       name: 'Coin Railz',
       description: `Multi-chain x402 micropayment infrastructure for AI agents. ${catalog.totalServices}+ pay-per-call API services across crypto analytics, trading signals, security audits, satellite data, prediction markets, and more.`,
       version: '3.1.0',
-      protocolVersion: '0.3.0',
+      protocolVersion: SUPPORTED_A2A_VERSION,
       skillCount: catalog.totalServices,
       documentationUrl: `${BASE_URL}/.well-known/agent-instructions.json`,
       agentCard: `${BASE_URL}/.well-known/agent-card.json`,
@@ -582,9 +664,9 @@ function handleMessageSend(req: Request, res: Response) {
   // solved.earth + registry ownership claim verification
   // solved.earth sends a message and looks for "ACCEPT" in the reply to confirm agent ownership
   if (intentType === 'ownership_claim_verify') {
-    res.status(200).json(buildTaskResponse(taskId, [{
+    sendTaskResult(res, body, buildTaskResponse(taskId, [{
       parts: [{
-        type: 'text',
+        kind: 'text',
         text: `ACCEPT\n\nCoin Railz confirms ownership of this agent endpoint. This is the canonical Coin Railz A2A interaction endpoint at ${BASE_URL}/a2a/v1/message/send.\n\nAgent: Coin Railz\nWebsite: ${BASE_URL}\nAgent card: ${BASE_URL}/.well-known/agent-card.json\nPayment protocol: x402 v2\nChains: Base, Solana\nServices: ${catalog.totalServices}+ pay-per-call APIs`
       }]
     }], {
@@ -593,7 +675,7 @@ function handleMessageSend(req: Request, res: Response) {
       agentId: 'coinrailz-x402-agent',
       agentUrl: BASE_URL,
       agentCard: `${BASE_URL}/.well-known/agent-card.json`
-    }));
+    }, contextId));
     const latencyMs = Date.now() - startTime;
     trackA2AHit(req, { resourceId: 'a2a-claim-verify', statusCode: 200, responseTimeMs: latencyMs, matched: false, queryText: text, requestId: taskId });
     logA2AInteraction({ requestId: taskId, latencyMs, statusCode: 200, matched: false, resourceId: 'a2a-claim-verify', matchCount: 0, intentType, queryText: text, clientIpHash, userAgent, trackingId });
@@ -602,9 +684,9 @@ function handleMessageSend(req: Request, res: Response) {
 
   // Peer agent advertising their own x402 service — respond with mutual acknowledgment
   if (intentType === 'peer_offer_x402') {
-    res.status(200).json(buildTaskResponse(taskId, [{
+    sendTaskResult(res, body, buildTaskResponse(taskId, [{
       parts: [{
-        type: 'text',
+        kind: 'text',
         text: `Thanks for reaching out! Coin Railz received your service offer.\n\nWe run ${catalog.totalServices}+ pay-per-call APIs on x402 — crypto analytics, smart contract audits, satellite data, prediction markets, IoT payments, and more.\n\nIf your service is useful to AI agents querying our platform, we're open to peer integrations. You can also list your service in our A2A catalog by sending a structured offer:\n\nCLAWPAY_V1 <service-name> | <endpoint> | <price-usdc> | <description>\n\nFull catalog: ${BASE_URL}/x402/catalog\nA2A card: ${BASE_URL}/.well-known/agent-card.json\nIntegration guide: ${BASE_URL}/.well-known/agent-instructions.json`
       }]
     }], {
@@ -613,7 +695,7 @@ function handleMessageSend(req: Request, res: Response) {
       agentId: 'coinrailz-x402-agent',
       catalogUrl: `${BASE_URL}/x402/catalog`,
       agentCard: `${BASE_URL}/.well-known/agent-card.json`
-    }));
+    }, contextId));
     const latencyMs = Date.now() - startTime;
     trackA2AHit(req, { resourceId: 'a2a-peer-offer', statusCode: 200, responseTimeMs: latencyMs, matched: false, queryText: text, requestId: taskId });
     logA2AInteraction({ requestId: taskId, latencyMs, statusCode: 200, matched: false, resourceId: 'a2a-peer-offer', matchCount: 0, intentType, queryText: text, clientIpHash, userAgent, trackingId });
@@ -627,9 +709,9 @@ function handleMessageSend(req: Request, res: Response) {
       .slice(0, 6)
       .map(toServiceEntry);
 
-    res.status(200).json(buildTaskResponse(taskId, [{
+    sendTaskResult(res, body, buildTaskResponse(taskId, [{
       parts: [{
-        type: 'text',
+        kind: 'text',
         text: `Hello! I'm Coin Railz — multi-chain x402 payment infrastructure for AI agents.\n\nI offer ${catalog.totalServices}+ pay-per-call API services across crypto analytics, IoT, satellite data, NASA Earthdata, and AI inference. Send me a natural language query describing what you need. Examples:\n- "What's the current gas price on Base?"\n- "Get NASA satellite imagery for coordinates 34, -118"\n- "Fetch fleet telematics for vehicle ID 99"\n- "Run AI inference on this prompt: [text]"\n- "Verify agent identity"\n\nEach service costs between $0.10–$10.00 USDC, paid via x402 protocol.\n\nFull catalog: ${BASE_URL}/x402/catalog\nIntegration guide: ${BASE_URL}/.well-known/agent-instructions.json\nFree trial (no crypto needed): ${BASE_URL}/api/m2m/credits/trial`
       }]
     }], {
@@ -640,7 +722,7 @@ function handleMessageSend(req: Request, res: Response) {
       trialUrl: `${BASE_URL}/api/m2m/credits/trial`,
       instructionsUrl: `${BASE_URL}/.well-known/agent-instructions.json`,
       featured: featured.map(s => ({ id: s.id, name: s.name, priceUsd: s.priceUsd, endpoint: s.x402Endpoint }))
-    }));
+    }, contextId));
     const latencyMs = Date.now() - startTime;
     trackA2AHit(req, { resourceId: 'a2a-greeting', statusCode: 200, responseTimeMs: latencyMs, matched: false, queryText: text, requestId: taskId });
     logA2AInteraction({ requestId: taskId, latencyMs, statusCode: 200, matched: false, resourceId: 'a2a-greeting', matchCount: 0, intentType, queryText: text, clientIpHash, userAgent, trackingId });
@@ -649,9 +731,9 @@ function handleMessageSend(req: Request, res: Response) {
 
   if (matches.length === 0) {
     const suggested = [...catalog.services].sort(() => 0.5 - Math.random()).slice(0, 5).map(toServiceEntry);
-    res.status(200).json(buildTaskResponse(taskId, [{
+    sendTaskResult(res, body, buildTaskResponse(taskId, [{
       parts: [{
-        type: 'text',
+        kind: 'text',
         text: `I couldn't find a specific service matching "${text}".\n\nCoin Railz offers ${catalog.totalServices}+ automated API services. Here are some you might be looking for:\n${suggested.map(s => `- ${s.name}: ${s.description}`).join('\n')}\n\nTry these example queries:\n- "What's the current gas price on Base?"\n- "Is this smart contract safe: 0x..."\n- "Get whale alerts for USDC on Solana"\n- "Check my wallet portfolio: [address]"\n\nFull service catalog: ${BASE_URL}/x402/catalog\nIntegration Guide: ${BASE_URL}/.well-known/agent-instructions.json`
       }]
     }], {
@@ -667,7 +749,7 @@ function handleMessageSend(req: Request, res: Response) {
       })),
       catalogUrl: `${BASE_URL}/x402/catalog`,
       documentationUrl: `${BASE_URL}/.well-known/agent-instructions.json`
-    }));
+    }, contextId));
     const latencyMs = Date.now() - startTime;
     trackA2AHit(req, { resourceId: 'a2a-no-match', statusCode: 200, responseTimeMs: latencyMs, matched: false, queryText: text, requestId: taskId });
     logA2AInteraction({ requestId: taskId, latencyMs, statusCode: 200, matched: false, resourceId: 'a2a-no-match', matchCount: 0, intentType, queryText: text, clientIpHash, userAgent, trackingId });
@@ -691,8 +773,8 @@ function handleMessageSend(req: Request, res: Response) {
     ? formatServiceText(top)
     : `${formatServiceText(top)}\n\nAlternate matches:\n${matches.slice(1, 4).map(s => `- ${s.name} ($${s.priceUsd.toFixed(2)}): ${s.x402Endpoint}`).join('\n')}`;
 
-  res.status(200).json(buildTaskResponse(taskId, [{
-    parts: [{ type: 'text', text: responseText }]
+  sendTaskResult(res, body, buildTaskResponse(taskId, [{
+    parts: [{ kind: 'text', text: responseText }]
   }], {
     matched: true,
     serviceId: top.id,
@@ -728,10 +810,19 @@ function handleMessageSend(req: Request, res: Response) {
         'X-PAYMENT': '<payment-proof-from-facilitator>'
       }
     }]
-  }));
+  }, contextId));
   const latencyMs = Date.now() - startTime;
   trackA2AHit(req, { resourceId: top.id, statusCode: 200, responseTimeMs: latencyMs, matched: true, queryText: text, requestId: taskId });
   logA2AInteraction({ requestId: taskId, latencyMs, statusCode: 200, matched: true, resourceId: top.id, matchCount: matches.length, intentType, queryText: text, clientIpHash, userAgent, trackingId });
 }
+
+router.all('/a2a/v1/*', (req: Request, res: Response) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `${req.path} is not an A2A v${SUPPORTED_A2A_VERSION} endpoint.`,
+    canonicalEndpoint: `${BASE_URL}/a2a/v1`,
+    compatibilityAlias: `${BASE_URL}/a2a/v1/message/send`,
+  });
+});
 
 export default router;

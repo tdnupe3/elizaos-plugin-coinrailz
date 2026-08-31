@@ -11,6 +11,7 @@ import { getCanonicalServiceCount, getCanonicalServices } from '../utils/service
 export const PUBLIC_DISCOVERY_VERSIONS = {
   manifest: '1.1.0',
   serviceCatalog: '1.1.0',
+  a2aProtocol: '0.3.0',
   x402Label: 'x402-2.12',
   x402Spec: '2.12.0',
   x402Protocol: 2,

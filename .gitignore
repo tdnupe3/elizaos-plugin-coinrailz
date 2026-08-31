@@ -34,5 +34,10 @@ cdp_*.json
 # CDP Credential Files
 attached_assets/cdp_api_key_*.json
 *.json
+# Build and typecheck configuration must remain reproducible.
+!/package.json
+!/package-lock.json
+!/tsconfig.json
+!/scripts/typecheck-baseline.json
 # Canonical OpenAPI spec — must be versioned (not a credential)
 !public/openapi-x402-services.json

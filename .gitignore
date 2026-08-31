@@ -40,3 +40,7 @@ attached_assets/cdp_api_key_*.json
 !/tsconfig.json
 # Canonical OpenAPI spec — must be versioned (not a credential)
 !public/openapi-x402-services.json
+# Drizzle migration history is reproducible build metadata, not secret data.
+!migrations/meta/
+!migrations/meta/_journal.json
+!migrations/meta/*_snapshot.json

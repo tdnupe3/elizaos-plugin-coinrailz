@@ -12,7 +12,7 @@
  */
 
 import { SERVICE_PRICING_USD, formatUSD, ServiceName, isServiceName } from "../../shared/pricing";
-import { getCanonicalServiceCount } from "../utils/serviceCount";
+import { getCanonicalServiceCount, getCanonicalServices } from "../utils/serviceCount";
 import { getCanonicalPaymentRecipients, PUBLIC_DISCOVERY_VERSIONS } from "../config/publicDiscoveryConfig";
 
 export interface ServiceCatalogEntry {
@@ -1021,13 +1021,24 @@ export class ServiceCatalogService {
       }
     ];
 
-    // CRITICAL: Apply canonical pricing from shared/pricing.ts
-    // This prevents price drift between SEO pages and x402 payment verification
-    // SDK payment services use percentage-based pricing, handled by getCanonicalPrice fallback
-    this.catalog = rawCatalog.map(entry => {
-      const pricing = getCanonicalPrice(entry.id);
+    // CRITICAL: The public catalog must contain exactly the callable services
+    // advertised by the canonical OpenAPI document. The curated list above only
+    // supplies richer descriptions and capabilities; it must never introduce
+    // phantom services or override canonical endpoints.
+    const curatedById = new Map(rawCatalog.map(entry => [entry.id, entry]));
+    this.catalog = getCanonicalServices().map(canonical => {
+      const curated = curatedById.get(canonical.id);
+      const pricing = getCanonicalPrice(canonical.id);
       return {
-        ...entry,
+        id: canonical.id,
+        name: curated?.name ?? canonical.name,
+        description: curated?.description ?? canonical.description,
+        endpoint: canonical.endpoint,
+        network: curated?.network ?? 'eip155:8453',
+        category: curated?.category ?? canonical.category,
+        capabilities: curated?.capabilities ?? canonical.tags,
+        x402Compatible: true,
+        stripeCompatible: curated?.stripeCompatible ?? false,
         priceUSD: pricing.priceUSD,
         priceUSDC: pricing.priceUSDC
       };

@@ -1,6 +1,20 @@
 import type { Express } from "express";
 import { isAuthenticated } from "../replitAuth";
 
+declare global {
+  namespace Express {
+    interface User {
+      claims?: {
+        sub?: string;
+        email?: string;
+        first_name?: string;
+        last_name?: string;
+        profile_image_url?: string;
+      };
+    }
+  }
+}
+
 interface EnterpriseClient {
   id: string;
   companyName: string;

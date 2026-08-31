@@ -2,14 +2,20 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NavigationHeader } from "@/components/navigation-header";
 import { Users, DollarSign, TrendingUp, Activity, Calendar, Target, Zap, Award } from "@/lib/icons";
+interface PlatformStatsResponse {
+  analytics: Record<string, any>;
+}
+interface RevenueResponse {
+  revenue: Record<string, any>;
+}
 
 export default function PlatformAnalytics() {
-  const { data: analytics, isLoading } = useQuery({
+  const { data: analytics, isLoading } = useQuery<PlatformStatsResponse>({
     queryKey: ["/api/analytics/platform-stats"],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  const { data: revenueData } = useQuery({
+  const { data: revenueData } = useQuery<RevenueResponse>({
     queryKey: ["/api/analytics/revenue-breakdown"],
     refetchInterval: 60000, // Refresh every minute
   });

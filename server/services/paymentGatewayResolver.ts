@@ -117,7 +117,6 @@ export class PaymentGatewayResolver {
       success: statuses.filter(s => s.status === 'success'),
       failed: statuses.filter(s => s.status === 'failed'),
       pending: statuses.filter(s => s.status === 'pending'),
-      cancelled: statuses.filter(s => s.status === 'cancelled'),
       unknown: statuses.filter(s => s.status === 'unknown')
     };
 

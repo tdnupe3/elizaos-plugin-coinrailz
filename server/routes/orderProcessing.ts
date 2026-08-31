@@ -26,7 +26,7 @@ const upload = multer({
     const fileExt = file.originalname.toLowerCase().substr(file.originalname.lastIndexOf('.'));
     
     if (dangerousTypes.includes(fileExt)) {
-      return cb(new Error('File type not allowed for security reasons'), false);
+      return cb(new Error('File type not allowed for security reasons'));
     }
     
     cb(null, true);
@@ -101,7 +101,7 @@ router.post('/create', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Order creation failed',
-      message: error.message
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -190,7 +190,7 @@ router.patch('/:orderId/status', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Status update failed',
-      message: error.message
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -268,7 +268,7 @@ router.post('/:orderId/deliverables', upload.array('files'), async (req, res) =>
     res.status(500).json({
       success: false,
       error: 'File upload failed',
-      message: error.message
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -343,7 +343,7 @@ router.post('/:orderId/confirm-delivery', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Delivery confirmation failed',
-      message: error.message
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });

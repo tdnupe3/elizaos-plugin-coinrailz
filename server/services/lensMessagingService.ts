@@ -37,20 +37,13 @@ export class LensMessagingService {
         return;
       }
 
-      // Try to initialize Lens client with proper error handling
-      const lensModule = await import('@lens-protocol/client').catch(() => null);
-      
-      if (lensModule && lensModule.LensClient) {
-        this.client = new lensModule.LensClient({
-          environment: lensModule.production
-        });
-        console.log('✅ Lens Protocol client initialized');
-      } else {
-        console.log('🔄 Lens Protocol client not available, using fallback');
-        this.client = null;
-      }
+      // The installed Lens SDK no longer exposes the legacy LensClient API used
+      // by this service. Until this messaging flow is migrated to its current
+      // authenticated client API, use the existing development fallback.
+      console.log('🔄 Lens Protocol client not available, using fallback');
+      this.client = null;
     } catch (error) {
-      console.log('🔄 Lens Protocol initialization failed, using fallback:', error.message);
+      console.log('🔄 Lens Protocol initialization failed, using fallback:', error instanceof Error ? error.message : String(error));
       this.client = null;
     }
   }

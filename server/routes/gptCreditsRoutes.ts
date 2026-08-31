@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { stripe } from '../services/stripeClient';
+import type Stripe from 'stripe';
 import { creditsService } from '../services/creditsService';
 import { nanoid } from 'nanoid';
 import { db } from '../db';

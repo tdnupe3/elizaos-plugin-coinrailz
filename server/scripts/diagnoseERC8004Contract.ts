@@ -96,7 +96,9 @@ async function diagnoseContract() {
         console.log('❌ No minting events found - no agents were ever minted!');
       } else {
         for (const event of events.slice(0, 10)) {
-          console.log(`   Token #${event.args?.tokenId} minted to ${event.args?.to}`);
+          if ('args' in event) {
+            console.log(`   Token #${event.args?.tokenId} minted to ${event.args?.to}`);
+          }
         }
       }
     } catch (error) {

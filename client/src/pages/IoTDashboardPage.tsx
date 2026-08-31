@@ -59,7 +59,7 @@ export default function IoTDashboardPage() {
     keywords: "IoT dashboard, device registration, metering, credits, transaction history"
   });
 
-  const authHeaders = apiKey ? { "x-api-key": apiKey } : {};
+  const authHeaders: Record<string, string> = apiKey ? { "x-api-key": apiKey } : {};
 
   const { data: catalogData, isLoading: catalogLoading, refetch: refetchCatalog } = useQuery<any>({
     queryKey: ['/api/iot/catalog'],

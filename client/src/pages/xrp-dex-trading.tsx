@@ -212,7 +212,7 @@ export default function XRPDEXTrading() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          pair: selectedPair.name,
+          pair: `${selectedPair.base}/${selectedPair.quote}`,
           side,
           type: orderType,
           amount: amountNum,
@@ -451,7 +451,9 @@ export default function XRPDEXTrading() {
                   </div>
 
                   {/* Buy/Sell Tabs */}
-                  <Tabs value={side} onValueChange={(value: 'buy' | 'sell') => setSide(value)}>
+                  <Tabs value={side} onValueChange={(value) => {
+                    if (value === "buy" || value === "sell") setSide(value);
+                  }}>
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="buy" className="text-green-600">Buy</TabsTrigger>
                       <TabsTrigger value="sell" className="text-red-600">Sell</TabsTrigger>

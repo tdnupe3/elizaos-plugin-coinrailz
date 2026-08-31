@@ -6,7 +6,7 @@
 
 import { db } from '../db';
 import { discoveredAgents } from '../../shared/schema';
-import { eq, and, ne } from 'drizzle-orm';
+import { eq, and, ne, sql } from 'drizzle-orm';
 
 export class TargetedProductOutreachService {
   
@@ -334,7 +334,7 @@ export class TargetedProductOutreachService {
     await db.update(discoveredAgents)
       .set({
         lastContactAt: new Date(),
-        attempts: db.raw('attempts + 1')
+        attempts: sql`${discoveredAgents.attempts} + 1`
       })
       .where(eq(discoveredAgents.id, agentId));
   }

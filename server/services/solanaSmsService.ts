@@ -24,7 +24,7 @@ interface SolanaSmsResult {
 }
 
 export class SolanaSmsService {
-  private connection: Connection;
+  private connection!: Connection;
   private isInitialized: boolean = false;
 
   constructor() {

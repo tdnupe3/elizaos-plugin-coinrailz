@@ -9,7 +9,7 @@ import type { Transaction } from "@shared/schema";
 export function RecentActivity() {
   const [, setLocation] = useLocation();
 
-  const { data: transactions, isLoading } = useQuery({
+  const { data: transactions, isLoading } = useQuery<Transaction[]>({
     queryKey: ["/api/transactions"],
   });
 
@@ -96,7 +96,7 @@ export function RecentActivity() {
                     {transaction.transactionType === "send" ? "Sent to" : "Received from"} {transaction.toEmail}
                   </p>
                   <p className="text-sm text-neutral-500">
-                    {getTimeAgo(transaction.createdAt!)}
+                    {getTimeAgo(transaction.createdAt?.toISOString() ?? new Date().toISOString())}
                   </p>
                 </div>
                 <div className="text-right">

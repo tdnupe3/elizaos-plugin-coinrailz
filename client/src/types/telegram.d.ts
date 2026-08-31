@@ -58,6 +58,7 @@ interface TelegramWebApp {
   sendData: (data: string) => void;
   openLink: (url: string) => void;
   openTelegramLink: (url: string) => void;
+  switchInlineQuery: (query: string, chooseChatTypes?: string[]) => void;
   showPopup: (params: {
     title?: string;
     message: string;

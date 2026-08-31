@@ -17,6 +17,15 @@ interface TestResult {
   details?: string;
 }
 
+interface MicroserviceResponse {
+  success?: boolean;
+  data?: {
+    symbol?: string;
+    price?: number;
+    ethereum?: { standard?: { gwei?: number } };
+  };
+}
+
 const results: TestResult[] = [];
 
 async function testEndpoint(name: string, url: string, validator: (data: any) => boolean): Promise<void> {
@@ -71,7 +80,7 @@ async function runTests() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ tokenAddress: '0xdac17f958d2ee523a2206206994597c13d831ec7', chain: 'ethereum' })
   });
-  const tokenData = await tokenPriceResponse.json();
+  const tokenData = await tokenPriceResponse.json() as MicroserviceResponse;
   results.push({
     name: 'Token Price (CoinGecko)',
     passed: tokenData.success === true && tokenData.data?.symbol === 'USDT',
@@ -83,10 +92,10 @@ async function runTests() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chain: 'ethereum' })
   });
-  const gasData = await gasResponse.json();
+  const gasData = await gasResponse.json() as MicroserviceResponse;
   results.push({
     name: 'Gas Price Oracle',
-    passed: gasData.success === true && gasData.data?.ethereum?.standard,
+    passed: gasData.success === true && gasData.data?.ethereum?.standard !== undefined,
     details: gasData.success ? `${gasData.data?.ethereum?.standard?.gwei} gwei` : 'Failed'
   });
   

@@ -84,7 +84,7 @@ export class BalanceLockManager {
     } catch (error) {
       return {
         success: false,
-        error: `Failed to reserve balance: ${error.message}`
+        error: `Failed to reserve balance: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }
@@ -164,7 +164,7 @@ export class BalanceLockManager {
     } catch (error) {
       return {
         success: false,
-        error: `Failed to commit balance: ${error.message}`
+        error: `Failed to commit balance: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }

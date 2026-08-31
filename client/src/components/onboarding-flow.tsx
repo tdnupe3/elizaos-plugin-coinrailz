@@ -15,12 +15,16 @@ interface OnboardingStep {
   status: 'completed' | 'current' | 'pending';
   action?: () => void;
 }
+interface CircleWallet {
+  address?: string;
+  balance?: string;
+}
 
 export default function OnboardingFlow() {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
 
-  const { data: circleWallet, isLoading } = useQuery({
+  const { data: circleWallet, isLoading } = useQuery<CircleWallet>({
     queryKey: ["/api/user-circle/balance"],
   });
 

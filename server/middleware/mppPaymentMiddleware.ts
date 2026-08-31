@@ -379,7 +379,7 @@ export function createMppPaymentMiddleware(serviceName: string, amountUsd: numbe
       return res.status(402).json(body);
     }
 
-    const rawCredential = authHeader.slice("Payment ".length);
+    const rawCredential = authHeader!.slice("Payment ".length);
     const credential = parseCredential(rawCredential);
 
     console.log(

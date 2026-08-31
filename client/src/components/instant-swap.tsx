@@ -20,6 +20,10 @@ interface Token {
   balance?: string;
   price?: number;
 }
+interface SwapQuote {
+  toTokenAmount: string;
+  estimatedGas: string;
+}
 
 const popularTokens: Token[] = [
   { symbol: 'USDC', name: 'USD Coin', icon: '💰', balance: '0.00' },
@@ -36,7 +40,7 @@ export function InstantSwap() {
   const [slippage, setSlippage] = useState("0.5");
 
   // Get real-time quote
-  const { data: quote, isLoading: quoteLoading } = useQuery({
+  const { data: quote, isLoading: quoteLoading } = useQuery<SwapQuote>({
     queryKey: ['/api/dex/quote', fromToken.symbol, toToken.symbol, fromAmount],
     enabled: parseFloat(fromAmount) > 0 && fromToken.symbol !== toToken.symbol
   });

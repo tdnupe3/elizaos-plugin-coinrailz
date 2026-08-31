@@ -64,7 +64,7 @@ export class BlockchainSync {
       if (realBalance > 0) {
         await db
           .update(users)
-          .set({ usdc_balance: realBalance.toString() })
+          .set({ usdcBalance: realBalance.toString() })
           .where(eq(users.email, email));
           
         console.log(`✅ Updated ${email} balance to $${realBalance}`);
@@ -86,8 +86,8 @@ export class BlockchainSync {
       const allUsers = await db.select().from(users);
       
       for (const user of allUsers) {
-        if (user.email && user.wallet_address) {
-          await this.syncUserBalance(user.email, user.wallet_address);
+        if (user.email && user.ethereumWallet) {
+          await this.syncUserBalance(user.email, user.ethereumWallet);
           // Rate limit to avoid overwhelming APIs
           await new Promise(resolve => setTimeout(resolve, 1000));
         }

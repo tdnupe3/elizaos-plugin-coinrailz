@@ -239,6 +239,9 @@ export class FeeCalculator {
       totalAmount: amount,
       netAmount: agentPayout,
       paymentMethod: 'marketplace',
+      fee: platformFee,
+      total: amount,
+      feePercentage: (platformFee / amount) * 100,
       feeBreakdown: {
         networkFee: 0,
         serviceFee: 0,
@@ -331,6 +334,9 @@ export class FeeCalculator {
       totalAmount,
       netAmount,
       paymentMethod: 'xrp',
+      fee: totalFee,
+      total: totalAmount,
+      feePercentage: (totalFee / amount) * 100,
       feeBreakdown: {
         networkFee: processingFee,
         serviceFee: serviceFee,
@@ -372,6 +378,9 @@ export class FeeCalculator {
       totalAmount: amount + totalFee,
       netAmount: amount,
       paymentMethod: 'ethereum',
+      fee: totalFee,
+      total: amount + totalFee,
+      feePercentage: (totalFee / amount) * 100,
       feeBreakdown: {
         networkFee: gasCostUSD,
         serviceFee: 0,
@@ -405,6 +414,9 @@ export class FeeCalculator {
       totalAmount: amount + totalFee,
       netAmount: amount,
       paymentMethod: 'stablecoin',
+      fee: totalFee,
+      total: amount + totalFee,
+      feePercentage: (totalFee / amount) * 100,
       feeBreakdown: {
         networkFee: gasCostUSD,
         serviceFee: 0,
@@ -559,7 +571,10 @@ export class FeeCalculator {
       totalFee,
       totalAmount,
       netAmount,
-      paymentMethod: 'crypto'
+      paymentMethod: 'crypto',
+      fee: totalFee,
+      total: totalAmount,
+      feePercentage: (totalFee / amount) * 100,
     };
   }
   

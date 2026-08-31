@@ -66,10 +66,7 @@ Looking forward to connecting!
 - Coin Railz Team`;
 
     // Execute campaign (starts in dry-run mode)
-    const campaignResult = await outreachService.launchPremiumTradingCampaign(
-      priorityTargets.slice(0, 5), // Top 5 priority targets
-      message
-    );
+    const campaignResult = await outreachService.launchPremiumTradingCampaign();
     
     const response = {
       success: true,
@@ -157,10 +154,7 @@ Platform: https://coinrailz.com
 Looking forward to connecting!
 - Coin Railz Team`;
 
-    const campaignResult = await outreachService.launchPremiumTradingCampaign(
-      priorityTargets.slice(0, 5),
-      message
-    );
+    const campaignResult = await outreachService.launchPremiumTradingCampaign();
     
     res.json({
       success: true,

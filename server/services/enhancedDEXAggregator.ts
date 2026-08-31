@@ -198,7 +198,7 @@ export class EnhancedDEXAggregator {
 
       // Generate warnings
       const priceImpactWarning = bestQuote.priceImpact > this.maxPriceImpact;
-      const slippageWarning = validatedRequest.slippage && validatedRequest.slippage > 10.0; // Warning only for very high slippage
+      const slippageWarning = (validatedRequest.slippage ?? 0) > 10.0; // Warning only for very high slippage
 
       // Platform wallet for fee collection
       const platformWallet = SmartContractFeeRouter.getPlatformWallet(validatedRequest.chainId);
@@ -531,6 +531,7 @@ export class EnhancedDEXAggregator {
       feeAmount: string;
       feeAmountUSD: string;
       automatic: boolean;
+      token: string;
     };
     userInstructions: string[];
   }> {

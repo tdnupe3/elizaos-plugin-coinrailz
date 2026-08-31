@@ -346,6 +346,3 @@ class ServiceDeliveryFramework {
 
 // Export singleton instance
 export const serviceDeliveryFramework = new ServiceDeliveryFramework();
-
-// Export types
-export type { ServiceHandler };

@@ -16,7 +16,7 @@ import {
   type InsertSolanaPaymentIntent,
   type SolanaFeeTier,
 } from '@shared/schema.js';
-import { eq, and, lt, desc } from 'drizzle-orm';
+import { eq, and, lt, desc, sql } from 'drizzle-orm';
 import { 
   solanaWalletManager, 
   SUPPORTED_TOKENS, 
@@ -390,16 +390,41 @@ class SolanaPaymentService {
 
   async recordServiceMetric(intentId: string, serviceSlug: string, success: boolean, latencyMs: number): Promise<void> {
     try {
-      await db.insert(solanaPaymentMetrics).values({
-        intentId,
-        metricType: 'service_delivery',
-        metricValue: success ? '1' : '0',
-        metadata: {
-          serviceSlug,
-          latencyMs,
-          timestamp: new Date().toISOString(),
-        },
+      const date = new Date().toISOString().slice(0, 10);
+      const serviceMetric = JSON.stringify({
+        success: success ? 1 : 0,
+        failed: success ? 0 : 1,
+        totalLatencyMs: latencyMs,
+        lastIntentId: intentId,
+        lastRecordedAt: new Date().toISOString(),
       });
+      const updated = await db.update(solanaPaymentMetrics)
+        .set({
+          byService: sql`
+            jsonb_set(
+              coalesce(${solanaPaymentMetrics.byService}, '{}'::jsonb),
+              array[${serviceSlug}],
+              (
+                coalesce(${solanaPaymentMetrics.byService} -> ${serviceSlug}, '{}'::jsonb)
+                || ${serviceMetric}::jsonb
+              ),
+              true
+            )
+          `,
+          totalPaymentsReceived: sql`${solanaPaymentMetrics.totalPaymentsReceived} + ${success ? 1 : 0}`,
+          totalPaymentsFailed: sql`${solanaPaymentMetrics.totalPaymentsFailed} + ${success ? 0 : 1}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(solanaPaymentMetrics.date, date))
+        .returning({ id: solanaPaymentMetrics.id });
+      if (updated.length === 0) {
+        await db.insert(solanaPaymentMetrics).values({
+          date,
+          totalPaymentsReceived: success ? 1 : 0,
+          totalPaymentsFailed: success ? 0 : 1,
+          byService: { [serviceSlug]: JSON.parse(serviceMetric) },
+        });
+      }
     } catch (error) {
       console.error('Failed to record service metric:', error);
     }

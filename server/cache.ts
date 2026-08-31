@@ -31,7 +31,6 @@ class CacheLayer {
       
       if (redisUrl) {
         this.config.redis = new Redis(redisUrl, {
-          retryDelayOnFailover: 100,
           maxRetriesPerRequest: 3,
           lazyConnect: true,
         });

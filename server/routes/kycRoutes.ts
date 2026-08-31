@@ -62,7 +62,7 @@ export function setupKYCRoutes(app: any, storage: IStorage) {
         });
       }
 
-      const user = await storage.getUserById(userId);
+      const user = await storage.getUser(userId);
       
       if (!user) {
         return res.status(404).json({
@@ -72,7 +72,7 @@ export function setupKYCRoutes(app: any, storage: IStorage) {
       }
 
       // Get KYC verification record if exists
-      let kycRecord = null;
+      let kycRecord: { createdAt: Date; updatedAt: Date } | null = null;
       try {
         // This would need to be implemented in storage
         // kycRecord = await storage.getKYCVerification(userId);
@@ -86,8 +86,8 @@ export function setupKYCRoutes(app: any, storage: IStorage) {
           status: user.kycStatus,
           complianceLevel: user.complianceLevel,
           riskScore: user.riskScore,
-          submittedAt: kycRecord?.createdAt || null,
-          lastUpdated: kycRecord?.updatedAt || null,
+          submittedAt: null,
+          lastUpdated: null,
           canUpgrade: user.kycStatus !== 'verified' || user.complianceLevel !== 'institutional'
         },
         features: {
@@ -97,13 +97,13 @@ export function setupKYCRoutes(app: any, storage: IStorage) {
           cryptoTrading: user.kycStatus === 'verified',
           agentMarketplace: user.kycStatus === 'verified',
           commissionWithdrawal: user.kycStatus === 'verified',
-          largeTransactions: user.kycStatus === 'verified' && ['enhanced', 'institutional'].includes(user.complianceLevel),
+          largeTransactions: user.kycStatus === 'verified' && ['enhanced', 'institutional'].includes(user.complianceLevel ?? ''),
           institutionalFeatures: user.kycStatus === 'verified' && user.complianceLevel === 'institutional'
         },
         limits: {
-          maxTransactionAmount: getTransactionLimit(user.kycStatus, user.complianceLevel),
-          dailyLimit: getDailyLimit(user.kycStatus, user.complianceLevel),
-          monthlyLimit: getMonthlyLimit(user.kycStatus, user.complianceLevel)
+          maxTransactionAmount: getTransactionLimit(user.kycStatus ?? 'pending', user.complianceLevel ?? 'basic'),
+          dailyLimit: getDailyLimit(user.kycStatus ?? 'pending', user.complianceLevel ?? 'basic'),
+          monthlyLimit: getMonthlyLimit(user.kycStatus ?? 'pending', user.complianceLevel ?? 'basic')
         }
       });
     } catch (error) {
@@ -140,7 +140,7 @@ export function setupKYCRoutes(app: any, storage: IStorage) {
       }
 
       const userId = req.user?.id || req.session?.demoUser?.id;
-      const user = await storage.getUserById(userId);
+      const user = await storage.getUser(userId);
       
       if (!user) {
         return res.status(404).json({
@@ -208,7 +208,7 @@ export function setupKYCRoutes(app: any, storage: IStorage) {
       // In production, this would require admin authentication
       // For now, we'll allow demo updates
 
-      const user = await storage.getUserById(userId);
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({
           success: false,

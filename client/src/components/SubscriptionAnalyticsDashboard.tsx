@@ -156,7 +156,7 @@ export function SubscriptionAnalyticsDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{analytics?.totalActiveSubscriptions || 0}</div>
             <p className="text-xs text-muted-foreground">
-              <span className={analytics?.growthRate >= 0 ? "text-green-600" : "text-red-600"}>
+                <span className={(analytics?.growthRate ?? 0) >= 0 ? "text-green-600" : "text-red-600"}>
                 {formatPercent(analytics?.growthRate || 0)}
               </span>{' '}
               from last month
@@ -174,7 +174,7 @@ export function SubscriptionAnalyticsDashboard() {
               {formatCurrency(analytics?.totalMonthlyRevenue || 0)}
             </div>
             <p className="text-xs text-muted-foreground">
-              <span className={revenueBreakdown?.revenueGrowth >= 0 ? "text-green-600" : "text-red-600"}>
+                <span className={(revenueBreakdown?.revenueGrowth ?? 0) >= 0 ? "text-green-600" : "text-red-600"}>
                 {formatPercent(revenueBreakdown?.revenueGrowth || 0)}
               </span>{' '}
               from last month
@@ -205,7 +205,7 @@ export function SubscriptionAnalyticsDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{(analytics?.churnRate || 0).toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground">
-              {analytics?.churnRate <= 5 ? (
+              {(analytics?.churnRate ?? 0) <= 5 ? (
                 <span className="text-green-600">Healthy churn rate</span>
               ) : (
                 <span className="text-red-600">High churn rate</span>
@@ -262,7 +262,7 @@ export function SubscriptionAnalyticsDashboard() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"

@@ -10,6 +10,51 @@ import { storage } from "./storage";
 import { pool } from "./db";
 import { z } from 'zod';
 
+type OAuthSessionUser = Express.User & {
+  claims: {
+    sub?: string;
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    profile_image_url?: string;
+    exp?: number;
+  };
+  access_token?: string;
+  refresh_token?: string;
+  expires_at?: number;
+};
+
+type OidcUserClaims = {
+  sub: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  profile_image_url?: string;
+  exp?: number;
+};
+
+function optionalStringClaim(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function getUserClaims(
+  tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
+): OidcUserClaims {
+  const claims = tokens.claims();
+  if (!claims || typeof claims.sub !== "string") {
+    throw new Error("OIDC token is missing the required subject claim");
+  }
+
+  return {
+    sub: claims.sub,
+    email: optionalStringClaim(claims.email),
+    first_name: optionalStringClaim(claims.first_name),
+    last_name: optionalStringClaim(claims.last_name),
+    profile_image_url: optionalStringClaim(claims.profile_image_url),
+    exp: typeof claims.exp === "number" ? claims.exp : undefined,
+  };
+}
+
 if (!process.env.REPLIT_DOMAINS && !process.env.REPLIT_DEPLOYMENT) {
   console.warn("Warning: REPLIT_DOMAINS not set. Replit OAuth will be disabled in this environment.");
 }
@@ -54,17 +99,17 @@ export function getSession() {
 }
 
 function updateUserSession(
-  user: any,
+  user: OAuthSessionUser,
   tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
 ) {
-  user.claims = tokens.claims();
+  user.claims = getUserClaims(tokens);
   user.access_token = tokens.access_token;
   user.refresh_token = tokens.refresh_token;
-  user.expires_at = user.claims?.exp;
+  user.expires_at = user.claims.exp;
 }
 
 async function upsertUser(
-  claims: any,
+  claims: OidcUserClaims,
 ) {
   // Check if user already exists to determine if this is a new registration
   const existingUser = await storage.getUser(claims["sub"]);
@@ -118,9 +163,20 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
-    const user = {};
+    const claims = getUserClaims(tokens);
+    const user: OAuthSessionUser = {
+      id: claims.sub ?? "",
+      email: claims.email,
+      claims: {
+        sub: claims.sub,
+        email: claims.email,
+        first_name: claims.first_name,
+        last_name: claims.last_name,
+        profile_image_url: claims.profile_image_url,
+      },
+    };
     updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
+    await upsertUser(claims);
     verified(null, user);
   };
 
@@ -209,6 +265,8 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
       const session = getSessionSync(token);
       if (session) {
         req.user = {
+          id: session.userId,
+          email: session.userEmail,
           claims: {
             sub: session.userId,
             email: session.userEmail,

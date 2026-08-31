@@ -241,7 +241,7 @@ export class DataMonetizationService {
         case 'network-distribution':
           return await db
             .select({
-              network: transactions.network,
+              network: transactions.currency,
               volume: sql<number>`sum(${transactions.amount})`,
               transactionCount: sql<number>`count(*)`
             })
@@ -252,7 +252,7 @@ export class DataMonetizationService {
                 sql`${transactions.createdAt} <= ${end}`
               )
             )
-            .groupBy(transactions.network);
+            .groupBy(transactions.currency);
 
         case 'agent-performance':
           return await db

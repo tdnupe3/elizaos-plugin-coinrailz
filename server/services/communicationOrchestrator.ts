@@ -11,6 +11,10 @@
 import { z } from 'zod';
 import { CampaignType } from './campaignTemplateService';
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export interface AgentContact {
   walletAddress: string;
   network: 'ethereum' | 'base' | 'solana' | 'polygon';
@@ -113,12 +117,12 @@ export class CommunicationOrchestrator {
         }
 
       } catch (error) {
-        console.log(`❌ ${channel.name} failed:`, error.message);
+        console.log(`❌ ${channel.name} failed:`, getErrorMessage(error));
         deliveryAttempts.push({
           channel: channel.name,
           endpoint: channel.endpoint,
           status: 'failed',
-          errorMessage: error.message,
+          errorMessage: getErrorMessage(error),
           timestamp: new Date()
         });
       }
@@ -157,11 +161,15 @@ export class CommunicationOrchestrator {
       try {
         const discovered = await service.discover(address);
         if (discovered) {
-          Object.assign(contact, discovered);
-          console.log(`✅ Discovered via ${service.name}:`, Object.keys(discovered.endpoints));
+          const { endpoints, ...contactDetails } = discovered;
+          Object.assign(contact, contactDetails);
+          if (endpoints) {
+            Object.assign(contact.endpoints, endpoints);
+          }
+          console.log(`✅ Discovered via ${service.name}:`, Object.keys(endpoints ?? {}));
         }
       } catch (error) {
-        console.log(`❌ Discovery failed via ${service.name}:`, error.message);
+        console.log(`❌ Discovery failed via ${service.name}:`, getErrorMessage(error));
       }
     }
 
@@ -181,9 +189,9 @@ export class CommunicationOrchestrator {
     // If specific channels requested, prioritize those
     if (requestedChannels) {
       for (const channel of requestedChannels) {
-        const endpoint = contact.endpoints[channel];
-        if (endpoint) {
-          channels.push({ name: channel, endpoint: endpoint.toString(), priority: 1 });
+        const endpoint = contact.endpoints[channel as keyof AgentContact['endpoints']];
+        if (typeof endpoint === 'string') {
+          channels.push({ name: channel, endpoint, priority: 1 });
         }
       }
     }
@@ -301,7 +309,7 @@ class WebhookProvider implements DeliveryProvider {
     } catch (error) {
       return {
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
         cost: 0
       };
     }
@@ -323,7 +331,7 @@ class EmailProvider implements DeliveryProvider {
     } catch (error) {
       return {
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
         cost: 0
       };
     }
@@ -345,7 +353,7 @@ class PushProtocolProvider implements DeliveryProvider {
     } catch (error) {
       return {
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
         cost: 0
       };
     }
@@ -367,7 +375,7 @@ class DialectProvider implements DeliveryProvider {
     } catch (error) {
       return {
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
         cost: 0
       };
     }
@@ -441,8 +449,8 @@ class TelegramProvider implements DeliveryProvider {
           // Add delay between sends to avoid rate limiting
           await new Promise(resolve => setTimeout(resolve, 2000));
         } catch (error) {
-          console.log(`❌ Failed to send to ${bot.channel}:`, error.message);
-          results.push({ channel: bot.channel, error: error.message });
+          console.log(`❌ Failed to send to ${bot.channel}:`, getErrorMessage(error));
+          results.push({ channel: bot.channel, error: getErrorMessage(error) });
         }
       }
 
@@ -457,7 +465,7 @@ class TelegramProvider implements DeliveryProvider {
     } catch (error) {
       return {
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
         cost: 0
       };
     }
@@ -486,8 +494,8 @@ class TelegramProvider implements DeliveryProvider {
         return { success: false, error: result.description };
       }
     } catch (error) {
-      console.log(`❌ Network error sending to ${channel}:`, error.message);
-      return { success: false, error: error.message };
+      console.log(`❌ Network error sending to ${channel}:`, getErrorMessage(error));
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 
@@ -526,7 +534,7 @@ class TwitterProvider implements DeliveryProvider {
     } catch (error) {
       return {
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
         cost: 0
       };
     }

@@ -160,9 +160,8 @@ interface AP2PaymentMandateContents {
       token?: {
         value?: string;
         url?: string;
-      };
+      } | string;
       chain?: string;
-      token?: string;
       [key: string]: unknown;
     };
     shipping_address?: Record<string, unknown>;
@@ -435,7 +434,8 @@ router.post('/ap2/v1/merchant', async (req: Request, res: Response) => {
       return;
     }
 
-    const stripeToken = contents.payment_response?.details?.token?.value as string | undefined;
+    const token = contents.payment_response?.details?.token;
+    const stripeToken = typeof token === 'string' ? token : token?.value;
     const userId = agentUserId(contents.merchant_agent, contents.payment_mandate_id!);
 
     // If a Stripe pm_ or tok_ token is provided, charge directly

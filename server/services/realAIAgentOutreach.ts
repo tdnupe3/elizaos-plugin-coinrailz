@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { global_ai_agents } from '../../shared/schema';
+import { globalAIAgents } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
 /**
@@ -161,9 +161,9 @@ Emergency Revenue Generation Division`,
   private async logOutreachAttempt(agent: any, message: any) {
     try {
       // Update the agent record with outreach info
-      await db.update(global_ai_agents)
+      await db.update(globalAIAgents)
         .set({ 
-          last_active: new Date(),
+          lastActive: new Date(),
           metadata: JSON.stringify({
             last_outreach: new Date().toISOString(),
             outreach_message: message.subject,
@@ -171,7 +171,7 @@ Emergency Revenue Generation Division`,
             services_offered: message.services_offered
           })
         })
-        .where(eq(global_ai_agents.agent_name, agent.name));
+        .where(eq(globalAIAgents.agentName, agent.name));
 
       console.log(`📝 Logged outreach attempt to ${agent.name}`);
     } catch (error) {
@@ -184,7 +184,7 @@ Emergency Revenue Generation Division`,
    */
   async checkAgentEngagement() {
     try {
-      const agents = await db.select().from(global_ai_agents);
+      const agents = await db.select().from(globalAIAgents);
       
       console.log('📊 AI Agent Engagement Report:');
       console.log(`   Total Agents in Database: ${agents.length}`);
@@ -193,8 +193,8 @@ Emergency Revenue Generation Division`,
         const metadata = agent.metadata ? JSON.parse(agent.metadata as string) : {};
         
         if (metadata.last_outreach) {
-          console.log(`   ${agent.agent_name}:`);
-          console.log(`     Wallet: ${agent.primary_wallet_address}`);
+          console.log(`   ${agent.agentName}:`);
+          console.log(`     Wallet: ${agent.primaryWalletAddress}`);
           console.log(`     Last Contact: ${metadata.last_outreach}`);
           console.log(`     Potential Value: ${metadata.potential_monthly_value || 'Unknown'}`);
           console.log(`     Status: ${agent.status}`);

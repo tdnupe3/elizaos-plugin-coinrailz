@@ -468,7 +468,7 @@ router.get('/demo-script', async (req, res) => {
           content: [
             "Hi [Prospect Name], thanks for joining this demo.",
             "Today I'll show you how we deliver messages directly to verified crypto wallets with impossible-to-block technology.",
-            `We recently delivered messages to Coinbase CEO Brian Armstrong, Vitalik Buterin, and major DAO treasuries with ${analytics.campaignSummary.deliveryRate} verified delivery rate.`,
+            "We recently delivered messages to Coinbase CEO Brian Armstrong, Vitalik Buterin, and major DAO treasuries with verified delivery rates.",
             "By the end of this demo, you'll see exactly how this works and how it can help your crypto marketing campaigns."
           ]
         },

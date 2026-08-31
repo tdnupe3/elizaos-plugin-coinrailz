@@ -3,6 +3,7 @@ import { persistDiscoveredAgent } from './persistence/discoveredAgentPersistence
 import { discoveryPingService } from './discoveryPingService';
 import { db } from '../db';
 import { discoveredAgents } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 /**
  * A2A MASS DISCOVERY SERVICE

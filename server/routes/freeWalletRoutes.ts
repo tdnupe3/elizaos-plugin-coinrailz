@@ -360,12 +360,15 @@ router.post('/free', async (req: Request, res: Response) => {
     if (chain === 'solana-mainnet') {
       const solanaResult = await coinbaseCDPService.createSolanaWallet({
         agentId: `free:${agent_id}`,
-        purpose: purpose
+        name: purpose
       });
       if (!solanaResult || solanaResult.error) {
         throw new Error(solanaResult?.error || 'Solana wallet creation failed');
       }
-      cdpWallet = { id: solanaResult.walletId, address: solanaResult.address };
+      if (!solanaResult.address) {
+        throw new Error('Solana wallet creation returned no address');
+      }
+      cdpWallet = { id: solanaResult.agentId, address: solanaResult.address };
     } else {
       cdpWallet = await coinbaseCDPService.createWallet(`free:${agent_id}`, chain);
     }

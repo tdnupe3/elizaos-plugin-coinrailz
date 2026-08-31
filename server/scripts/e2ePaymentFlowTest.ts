@@ -192,7 +192,7 @@ async function runE2ETest(): Promise<void> {
   // @x402/fetch 2.x: 2-arg API — build x402Client with ExactEvmScheme + policy cap
   const publicClient = createPublicClient({ chain: base, transport: http() });
   const evmSigner = {
-    address: account.address,
+    address: walletClient.account.address,
     signTypedData: (args: any) => walletClient.signTypedData(args),
     readContract: (args: any) => publicClient.readContract(args),
     estimateFeesPerGas: () => publicClient.estimateFeesPerGas(),

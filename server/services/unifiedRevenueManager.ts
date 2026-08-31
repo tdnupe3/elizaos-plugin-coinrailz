@@ -142,9 +142,8 @@ export class UnifiedRevenueManager {
           serviceAmount: commission.amount,
           platformFeeRate: commission.type === 'primary' ? '0.15' : '0.997',
           platformFeeAmount: commission.type === 'primary' ? (parseFloat(commission.amount) * 0.15).toString() : '0',
-          transactionType: 'marketplace',
-          transactionId: distribution.transactionId,
-          status: 'pending',
+          orderId: distribution.transactionId,
+          payoutStatus: 'pending',
           calculatedAt: new Date()
         });
       }
@@ -239,8 +238,8 @@ export class UnifiedRevenueManager {
         })
         .from(aiMarketplaceCommissions)
         .where(and(
-          gte(aiMarketplaceCommissions.calculatedAt, dateFrom.toISOString()),
-          lte(aiMarketplaceCommissions.calculatedAt, dateTo.toISOString())
+          gte(aiMarketplaceCommissions.calculatedAt, dateFrom),
+          lte(aiMarketplaceCommissions.calculatedAt, dateTo)
         ));
 
       const agentCommissions = commissionSummary[0]?.totalCommissions || '0';

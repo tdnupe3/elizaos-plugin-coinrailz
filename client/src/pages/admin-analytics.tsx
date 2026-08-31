@@ -36,13 +36,23 @@ interface AnalyticsDashboard {
     currentLoad: number;
   };
 }
+interface MessagingAnalytics {
+  analytics: {
+    overall?: {
+      totalCampaigns?: number; totalMessages?: number; successRate?: number;
+      totalCost?: number; walletBalance?: number; targetTypes?: string[]; activeTargets?: string[];
+    };
+    emergencyFunding?: { totalMessages?: number; successRate?: number; totalCost?: number; recentTransactions?: string[] };
+    serviceMarketing?: { totalMessages?: number; successRate?: number; totalCost?: number; recentTransactions?: string[] };
+  };
+}
 
 export default function AdminAnalytics() {
   const { user, isAuthenticated } = useAuth();
   const [timeframe, setTimeframe] = useState("24h");
   const [activeTab, setActiveTab] = useState("overview");
 
-  const { data: analytics, isLoading: analyticsLoading, refetch } = useQuery({
+  const { data: analytics, isLoading: analyticsLoading, refetch } = useQuery<AnalyticsDashboard>({
     queryKey: ['/api/analytics/dashboard'],
     enabled: isAuthenticated,
     refetchInterval: 30000, // Refresh every 30 seconds
@@ -53,13 +63,13 @@ export default function AdminAnalytics() {
     enabled: isAuthenticated,
   });
 
-  const { data: health } = useQuery({
+  const { data: health } = useQuery<{ status: string }>({
     queryKey: ['/api/analytics/health'],
     enabled: isAuthenticated,
     refetchInterval: 5000, // Refresh every 5 seconds
   });
 
-  const { data: messagingAnalytics, isLoading: messagingLoading } = useQuery({
+  const { data: messagingAnalytics, isLoading: messagingLoading } = useQuery<MessagingAnalytics>({
     queryKey: ['/api/solana-messaging/campaigns/analytics'],
     enabled: isAuthenticated,
     refetchInterval: 30000, // Refresh every 30 seconds
@@ -335,11 +345,11 @@ export default function AdminAnalytics() {
                           {messagingAnalytics?.analytics?.emergencyFunding?.totalCost || 0} SOL
                         </Badge>
                       </div>
-                      {messagingAnalytics?.analytics?.emergencyFunding?.recentTransactions?.length > 0 && (
+                      {(messagingAnalytics?.analytics?.emergencyFunding?.recentTransactions ?? []).length > 0 && (
                         <div className="mt-4">
                           <p className="text-sm font-medium mb-2">Recent Transactions:</p>
                           <div className="bg-gray-50 p-3 rounded text-xs font-mono">
-                            {messagingAnalytics.analytics.emergencyFunding.recentTransactions[0]?.slice(0, 32)}...
+                            {messagingAnalytics?.analytics?.emergencyFunding?.recentTransactions?.[0]?.slice(0, 32)}...
                           </div>
                         </div>
                       )}
@@ -379,11 +389,11 @@ export default function AdminAnalytics() {
                           {messagingAnalytics?.analytics?.serviceMarketing?.totalCost || 0} SOL
                         </Badge>
                       </div>
-                      {messagingAnalytics?.analytics?.serviceMarketing?.recentTransactions?.length > 0 && (
+                      {(messagingAnalytics?.analytics?.serviceMarketing?.recentTransactions ?? []).length > 0 && (
                         <div className="mt-4">
                           <p className="text-sm font-medium mb-2">Recent Transactions:</p>
                           <div className="space-y-1">
-                            {messagingAnalytics.analytics.serviceMarketing.recentTransactions.slice(0, 3).map((tx, i) => (
+                            {(messagingAnalytics?.analytics?.serviceMarketing?.recentTransactions ?? []).slice(0, 3).map((tx, i) => (
                               <div key={i} className="bg-gray-50 p-2 rounded text-xs font-mono">
                                 {tx?.slice(0, 32)}...
                               </div>

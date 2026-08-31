@@ -205,7 +205,7 @@ export class CoinbaseCDPService {
       
     } catch (error) {
       console.error('❌ Failed to send transaction:', error);
-      return { hash: '', mode: 'simulated', reason: error.message };
+      return { hash: '', mode: 'simulated', reason: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -681,9 +681,7 @@ export class CoinbaseCDPService {
       }
       
       // Get platform signer for the correct chain
-      const chainType = params.chain.includes('base') ? 'base' : 
-                       params.chain.includes('polygon') ? 'polygon' :
-                       params.chain.includes('arbitrum') ? 'arbitrum' : 'ethereum';
+      const chainType = params.chain.includes('base') ? 'base' : 'ethereum';
       const wallet = await CoinbaseCDPService.getPlatformSigner(chainType);
       const provider = new ethers.JsonRpcProvider(rpcUrl);
       const signer = wallet.connect(provider);
@@ -803,10 +801,10 @@ export class CoinbaseCDPService {
       const transferData = iface.encodeFunctionData('transfer', [params.destinationAddress, amountUnits]);
 
       // Map chain to CDP network identifier
-      const networkMap: Record<string, string> = {
+      const networkMap: Record<string, 'base' | 'polygon' | 'arbitrum' | 'ethereum'> = {
         'base-mainnet': 'base',
         'polygon-mainnet': 'polygon',
-        'arbitrum-mainnet': 'arbitrum-one',
+        'arbitrum-mainnet': 'arbitrum',
         'ethereum-mainnet': 'ethereum',
       };
       const network = networkMap[params.chain] || 'base';
@@ -814,7 +812,7 @@ export class CoinbaseCDPService {
       // Use CDP SDK v2 to send transaction FROM the deposit address
       const txResult = await this.cdpClient.evm.sendTransaction({
         address: params.depositAddress as `0x${string}`,
-        network: network,
+        network,
         transaction: {
           to: tokenAddress as `0x${string}`,
           data: transferData as `0x${string}`,
@@ -1010,7 +1008,7 @@ export class CoinbaseCDPService {
     switch (dexProtocol) {
       case 'uniswap-v3':
         // In production: call Uniswap V3 quoter contract or API
-        const uniswapRate = this.getSimulatedMarketRate(params.fromAsset, params.toAsset);
+        const uniswapRate = await this.getCoinbaseSpotPrice(params.fromAsset, params.toAsset);
         return {
           inputAmount: params.amount,
           outputAmount: (parseFloat(params.amount) * uniswapRate * 0.997).toString(), // 0.3% Uniswap fee
@@ -1023,7 +1021,7 @@ export class CoinbaseCDPService {
         
       case '1inch-aggregator':
         // In production: call 1inch aggregator API
-        const oneInchRate = this.getSimulatedMarketRate(params.fromAsset, params.toAsset);
+        const oneInchRate = await this.getCoinbaseSpotPrice(params.fromAsset, params.toAsset);
         return {
           inputAmount: params.amount,
           outputAmount: (parseFloat(params.amount) * oneInchRate * 0.995).toString(), // Better rate via aggregation
@@ -1586,6 +1584,9 @@ export class CoinbaseCDPService {
       const walletName = name || `agent-${agentId}-${Date.now()}`;
       
       // CDP Server Wallet v2 uses getOrCreateAccount for idempotent creation
+      if (!this.cdpClient?.solana) {
+        throw new Error('CDP Solana client is not initialized');
+      }
       const account = await this.cdpClient.solana.getOrCreateAccount({
         name: walletName
       });

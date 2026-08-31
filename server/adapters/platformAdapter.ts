@@ -718,7 +718,6 @@ export class PlatformAdapter extends BaseDiscoveryAdapter {
         url: api.url || api.endpoint,
         source: `${platform.name.toLowerCase().replace(/\s+/g, '-')}`,
         channels: {
-          api: api.endpoint || api.url,
           webhook: api.webhook_url || api.endpoint
         },
         capabilities: {

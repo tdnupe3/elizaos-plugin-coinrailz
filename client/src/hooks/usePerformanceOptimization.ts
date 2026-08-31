@@ -3,7 +3,7 @@
  * Implements lazy loading, memoization, and efficient re-rendering
  */
 
-import { useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useMemo, useCallback, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 /**

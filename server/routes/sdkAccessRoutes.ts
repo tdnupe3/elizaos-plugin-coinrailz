@@ -187,7 +187,7 @@ router.get('/deployment-tools', requireTier(3), async (req: AuthenticatedRequest
  */
 
 function getSDKPackages(productId: number): any {
-  const packages = {
+  const packages: Record<number, Record<string, { name: string; version: string; download_url: string; features: string[] }>> = {
     1: { // Starter
       typescript: {
         name: 'Coinrailz TypeScript SDK (Starter)',
@@ -273,7 +273,7 @@ function validateLicenseKey(licenseKey: string, subscription: any): boolean {
 }
 
 function getEnabledFeatures(productId: number): string[] {
-  const features = {
+  const features: Record<number, string[]> = {
     1: ['basic_api', 'wallet_creation', 'price_feeds'],
     2: ['basic_api', 'wallet_creation', 'price_feeds', 'dex_integration', 'p2p_transfers', 'on_chain_messaging'],
     3: ['all_features', 'white_label', 'custom_deployment', 'priority_support', 'enterprise_apis']
@@ -283,12 +283,12 @@ function getEnabledFeatures(productId: number): string[] {
 }
 
 function getTierName(productId: number): string {
-  const tiers = { 1: 'Starter', 2: 'Pro', 3: 'Enterprise' };
+  const tiers: Record<number, string> = { 1: 'Starter', 2: 'Pro', 3: 'Enterprise' };
   return tiers[productId] || 'Unknown';
 }
 
 function getDocumentationSection(section: string, productId: number): any {
-  const docs = {
+  const docs: Record<string, unknown> = {
     'getting-started': {
       title: 'Getting Started with Coinrailz SDK',
       content: 'Step-by-step guide to integrating our SDK...',
@@ -312,7 +312,7 @@ function getDocumentationSection(section: string, productId: number): any {
 }
 
 function getCodeExamples(language: string, productId: number): any {
-  const examples = {
+  const examples: Record<string, { basic: string; advanced: string }> = {
     typescript: {
       basic: `
 import { CoinrailzSDK } from '@coinrailz/sdk';

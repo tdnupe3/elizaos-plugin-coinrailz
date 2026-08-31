@@ -953,14 +953,17 @@ async function executeService(serviceId: string, params: Record<string, any>): P
   try {
     // Attempt to use real service handlers
     const { initializeServiceHandlers } = await import("../services/handlers");
-    const handlers = initializeServiceHandlers();
+    const { serviceDeliveryFramework } = await import("../services/serviceDeliveryFramework");
+    initializeServiceHandlers();
     
     // Check if we have a handler for this service
-    const handler = handlers.get(serviceId);
-    if (handler) {
-      // Execute via real handler
-      const result = await handler.execute(params);
-      return result;
+    if (serviceDeliveryFramework.hasHandler(serviceId)) {
+      return await serviceDeliveryFramework.executeService({
+        agentId: serviceId,
+        orderId: `mcp_${Date.now()}_${serviceId}`,
+        serviceType: serviceId,
+        metadata: params,
+      });
     }
     
     // For services without dedicated handlers, return NOT_IMPLEMENTED

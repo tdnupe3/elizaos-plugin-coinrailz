@@ -241,7 +241,7 @@ export class IsolatedStressTester {
 
       return { revenue, costs, profit, success: true };
     } catch (error) {
-      return { revenue: 0, costs: 0, profit: 0, success: false, error: error.message };
+      return { revenue: 0, costs: 0, profit: 0, success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 

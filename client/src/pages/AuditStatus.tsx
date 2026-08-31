@@ -37,6 +37,13 @@ interface AuditResults {
   certificateUrl: string;
   certificateId: string;
 }
+interface AuditStatusResponse {
+  status: AuditStatus;
+  downloadAccess?: AuditStatus["downloadAccess"];
+}
+type AuditResultsResponse =
+  | { status: "processing"; message: string }
+  | { status: "completed"; results: AuditResults };
 
 export default function AuditStatus() {
   const [auditId, setAuditId] = useState('');
@@ -44,13 +51,13 @@ export default function AuditStatus() {
   const [searchMode, setSearchMode] = useState<'id' | 'token'>('id');
 
   // Query for audit status (when using audit ID) - PUBLIC endpoint for guests
-  const { data: statusData, isLoading: statusLoading, error: statusError, refetch: refetchStatus } = useQuery({
+  const { data: statusData, isLoading: statusLoading, error: statusError, refetch: refetchStatus } = useQuery<AuditStatusResponse>({
     queryKey: ['/api/audits/guest-status', auditId],
     enabled: searchMode === 'id' && !!auditId,
   });
 
   // Query for audit results (when using access token)
-  const { data: resultsData, isLoading: resultsLoading, error: resultsError, refetch: refetchResults } = useQuery({
+  const { data: resultsData, isLoading: resultsLoading, error: resultsError, refetch: refetchResults } = useQuery<AuditResultsResponse>({
     queryKey: ['/api/audits/results', accessToken],
     enabled: searchMode === 'token' && !!accessToken,
   });

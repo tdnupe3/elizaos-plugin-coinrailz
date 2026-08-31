@@ -184,7 +184,7 @@ function USDCPaymentForm({ amount, onSuccess, onError }: PaymentMethodSelectorPr
   const { toast } = useToast();
 
   // Fetch user's USDC balance
-  const { data: usdcBalance, isLoading: balanceLoading } = useQuery({
+  const { data: usdcBalance, isLoading: balanceLoading } = useQuery<{ balance: number }>({
     queryKey: ['/api/user/circle/balance'],
     enabled: true
   });

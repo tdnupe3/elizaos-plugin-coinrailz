@@ -156,7 +156,7 @@ router.post('/quote', async (req, res) => {
 router.post('/execute', async (req, res) => {
   try {
     const { quoteId, amount, method, details } = req.body;
-    const userId = req.user?.id;
+    const userId = (req.user as { id?: string } | undefined)?.id;
 
     if (!userId) {
       return res.status(401).json({
@@ -275,7 +275,7 @@ router.get('/track/:transactionId', async (req, res) => {
  */
 router.get('/history', async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = (req.user as { id?: string } | undefined)?.id;
 
     if (!userId) {
       return res.status(401).json({

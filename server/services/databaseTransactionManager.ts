@@ -4,6 +4,8 @@
  */
 
 import { db } from '../db';
+import { and, eq, sql } from 'drizzle-orm';
+import { transactions, users } from '@shared/schema';
 
 export interface TransactionContext {
   id: string;
@@ -76,12 +78,11 @@ export class DatabaseTransactionManager {
       // This prevents race conditions: only succeeds if balance >= amount at execution time
       const senderUpdate = await db.update(users)
         .set({ 
-          balance: sql`${users.balance} - ${roundedAmount}`,
-          version: sql`${users.version} + 1`
+          usdBalance: sql`${users.usdBalance} - ${roundedAmount}`,
         })
         .where(and(
           eq(users.id, senderId),
-          sql`${users.balance} >= ${roundedAmount}`
+          sql`${users.usdBalance} >= ${roundedAmount}`
         ))
         .returning();
 
@@ -92,8 +93,7 @@ export class DatabaseTransactionManager {
       // 3. ATOMIC credit to receiver
       const receiverUpdate = await db.update(users)
         .set({ 
-          balance: sql`${users.balance} + ${roundedAmount}`,
-          version: sql`${users.version} + 1`
+          usdBalance: sql`${users.usdBalance} + ${roundedAmount}`,
         })
         .where(eq(users.id, receiverId))
         .returning();
@@ -102,8 +102,7 @@ export class DatabaseTransactionManager {
         // Attempt to rollback sender update using atomic reversal
         await db.update(users)
           .set({ 
-            balance: sql`${users.balance} + ${roundedAmount}`,
-            version: sql`${users.version} + 1`
+            usdBalance: sql`${users.usdBalance} + ${roundedAmount}`,
           })
           .where(eq(users.id, senderId));
         throw new Error('Receiver update failed - rolled back sender');
@@ -111,14 +110,13 @@ export class DatabaseTransactionManager {
 
       // 5. Create transaction record with the rounded amount actually applied
       await db.insert(transactions).values({
-        id: transactionId,
-        senderId,
-        receiverId,
-        amount: roundedAmount,
+        fromUserId: senderId,
+        toUserId: receiverId,
+        amount: String(roundedAmount),
         currency,
-        type: 'p2p_transfer',
+        transactionType: 'send',
         status: 'completed',
-        createdAt: new Date()
+        externalTransactionId: transactionId,
       });
 
       const result = { success: true, transactionId };
@@ -152,7 +150,7 @@ export class DatabaseTransactionManager {
       this.releaseResourceLocks(context);
       this.activeTransactions.delete(transactionId);
 
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -189,8 +187,11 @@ export class DatabaseTransactionManager {
       // NON-TRANSACTIONAL version for neon-http driver compatibility
       
       // 1. Verify commission hasn't been paid already
-      const existingPayout = await db.query.commissionPayouts.findFirst({
-        where: (payouts, { eq }) => eq(payouts.transactionRef, transactionRef)
+      const existingPayout = await db.query.transactions.findFirst({
+        where: (transaction, { and, eq }) => and(
+          eq(transaction.externalTransactionId, transactionRef),
+          eq(transaction.transactionType, 'commission_payout'),
+        ),
       });
 
       if (existingPayout) {
@@ -204,8 +205,7 @@ export class DatabaseTransactionManager {
       // This prevents race conditions - balance is added atomically at execution time
       const agentUpdate = await db.update(users)
         .set({ 
-          balance: sql`${users.balance} + ${totalCommission}`,
-          version: sql`${users.version} + 1`
+          usdBalance: sql`${users.usdBalance} + ${totalCommission}`,
         })
         .where(eq(users.id, agentId))
         .returning();
@@ -215,14 +215,14 @@ export class DatabaseTransactionManager {
       }
 
       // 4. Record commission payout
-      await db.insert(commissionPayouts).values({
-        id: payoutId,
-        agentId,
-        transactionRef,
-        totalAmount: totalCommission,
-        tiers: commissions,
+      await db.insert(transactions).values({
+        toUserId: agentId,
+        amount: String(totalCommission),
+        currency: 'USD',
+        transactionType: 'commission_payout',
         status: 'completed',
-        createdAt: new Date()
+        externalTransactionId: transactionRef,
+        message: JSON.stringify({ payoutId, tiers: commissions }),
       });
 
       const result = { success: true, payoutId };
@@ -252,7 +252,7 @@ export class DatabaseTransactionManager {
       this.releaseResourceLocks(context);
       this.activeTransactions.delete(payoutId);
 
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -312,7 +312,7 @@ export class DatabaseTransactionManager {
   /**
    * Check if error is retryable
    */
-  private static isRetryableError(error: any): boolean {
+  private static isRetryableError(error: unknown): boolean {
     const retryableMessages = [
       'concurrent modification detected',
       'database is locked',
@@ -320,7 +320,7 @@ export class DatabaseTransactionManager {
       'deadlock detected'
     ];
     
-    const errorMessage = error.message?.toLowerCase() || '';
+    const errorMessage = error instanceof Error ? error.message.toLowerCase() : '';
     return retryableMessages.some(msg => errorMessage.includes(msg));
   }
 

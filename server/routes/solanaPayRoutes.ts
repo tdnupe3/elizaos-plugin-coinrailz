@@ -1213,7 +1213,7 @@ router.get('/ping', async (req: Request, res: Response) => {
       }
       
       // Validate token and amount based on payment type
-      const validTokens = [SOLANA_PAYMENT_TOKEN];
+      const validTokens: string[] = [SOLANA_PAYMENT_TOKEN];
       if (!validTokens.includes(tokenSymbol || '')) {
         return res.status(402).json({
           error: 'Invalid payment token',

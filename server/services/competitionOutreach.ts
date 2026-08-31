@@ -215,7 +215,7 @@ Contact: competition@coinrailz.com
       await db.update(discoveredAgents)
         .set({ 
           status: 'competition_invited',
-          last_contacted: new Date()
+          lastContactAt: new Date()
         })
         .where(eq(discoveredAgents.url, agent.url));
         

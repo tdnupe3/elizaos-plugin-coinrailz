@@ -90,7 +90,7 @@ export async function getSubscriptionUsage(subscriptionId: number) {
       .select()
       .from(serviceBundleUsage)
       .where(eq(serviceBundleUsage.subscriptionId, subscriptionId))
-      .orderBy(serviceBundleUsage.createdAt);
+      .orderBy(serviceBundleUsage.timestamp);
 
     return usage;
   } catch (error) {

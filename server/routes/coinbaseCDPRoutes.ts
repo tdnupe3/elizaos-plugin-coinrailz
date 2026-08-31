@@ -96,7 +96,7 @@ router.get('/wallet/:walletId/balance', isAuthenticated, async (req, res) => {
   try {
     const { walletId } = req.params;
     
-    const balances = await coinbaseCDPService.getWalletBalances(walletId);
+    const balances = await coinbaseCDPService.getWalletBalance(walletId);
     
     res.json({
       success: true,
@@ -127,24 +127,22 @@ router.post('/wallet/:walletId/send', isAuthenticated, async (req, res) => {
       });
     }
 
-    const transaction = await coinbaseCDPService.sendTransaction(
-      walletId,
-      to_address,
-      amount,
-      currency
-    );
+    const transaction = await coinbaseCDPService.sendTransaction(to_address, amount, currency);
+    if (!transaction) {
+      throw new Error('CDP did not return a transaction result');
+    }
     
     res.json({
       success: true,
       transaction: {
-        id: transaction.id,
-        status: transaction.status,
-        transaction_hash: transaction.transaction_hash,
+        id: transaction.hash,
+        status: transaction.mode,
+        transaction_hash: transaction.hash,
         amount,
         currency,
         to_address,
-        fee: transaction.fee,
-        created_at: transaction.created_at
+        fee: null,
+        created_at: new Date().toISOString()
       },
       message: 'Transaction initiated successfully'
     });
@@ -201,7 +199,7 @@ router.get('/networks', async (req, res) => {
 router.get('/networks/:network/assets', async (req, res) => {
   try {
     const { network } = req.params;
-    const assets = await coinbaseCDPService.getSupportedAssets(network);
+    const assets = await coinbaseCDPService.getSupportedTradingPairs(network);
     
     res.json({
       success: true,

@@ -36,7 +36,7 @@ export default function USDCBuy() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Fetch current USDC balance
-  const { data: usdcBalance, isLoading: balanceLoading } = useQuery({
+  const { data: usdcBalance, isLoading: balanceLoading } = useQuery<{ balance: number }>({
     queryKey: ['/api/user/circle/balance'],
     enabled: !!user
   });

@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { db } from '../db';
-import { botWallets } from '@shared/schema';
+import { discoveredAgents } from '@shared/schema';
 
 const VBA_CONTRACT = '0x5afda9b5d34e7fbd42f87dd46beffe4497d69988';
 const BATCH_SIZE = 50;
@@ -109,12 +109,11 @@ async function scanVirtualsAgents() {
   for (const holder of sortedHolders) {
     if (holder.tokenCount >= 1) {
       try {
-        await db.insert(botWallets).values({
-          address: holder.address,
-          name: `Virtuals Agent Holder (${holder.tokenCount} agents)`,
-          chain: 'base',
-          category: 'AI_AGENT',
-          contactable: true,
+        await db.insert(discoveredAgents).values({
+          url: `https://basescan.org/address/${holder.address}`,
+          source: 'virtuals-agent-holder',
+          wallet: holder.address,
+          capabilities: { agent_holder: true },
           metadata: {
             source: 'VBA NFT scan',
             tokenIds: holder.tokenIds,

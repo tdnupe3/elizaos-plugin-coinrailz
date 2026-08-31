@@ -1673,6 +1673,9 @@ export const globalAIAgents = pgTable("global_ai_agents", {
   publicKey: text("public_key").notNull(), // For digital signature verification
   signature: text("signature").notNull(), // Registration signature
   status: varchar("status").notNull().default("active"), // active, inactive, suspended
+  verificationLevel: varchar("verification_level").notNull().default("unverified"), // unverified, pending, verified
+  metadata: jsonb("metadata").notNull().default(sql`'{}'::jsonb`), // Registration and review context
+  suspiciousActivityFlags: integer("suspicious_activity_flags").notNull().default(0), // Automated-risk signals
   reputation: decimal("reputation", { precision: 3, scale: 2 }).notNull().default("0.0"), // 0-5 rating system
   transactionCount: integer("transaction_count").notNull().default(0),
   totalVolume: varchar("total_volume").notNull().default("0"), // Total transaction volume

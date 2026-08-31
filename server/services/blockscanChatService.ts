@@ -17,7 +17,7 @@ interface ChatTarget {
 }
 
 export class BlockscanChatService {
-  private platformWallet: ethers.Wallet;
+  private platformWallet!: ethers.Wallet;
   private messagesSent: number = 0;
 
   constructor() {

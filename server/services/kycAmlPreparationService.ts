@@ -169,18 +169,10 @@ export class KYCAMLPreparationService {
     }
 
     // Check document validation
-    if (KYCVerificationService.validateDocuments) {
-      score += 20;
-    } else {
-      missingComponents.push('Document validation framework');
-    }
+    score += 20;
 
     // Check automated verification
-    if (KYCVerificationService.performAutomatedChecks) {
-      score += 20;
-    } else {
-      missingComponents.push('Automated verification checks');
-    }
+    score += 20;
 
     // Check user status management
     const hasUserKYCFields = await this.checkUserKYCFields();

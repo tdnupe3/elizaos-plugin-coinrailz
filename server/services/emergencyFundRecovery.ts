@@ -24,7 +24,7 @@ export class EmergencyFundRecovery {
       const transactions = await this.getWalletTransactions(walletId);
       
       // 3. Look for $50 transactions
-      const fiftyDollarTransactions = transactions.filter(tx => 
+      const fiftyDollarTransactions = transactions.filter((tx: { amount: string }) =>
         parseFloat(tx.amount) === 50.0 || tx.amount.includes('50')
       );
       
@@ -67,7 +67,7 @@ export class EmergencyFundRecovery {
   /**
    * Get wallet transaction history
    */
-  async getWalletTransactions(walletId: string) {
+  async getWalletTransactions(walletId: string): Promise<Array<{ amount: string }>> {
     try {
       const response = await fetch(`https://api.circle.com/v1/wallets/${walletId}/transactions`, {
         headers: {
@@ -78,7 +78,13 @@ export class EmergencyFundRecovery {
       
       if (response.ok) {
         const data = await response.json();
-        return data.data || [];
+        return Array.isArray(data.data) ? data.data.filter(
+          (transaction: unknown): transaction is { amount: string } =>
+            typeof transaction === 'object' &&
+            transaction !== null &&
+            'amount' in transaction &&
+            typeof transaction.amount === 'string',
+        ) : [];
       }
       return [];
     } catch (error) {

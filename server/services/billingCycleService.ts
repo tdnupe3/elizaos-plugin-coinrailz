@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { subscriptions, users, type Subscription } from "@shared/schema";
-import { eq, lt, and } from "drizzle-orm";
+import { eq, lt, and, gt } from "drizzle-orm";
 import { stripe } from './stripeClient';
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -67,14 +67,14 @@ export class BillingCycleService {
       const nextPeriodStart = new Date(currentPeriodEnd);
       const nextPeriodEnd = new Date(currentPeriodEnd);
 
-      if (subscription.billingPeriod === 'yearly') {
+      if (subscription.isYearly) {
         nextPeriodEnd.setFullYear(nextPeriodEnd.getFullYear() + 1);
       } else {
         nextPeriodEnd.setMonth(nextPeriodEnd.getMonth() + 1);
       }
 
       // Handle based on payment method
-      switch (subscription.paymentMethod) {
+      switch (this.getPaymentMethod(subscription)) {
         case 'stripe':
           await this.processStripeRenewal(subscription, nextPeriodStart, nextPeriodEnd);
           break;
@@ -88,13 +88,13 @@ export class BillingCycleService {
           break;
           
         default:
-          console.warn(`⚠️ Unsupported payment method: ${subscription.paymentMethod}`);
+          console.warn(`⚠️ Unsupported payment method for subscription ${subscription.id}`);
           await this.handleRenewalFailure(subscription, 'Unsupported payment method');
       }
 
     } catch (error) {
       console.error(`❌ Error processing renewal for subscription ${subscription.id}:`, error);
-      await this.handleRenewalFailure(subscription, error.message || 'Unknown error');
+      await this.handleRenewalFailure(subscription, error instanceof Error ? error.message : 'Unknown error');
     }
   }
 
@@ -170,7 +170,7 @@ export class BillingCycleService {
    * Update subscription billing period
    */
   async updateSubscriptionPeriod(
-    subscriptionId: string, 
+    subscriptionId: number,
     nextPeriodStart: Date, 
     nextPeriodEnd: Date
   ): Promise<void> {
@@ -266,7 +266,7 @@ export class BillingCycleService {
 
       for (const subscription of failedSubscriptions) {
         // Check if it's been more than 24 hours since failure
-        const timeSinceUpdate = Date.now() - new Date(subscription.updatedAt).getTime();
+        const timeSinceUpdate = Date.now() - new Date(subscription.updatedAt ?? subscription.createdAt ?? 0).getTime();
         const dayInMs = 24 * 60 * 60 * 1000;
         
         if (timeSinceUpdate > dayInMs) {
@@ -293,7 +293,7 @@ export class BillingCycleService {
         .where(
           and(
             lt(subscriptions.currentPeriodStart, endDate),
-            lt(startDate, subscriptions.currentPeriodEnd)
+            gt(subscriptions.currentPeriodEnd, startDate)
           )
         );
 
@@ -305,13 +305,13 @@ export class BillingCycleService {
         pendingSubscriptions: billingData.filter(s => s.status === 'pending').length,
         totalRevenue: 0, // Would calculate based on payment records
         byPaymentMethod: {
-          stripe: billingData.filter(s => s.paymentMethod === 'stripe').length,
-          usdc: billingData.filter(s => s.paymentMethod === 'usdc').length,
-          paypal: billingData.filter(s => s.paymentMethod === 'paypal').length,
+          stripe: billingData.filter(s => this.getPaymentMethod(s) === 'stripe').length,
+          usdc: billingData.filter(s => this.getPaymentMethod(s) === 'usdc').length,
+          paypal: billingData.filter(s => this.getPaymentMethod(s) === 'paypal').length,
         },
         byBillingPeriod: {
-          monthly: billingData.filter(s => s.billingPeriod === 'monthly').length,
-          yearly: billingData.filter(s => s.billingPeriod === 'yearly').length,
+          monthly: billingData.filter(s => !s.isYearly).length,
+          yearly: billingData.filter(s => s.isYearly).length,
         }
       };
 
@@ -320,6 +320,13 @@ export class BillingCycleService {
       console.error('❌ Error generating billing summary:', error);
       throw error;
     }
+  }
+
+  private getPaymentMethod(subscription: Subscription): 'stripe' | 'usdc' | 'paypal' | undefined {
+    if (subscription.stripeSubscriptionId) return 'stripe';
+    if (subscription.usdcPaymentTxHash) return 'usdc';
+    if (subscription.paypalSubscriptionId) return 'paypal';
+    return undefined;
   }
 }
 

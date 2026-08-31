@@ -8,11 +8,19 @@ import { db } from '../db';
 import { aiAgentSubscriptions } from '../../shared/schema';
 import { eq, sql } from 'drizzle-orm';
 
+interface UsageStats {
+  requests_today: number;
+  requests_month: number;
+  last_reset?: string;
+  last_request?: string;
+  last_endpoint?: string;
+}
+
 export class UsageTrackingService {
   /**
    * 📈 GET USAGE STATISTICS FOR SUBSCRIPTION
    */
-  async getUsageStats(subscriptionId: string): Promise<any> {
+  async getUsageStats(subscriptionId: number): Promise<any> {
     try {
       const subscriptions = await db.select()
         .from(aiAgentSubscriptions)
@@ -24,11 +32,7 @@ export class UsageTrackingService {
       }
 
       const subscription = subscriptions[0];
-      const usageStats = subscription.usageStats || {
-        requests_today: 0,
-        requests_month: 0,
-        last_reset: new Date().toISOString()
-      };
+      const usageStats = this.getUsageStatsValue(subscription.usageStats);
 
       // Get product limits
       const productLimits = this.getProductLimits(subscription.productId);
@@ -81,10 +85,7 @@ export class UsageTrackingService {
       }
 
       const reports = subscriptions.map(subscription => {
-        const usageStats = subscription.usageStats || {
-          requests_today: 0,
-          requests_month: 0
-        };
+        const usageStats = this.getUsageStatsValue(subscription.usageStats);
 
         return {
           subscription_id: subscription.id,
@@ -93,7 +94,7 @@ export class UsageTrackingService {
           usage_today: usageStats.requests_today,
           usage_month: usageStats.requests_month,
           last_request: usageStats.last_request || 'Never',
-          monthly_revenue: subscription.monthlyRevenue || 0
+          monthly_revenue: Number(subscription.monthlyRevenue ?? 0)
         };
       });
 
@@ -128,11 +129,7 @@ export class UsageTrackingService {
         .where(eq(aiAgentSubscriptions.status, 'active'));
 
       for (const subscription of subscriptions) {
-        const usageStats = subscription.usageStats || {
-          requests_today: 0,
-          requests_month: 0,
-          last_reset: new Date().toISOString()
-        };
+        const usageStats = this.getUsageStatsValue(subscription.usageStats);
 
         const newUsageStats = {
           ...usageStats,
@@ -166,16 +163,15 @@ export class UsageTrackingService {
       const overages = [];
 
       for (const subscription of subscriptions) {
-        const usageStats = subscription.usageStats || {
-          requests_today: 0,
-          requests_month: 0
-        };
+        const usageStats = this.getUsageStatsValue(subscription.usageStats);
 
         const productLimits = this.getProductLimits(subscription.productId);
 
         // Check for overages
-        const dailyOverage = productLimits.dailyLimit && usageStats.requests_today > productLimits.dailyLimit;
-        const monthlyOverage = productLimits.monthlyLimit && usageStats.requests_month > productLimits.monthlyLimit;
+        const dailyLimit = productLimits.dailyLimit;
+        const monthlyLimit = productLimits.monthlyLimit;
+        const dailyOverage = dailyLimit !== undefined && usageStats.requests_today > dailyLimit;
+        const monthlyOverage = monthlyLimit !== undefined && usageStats.requests_month > monthlyLimit;
 
         if (dailyOverage || monthlyOverage) {
           overages.push({
@@ -184,13 +180,13 @@ export class UsageTrackingService {
             tier: this.getTierName(subscription.productId),
             daily_overage: dailyOverage ? {
               used: usageStats.requests_today,
-              limit: productLimits.dailyLimit,
-              excess: usageStats.requests_today - productLimits.dailyLimit
+              limit: dailyLimit!,
+              excess: usageStats.requests_today - dailyLimit!
             } : null,
             monthly_overage: monthlyOverage ? {
               used: usageStats.requests_month,
-              limit: productLimits.monthlyLimit,
-              excess: usageStats.requests_month - productLimits.monthlyLimit
+              limit: monthlyLimit!,
+              excess: usageStats.requests_month - monthlyLimit!
             } : null
           });
         }
@@ -218,13 +214,14 @@ export class UsageTrackingService {
       const tierStats = { starter: 0, pro: 0, enterprise: 0 };
 
       for (const subscription of subscriptions) {
-        const usageStats = subscription.usageStats || { requests_month: 0 };
+        const usageStats = this.getUsageStatsValue(subscription.usageStats);
         totalRequests += usageStats.requests_month;
-        totalRevenue += subscription.monthlyRevenue || 0;
+        totalRevenue += Number(subscription.monthlyRevenue ?? 0);
 
         const tier = this.getTierName(subscription.productId).toLowerCase();
-        if (tierStats.hasOwnProperty(tier)) {
-          tierStats[tier]++;
+        if (tier in tierStats) {
+          const tierKey = tier as keyof typeof tierStats;
+          tierStats[tierKey]++;
         }
       }
 
@@ -247,8 +244,16 @@ export class UsageTrackingService {
   /**
    * 🔧 HELPER METHODS
    */
-  private getProductLimits(productId: number): any {
-    const limits = {
+  private getProductLimits(productId: number): {
+    dailyLimit?: number;
+    monthlyLimit?: number;
+    restrictedEndpoints: string[];
+  } {
+    const limits: Record<number, {
+      dailyLimit?: number;
+      monthlyLimit?: number;
+      restrictedEndpoints: string[];
+    }> = {
       1: { // Starter
         dailyLimit: 1000,
         monthlyLimit: 30000,
@@ -270,13 +275,26 @@ export class UsageTrackingService {
   }
 
   private getTierName(productId: number): string {
-    const tiers = {
+    const tiers: Record<number, string> = {
       1: 'Starter',
       2: 'Pro', 
       3: 'Enterprise'
     };
 
     return tiers[productId] || 'Unknown';
+  }
+
+  private getUsageStatsValue(value: unknown): UsageStats {
+    const record = value !== null && typeof value === 'object'
+      ? value as Record<string, unknown>
+      : {};
+    return {
+      requests_today: typeof record.requests_today === 'number' ? record.requests_today : 0,
+      requests_month: typeof record.requests_month === 'number' ? record.requests_month : 0,
+      last_reset: typeof record.last_reset === 'string' ? record.last_reset : new Date().toISOString(),
+      last_request: typeof record.last_request === 'string' ? record.last_request : undefined,
+      last_endpoint: typeof record.last_endpoint === 'string' ? record.last_endpoint : undefined,
+    };
   }
 }
 

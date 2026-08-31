@@ -74,6 +74,7 @@ export class OnChainX402Outreach {
       const walletActivity = new Map<string, { count: number; totalValue: bigint }>();
       
       for (const event of transferEvents) {
+        if (!('args' in event)) continue;
         const from = event.args?.from;
         const value = event.args?.value;
         

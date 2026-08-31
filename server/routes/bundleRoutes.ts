@@ -6,6 +6,7 @@ import { db } from "../db";
 import { serviceBundleSubscriptions, serviceBundleUsage } from "../../shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import crypto from "crypto";
+import type Stripe from "stripe";
 
 const router = Router();
 
@@ -274,7 +275,7 @@ router.get("/subscriptions/usage/:subscriptionId", async (req, res) => {
       .select()
       .from(serviceBundleUsage)
       .where(eq(serviceBundleUsage.subscriptionId, subscriptionId))
-      .orderBy(desc(serviceBundleUsage.requestTimestamp))
+      .orderBy(desc(serviceBundleUsage.timestamp))
       .limit(100);
 
     res.json({ usage });

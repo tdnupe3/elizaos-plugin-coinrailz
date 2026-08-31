@@ -1,16 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import { getSession, isSessionValid, isSessionValidSync, getSessionSync } from '../services/sessionManager';
 
-interface AuthenticatedRequest extends Request {
+type AuthenticatedRequest = Omit<Request, 'user'> & {
   user: {
     id: string;
     email?: string;
     firstName?: string;
     lastName?: string;
   };
-}
+};
 
-export async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -48,7 +48,7 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
       });
     }
 
-    req.user = {
+    (req as AuthenticatedRequest).user = {
       id: session.userId,
       email: session.userEmail,
     };

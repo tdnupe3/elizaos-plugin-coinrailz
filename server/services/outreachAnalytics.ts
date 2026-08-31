@@ -14,7 +14,7 @@ interface OutreachEvent {
   campaignId: string;
   walletAddress: string;
   eventType: 'contact_attempted' | 'message_delivered' | 'report_viewed' | 'invoice_viewed' | 'payment_received' | 'response_received';
-  channel: 'on_chain_memo' | 'block_explorer' | 'nft_contact';
+  channel: 'on_chain_memo' | 'block_explorer' | 'nft_contact' | 'lead_scoring';
   timestamp: Date;
   metadata: {
     messageId?: string;
@@ -24,6 +24,11 @@ interface OutreachEvent {
     amount?: number;
     currency?: string;
     responseContent?: string;
+    outreachUrl?: string;
+    targetType?: string;
+    leadQuality?: string;
+    requiresHumanFollowUp?: boolean;
+    responsePreview?: string;
   };
 }
 

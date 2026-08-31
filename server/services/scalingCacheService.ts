@@ -26,7 +26,6 @@ export class ScalingCacheService {
     if (configuredRedisUrl) {
       try {
         this.redis = new Redis(configuredRedisUrl, {
-          retryDelayOnFailover: 100,
           maxRetriesPerRequest: 3,
           lazyConnect: true,
           enableOfflineQueue: false

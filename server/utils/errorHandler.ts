@@ -4,17 +4,8 @@ export interface ServiceError {
   message: string;
   code?: string;
   statusCode?: number;
-  details?: any;
+  details?: unknown;
 }
-
-export interface ServiceError {
-  message: string;
-  code: string;
-  statusCode: number;
-  details?: any;
-}
-
-import { Response } from 'express';
 
 class ErrorHandler {
   static handleDatabaseError(error: any): ServiceError {

@@ -13,6 +13,8 @@
  * Run: npx tsx server/tests/payai-facilitator-test.ts
  */
 
+export {};
+
 const PAYAI_FACILITATOR_URL = 'https://facilitator.payai.network';
 
 interface TestResult {

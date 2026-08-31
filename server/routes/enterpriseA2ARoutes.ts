@@ -11,6 +11,10 @@ import { Router } from 'express';
 import enterpriseA2AAdapter, { EnterpriseConfig, A2ATask } from '../adapters/enterpriseA2AAdapter';
 
 const router = Router();
+const getEstimatedUnits = (task: A2ATask, fallback: number): number => {
+  const estimate = task.params?.estimatedUnits;
+  return typeof estimate === 'number' && Number.isFinite(estimate) ? estimate : fallback;
+};
 
 /**
  * 💳 POST /api/enterprise-a2a/setup-payment
@@ -730,7 +734,7 @@ router.post('/execute', async (req, res) => {
       }
 
       // Dynamic pre-authorization based on estimated cost (min $5, max $50)
-      const estimatedUnits = Math.min(100, Math.max(10, task.estimatedUnits || 50)); // 10-100 units
+      const estimatedUnits = Math.min(100, Math.max(10, getEstimatedUnits(task, 50))); // 10-100 units
       const preAuthAmount = Math.max(500, Math.min(5000, estimatedUnits * 6)); // $5-$50 with 20% buffer
       
       const maxCallCharge = await stripeClient.paymentIntents.create({
@@ -837,20 +841,9 @@ router.post('/execute', async (req, res) => {
         const { outreachLogs } = await import('../../shared/schema');
         
         await db.insert(outreachLogs).values({
-          outreachType: 'a2a_billing',
-          targetPlatform: result.platform,
-          cost: actualCharge,
-          result: 'success',
-          details: JSON.stringify({
-            type: 'api_call',
-            configId,
-            method: task.method,
-            stripePaymentIntent: confirmedPreAuth.id,
-            amount: actualCharge,
-            executionTime: result.executionTime,
-            paidAt: new Date().toISOString(),
-            refundAmount: refundAmount > 0 ? refundAmount / 100 : 0
-          })
+          platform: result.platform,
+          target: configId,
+          status: 'success',
         });
 
         console.log(`💰 REAL REVENUE GENERATED: $${actualCharge.toFixed(2)} for A2A call (Confirmed: ${confirmedPreAuth.id})`);
@@ -972,7 +965,7 @@ router.post('/batch-complete', async (req, res) => {
     // CRITICAL SECURITY: Validate PaymentIntent metadata before allowing batch work
     // Use the same pre-authorization logic as batch creation to validate expected amount
     const estimatedTotalUnits = tasks.reduce((sum, { task }) => 
-      sum + (task.estimatedUnits || 20), 0
+      sum + getEstimatedUnits(task, 20), 0
     );
     const expectedMinAmount = Math.max(1000, Math.min(10000, estimatedTotalUnits * 6)); // Match creation logic
     const expectedTaskCount = tasks.length;
@@ -1082,20 +1075,9 @@ router.post('/batch-complete', async (req, res) => {
     const { outreachLogs } = await import('../../shared/schema');
     
     await db.insert(outreachLogs).values({
-      outreachType: 'a2a_billing',
-      targetPlatform: 'batch_enterprise',
-      cost: actualCharge,
-      result: 'success',
-      details: JSON.stringify({
-        type: 'batch_api_calls_post_3ds',
-        taskCount: tasks.length,
-        successfulTasks: results.filter(r => r.success).length,
-        totalBillableUnits,
-        stripePaymentIntent: paymentIntent.id,
-        amount: actualCharge,
-        paidAt: new Date().toISOString(),
-        refundAmount: refundAmount > 0 ? refundAmount / 100 : 0
-      })
+      platform: 'batch_enterprise',
+      target: tasks.map(({ configId }) => configId).join(','),
+      status: 'success',
     });
 
     console.log(`💰 REAL BATCH REVENUE GENERATED: $${actualCharge.toFixed(2)} for ${tasks.length} tasks (Confirmed: ${paymentIntent.id})`);
@@ -1163,7 +1145,7 @@ router.post('/batch-execute', async (req, res) => {
 
       // Dynamic pre-authorization based on batch size (min $10, max $100 for batches)
       const estimatedTotalUnits = tasks.reduce((sum, { task }) => 
-        sum + (task.estimatedUnits || 20), 0
+      sum + getEstimatedUnits(task, 20), 0
       );
       const preAuthAmount = Math.max(1000, Math.min(10000, estimatedTotalUnits * 6)); // $10-$100 with 20% buffer
       
@@ -1276,20 +1258,9 @@ router.post('/batch-execute', async (req, res) => {
       const { outreachLogs } = await import('../../shared/schema');
       
       await db.insert(outreachLogs).values({
-        outreachType: 'a2a_billing',
-        targetPlatform: 'batch_enterprise',
-        cost: actualCharge,
-        result: 'success',
-        details: JSON.stringify({
-          type: 'batch_api_calls',
-          taskCount: tasks.length,
-          successfulTasks: results.filter(r => r.success).length,
-          totalBillableUnits,
-          stripePaymentIntent: confirmedPreAuth.id,
-          amount: actualCharge,
-          paidAt: new Date().toISOString(),
-          refundAmount: refundAmount > 0 ? refundAmount / 100 : 0
-        })
+        platform: 'batch_enterprise',
+        target: tasks.map(({ configId }) => configId).join(','),
+        status: 'success',
       });
 
       console.log(`💰 REAL BATCH REVENUE GENERATED: $${actualCharge.toFixed(2)} for ${tasks.length} tasks (Confirmed: ${confirmedPreAuth.id})`);

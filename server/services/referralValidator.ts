@@ -176,7 +176,7 @@ export class ReferralValidator {
       const existingReferrals = await storage.getUserReferrals(userId);
       
       return existingReferrals.some(referral => 
-        referral.referringUserId === agentId && 
+        referral.referrerId === agentId &&
         referral.status === 'active'
       );
     } catch (error) {

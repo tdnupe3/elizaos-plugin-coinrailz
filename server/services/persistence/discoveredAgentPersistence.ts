@@ -60,6 +60,7 @@ export interface DiscoveredAgentData {
   channels?: Record<string, any>;
   capabilities?: Record<string, any> | string[];
   metadata?: Record<string, any>;
+  verifiedAt?: Date;
 }
 
 /**
@@ -85,6 +86,7 @@ export async function persistDiscoveredAgent(agentData: DiscoveredAgentData) {
     channels: agentData.channels || {},
     capabilities: agentData.capabilities || {},
     metadata: agentData.metadata || {},
+    verifiedAt: agentData.verifiedAt,
     discoveredAt: new Date(),
     lastSeenAt: new Date()
   }).onConflictDoUpdate({

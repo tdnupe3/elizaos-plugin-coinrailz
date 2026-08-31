@@ -239,7 +239,7 @@ export class X402CanaryJob {
         .register('eip155:8453', new ExactEvmScheme(evmSigner))
         .registerPolicy((_version, reqs) =>
           reqs.filter(r => {
-            try { return BigInt(r.maxAmountRequired) <= MAX_PAYMENT_MICRO; }
+            try { return BigInt(r.amount) <= MAX_PAYMENT_MICRO; }
             catch { return false; }
           })
         );

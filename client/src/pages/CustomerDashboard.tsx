@@ -62,13 +62,13 @@ export default function CustomerDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
 
   // Fetch customer license info
-  const { data: licenseInfo, isLoading: licenseLoading } = useQuery({
+  const { data: licenseInfo, isLoading: licenseLoading } = useQuery<{ license: LicenseInfo }>({
     queryKey: ['/api/sdk/customer/license'],
     enabled: true
   });
 
   // Fetch usage metrics
-  const { data: metrics, isLoading: metricsLoading } = useQuery({
+  const { data: metrics, isLoading: metricsLoading } = useQuery<{ metrics: UsageMetrics }>({
     queryKey: ['/api/sdk/customer/metrics'],
     enabled: true
   });

@@ -181,12 +181,16 @@ export class MassiveBaseEcosystemThousandsService {
    * 📡 Send REAL blockchain message to specific target
    */
   private async sendRealBlockchainMessage(target: MassiveBaseTarget): Promise<void> {
+    if (!this.platformWallet) {
+      throw new Error('Platform wallet must be initialized before sending a blockchain message');
+    }
+    const platformWallet = this.platformWallet;
     const message = this.generateMassiveTargetedMessage(target);
     const messageData = ethers.hexlify(ethers.toUtf8Bytes(message));
     
     try {
       // Check if wallet has funds for real sending
-      const balance = await this.provider.getBalance(this.platformWallet.address);
+      const balance = await this.provider.getBalance(platformWallet.address);
       
       if (balance === BigInt(0)) {
         // Simulate if no funds, but log as simulation
@@ -220,7 +224,7 @@ export class MassiveBaseEcosystemThousandsService {
         type: 2 // EIP-1559 transaction
       };
 
-      const txResponse = await this.platformWallet.sendTransaction(tx);
+      const txResponse = await platformWallet.sendTransaction(tx);
       const receipt = await txResponse.wait();
 
       if (receipt) {
@@ -261,6 +265,9 @@ export class MassiveBaseEcosystemThousandsService {
    * 📝 Generate personalized message for massive targets
    */
   private generateMassiveTargetedMessage(target: MassiveBaseTarget): string {
+    if (!this.platformWallet) {
+      throw new Error('Platform wallet must be initialized before generating a message');
+    }
     const baseMessage = `🌊 COINRAILZ BASE ECOSYSTEM PARTNERSHIP
 
 ${target.name} Team,
@@ -590,6 +597,9 @@ Ecosystem: ${target.ecosystem}`;
    * 📈 Get massive campaign analytics
    */
   getMassiveCampaignAnalytics(): any {
+    if (!this.platformWallet) {
+      throw new Error('Platform wallet must be initialized before retrieving analytics');
+    }
     return {
       messagesSent: this.messagesSent,
       totalCost: this.totalCost,

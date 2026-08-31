@@ -13,7 +13,7 @@ export default function USDCDepositWidget() {
   const [, setLocation] = useLocation();
   const [copiedAddress, setCopiedAddress] = useState(false);
 
-  const { data: circleWallet, isLoading } = useQuery({
+  const { data: circleWallet, isLoading } = useQuery<{ address: string; balance: number }>({
     queryKey: ["/api/user-circle/balance"],
   });
 

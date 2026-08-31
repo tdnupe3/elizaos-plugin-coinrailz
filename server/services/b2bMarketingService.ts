@@ -196,7 +196,7 @@ export class B2BMarketingService {
         message: campaignData.message,
         budgetAmount: campaignData.budgetAmount || 5000,
         expectedTargets: targetCount.count,
-        deliveryCost: estimatedCost,
+        deliveryCost: estimatedCost.toFixed(2),
         status: 'pending',
         paymentStatus: 'pending'
       }).returning();

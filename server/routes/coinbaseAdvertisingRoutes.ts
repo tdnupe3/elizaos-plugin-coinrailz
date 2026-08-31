@@ -16,6 +16,8 @@ import { userCircleService } from '../services/userCircleService';
 import { coinbaseCDPService } from '../services/coinbaseCDPService';
 
 const router = Router();
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
 
 /**
  * 🎯 GET /api/coinbase-advertising/stats
@@ -99,7 +101,7 @@ router.post('/build-database', async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to build address database',
-      details: error.message 
+      details: errorMessage(error)
     });
   }
 });
@@ -168,7 +170,7 @@ router.post('/create-payment-intent', async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to create payment intent',
-      details: error.message 
+      details: errorMessage(error)
     });
   }
 });
@@ -222,7 +224,7 @@ router.post('/create-paypal-order', async (req: Request, res: Response) => {
 
     // Override the req object for PayPal service compatibility
     const paypalReq = { body: paypalOrderRequest.body } as Request;
-    let paypalOrderId: string;
+    let paypalOrderId: string | undefined;
     let paypalResponse: any;
 
     // Capture PayPal response by overriding res methods
@@ -267,7 +269,7 @@ router.post('/create-paypal-order', async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to create PayPal order',
-      details: error.message 
+      details: errorMessage(error)
     });
   }
 });
@@ -325,7 +327,7 @@ router.post('/create-usdc-payment', async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to create USDC payment',
-      details: error.message 
+      details: errorMessage(error)
     });
   }
 });
@@ -385,7 +387,7 @@ router.post('/create-crypto-payment', async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to create crypto payment',
-      details: error.message 
+      details: errorMessage(error)
     });
   }
 });
@@ -426,7 +428,7 @@ router.post('/confirm-payment-and-launch', async (req: Request, res: Response) =
       clientName,
       amountPaid,
       message,
-      targetPreference
+      targetPreference as 'all' | '.cb.id' | '.base.eth'
     );
 
     console.log(`✅ Campaign ${campaignResult.campaignId} launched successfully`);
@@ -449,7 +451,7 @@ router.post('/confirm-payment-and-launch', async (req: Request, res: Response) =
     res.status(500).json({ 
       success: false,
       error: 'Failed to confirm payment and launch campaign',
-      details: error.message 
+      details: errorMessage(error)
     });
   }
 });
@@ -483,7 +485,7 @@ router.post('/test-outreach', async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false,
       error: 'Test outreach failed',
-      details: error.message 
+      details: errorMessage(error)
     });
   }
 });
@@ -499,13 +501,13 @@ router.get('/addresses', async (req: Request, res: Response) => {
     const domainType = req.query.domainType as string;
     const offset = (page - 1) * limit;
 
-    let query = db.select().from(coinbaseAddressDatabase);
-
-    if (domainType && ['.cb.id', '.base.eth'].includes(domainType)) {
-      query = query.where(eq(coinbaseAddressDatabase.domainType, domainType));
-    }
-
-    const addresses = await query
+    const validDomainType = domainType === '.cb.id' || domainType === '.base.eth'
+      ? domainType
+      : undefined;
+    const addresses = await (validDomainType
+      ? db.select().from(coinbaseAddressDatabase)
+          .where(eq(coinbaseAddressDatabase.domainType, validDomainType))
+      : db.select().from(coinbaseAddressDatabase))
       .orderBy(desc(coinbaseAddressDatabase.addedAt))
       .limit(limit)
       .offset(offset);

@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { db } from '../db';
 import { outreachLogs } from '@shared/schema';
-import { nanoid } from 'nanoid';
 import { offerLinkService } from './offerLinkService';
 
 /**
@@ -222,18 +221,10 @@ Questions? Reply to this message.
         
         // Log to database
         await db.insert(outreachLogs).values({
-          id: nanoid(),
-          campaignType: 'x402_tracked_outreach',
-          targetAddress: wallet,
+          target: wallet,
           platform: 'on-chain',
           status: sendResult.success ? 'sent' : 'failed',
-          messageContent: personalized.message,
-          metadata: {
-            trackingId: personalized.trackingId,
-            offerLink: personalized.offerLink,
-            campaignId,
-            serviceId
-          },
+          url: personalized.offerLink,
           createdAt: new Date()
         });
         
@@ -286,17 +277,9 @@ Questions? Reply to this message.
     for (const result of results) {
       try {
         await db.insert(outreachLogs).values({
-          id: nanoid(),
-          campaignType: 'x402_active_agent_outreach',
-          targetAddress: result.conversationId.replace(/^(failed_|unavailable_)/, ''),
+          target: result.conversationId.replace(/^(failed_|unavailable_)/, ''),
           platform: 'on-chain',
           status: result.status === 'sent' ? 'sent' : 'failed',
-          messageContent: result.content,
-          metadata: {
-            conversationId: result.conversationId,
-            reason: result.reason,
-            protocol: 'x402'
-          },
           createdAt: new Date()
         });
       } catch (error) {

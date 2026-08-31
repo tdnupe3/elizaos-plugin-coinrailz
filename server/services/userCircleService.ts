@@ -4,6 +4,7 @@ import { users } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
 class UserCircleService {
+  private readonly circleService = new CircleService();
   // Create Circle wallet for new user
   async createUserCircleWallet(userId: string, blockchain: 'ETH' | 'MATIC' | 'AVAX' | 'ARB' | 'BASE' = 'ETH') {
     try {
@@ -32,7 +33,7 @@ class UserCircleService {
       const circleService = new CircleService();
       let walletSetId = user.circleWalletSetId;
       if (!walletSetId) {
-        const walletSetResult = await circleService.createWalletSet(`${user.firstName || 'User'} ${user.lastName || userId} Wallet Set`);
+        const walletSetResult = await this.circleService.createWalletSet({ name: `${user.firstName || 'User'} ${user.lastName || userId} Wallet Set` });
         if (!walletSetResult?.success || !walletSetResult?.data) {
           throw new Error(`Failed to create wallet set: ${walletSetResult?.message || 'Unknown error from Circle API'}`);
         }
@@ -43,7 +44,7 @@ class UserCircleService {
       }
 
       // Create wallet in the wallet set
-      const walletResult = await circleService.createWallet({ walletSetId, blockchain });
+      const walletResult = await this.circleService.createWallet({ walletSetId, blockchain });
       if (!walletResult?.success || !walletResult?.data) {
         throw new Error(`Failed to create wallet: ${walletResult?.message || 'Unknown error from Circle API'}`);
       }
@@ -107,7 +108,8 @@ class UserCircleService {
       }
 
       // Get live balance from Circle API
-      const balances = await circleService.getWalletBalance(user.circleWalletId);
+      const balanceResponse = await this.circleService.getWalletBalance(user.circleWalletId);
+      const balances = balanceResponse.balances;
       
       if (!balances || !Array.isArray(balances)) {
         return {
@@ -157,7 +159,7 @@ class UserCircleService {
       }
 
       // Get all wallets in the user's wallet set
-      const wallets = await circleService.listWallets(user.circleWalletSetId);
+      const wallets = await this.circleService.listWallets();
       
       if (!wallets || !Array.isArray(wallets)) {
         return {
@@ -197,14 +199,14 @@ class UserCircleService {
       }
 
       // Create wallet in the existing wallet set
-      const walletResponse = await circleService.createWallet(user.circleWalletSetId, blockchain);
+      const walletResponse = await this.circleService.createWallet({ walletSetId: user.circleWalletSetId, blockchain });
       if (!walletResponse.success) {
         throw new Error('Failed to create additional wallet');
       }
 
       return {
         success: true,
-        wallet: walletResponse.wallet,
+        wallet: walletResponse.data?.wallet,
         walletSetId: user.circleWalletSetId
       };
 
@@ -243,11 +245,11 @@ class UserCircleService {
       }
 
       // Initiate transfer through Circle API
-      const transferResponse = await circleService.createTransfer({
-        sourceWalletId: user.circleWalletId,
+      const transferResponse = await this.circleService.createTransfer({
+        walletId: user.circleWalletId,
         destinationAddress: toAddress,
         amount: amount,
-        blockchain: blockchain
+        currency: 'USDC'
       });
 
       if (!transferResponse.success) {
@@ -288,18 +290,11 @@ class UserCircleService {
       }
 
       // Get transaction history from Circle API
-      const transactionsResponse = await circleService.getWalletTransactions(user.circleWalletId);
-      
-      if (!transactionsResponse.success) {
-        return {
-          success: false,
-          error: 'Failed to fetch transaction history'
-        };
-      }
+      const transactionsResponse = await this.circleService.listTransactions({ walletId: user.circleWalletId });
 
       return {
         success: true,
-        transactions: transactionsResponse.transactions,
+        transactions: transactionsResponse.data?.transactions ?? transactionsResponse.data ?? [],
         walletId: user.circleWalletId
       };
 
@@ -400,23 +395,25 @@ class UserCircleService {
   async createUserWallet(userEmail: string, blockchain: 'ETH' | 'MATIC' | 'AVAX' | 'ARB' | 'BASE' = 'ETH') {
     try {
       // First create a wallet set for this user
-      const walletSet = await circleService.createWalletSet(`Wallet Set for ${userEmail}`);
-      if (!walletSet || !walletSet.id) {
+      const walletSet = await this.circleService.createWalletSet({ name: `Wallet Set for ${userEmail}` });
+      const walletSetId = walletSet.data?.walletSetId ?? walletSet.data?.id;
+      if (!walletSet.success || !walletSetId) {
         throw new Error('Failed to create wallet set');
       }
 
       // Create wallet using the new wallet set
-      const wallet = await circleService.createWallet(walletSet.id, blockchain);
-      if (!wallet || !wallet.id) {
+      const wallet = await this.circleService.createWallet({ walletSetId, blockchain });
+      const walletData = wallet.data?.wallet;
+      if (!wallet.success || !walletData?.id) {
         throw new Error('Failed to create wallet');
       }
 
       return {
         success: true,
-        walletId: wallet.id,
-        address: wallet.address,
+        walletId: walletData.id,
+        address: walletData.address,
         blockchain: blockchain,
-        state: wallet.state,
+        state: walletData.state,
         existing: false
       };
 

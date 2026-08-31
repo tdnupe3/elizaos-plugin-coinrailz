@@ -19,20 +19,20 @@ export class A2ARegistryAdapter extends BaseDiscoveryAdapter {
     {
       name: 'GitHub Agent Registry',
       url: 'https://api.github.com/repos/microsoft/autogen/contents/samples/agents',
-      auth: null, // Public GitHub API
+        auth: undefined, // Public GitHub API
       network: 'multi-chain',
       api_type: 'github_api'
     },
     {
       name: 'Hugging Face Models',
       url: 'https://huggingface.co/api/models?filter=conversational',
-      auth: null, // Public HF API
+        auth: undefined, // Public HF API
       network: 'api'
     },
     {
       name: 'OpenAI GPT Store',
       url: 'https://chatgpt.com/gpts/discovery',
-      auth: null, // Public discovery
+        auth: undefined, // Public discovery
       network: 'api',
       api_type: 'scrape'
     }
@@ -65,7 +65,7 @@ export class A2ARegistryAdapter extends BaseDiscoveryAdapter {
         await this.sleep(1000);
         
       } catch (error) {
-        console.error(`❌ Failed to discover from ${registry.name}:`, error.message);
+        console.error(`❌ Failed to discover from ${registry.name}:`, error instanceof Error ? error.message : String(error));
       }
     }
 
@@ -90,7 +90,7 @@ export class A2ARegistryAdapter extends BaseDiscoveryAdapter {
         }
       } catch (headError) {
         // HEAD failed, try OPTIONS
-        console.warn(`HEAD request failed for ${primaryRegistry.name}, trying OPTIONS:`, headError.message);
+        console.warn(`HEAD request failed for ${primaryRegistry.name}, trying OPTIONS:`, headError instanceof Error ? headError.message : String(headError));
       }
       
       // Fallback to OPTIONS request
@@ -102,7 +102,7 @@ export class A2ARegistryAdapter extends BaseDiscoveryAdapter {
         
         return response.ok || response.status === 405; // 405 is OK for OPTIONS
       } catch (optionsError) {
-        console.warn(`OPTIONS request failed for ${primaryRegistry.name}:`, optionsError.message);
+        console.warn(`OPTIONS request failed for ${primaryRegistry.name}:`, optionsError instanceof Error ? optionsError.message : String(optionsError));
       }
       
       // Last resort: try a lightweight GET to root
@@ -184,6 +184,23 @@ export class A2ARegistryAdapter extends BaseDiscoveryAdapter {
     }
 
     return agents;
+  }
+
+  private async discoverHuggingFaceAgents(registry: any): Promise<DiscoveredAgentRaw[]> {
+    const response = await this.safeFetch(registry.url, { headers: this.getAuthHeaders(registry.auth) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const models = await this.safeJsonParse(response) as any[];
+    return (Array.isArray(models) ? models : []).map((model) => ({
+      url: `https://huggingface.co/${model.modelId}`,
+      source: 'huggingface-models',
+      channels: { webhook: `https://huggingface.co/${model.modelId}` },
+      capabilities: { conversational: true },
+      metadata: { platform: 'huggingface', name: model.modelId, tags: model.tags ?? [] },
+    }));
+  }
+
+  private async discoverOpenAIAgents(registry: any): Promise<DiscoveredAgentRaw[]> {
+    return this.discoverGenericRegistry(registry);
   }
 
   private async discoverVirtualsAgents(registry: any): Promise<DiscoveredAgentRaw[]> {

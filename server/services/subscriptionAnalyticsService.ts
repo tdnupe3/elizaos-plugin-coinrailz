@@ -224,7 +224,7 @@ export class SubscriptionAnalyticsService {
         userId,
         email: user.email || '',
         signupDate,
-        firstSubscriptionDate: firstSubscription?.createdAt,
+        firstSubscriptionDate: firstSubscription?.createdAt ?? undefined,
         subscriptionHistory,
         totalLifetimeValue,
         currentPlan: currentSubscription?.planId,

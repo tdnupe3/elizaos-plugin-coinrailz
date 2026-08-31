@@ -27,10 +27,10 @@ router.post('/test-pumpfun-discovery', async (req, res) => {
         address: trader.address,
         balanceSOL: trader.balanceSOL,
         labels: trader.labels,
-        pumpfunTrades: trader.metadata?.pumpfun_trades,
-        dexInteractions: trader.metadata?.dex_interactions,
-        daysSinceActive: trader.metadata?.days_since_active,
-        confidence: trader.metadata?.confidence_score
+        pumpfunTrades: (trader.metadata as Record<string, unknown> | undefined)?.pumpfun_trades,
+        dexInteractions: (trader.metadata as Record<string, unknown> | undefined)?.dex_interactions,
+        daysSinceActive: (trader.metadata as Record<string, unknown> | undefined)?.days_since_active,
+        confidence: (trader.metadata as Record<string, unknown> | undefined)?.confidence_score
       }))
     });
   } catch (error) {
@@ -383,17 +383,27 @@ router.post('/market-to-token-holders', async (req, res) => {
     }
     
     // Create REAL blockchain messaging campaign
-    const campaign = {
+    const campaign: {
+      id: string;
+      tokenMint: string;
+      message: string;
+      targetedWallets: number;
+      status: string;
+      holders: { address: string; tokenBalance: string; rank: number; percentage: string; solBalance: string }[];
+      results?: { messagesSent: number; transactionHashes: string[]; totalCost: number; successRate: number };
+    } = {
       id: `token_marketing_${Date.now()}`,
-      name: `Token Holder Marketing - ${tokenMint.slice(0, 8)}...`,
+      tokenMint,
+      message,
+      targetedWallets: holders.length,
       status: 'active',
-      analytics: {
-        targetedWallets: holders.length,
-        messagesSent: 0,
-        messagesDelivered: 0,
-        totalCost: 0,
-        successRate: 0
-      }
+      holders: holders.map((holder, index) => ({
+        address: holder.address,
+        tokenBalance: String(holder.tokenBalance),
+        rank: index + 1,
+        percentage: String(holder.percentage),
+        solBalance: String(holder.balanceSOL),
+      }))
     };
 
     // Execute REAL blockchain transactions if requested
@@ -452,17 +462,16 @@ router.post('/market-to-token-holders', async (req, res) => {
       
       // Update campaign with REAL results
       campaign.status = 'completed';
-      campaign.analytics = {
-        targetedWallets: holders.length,
+      campaign.results = {
         messagesSent: successfulMessages,
-        messagesDelivered: successfulMessages,
+        transactionHashes,
         totalCost: totalCost,
         successRate: holders.length > 0 ? (successfulMessages / holders.length) * 100 : 0
       };
       
       console.log(`🏁 CAMPAIGN COMPLETE: ${successfulMessages}/${holders.length} real blockchain transactions sent`);
       console.log(`💰 Total cost: ${totalCost} SOL`);
-      console.log(`📊 Success rate: ${campaign.analytics.successRate.toFixed(1)}%`);
+      console.log(`📊 Success rate: ${campaign.results.successRate.toFixed(1)}%`);
       if (transactionHashes.length > 0) {
         console.log(`🔗 Transaction hashes:`, transactionHashes);
       }
@@ -472,7 +481,7 @@ router.post('/market-to-token-holders', async (req, res) => {
       success: true,
       campaign,
       message: execute 
-        ? `Token holder marketing campaign executed: ${campaign.analytics.messagesDelivered}/${campaign.analytics.messagesSent} messages sent to holders`
+        ? `Token holder marketing campaign executed: ${campaign.results?.messagesSent ?? 0} messages sent to holders`
         : `Campaign created targeting ${holders.length} token holders`
     });
     
@@ -744,7 +753,7 @@ router.post('/direct-blockchain-test', async (req, res) => {
     console.error('❌ Direct blockchain test failed:', error);
     res.json({
       success: false,
-      error: error.message,
+       error: error instanceof Error ? error.message : 'Unknown error',
       message: 'Direct blockchain query failed'
     });
   }
@@ -784,7 +793,15 @@ router.post('/direct-blockchain-marketing', async (req, res) => {
     
     console.log(`💰 FUNDED HOLDERS: ${fundedHolders.length}/${holders.length} have sufficient SOL`);
     
-    const campaign = {
+    const campaign: {
+      id: string;
+      tokenMint: string;
+      message: string;
+      targetedWallets: number;
+      status: string;
+      holders: { address: string; tokenBalance: string; rank: number; percentage: string; solBalance: string }[];
+      results?: { messagesSent: number; transactionHashes: string[]; totalCost: number; successRate: number };
+    } = {
       id: `direct_${Date.now()}`,
       tokenMint: tokenMint.slice(0, 8),
       message,
@@ -820,8 +837,9 @@ router.post('/direct-blockchain-marketing', async (req, res) => {
             cost: 0.0001,
             metadata: {
               recipientType: 'token_holder',
-              tokenMint,
-              solBalance: holder.balanceSOL
+              labels: [],
+              balanceSOL: holder.balanceSOL,
+              lastActive: new Date()
             }
           };
           

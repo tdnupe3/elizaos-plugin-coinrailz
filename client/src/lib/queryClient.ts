@@ -97,8 +97,8 @@ export const queryClient = new QueryClient({
 // Simple API request function with authentication
 export const apiRequest = async (
   methodOrUrl: string, 
-  urlOrOptions?: string | RequestInit, 
-  data?: any
+  urlOrOptions?: string | ApiRequestOptions,
+  data?: unknown
 ): Promise<any> => {
   let url: string;
   let options: RequestInit;
@@ -122,16 +122,18 @@ export const apiRequest = async (
     options = {
       method,
       headers: baseHeaders as HeadersInit,
-      ...(data && { body: JSON.stringify(data) })
+      body: data === undefined ? undefined : JSON.stringify(data),
     };
   } else {
     // Two-argument signature: (url, options)
     url = methodOrUrl;
     const existingOptions = urlOrOptions || {};
     const existingHeaders = existingOptions.headers || {};
+    const requestBody = existingOptions.body;
     options = {
       ...existingOptions,
-      headers: { ...baseHeaders, ...existingHeaders } as HeadersInit
+      headers: { ...baseHeaders, ...existingHeaders } as HeadersInit,
+      body: isJsonPayload(requestBody) ? JSON.stringify(requestBody) : requestBody,
     };
   }
 
@@ -164,4 +166,18 @@ export const apiRequest = async (
     throw error;
   }
 };
+
+export type ApiRequestOptions = Omit<RequestInit, "body"> & {
+  body?: BodyInit | Record<string, unknown>;
+};
+
+function isJsonPayload(value: ApiRequestOptions["body"]): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" &&
+    !(value instanceof Blob) &&
+    !(value instanceof FormData) &&
+    !(value instanceof URLSearchParams) &&
+    !(value instanceof ArrayBuffer) &&
+    !ArrayBuffer.isView(value) &&
+    !(value instanceof ReadableStream);
+}
 

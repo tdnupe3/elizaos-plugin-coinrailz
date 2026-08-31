@@ -90,7 +90,7 @@ router.post('/test-github-discovery', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: "Discovery test failed",
-      error: error.message 
+      error: error instanceof Error ? error.message : String(error)
     });
   }
 });

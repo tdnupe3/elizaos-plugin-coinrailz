@@ -393,12 +393,12 @@ Generated: ${new Date().toLocaleString()}
    * 🔧 HELPER METHODS
    */
   private getTierName(productId: number): string {
-    const tiers = { 1: 'Starter', 2: 'Pro', 3: 'Enterprise' };
+    const tiers: Record<number, string> = { 1: 'Starter', 2: 'Pro', 3: 'Enterprise' };
     return tiers[productId] || 'Unknown';
   }
 
   private getSDKFeatures(productId: number): string[] {
-    const features = {
+    const features: Record<number, string[]> = {
       1: ['basic_api', 'wallet_management', 'price_feeds'],
       2: ['basic_api', 'wallet_management', 'price_feeds', 'dex_integration', 'p2p_transfers', 'messaging'],
       3: ['all_features', 'white_label', 'custom_deployment', 'priority_support', 'enterprise_apis']
@@ -411,7 +411,7 @@ Generated: ${new Date().toLocaleString()}
    */
   private async generateReport(reportType: string, subscription: any): Promise<any> {
     // This would generate actual reports based on type
-    const reports = {
+    const reports: Record<string, unknown> = {
       'crypto_flow_intelligence': {
         title: 'Crypto Flow Intelligence Report',
         generated_at: new Date().toISOString(),
@@ -450,7 +450,7 @@ Generated: ${new Date().toLocaleString()}
    */
   private async getProductDetails(productId: number): Promise<any> {
     // This would query the actual product database
-    const products = {
+    const products: Record<number, { name: string; type: string }> = {
       1: { name: 'Starter Credits Package', type: 'api_access' },
       2: { name: 'Pro Credits Package', type: 'api_access' },
       3: { name: 'Enterprise Credits Package', type: 'api_access' }

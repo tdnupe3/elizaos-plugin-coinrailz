@@ -2,6 +2,8 @@ import express from 'express';
 import { db } from '../db';
 
 const router = express.Router();
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
 
 /**
  * 🤖 AI AGENT API MARKETPLACE - Services that autonomous agents actually purchase
@@ -60,7 +62,7 @@ router.get('/market-data-api', async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: errorMessage(error) });
   }
 });
 
@@ -122,7 +124,7 @@ router.get('/arbitrage-opportunities', async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: errorMessage(error) });
   }
 });
 
@@ -173,7 +175,7 @@ router.post('/telegram-session-management', async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: errorMessage(error) });
   }
 });
 
@@ -228,7 +230,7 @@ router.post('/dex-aggregation', async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: errorMessage(error) });
   }
 });
 
@@ -265,7 +267,7 @@ router.post('/agent-referral', async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: errorMessage(error) });
   }
 });
 
@@ -299,7 +301,7 @@ router.get('/subscription-status/:agent_wallet', async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: errorMessage(error) });
   }
 });
 

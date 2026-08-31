@@ -302,7 +302,11 @@ router.post('/schedule/setup', (req, res) => {
 
   const scheduleId = `schedule_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
   
-  const schedule = {
+  const schedule: {
+    id: string; agentId: unknown; frequency: unknown; minimumAmount: unknown;
+    payoutMethodId: unknown; isActive: boolean; createdAt: string;
+    lastProcessed: string | null; nextProcessing: string | null;
+  } = {
     id: scheduleId,
     agentId,
     frequency, // 'daily', 'weekly', 'monthly'
@@ -389,7 +393,7 @@ router.get('/analytics/overview', (req, res) => {
     totalNetPayouts: completedPayouts.reduce((sum, p) => sum + p.netAmount, 0),
     averagePayoutAmount: completedPayouts.length > 0 ? 
       completedPayouts.reduce((sum, p) => sum + p.netAmount, 0) / completedPayouts.length : 0,
-    byPayoutType: {},
+    byPayoutType: {} as Record<string, { count: number; volume: number; averageAmount: number }>,
     averageProcessingTime: '4.2 hours' // Would calculate from actual data
   };
 

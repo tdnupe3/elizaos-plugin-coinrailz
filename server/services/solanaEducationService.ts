@@ -16,7 +16,7 @@ export interface Module {
   description: string;
   content: string;
   videoUrl?: string;
-  resources: Resource[];
+  resources?: Resource[];
   quiz?: Quiz;
   estimatedTime: string;
 }

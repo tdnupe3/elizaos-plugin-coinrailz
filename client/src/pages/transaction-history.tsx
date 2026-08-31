@@ -28,15 +28,21 @@ const formatDateTime = (date: Date, pattern: string) => {
 export default function TransactionHistory() {
   const [, setLocation] = useLocation();
 
-  const { data: transactions, isLoading: transactionsLoading } = useQuery({
+  const { data: transactions, isLoading: transactionsLoading } = useQuery<Transaction[]>({
     queryKey: ["/api/transactions"],
   });
 
-  const { data: cryptoTransactions, isLoading: cryptoLoading } = useQuery({
+  const { data: cryptoTransactions, isLoading: cryptoLoading } = useQuery<CryptoTransaction[]>({
     queryKey: ["/api/crypto/transactions"],
   });
 
-  const { data: dexTradingData, isLoading: dexLoading } = useQuery({
+  const { data: dexTradingData, isLoading: dexLoading } = useQuery<{
+    metrics?: { totalTransactions: number; totalVolume: string; totalFees: string; totalRevenue: string };
+    transactions?: Array<{
+      id: string; fromToken: string; toToken: string; createdAt: string;
+      amount: string; fee?: string; status: string;
+    }>;
+  }>({
     queryKey: ["/api/trading/transactions"],
     retry: false,
   });

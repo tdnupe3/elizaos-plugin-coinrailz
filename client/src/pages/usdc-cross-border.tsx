@@ -47,7 +47,7 @@ export default function USDCCrossBorder() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Fetch USDC balance
-  const { data: usdcBalance, isLoading: balanceLoading } = useQuery({
+  const { data: usdcBalance, isLoading: balanceLoading } = useQuery<{ balance: number }>({
     queryKey: ['/api/user/circle/balance'],
     enabled: !!user
   });

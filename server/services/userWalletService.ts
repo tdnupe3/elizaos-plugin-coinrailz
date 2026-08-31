@@ -5,6 +5,7 @@
 
 import { storage } from '../storage';
 import { XRPServiceSimple } from './xrpServiceSimple';
+import { XRPLedgerService } from './xrpLedgerService';
 
 interface WalletConnectionResult {
   success: boolean;
@@ -38,27 +39,20 @@ export class UserWalletService {
       }
 
       // Check if wallet exists and get balance
-      const walletInfo = await XRPServiceSimple.getAccountInfo(walletAddress);
-      
-      if (!walletInfo.success) {
-        return {
-          success: false,
-          message: 'Wallet address not found on XRP Ledger or insufficient balance'
-        };
-      }
+      const balance = await XRPLedgerService.getBalance(walletAddress);
 
       // Update user record with wallet address
       await storage.updateUserWallet(userId, 'xrp', walletAddress);
       
       // Create or update wallet balance record
-      await storage.updateWalletBalance(userId, 'XRP', walletInfo.balance.toString(), 'set');
+      await storage.updateWalletBalance(userId, 'XRP', balance.toString(), 'set');
 
       return {
         success: true,
         message: 'XRP wallet connected successfully',
         walletInfo: {
           address: walletAddress,
-          balance: walletInfo.balance,
+          balance,
           isValid: true
         }
       };
@@ -103,11 +97,11 @@ export class UserWalletService {
       }
 
       // Get current balance from XRP Ledger
-      const walletInfo = await XRPServiceSimple.getAccountInfo(user.xrpWallet);
+      const balance = await XRPLedgerService.getBalance(user.xrpWallet);
       
       return {
         address: user.xrpWallet,
-        balance: walletInfo.success ? walletInfo.balance : 0,
+        balance,
         isConnected: true,
         lastUpdated: new Date().toISOString()
       };
@@ -131,21 +125,14 @@ export class UserWalletService {
         };
       }
 
-      const walletInfo = await XRPServiceSimple.getAccountInfo(user.xrpWallet);
-      
-      if (!walletInfo.success) {
-        return {
-          success: false,
-          message: 'Failed to fetch wallet balance'
-        };
-      }
+      const balance = await XRPLedgerService.getBalance(user.xrpWallet);
 
       // Update balance in database
-      await storage.updateWalletBalance(userId, 'XRP', walletInfo.balance.toString(), 'set');
+      await storage.updateWalletBalance(userId, 'XRP', balance.toString(), 'set');
 
       return {
         success: true,
-        balance: walletInfo.balance,
+        balance,
         message: 'Balance updated successfully'
       };
     } catch (error) {
@@ -214,9 +201,8 @@ export class UserWalletService {
    */
   static async verifyTransaction(transactionHash: string): Promise<{ verified: boolean; transaction?: any; message?: string }> {
     try {
-      const txInfo = await XRPServiceSimple.getTransactionInfo(transactionHash);
-      
-      if (!txInfo.success) {
+      const txInfo = await XRPLedgerService.getTransactionInfo(transactionHash);
+      if (!txInfo) {
         return {
           verified: false,
           message: 'Transaction not found on XRP Ledger'
@@ -225,7 +211,7 @@ export class UserWalletService {
 
       return {
         verified: true,
-        transaction: txInfo.transaction,
+        transaction: txInfo,
         message: 'Transaction verified successfully'
       };
     } catch (error) {

@@ -248,7 +248,14 @@ export class EnterpriseA2AAdapter {
     lastUsed: Date;
     status: 'connected' | 'expired';
   }> {
-    const status = [];
+    const status: Array<{
+      configId: string;
+      platform: string;
+      agentName: string;
+      capabilities: string[];
+      lastUsed: Date;
+      status: 'connected' | 'expired';
+    }> = [];
     const now = Date.now();
     
     for (const [configId, connection] of this.connections.entries()) {

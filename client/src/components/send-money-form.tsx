@@ -16,6 +16,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { TransactionModal } from "./transaction-modal";
 import { useState } from "react";
 
+type SendMoneyInput = Omit<SendMoney, "currency"> & { currency?: string };
+
 export function SendMoneyForm() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -24,7 +26,7 @@ export function SendMoneyForm() {
   const [paymentMethod, setPaymentMethod] = useState<'usd' | 'xrp' | 'crypto'>('usd');
   const [feeCalculation, setFeeCalculation] = useState<any>(null);
 
-  const form = useForm<SendMoney>({
+  const form = useForm<SendMoneyInput, unknown, SendMoney>({
     resolver: zodResolver(sendMoneySchema),
     defaultValues: {
       toEmail: "",

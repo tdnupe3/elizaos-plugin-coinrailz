@@ -55,7 +55,7 @@ export default function USDCConversion() {
   const [expedited, setExpedited] = useState(false);
 
   // Fetch supported assets
-  const { data: supportedAssets } = useQuery({
+  const { data: supportedAssets } = useQuery<{ assets: SupportedAsset[] }>({
     queryKey: ['/api/usdc-conversion/supported-assets'],
     refetchInterval: 300000 // 5 minutes
   });

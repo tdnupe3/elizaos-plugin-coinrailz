@@ -194,7 +194,7 @@ export class P2PPlatformService {
 
     // Update user balance
     const newBalance = (currentBalance - totalCost).toFixed(2);
-    await storage.updateUserBalance(request.userId, newBalance);
+    await storage.updateUserBalance(request.userId, Number(newBalance), 'USD');
 
     // Create transaction record
     await storage.createTransaction({
@@ -258,7 +258,7 @@ export class P2PPlatformService {
       
       // Create actual PayPal payout
       const payout = await paypalService.createPayout({
-        recipientEmail: request.recipient.email,
+        recipientEmail: request.recipient.email || '',
         amount: request.amount,
         currency: "USD",
         note: request.message || "Payment from Coin Railz",
@@ -305,7 +305,7 @@ export class P2PPlatformService {
 
     // Update recipient balance
     const recipientBalance = parseFloat(recipientUser.usdBalance || '0') + request.amount;
-    await storage.updateUserBalance(recipientUser.id, recipientBalance.toFixed(2));
+    await storage.updateUserBalance(recipientUser.id, Number(recipientBalance.toFixed(2)), 'USD');
 
     // Create recipient transaction record
     await storage.createTransaction({

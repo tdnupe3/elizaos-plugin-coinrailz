@@ -89,7 +89,7 @@ export class X402InteractionTracker {
       // Record conversion in offer tracking if this is a paid interaction with an offer tracking ID
       if (data.paid && data.offerTrackingId) {
         try {
-          await offerLinkService.recordConversion(data.offerTrackingId, data.paymentAmount);
+          await offerLinkService.recordConversion(data.offerTrackingId, data.paymentAmount ?? 0);
           console.log(`💰 Offer conversion recorded: ${data.offerTrackingId} → ${data.paymentAmount || 'no amount'} USDC`);
         } catch (conversionError: any) {
           console.error('⚠️ Failed to record offer conversion:', conversionError.message);

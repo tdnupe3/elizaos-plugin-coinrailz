@@ -61,7 +61,7 @@ export function EnhancedWalletManager() {
   });
 
   // MetaMask Wallet Balances (when connected)
-  const { data: web3Balances } = useQuery({
+  const { data: web3Balances } = useQuery<{ balances: WalletBalance[] }>({
     queryKey: ['/api/wallets/balances', wallet.address],
     enabled: wallet.isConnected && !!wallet.address,
     retry: false,

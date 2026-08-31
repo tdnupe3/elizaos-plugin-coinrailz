@@ -9,8 +9,9 @@ import { stripe } from '../services/stripeClient';
 import express from 'express';
 import { db } from '../db';
 import { aiAgentSubscriptions, aiMarketplaceOrders } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { createHash } from 'crypto';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -208,14 +209,15 @@ aiAgentProductRoutes.post('/purchase', async (req, res) => {
     const pendingOrder = {
       id: orderId,
       agentId,
-      productId,
-      productName: product.name,
+      // Product packages are configuration rather than rows in ai_agent_products.
+      // Store their stable identifier in the order description.
+      customerId: agentId,
+      serviceType: 'api_access',
+      serviceDescription: product.id,
       amount: product.priceUSD.toString(),
-      currency: 'USD',
       paymentMethod,
       status: 'pending' as const,
-      walletAddress: walletAddress || null,
-      email: email || null,
+      customerRequirements: JSON.stringify({ walletAddress: walletAddress || null, email: email || null }),
       createdAt: new Date()
     };
     
@@ -252,7 +254,7 @@ aiAgentProductRoutes.post('/purchase', async (req, res) => {
       });
     } else if (paymentResult.success) {
       // Immediate success (shouldn't happen with real payments)
-      const apiKey = await activateSubscription(orderId, agentId, productId, product, paymentResult.transactionId);
+      const apiKey = await activateSubscription(orderId, agentId, productId, product, paymentResult.transactionId ?? '');
       
       res.json({
         success: true,
@@ -339,7 +341,7 @@ async function processPayment(method: string, amount: number, productId: string,
         };
       } catch (error) {
         console.error('Stripe payment failed:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : 'Stripe payment failed' };
       }
     
     case 'crypto':
@@ -389,21 +391,19 @@ async function activateSubscription(orderId: string, agentId: string, productId:
   await db.update(aiMarketplaceOrders)
     .set({ 
       status: 'completed',
-      transactionId,
       updatedAt: new Date()
     })
     .where(eq(aiMarketplaceOrders.id, orderId));
   
   // Create active subscription
   const subscription = {
-    id: nanoid(),
     agentId,
-    productId,
-    planName: product.name,
+    productId: API_PRODUCTS.findIndex((candidate) => candidate.id === productId) + 1,
     status: 'active' as const,
-    priceUSD: product.priceUSD.toString(),
-    billingCycle: product.billingCycle,
-    apiKey,
+    paymentMethod: 'stripe',
+    paymentAddress: null,
+    monthlyRevenue: product.priceUSD.toString(),
+    apiKeyHash: createHash('sha256').update(apiKey).digest('hex'),
     startDate: new Date(),
     endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year for prepaid credits
     createdAt: new Date()
@@ -433,8 +433,9 @@ export async function aiAgentStripeWebhookHandler(req: Request, res: Response) {
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
     console.log('✅ Stripe webhook signature verified:', event.type);
   } catch (err) {
-    console.error('❌ Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    const message = err instanceof Error ? err.message : 'Invalid webhook signature';
+    console.error('❌ Webhook signature verification failed:', message);
+    return res.status(400).send(`Webhook Error: ${message}`);
   }
 
   if (event.type === 'payment_intent.succeeded') {
@@ -447,9 +448,11 @@ export async function aiAgentStripeWebhookHandler(req: Request, res: Response) {
     try {
       const orders = await db.select()
         .from(aiMarketplaceOrders)
-        .where(eq(aiMarketplaceOrders.agentId, agentId))
-        .where(eq(aiMarketplaceOrders.productId, productId))
-        .where(eq(aiMarketplaceOrders.status, 'pending'))
+        .where(and(
+          eq(aiMarketplaceOrders.agentId, agentId),
+          eq(aiMarketplaceOrders.serviceDescription, productId),
+          eq(aiMarketplaceOrders.status, 'pending'),
+        ))
         .limit(1);
 
       if (orders.length > 0) {
@@ -506,14 +509,14 @@ aiAgentProductRoutes.get('/order/:orderId/status', async (req, res) => {
       order: {
         id: orderData.id,
         status: orderData.status,
-        productName: orderData.productName,
+        productName: orderData.serviceDescription,
         amount: orderData.amount,
-        currency: orderData.currency,
+        currency: 'USD',
         paymentMethod: orderData.paymentMethod,
         createdAt: orderData.createdAt
       },
       subscription,
-      apiKey: subscription?.apiKey || null
+      apiKey: null
     });
     
   } catch (error) {

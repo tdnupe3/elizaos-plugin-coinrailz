@@ -180,7 +180,6 @@ router.post('/add', requireAdminOrInternal, async (req: Request, res: Response) 
     );
     
     res.json({
-      success: true,
       ...result,
       message: `Added $${amount.toFixed(2)} to unified credits`,
     });
@@ -216,7 +215,6 @@ router.post('/deduct', requireAdminOrInternal, async (req: Request, res: Respons
     );
     
     res.json({
-      success: true,
       ...result,
       message: `Deducted $${amount.toFixed(2)} from unified credits`,
     });
@@ -239,7 +237,7 @@ router.post('/deduct', requireAdminOrInternal, async (req: Request, res: Respons
 
 router.post('/migrate', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id || req.session?.userId;
+    const userId = (req as any).user?.id || (req.session as { userId?: string } | undefined)?.userId;
     if (!userId) {
       return res.status(401).json({
         success: false,
@@ -261,10 +259,7 @@ router.post('/migrate', async (req: Request, res: Response) => {
     
     const result = await unifiedCreditsService.migrateToUnified(userId, iotAccountId);
     
-    res.json({
-      success: true,
-      ...result,
-    });
+    res.json(result);
   } catch (error: any) {
     console.error('❌ Migration failed:', error);
     res.status(500).json({

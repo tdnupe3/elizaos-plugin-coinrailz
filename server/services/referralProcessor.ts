@@ -6,7 +6,6 @@
 import { db } from "../db";
 import { agentReferrals, globalAIAgents, agentTransactions, walletBalances } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { APIValidationService } from "./apiValidation";
 
 export interface ReferralReward {
   referrerAgentId: string;
@@ -127,7 +126,7 @@ export class ReferralProcessor {
 
       // Create NOWPayments payout
       const payoutResult = await this.createCryptoPayout({
-        walletAddress: referrerAgent.walletAddress,
+        walletAddress: referrerAgent.primaryWalletAddress,
         currency: reward.rewardCurrency,
         amount: parseFloat(reward.rewardAmount),
         description: `Referral reward - Tier ${reward.tier} - Transaction ${reward.transactionId}`,

@@ -26,6 +26,29 @@ export interface NotificationChannel {
 }
 
 export class CustomerNotificationService {
+  static isEmailAvailable(): boolean {
+    return Boolean(process.env.SENDGRID_API_KEY);
+  }
+
+  static isSMSAvailable(): boolean {
+    return Boolean(
+      process.env.TWILIO_ACCOUNT_SID &&
+      process.env.TWILIO_AUTH_TOKEN &&
+      process.env.TWILIO_PHONE_NUMBER
+    );
+  }
+
+  static async sendEmail(data: {
+    to: string;
+    subject: string;
+    html: string;
+  }): Promise<{ success: boolean; messageId?: string }> {
+    return this.sendEmailNotification(data.to, data.subject, data.html, 'direct_message', 0);
+  }
+
+  static async sendSMS(phoneNumber: string, message: string): Promise<{ success: boolean; messageId?: string }> {
+    return this.sendSMSNotification(phoneNumber, 'Coin Railz', message, 0);
+  }
   
   /**
    * Send notification to customer through all preferred channels
@@ -556,7 +579,7 @@ export class CustomerNotificationService {
       type: string;
       title: string;
       message: string;
-      priority?: string;
+      priority?: 'low' | 'normal' | 'high' | 'urgent';
     }
   ): Promise<{ success: boolean; sent: number; failed: number; results: any[] }> {
     
@@ -588,7 +611,7 @@ export class CustomerNotificationService {
         results.push({
           customerId,
           success: false,
-          error: error.message
+          error: error instanceof Error ? error.message : String(error)
         });
       }
     }

@@ -140,10 +140,10 @@ router.post('/register', m2mOnboardingLimiter, async (req: Request, res: Respons
       if (chain === 'solana-mainnet') {
         const solanaResult = await coinbaseCDPService.createSolanaWallet({
           agentId: `m2m:${deviceId}`,
-          purpose: 'persistent'
+          name: 'persistent'
         });
-        if (solanaResult && !solanaResult.error) {
-          walletResult = { id: solanaResult.walletId, address: solanaResult.address };
+        if (solanaResult && !solanaResult.error && solanaResult.address) {
+          walletResult = { id: solanaResult.agentId, address: solanaResult.address };
         } else {
           walletError = solanaResult?.error || 'Solana wallet creation failed';
         }

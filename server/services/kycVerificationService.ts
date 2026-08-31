@@ -240,13 +240,13 @@ export class KYCVerificationService {
     confidence: number;
   }> {
     // Basic format validation
-    const hasValidId = documents.governmentId && 
-                      documents.governmentId.number && 
-                      documents.governmentId.type;
+    const hasValidId = Boolean(documents.governmentId &&
+                      documents.governmentId.number &&
+                      documents.governmentId.type);
     
-    const hasValidAddress = documents.proofOfAddress && 
-                           documents.proofOfAddress.type && 
-                           documents.proofOfAddress.address;
+    const hasValidAddress = Boolean(documents.proofOfAddress &&
+                           documents.proofOfAddress.type &&
+                           documents.proofOfAddress.address);
 
     return {
       isValid: hasValidId && hasValidAddress,
@@ -262,10 +262,10 @@ export class KYCVerificationService {
     confidence: number;
   }> {
     // Basic address format validation
-    const hasRequiredFields = address.street && 
+    const hasRequiredFields = Boolean(address.street &&
                              address.city && 
                              address.country && 
-                             address.zipCode;
+                             address.zipCode);
 
     return {
       isValid: hasRequiredFields,
@@ -278,7 +278,7 @@ export class KYCVerificationService {
    */
   static validateNameConsistency(fullName: string, documentNumber: string): boolean {
     // Basic validation - names must be at least 2 characters
-    return fullName && fullName.trim().length >= 2 && documentNumber && documentNumber.length >= 5;
+    return Boolean(fullName && fullName.trim().length >= 2 && documentNumber && documentNumber.length >= 5);
   }
 
   /**

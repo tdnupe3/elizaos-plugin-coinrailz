@@ -10,6 +10,33 @@ import { aiAgentSubscriptions } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 
+interface UsageStats {
+  requests_today: number;
+  requests_month: number;
+  last_reset: string;
+  last_request?: string;
+  last_endpoint?: string;
+  last_method?: string;
+}
+
+function getUsageStats(value: unknown): UsageStats {
+  const defaults: UsageStats = {
+    requests_today: 0,
+    requests_month: 0,
+    last_reset: new Date().toISOString(),
+  };
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return defaults;
+  const stats = value as Partial<UsageStats>;
+  return {
+    requests_today: typeof stats.requests_today === 'number' ? stats.requests_today : 0,
+    requests_month: typeof stats.requests_month === 'number' ? stats.requests_month : 0,
+    last_reset: typeof stats.last_reset === 'string' ? stats.last_reset : defaults.last_reset,
+    last_request: stats.last_request,
+    last_endpoint: stats.last_endpoint,
+    last_method: stats.last_method,
+  };
+}
+
 export interface AuthenticatedRequest extends Request {
   subscription?: any;
   agentId?: string;
@@ -48,7 +75,7 @@ export const validateAPIKey = async (req: AuthenticatedRequest, res: Response, n
     // Find active subscription with this API key
     const subscriptions = await db.select()
       .from(aiAgentSubscriptions)
-      .where(eq(aiAgentSubscriptions.apiKey, apiKeyHash))
+      .where(eq(aiAgentSubscriptions.apiKeyHash, apiKeyHash))
       .limit(1);
     
     if (subscriptions.length === 0) {
@@ -121,11 +148,7 @@ async function checkUsageLimits(subscription: any, endpoint: string): Promise<{
 }> {
   try {
     // Parse usage stats
-    const usageStats = subscription.usageStats || { 
-      requests_today: 0, 
-      requests_month: 0, 
-      last_reset: new Date().toISOString() 
-    };
+    const usageStats = getUsageStats(subscription.usageStats);
     
     // Get product limits based on product ID
     const productLimits = getProductLimits(subscription.productId);
@@ -176,7 +199,11 @@ function getProductLimits(productId: number): {
   monthlyLimit?: number;
   restrictedEndpoints?: string[];
 } {
-  const limits = {
+  const limits: Record<number, {
+    dailyLimit?: number;
+    monthlyLimit?: number;
+    restrictedEndpoints: string[];
+  }> = {
     1: { // Starter
       dailyLimit: 1000,
       monthlyLimit: 30000,
@@ -200,7 +227,7 @@ function getProductLimits(productId: number): {
 /**
  * 📝 TRACK API USAGE FOR BILLING AND LIMITS
  */
-async function trackAPIUsage(subscriptionId: string, endpoint: string, method: string): Promise<void> {
+async function trackAPIUsage(subscriptionId: number, endpoint: string, method: string): Promise<void> {
   try {
     // Get current subscription
     const subscriptions = await db.select()
@@ -211,11 +238,7 @@ async function trackAPIUsage(subscriptionId: string, endpoint: string, method: s
     if (subscriptions.length === 0) return;
     
     const subscription = subscriptions[0];
-    const usageStats = subscription.usageStats || { 
-      requests_today: 0, 
-      requests_month: 0, 
-      last_reset: new Date().toISOString() 
-    };
+    const usageStats = getUsageStats(subscription.usageStats);
     
     // Check if we need to reset daily counter
     const lastReset = new Date(usageStats.last_reset);
@@ -267,7 +290,7 @@ export const requireTier = (minProductId: number) => {
     }
     
     if (req.subscription.productId < minProductId) {
-      const tierNames = { 1: 'Starter', 2: 'Pro', 3: 'Enterprise' };
+      const tierNames: Record<number, string> = { 1: 'Starter', 2: 'Pro', 3: 'Enterprise' };
       return res.status(403).json({
         error: 'Insufficient subscription tier',
         message: `This endpoint requires ${tierNames[minProductId]} tier or higher`,

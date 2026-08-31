@@ -151,7 +151,8 @@ export async function getUsdcReserveStats(): Promise<ReserveStats> {
   // calculateSupplyAPR is the correct method in klend-sdk v5.10.25
   let supplyApr = 0;
   try {
-    supplyApr = Number(reserve.calculateSupplyAPR().toString());
+    const slot = await getSolanaYieldConnection().getSlot('confirmed');
+    supplyApr = Number(reserve.calculateSupplyAPR(slot, 0).toString());
   } catch { /* non-fatal — APR not critical for tx building */ }
 
   return {

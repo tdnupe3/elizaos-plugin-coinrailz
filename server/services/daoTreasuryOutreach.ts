@@ -101,14 +101,17 @@ export class DAOTreasuryOutreach {
       
       // Get all protocols with treasury data
       const protocolsResponse = await fetch(`${this.DEFILLAMA_API}/protocols`, {
-        timeout: 15000
+        signal: AbortSignal.timeout(15000)
       });
       
       if (!protocolsResponse.ok) {
         throw new Error(`DefiLlama API error: ${protocolsResponse.status}`);
       }
       
-      const protocols = await protocolsResponse.json();
+      const protocols: unknown = await protocolsResponse.json();
+      if (!Array.isArray(protocols)) {
+        throw new Error('DefiLlama protocols response was not an array');
+      }
       const daoProtocols = protocols.filter((p: any) => 
         p.category === 'Yield' || 
         p.category === 'DEX' ||
@@ -128,26 +131,26 @@ export class DAOTreasuryOutreach {
         try {
           // Get detailed protocol data
           const detailResponse = await fetch(`${this.DEFILLAMA_API}/protocol/${protocol.slug}`, {
-            timeout: 10000
+            signal: AbortSignal.timeout(10000)
           });
           
           if (detailResponse.ok) {
-            const details = await detailResponse.json();
+            const details: Record<string, unknown> = await detailResponse.json() as Record<string, unknown>;
             
             realDAOs.push({
               name: protocol.name,
               slug: protocol.slug,
-              treasury: details.treasury || protocol.tvl || 0,
+              treasury: Number(details.treasury) || protocol.tvl || 0,
               treasuryBreakdown: {
-                stablecoins: details.stablecoins || 0,
-                majors: details.majors || 0,
-                own_tokens: details.own_tokens || 0,
-                others: details.others || 0
+                stablecoins: Number(details.stablecoins) || 0,
+                majors: Number(details.majors) || 0,
+                own_tokens: Number(details.own_tokens) || 0,
+                others: Number(details.others) || 0
               },
-              chain: protocol.chain || details.chain || 'ethereum',
+              chain: protocol.chain || (typeof details.chain === 'string' ? details.chain : 'ethereum'),
               category: protocol.category,
-              governanceURL: details.url,
-              annualExpenses: details.annualExpenses,
+              governanceURL: typeof details.url === 'string' ? details.url : undefined,
+              annualExpenses: typeof details.annualExpenses === 'number' ? details.annualExpenses : undefined,
               lastUpdated: new Date(),
               verified: true
             });
@@ -493,23 +496,10 @@ partnership@coinrailz.com
   private async logRealDAOOutreach(campaign: OutreachCampaign, opportunity: TreasuryOpportunity): Promise<void> {
     try {
       await db.insert(outreachLogs).values({
-        id: nanoid(),
-        agentId: opportunity.dao.slug,
-        agentName: opportunity.dao.name,
-        outreachType: 'dao_treasury_real',
+        target: opportunity.dao.slug,
+        platform: campaign.contactMethod,
         status: 'active',
-        contactMethod: campaign.contactMethod,
-        message: `Real DAO treasury outreach: $${(opportunity.dao.treasury / 1000000).toFixed(0)}M treasury optimization`,
-        metadata: JSON.stringify({
-          treasurySize: opportunity.dao.treasury,
-          revenueProjection: opportunity.revenueProjection,
-          usdcPotential: opportunity.usdcOptimizationPotential,
-          serviceMatches: opportunity.serviceMatch,
-          contactVerified: opportunity.contacts.verified,
-          chain: opportunity.dao.chain,
-          category: opportunity.dao.category
-        }),
-        createdAt: new Date()
+        url: opportunity.dao.governanceURL
       });
       
       console.log(`📝 Logged real DAO outreach for ${opportunity.dao.name}`);

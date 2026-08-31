@@ -38,7 +38,7 @@ export interface MessagingCampaign {
     maxTargets: number;
   };
   messageTemplate: string;
-  status: 'draft' | 'active' | 'paused' | 'completed';
+  status: 'draft' | 'active' | 'paused' | 'completed' | 'failed';
   messages: BlockchainMessage[];
   analytics: {
     targetedWallets: number;

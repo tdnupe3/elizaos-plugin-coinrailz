@@ -31,9 +31,9 @@ interface MessagingResult {
 }
 
 export class UnifiedMessagingService {
-  private protocols = {
-    email: customerNotificationService,
-    sms: customerNotificationService,
+  private protocols: Record<UnifiedMessage['type'], { isAvailable?: () => boolean }> = {
+    email: { isAvailable: () => customerNotificationService.isEmailAvailable() },
+    sms: { isAvailable: () => customerNotificationService.isSMSAvailable() },
     lens: lensMessagingService,
     solana_sms: solanaSmsService,
     walletconnect: walletConnectMessagingService
@@ -53,19 +53,10 @@ export class UnifiedMessagingService {
 
       switch (message.type) {
         case 'email':
-          result = await customerNotificationService.sendEmail({
-            to: message.to,
-            subject: message.metadata?.subject || 'Coin Railz Notification',
-            html: message.content
-          });
-          break;
+          throw new Error('Email delivery requires a customer ID so notification preferences can be enforced');
 
         case 'sms':
-          result = await customerNotificationService.sendSMS(
-            message.metadata?.phoneNumber || message.to,
-            message.content
-          );
-          break;
+          throw new Error('SMS delivery requires a customer ID so notification preferences can be enforced');
 
         case 'lens':
           result = await lensMessagingService.sendMessage({
@@ -136,7 +127,11 @@ export class UnifiedMessagingService {
    * Discover AI agents across all protocols
    */
   async discoverAIAgentsAcrossProtocols(): Promise<any> {
-    const discoveries = {
+    const discoveries: {
+      lens: Awaited<ReturnType<typeof lensMessagingService.discoverAIAgentProfiles>>;
+      solana: Awaited<ReturnType<typeof solanaSmsService.discoverSolanaAIAgents>>;
+      walletconnect: Awaited<ReturnType<typeof walletConnectMessagingService.discoverWalletConnectAgents>>;
+    } = {
       lens: [],
       solana: [],
       walletconnect: []
@@ -223,8 +218,8 @@ export class UnifiedMessagingService {
    */
   getProtocolStatus(): any {
     return {
-      email: customerNotificationService.isEmailAvailable(),
-      sms: customerNotificationService.isSMSAvailable(),
+      email: Boolean(process.env.SENDGRID_API_KEY),
+      sms: Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER),
       lens: lensMessagingService.isAvailable(),
       solana_sms: solanaSmsService.isAvailable(),
       walletconnect: walletConnectMessagingService.isAvailable()
@@ -240,13 +235,13 @@ export class UnifiedMessagingService {
         protocol: 'Email',
         cost: '$0.01 per email',
         rateLimits: 'No limits',
-        availability: customerNotificationService.isEmailAvailable()
+        availability: Boolean(process.env.SENDGRID_API_KEY)
       },
       sms: {
         protocol: 'SMS',
         cost: '$0.05 per SMS',
         rateLimits: '100/hour',
-        availability: customerNotificationService.isSMSAvailable()
+        availability: Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER)
       },
       lens: lensMessagingService.getMessagingInfo(),
       solana_sms: solanaSmsService.getMessagingInfo(),
@@ -263,7 +258,13 @@ export class UnifiedMessagingService {
 
     for (const [protocolName, protocol] of Object.entries(this.protocols)) {
       try {
-        const isAvailable = protocol.isAvailable?.() ?? true;
+        const isAvailable = protocolName === 'email'
+          ? Boolean(process.env.SENDGRID_API_KEY)
+          : protocolName === 'sms'
+            ? Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER)
+            : 'isAvailable' in protocol && typeof protocol.isAvailable === 'function'
+              ? protocol.isAvailable()
+              : true;
         testResults[protocolName] = {
           available: isAvailable,
           tested: false,

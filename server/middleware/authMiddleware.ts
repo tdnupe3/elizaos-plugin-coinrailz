@@ -1,4 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
+
+declare global {
+  namespace Express {
+    interface User {
+      id: string;
+      email?: string | null;
+      tier?: string;
+    }
+  }
+}
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { storage } from '../storage.js';

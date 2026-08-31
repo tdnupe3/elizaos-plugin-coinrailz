@@ -26,6 +26,7 @@ export interface CryptoTransferData {
   currency: string;
   fee: number;
   total: number;
+  blockchainNetwork: string;
   memo?: string;
   transactionHash?: string;
 }
@@ -37,23 +38,19 @@ export class TransactionPersistence {
   static async recordP2PTransaction(data: P2PTransactionData): Promise<{ success: boolean; transactionId?: number; error?: string }> {
     try {
       const transactionData: InsertTransaction = {
-        userId: data.userId,
-        type: 'p2p_transfer',
+        fromUserId: data.userId,
         amount: data.amount.toString(),
         currency: data.currency,
         status: data.requiresKYC ? 'pending_kyc' : 'completed',
-        paymentMethod: data.paymentMethod,
-        recipientInfo: JSON.stringify({
-          email: data.recipientEmail,
-          type: 'email'
-        }),
-        fee: data.fee.toString(),
-        memo: data.memo || null,
-        metadata: JSON.stringify({
+        transactionType: data.transactionType,
+        toEmail: data.recipientEmail,
+        platformFee: data.fee.toString(),
+        message: data.memo ?? null,
+        metadata: {
           requiresKYC: data.requiresKYC,
-          transactionType: data.transactionType,
+          paymentMethod: data.paymentMethod,
           total: data.total
-        })
+        }
       };
 
       const transaction = await storage.createTransaction(transactionData);
@@ -82,14 +79,16 @@ export class TransactionPersistence {
   static async recordCryptoTransfer(data: CryptoTransferData): Promise<{ success: boolean; transferId?: number; error?: string }> {
     try {
       const transferData: InsertCryptoTransfer = {
-        userId: data.userId,
-        recipientAddress: data.recipientAddress,
+        fromUserId: data.userId,
+        toWalletAddress: data.recipientAddress,
         amount: data.amount.toString(),
-        currency: data.currency,
+        cryptoSymbol: data.currency,
         status: 'pending',
-        fee: data.fee.toString(),
-        memo: data.memo || null,
-        transactionHash: data.transactionHash || null
+        commissionAmount: data.fee.toString(),
+        netAmount: (data.amount - data.fee).toString(),
+        blockchainNetwork: data.blockchainNetwork,
+        message: data.memo ?? null,
+        transactionHash: data.transactionHash ?? null
       };
 
       const transfer = await storage.createCryptoTransfer(transferData);
@@ -118,11 +117,8 @@ export class TransactionPersistence {
         // Update with transaction hash if provided
         const transaction = await storage.getTransactionById(transactionId);
         if (transaction) {
-          const metadata = transaction.metadata ? JSON.parse(transaction.metadata) : {};
-          metadata.transactionHash = transactionHash;
-          
-          // Note: This would require adding updateTransactionMetadata to storage interface
-          // For now, we'll log it
+          // The transactions table has no blockchain hash column, so retain the
+          // provider reference in the application log for this legacy record.
           console.log(`Transaction ${transactionId} hash: ${transactionHash}`);
         }
       }
@@ -184,29 +180,34 @@ export class TransactionPersistence {
         amount: parseFloat(tx.amount),
         currency: tx.currency,
         status: tx.status,
-        recipient: tx.recipientInfo ? JSON.parse(tx.recipientInfo) : null,
-        fee: tx.fee ? parseFloat(tx.fee) : 0,
-        memo: tx.memo,
+        recipient: tx.toEmail ? { email: tx.toEmail } : tx.toUserId ? { userId: tx.toUserId } : null,
+        fee: tx.platformFee ? parseFloat(tx.platformFee) : 0,
+        memo: tx.message,
         createdAt: tx.createdAt,
-        paymentMethod: tx.paymentMethod
+        paymentMethod: typeof tx.metadata === 'object' && tx.metadata !== null &&
+          'paymentMethod' in tx.metadata && typeof tx.metadata.paymentMethod === 'string'
+          ? tx.metadata.paymentMethod
+          : undefined
       }));
 
       const formattedCryptoTransfers = cryptoTransfers.map(transfer => ({
         id: transfer.id,
         type: 'crypto',
         amount: parseFloat(transfer.amount),
-        currency: transfer.currency,
+        currency: transfer.cryptoSymbol,
         status: transfer.status,
-        recipient: { address: transfer.recipientAddress },
-        fee: transfer.fee ? parseFloat(transfer.fee) : 0,
-        memo: transfer.memo,
+        recipient: { address: transfer.toWalletAddress },
+        fee: parseFloat(transfer.commissionAmount),
+        memo: transfer.message,
         createdAt: transfer.createdAt,
         transactionHash: transfer.transactionHash
       }));
 
       // Combine and sort by date
       const allTransactions = [...formattedTransactions, ...formattedCryptoTransfers];
-      return allTransactions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      return allTransactions.sort((a, b) =>
+        (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0)
+      );
     } catch (error) {
       console.error('Failed to get transaction history:', error);
       return [];

@@ -155,10 +155,10 @@ router.post('/purchase', async (req, res) => {
         webhookUrls: validatedData.webhookUrls || [],
         signupSource: 'sdk_self_serve',
         currentMonthTransactions: 0,
-        currentMonthVolume: 0,
+        currentMonthVolume: '0',
         totalLifetimeTransactions: 0,
-        totalLifetimeVolume: 0,
-        totalLifetimeRevenue: 0,
+        totalLifetimeVolume: '0',
+        totalLifetimeRevenue: '0',
         lastUsageReset: new Date()
       })
       .returning({
@@ -591,7 +591,7 @@ router.post('/webhook', async (req, res) => {
     
   } catch (error) {
     console.error('❌ Webhook error:', error);
-    res.status(400).send(`Webhook error: ${error.message}`);
+    res.status(400).send(`Webhook error: ${error instanceof Error ? error.message : String(error)}`);
   }
 });
 

@@ -83,7 +83,7 @@ async function fetchSolanaRates(): Promise<any> {
   const kaminoRate = dialectData?.topYields?.find(
     (y: any) => y.protocol?.toLowerCase().includes('kamino') || y.name?.toLowerCase().includes('kamino'),
   ) ?? dialectData?.topYields?.[0];
-  const dialectApy: number | null = kaminoRate?.apy ?? null;
+  const dialectApy: number | null = (kaminoRate as { apy?: number } | undefined)?.apy ?? null;
 
   // Source 2: DeFiLlama fallback (only if Dialect unavailable)
   let llamaApy: number | null = null;

@@ -120,10 +120,11 @@ export class ResearchBackedOutreach {
       
       for (const log of sessionLogs) {
         const sessionId = log.target; // Using target field as session ID
+        const createdAt = log.createdAt ?? new Date();
         if (!sessionMap.has(sessionId)) {
           sessionMap.set(sessionId, {
             messages: [],
-            lastActivity: log.createdAt,
+            lastActivity: createdAt,
             latestStatus: log.status || 'discovering', // Track latest status from database
             // 🎯 NEW: Initialize qualification data storage
             leadScore: 0,
@@ -175,13 +176,13 @@ export class ResearchBackedOutreach {
           role: messageData.role || 'user',
           protocol: messageData.protocol || 'a2a',
           content: messageData.content || 'Session activity',
-          timestamp: log.createdAt,
+          timestamp: createdAt,
           messageType: messageData.messageType || 'discovery'
         });
         
         // Update last activity and latest status from database
-        if (log.createdAt > sessionMap.get(sessionId)!.lastActivity) {
-          sessionMap.get(sessionId)!.lastActivity = log.createdAt;
+        if (createdAt > sessionMap.get(sessionId)!.lastActivity) {
+          sessionMap.get(sessionId)!.lastActivity = createdAt;
           sessionMap.get(sessionId)!.latestStatus = log.status || 'discovering';
         }
       }
@@ -211,7 +212,7 @@ export class ResearchBackedOutreach {
         this.activeSessions.set(sessionId, session);
         
         // 🎯 VERIFY: Log restored qualification data for debugging
-        if (session.leadScore > 0) {
+        if ((session.leadScore ?? 0) > 0) {
           console.log(`💾 RESTORED QUALIFIED LEAD: ${session.agentName} (Score: ${session.leadScore}, Status: ${session.qualificationStatus})`);
         }
       }
@@ -319,7 +320,7 @@ export class ResearchBackedOutreach {
           protocol: session.protocol,
           discoveryMethod: session.discoveryMethod,
           lastContact: session.lastContact,
-          urgency: session.leadScore >= 80 ? 'high' : 'medium',
+          urgency: (session.leadScore ?? 0) >= 80 ? 'high' : 'medium',
           assignedTo: session.humanContactAssigned || 'unassigned',
           nextAction: 'human_contact_required',
           estimatedValue: this.calculateAgentValue(session.capabilities)
@@ -350,7 +351,7 @@ export class ResearchBackedOutreach {
       console.log(`   💼 Business Potential: ${session.businessPotential}`);
       console.log(`   ⚠️ Objections: ${session.objections?.join(', ') || 'none'}`);
       console.log(`   🔗 Contact: ${session.agentId}`);
-      console.log(`   ⚡ Priority: ${session.leadScore >= 80 ? 'HIGH' : 'MEDIUM'}`);
+      console.log(`   ⚡ Priority: ${(session.leadScore ?? 0) >= 80 ? 'HIGH' : 'MEDIUM'}`);
       console.log(`   📞 ACTION REQUIRED: Human contact within 24 hours`);
       
       // Create high-priority notification record
@@ -359,7 +360,7 @@ export class ResearchBackedOutreach {
         target: `URGENT: ${session.agentName}`,
         url: JSON.stringify({
           escalationType: 'qualified_lead_follow_up',
-          priority: session.leadScore >= 80 ? 'HIGH' : 'MEDIUM',
+          priority: (session.leadScore ?? 0) >= 80 ? 'HIGH' : 'MEDIUM',
           sessionId: session.id,
           leadData: {
             agentName: session.agentName,
@@ -836,7 +837,7 @@ export class ResearchBackedOutreach {
           'User-Agent': 'Coinrailz-A2A-Client/1.0',
           'A2A-Version': '0.3.0'
         },
-        timeout: 10000
+        signal: AbortSignal.timeout(10000)
       });
       
       if (response.ok) {
@@ -887,11 +888,11 @@ export class ResearchBackedOutreach {
           },
           id: nanoid()
         }),
-        timeout: 10000
+        signal: AbortSignal.timeout(10000)
       });
       
       if (mcpResponse.ok) {
-        const jsonRpcResponse = await mcpResponse.json();
+        const jsonRpcResponse = await mcpResponse.json() as { error?: unknown; result?: unknown };
         
         // Parse JSON-RPC response properly - check for result vs error
         if (jsonRpcResponse.error) {
@@ -951,7 +952,7 @@ export class ResearchBackedOutreach {
           'User-Agent': 'Coinrailz-A2A-Client/1.0'
         },
         body: JSON.stringify(taskProposal),
-        timeout: 15000
+        signal: AbortSignal.timeout(15000)
       });
       
       if (response.ok) {
@@ -979,7 +980,7 @@ export class ResearchBackedOutreach {
       
     } catch (error) {
       session.status = 'failed';
-      await this.logOutreachAttempt(session, 'failed', error.message);
+      await this.logOutreachAttempt(session, 'failed', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -1006,16 +1007,16 @@ export class ResearchBackedOutreach {
           'User-Agent': 'Coinrailz-MCP-Client/1.0'
         },
         body: JSON.stringify(toolsQuery),
-        timeout: 10000
+        signal: AbortSignal.timeout(10000)
       });
       
       if (response.ok) {
-        const jsonRpcResponse = await response.json();
+        const jsonRpcResponse = await response.json() as { error?: { message?: string }; result?: unknown };
         
         // Parse JSON-RPC response properly
         if (jsonRpcResponse.error) {
           session.status = 'failed';
-          await this.logOutreachAttempt(session, 'failed', `MCP tools query error: ${jsonRpcResponse.error.message}`);
+          await this.logOutreachAttempt(session, 'failed', `MCP tools query error: ${jsonRpcResponse.error.message ?? 'unknown error'}`);
           return;
         }
         
@@ -1041,7 +1042,7 @@ export class ResearchBackedOutreach {
       
     } catch (error) {
       session.status = 'failed';
-      await this.logOutreachAttempt(session, 'failed', error.message);
+      await this.logOutreachAttempt(session, 'failed', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -1058,7 +1059,7 @@ export class ResearchBackedOutreach {
           'Accept': 'application/json',
           'User-Agent': 'Coinrailz-ACP-Client/1.0'
         },
-        timeout: 10000
+        signal: AbortSignal.timeout(10000)
       });
       
       if (agentDiscovery.ok) {
@@ -1084,7 +1085,7 @@ export class ResearchBackedOutreach {
       
     } catch (error) {
       session.status = 'failed';
-      await this.logOutreachAttempt(session, 'failed', error.message);
+      await this.logOutreachAttempt(session, 'failed', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -1105,7 +1106,7 @@ export class ResearchBackedOutreach {
               'Accept': 'application/json',
               'User-Agent': 'Coinrailz-Agent-Discovery/1.0'
             },
-            timeout: 5000
+            signal: AbortSignal.timeout(5000)
           });
           
           if (response.ok) {
@@ -1133,7 +1134,7 @@ export class ResearchBackedOutreach {
       
     } catch (error) {
       session.status = 'failed';
-      await this.logOutreachAttempt(session, 'failed', error.message);
+      await this.logOutreachAttempt(session, 'failed', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -1305,7 +1306,7 @@ export class ResearchBackedOutreach {
           businessPotential: session.businessPotential,
           objections: session.objections,
           contact: session.agentId,
-          urgency: session.leadScore >= 80 ? 'high' : 'medium'
+          urgency: (session.leadScore ?? 0) >= 80 ? 'high' : 'medium'
         }),
         status: 'pending',
         createdAt: new Date()
@@ -1466,11 +1467,11 @@ export class ResearchBackedOutreach {
           'MCP-Version': '2024-11-05'
         },
         body: JSON.stringify(revenueProposal),
-        timeout: 15000
+        signal: AbortSignal.timeout(15000)
       });
 
       if (response.ok) {
-        const jsonRpcResponse = await response.json();
+        const jsonRpcResponse = await response.json() as { error?: { message?: string }; result?: unknown };
         
         // Parse JSON-RPC response properly
         if (jsonRpcResponse.error) {
@@ -1507,7 +1508,7 @@ export class ResearchBackedOutreach {
 
     } catch (error) {
       console.error(`❌ MCP: Revenue proposal error for ${session.agentName}:`, error);
-      await this.logOutreachAttempt(session, 'failed', `MCP proposal error: ${error.message}`);
+      await this.logOutreachAttempt(session, 'failed', `MCP proposal error: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

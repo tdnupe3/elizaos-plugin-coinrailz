@@ -6,6 +6,13 @@ import { db } from "../db.js";
 import { usedTransactionHashes } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { ethers } from "ethers";
+import type Stripe from "stripe";
+const getUserId = (user: unknown): string | undefined => {
+  if (typeof user !== "object" || user === null) return undefined;
+  const id = (user as Record<string, unknown>).id;
+  return typeof id === "string" ? id : undefined;
+};
+
 import { handleGptPurchaseWebhook } from "./gptCreditsRoutes";
 
 
@@ -150,18 +157,19 @@ export function registerCreditsRoutes(app: Express) {
   
   // Get credits balance
   app.get("/api/credits/balance", async (req: Request, res: Response) => {
-    if (!req.user) {
+    const userId = getUserId(req.user);
+    if (!userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
     try {
-      const balance = await creditsService.getBalance(req.user.id);
-      const account = await creditsService.getOrCreateAccount(req.user.id);
+      const balance = await creditsService.getBalance(userId);
+      const account = await creditsService.getOrCreateAccount(userId);
 
       res.json({
         balance,
         autoTopUpEnabled: account.autoTopUpEnabled,
-        autoTopUpThreshold: parseFloat(account.autoTopUpThreshold),
+        autoTopUpThreshold: parseFloat(account.autoTopUpThreshold ?? "0"),
         preferredPaymentMethod: account.preferredPaymentMethod
       });
     } catch (error: any) {
@@ -177,8 +185,9 @@ export function registerCreditsRoutes(app: Express) {
 
       let userId: string | undefined;
 
-      if (req.user?.id) {
-        userId = req.user.id;
+      const sessionUserId = getUserId(req.user);
+      if (sessionUserId) {
+        userId = sessionUserId;
       } else if (email && apiKey) {
         const validKey = await creditsService.validateApiKey(apiKey);
         if (validKey && validKey.userId === email) {
@@ -208,13 +217,14 @@ export function registerCreditsRoutes(app: Express) {
 
   // Get transaction history
   app.get("/api/credits/transactions", async (req: Request, res: Response) => {
-    if (!req.user) {
+    const userId = getUserId(req.user);
+    if (!userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
     try {
       const limit = parseInt(req.query.limit as string) || 50;
-      const transactions = await creditsService.getTransactionHistory(req.user.id, limit);
+      const transactions = await creditsService.getTransactionHistory(userId, limit);
 
       res.json({ transactions });
     } catch (error: any) {
@@ -225,7 +235,8 @@ export function registerCreditsRoutes(app: Express) {
 
   // Purchase credits with Stripe
   app.post("/api/credits/purchase/stripe", async (req: Request, res: Response) => {
-    if (!req.user) {
+    const userId = getUserId(req.user);
+    if (!userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
@@ -253,7 +264,7 @@ export function registerCreditsRoutes(app: Express) {
         success_url: `${process.env.REPLIT_DOMAINS?.split(',')[0] || 'http://localhost:5000'}/credits?success=true`,
         cancel_url: `${process.env.REPLIT_DOMAINS?.split(',')[0] || 'http://localhost:5000'}/credits?canceled=true`,
         metadata: {
-          userId: req.user.id,
+          userId,
           creditsAmount: amount.toString()
         }
       });
@@ -267,7 +278,8 @@ export function registerCreditsRoutes(app: Express) {
 
   // Purchase credits with USDC/USDT
   app.post("/api/credits/purchase/crypto", async (req: Request, res: Response) => {
-    if (!req.user) {
+    const userId = getUserId(req.user);
+    if (!userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
@@ -290,7 +302,7 @@ export function registerCreditsRoutes(app: Express) {
         return res.status(400).json({ error: "Transaction hash already used" });
       }
 
-      const provider = new ethers.providers.JsonRpcProvider(
+      const provider = new ethers.JsonRpcProvider(
         chain === "base" 
           ? "https://mainnet.base.org"
           : chain === "ethereum"
@@ -321,7 +333,7 @@ export function registerCreditsRoutes(app: Express) {
       const creditsAmount = parseFloat(amount);
 
       const result = await creditsService.addCredits({
-        userId: req.user.id,
+        userId,
         amount: creditsAmount,
         paymentMethod: token.toLowerCase() as "usdc" | "usdt",
         referenceId: txHash,

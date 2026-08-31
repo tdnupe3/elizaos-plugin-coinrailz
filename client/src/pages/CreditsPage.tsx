@@ -50,11 +50,11 @@ export default function CreditsPage() {
   const [cryptoAmount, setCryptoAmount] = useState('');
   const [txHash, setTxHash] = useState('');
 
-  const { data: balanceData, isLoading: balanceLoading } = useQuery({
+  const { data: balanceData, isLoading: balanceLoading } = useQuery<{ balance: number }>({
     queryKey: ['/api/credits/balance'],
   });
 
-  const { data: transactionsData } = useQuery({
+  const { data: transactionsData } = useQuery<{ transactions: CreditTransaction[] }>({
     queryKey: ['/api/credits/transactions'],
   });
 

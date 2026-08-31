@@ -383,7 +383,7 @@ export class PilotCreditsConfirmationJob {
         'user',
         payment.userId,
         payment.credits,
-        'crypto',
+        'x402',
         {
           referenceType: 'pilot_crypto',
           referenceId: payment.id,

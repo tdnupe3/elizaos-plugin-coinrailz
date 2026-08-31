@@ -104,7 +104,7 @@ export default function USDCOffRamp() {
   const [selectedGiftCard, setSelectedGiftCard] = useState<string>('');
 
   // Fetch user's USDC balance
-  const { data: usdcBalance, isLoading: balanceLoading } = useQuery({
+  const { data: usdcBalance, isLoading: balanceLoading } = useQuery<{ balance: number }>({
     queryKey: ['/api/user/circle/balance'],
     enabled: !!user
   });

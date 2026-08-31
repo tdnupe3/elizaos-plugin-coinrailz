@@ -19,6 +19,8 @@ export interface AIAgentTransaction {
     completedAt?: string;
     riskScore?: number;
     complianceFlags?: string[];
+    autonomous?: boolean;
+    autoApproved?: boolean;
   };
 }
 
@@ -91,7 +93,7 @@ class AIAgentService {
       }
 
       // Calculate fees for AI transactions
-      const feeCalculation = FeeCalculator.calculateAIAgentFee(parseFloat(amount));
+      const feeCalculation = FeeCalculator.calculateAIAgentFee(parseFloat(amount), currency);
 
       const transaction: AIAgentTransaction = {
         id: `ai_tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -135,7 +137,7 @@ class AIAgentService {
       return transaction;
     } catch (error) {
       await loggingService.log('ERROR', 'AI agent transaction failed', {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         fromAgent: fromAgentId,
         toAgent: toAgentId
       });
@@ -190,14 +192,14 @@ class AIAgentService {
         throw new Error('Insufficient balance for AI transaction');
       }
 
-      await storage.updateUserBalance(fromAgent.ownerId, (fromBalance - totalCost).toFixed(2));
+      await storage.updateUserBalance(fromAgent.ownerId, fromBalance - totalCost, transaction.currency);
 
       // Credit to destination owner
       const toUser = await storage.getUser(toAgent.ownerId);
       if (!toUser) throw new Error('Destination user not found');
 
       const toBalance = parseFloat(toUser.usdBalance || "0");
-      await storage.updateUserBalance(toAgent.ownerId, (toBalance + amount).toFixed(2));
+      await storage.updateUserBalance(toAgent.ownerId, toBalance + amount, transaction.currency);
 
       // Create transaction records
       await storage.createTransaction({
@@ -206,6 +208,7 @@ class AIAgentService {
         toEmail: toUser.email,
         amount: transaction.amount,
         message: `AI Agent Transaction: ${transaction.purpose}`,
+        currency: transaction.currency,
         transactionType: "ai_agent",
         status: "completed"
       });
@@ -317,8 +320,8 @@ class AIAgentService {
     purpose: string,
     autoApprove: boolean = false
   ): Promise<AIAgentTransaction> {
-    const sourceAgent = this.agentRegistry.get(sourceAgentId);
-    const targetAgent = this.agentRegistry.get(targetAgentId);
+    const sourceAgent = await this.getAgent(sourceAgentId);
+    const targetAgent = await this.getAgent(targetAgentId);
 
     if (!sourceAgent || !targetAgent) {
       throw new Error('One or both agents not found in registry');
@@ -366,7 +369,7 @@ class AIAgentService {
     // Process if auto-approved or low risk
     if (autoApprove || riskScore < 0.3) {
       try {
-        const feeCalculation = FeeCalculator.calculateAIAgentFee(amount);
+        const feeCalculation = FeeCalculator.calculateAIAgentFee(amount, transaction.currency);
         await this.processAITransaction(transaction, feeCalculation.fee);
 
         // Notify both agents
@@ -376,7 +379,7 @@ class AIAgentService {
       } catch (error) {
         transaction.status = 'failed';
         await loggingService.log('ERROR', 'Agent-to-agent transaction processing failed', {
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
           transactionId: transaction.id
         });
       }
@@ -545,11 +548,12 @@ class AIAgentService {
   }
 
   async getUserAgents(userId: string): Promise<AIAgent[]> {
-    return Array.from(this.agentRegistry.values()).filter(agent => agent.ownerId === userId);
+    const agents = await this.discoverAgents();
+    return agents.filter(agent => agent.ownerId === userId);
   }
 
   async getAllNetworkAgents(): Promise<AIAgent[]> {
-    return Array.from(this.agentRegistry.values()).filter(agent => agent.isActive);
+    return this.discoverAgents();
   }
 
   async findAgentsForTransaction(amount: number, purpose: string, excludeOwner?: string): Promise<AIAgent[]> {
@@ -613,7 +617,10 @@ class AIAgentService {
         agentResponse: responseMessage
       };
     } catch (error) {
-      await loggingService.log('ERROR', 'AI Agent message failed', { error: error.message, agentId });
+      await loggingService.log('ERROR', 'AI Agent message failed', {
+        error: error instanceof Error ? error.message : String(error),
+        agentId
+      });
       throw error;
     }
   }

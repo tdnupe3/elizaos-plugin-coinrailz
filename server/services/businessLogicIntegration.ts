@@ -7,8 +7,51 @@
 import { TransactionWrapper } from './transactionWrapper';
 import { TieredCommissionCalculator } from './tieredCommissionCalculator';
 import { ExchangeRateProtection } from './exchangeRateProtection';
-import { sanitizeInput } from '../middleware/inputValidation';
 import { SafeMath } from '../utils/safeMath';
+
+interface InputValidationResult {
+  valid: boolean;
+  error?: string;
+  sanitized?: any;
+  amountCents?: number;
+}
+
+/**
+ * Validation is kept next to the operations it protects.  The former import
+ * pointed at a module that does not exist, leaving these payment paths without
+ * a concrete validation implementation.
+ */
+const InputValidation = {
+  validateTransactionAmount(value: unknown): InputValidationResult {
+    const amount = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(amount) && amount > 0 && Math.round(amount * 100) === amount * 100
+      ? { valid: true, amountCents: Math.round(amount * 100), sanitized: amount }
+      : { valid: false, error: 'Amount must be a positive value with at most two decimal places' };
+  },
+  validateUserId(value: unknown): InputValidationResult {
+    return typeof value === 'string' && value.trim().length > 0
+      ? { valid: true, sanitized: value.trim() }
+      : { valid: false, error: 'User ID is required' };
+  },
+  validateCurrencyCode(value: unknown): InputValidationResult {
+    return typeof value === 'string' && /^[A-Za-z]{3}$/.test(value)
+      ? { valid: true, sanitized: value.toUpperCase() }
+      : { valid: false, error: 'Currency must be a three-letter code' };
+  },
+  validateCommissionPayout(value: { agentId: string; amount: number; transactionId: string }): InputValidationResult {
+    const amount = this.validateTransactionAmount(value.amount);
+    return value.agentId.trim() && value.transactionId.trim() && amount.valid
+      ? { valid: true, sanitized: { ...value, amount: value.amount } }
+      : { valid: false, error: 'A valid agent, transaction, and amount are required' };
+  },
+  validateAgentRegistration(value: { name: string; email: string; capabilities: string[] }): InputValidationResult {
+    const email = value.email.trim();
+    return value.name.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
+      Array.isArray(value.capabilities) && value.capabilities.every(capability => typeof capability === 'string')
+      ? { valid: true, sanitized: { name: value.name.trim(), email, capabilities: value.capabilities } }
+      : { valid: false, error: 'A name, valid email, and string capabilities are required' };
+  },
+};
 
 interface EnhancedTransactionResult {
   success: boolean;
@@ -34,9 +77,10 @@ export class BusinessLogicIntegration {
     try {
       // Step 1: Comprehensive input validation
       // Basic validation for P2P transfer
+      const amountValidation = InputValidation.validateTransactionAmount(request.amount);
       const validation = {
-        valid: request.fromUserId && request.toUserId && request.amount > 0,
-        errors: []
+        valid: Boolean(request.fromUserId && request.toUserId && amountValidation.valid),
+        sanitized: { ...request, fromUserId: request.fromUserId.trim(), toUserId: request.toUserId.trim() },
       };
       if (!validation.valid) {
         return {

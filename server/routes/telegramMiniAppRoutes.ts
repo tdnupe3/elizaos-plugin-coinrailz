@@ -159,7 +159,7 @@ async function getOrCreateTelegramAccountFromUpdate(
   }).onConflictDoNothing();
 
   const [creditsAccount] = await db.insert(creditsAccounts).values({
-    userId, balance: STARTING_BONUS, autoTopUpEnabled: false
+    userId, balance: STARTING_BONUS.toFixed(2), autoTopUpEnabled: false
   }).onConflictDoNothing().returning();
 
   // Only log the bonus transaction if the account was just created
@@ -167,10 +167,10 @@ async function getOrCreateTelegramAccountFromUpdate(
     await db.insert(creditTransactions).values({
       accountId: creditsAccount.id,
       userId,
-      amount: STARTING_BONUS,
+      amount: STARTING_BONUS.toFixed(2),
       type: 'bonus',
       balanceBefore: '0.00',
-      balanceAfter: STARTING_BONUS,
+      balanceAfter: STARTING_BONUS.toFixed(2),
       description: 'Welcome bonus',
       metadata: { source: 'telegram_payment', reason: 'new_user_bonus' }
     }).onConflictDoNothing();
@@ -182,8 +182,7 @@ async function getOrCreateTelegramAccountFromUpdate(
 
   await db.insert(apiKeys).values({
     userId, hashedKey, keyPrefix,
-    name: 'Telegram Mini-App', status: 'active', rateLimit: 100,
-    metadata: { source: 'telegram', telegramId }
+    name: 'Telegram Mini-App', status: 'active', rateLimit: 100
   }).onConflictDoNothing();
 
   const [telegramAccount] = await db.insert(telegramAccounts).values({
@@ -214,7 +213,7 @@ async function runGuardianScan(groupChatId: number, messageText: string, botInst
 
     // Check daily scan limit
     const today = new Date().toISOString().slice(0, 10);
-    const lastReset = guardian.lastScanResetDate?.toISOString?.()?.slice(0, 10);
+    const lastReset = guardian.lastScanAt?.toISOString?.()?.slice(0, 10);
     let scansToday = lastReset === today ? (guardian.scansToday || 0) : 0;
     if (scansToday >= (guardian.scanLimitPerDay || 10)) return;
 
@@ -231,7 +230,7 @@ async function runGuardianScan(groupChatId: number, messageText: string, botInst
     // Increment scan counter
     scansToday += addressesToScan.length;
     await db.update(telegramGuardians)
-      .set({ scansToday, lastScanResetDate: new Date() })
+      .set({ scansToday, lastScanAt: new Date() })
       .where(eq(telegramGuardians.groupChatId, groupChatId.toString()))
       .catch(() => {});
 
@@ -679,20 +678,14 @@ router.post("/webhook", async (req: Request, res: Response) => {
         const totalCredits = tier.usdValue * (1 + tier.bonus);
         
         // Send Telegram Stars invoice (no provider_token needed for Stars)
-        await bot.sendInvoice(chatId, {
-          title: tier.label,
-          description: tier.description,
-          payload: JSON.stringify({ 
+        await bot.sendInvoice(chatId, tier.label, tier.description, JSON.stringify({
             type: "credits_bundle",
             userId, 
             stars: tier.stars,
             usdValue: tier.usdValue, 
             bonus: tier.bonus,
             totalCredits 
-          }),
-          currency: "XTR",
-          prices: [{ label: tier.label, amount: tier.stars }]
-        });
+          }), "", "XTR", [{ label: tier.label, amount: tier.stars }]);
       }
 
       // ── Per-call Stars micropayments ──────────────────────────────────────
@@ -703,13 +696,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
           await bot.sendMessage(chatId, "⚠️ Unknown service.");
           return;
         }
-        await bot.sendInvoice(chatId, {
-          title: svc.label,
-          description: `Pay ${svc.stars} ⭐ Stars to access ${svc.label} ($${svc.usd.toFixed(2)})`,
-          payload: JSON.stringify({ type: "per_call", service, stars: svc.stars, usd: svc.usd, telegramUserId: userId }),
-          currency: "XTR",
-          prices: [{ label: svc.label, amount: svc.stars }]
-        });
+        await bot.sendInvoice(chatId, svc.label, `Pay ${svc.stars} ⭐ Stars to access ${svc.label} ($${svc.usd.toFixed(2)})`, JSON.stringify({ type: "per_call", service, stars: svc.stars, usd: svc.usd, telegramUserId: userId }), "", "XTR", [{ label: svc.label, amount: svc.stars }]);
       }
 
       // ── Guardian callbacks ────────────────────────────────────────────────
@@ -778,13 +765,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
       else if (data === "upgrade_guardian" || data?.startsWith("upgrade_guardian:")) {
         const groupId = data.includes(":") ? data.split(":")[1] : null;
         // Guardian Pro = 4,000 Telegram Stars/month ($50 equivalent)
-        await bot.sendInvoice(chatId, {
-          title: "Guardian Pro — Monthly",
-          description: "Unlimited AI security scans in your group for 30 days. Automatically detects rug pulls, scam contracts, and high-risk wallets.",
-          payload: JSON.stringify({ type: "guardian_pro", groupId, adminTelegramId: userId }),
-          currency: "XTR",
-          prices: [{ label: "Guardian Pro (30 days)", amount: 4000 }]
-        });
+        await bot.sendInvoice(chatId, "Guardian Pro — Monthly", "Unlimited AI security scans in your group for 30 days. Automatically detects rug pulls, scam contracts, and high-risk wallets.", JSON.stringify({ type: "guardian_pro", groupId, adminTelegramId: userId }), "", "XTR", [{ label: "Guardian Pro (30 days)", amount: 4000 }]);
       }
 
       // ── Trading callbacks — delegate to trading service ───────────────────
@@ -938,11 +919,11 @@ router.get('/trades', async (req: Request, res: Response) => {
     }
 
     const telegramData = validateTelegramData(initData);
-    if (!telegramData || !telegramData.user) {
+    if (!telegramData) {
       return res.status(401).json({ error: 'Invalid initData' });
     }
 
-    const telegramId = telegramData.user.id.toString();
+    const telegramId = telegramData.id.toString();
     const telegramAccount = await db.query.telegramAccounts.findFirst({
       where: eq(telegramAccounts.telegramId, telegramId)
     });
@@ -1038,7 +1019,7 @@ router.post("/link", async (req: Request, res: Response) => {
     // 2. Create credits account with $1 starting bonus
     const [creditsAccount] = await db.insert(creditsAccounts).values({
       userId,
-      balance: STARTING_BONUS,
+      balance: STARTING_BONUS.toFixed(2),
       autoTopUpEnabled: false,
     }).returning();
 
@@ -1046,10 +1027,10 @@ router.post("/link", async (req: Request, res: Response) => {
     await db.insert(creditTransactions).values({
       accountId: creditsAccount.id,
       userId,
-      amount: STARTING_BONUS,
+      amount: STARTING_BONUS.toFixed(2),
       type: 'bonus',
       balanceBefore: '0.00',
-      balanceAfter: STARTING_BONUS,
+      balanceAfter: STARTING_BONUS.toFixed(2),
       description: 'Welcome bonus - Try Coin Railz services!',
       metadata: {
         source: 'telegram_miniapp',
@@ -1068,11 +1049,7 @@ router.post("/link", async (req: Request, res: Response) => {
       keyPrefix,
       name: 'Telegram Mini-App',
       status: 'active',
-      rateLimit: 100,
-      metadata: {
-        source: 'telegram',
-        telegramId: telegramId.toString()
-      }
+      rateLimit: 100
     }).returning();
     
     // 5. Create Telegram account link
@@ -1108,7 +1085,7 @@ router.post("/link", async (req: Request, res: Response) => {
       await db.insert(telegramReferrals).values({
         referrerUserId: referredByUserId,
         refereeUserId: userId,
-        bonusAmount: 0, // Will be updated when referee makes first purchase
+        bonusAmount: '0.00', // Will be updated when referee makes first purchase
       });
     }
 
@@ -1334,6 +1311,7 @@ If user asks for a service and lacks funds, politely inform them and suggest top
       const balanceBeforeServices = await creditsService.getBalance(telegramAccount.userId);
 
       for (const toolCall of toolCalls) {
+        if (toolCall.type !== 'function') continue;
         const functionName = toolCall.function.name;
         const functionArgs = JSON.parse(toolCall.function.arguments);
 
@@ -1407,7 +1385,9 @@ If user asks for a service and lacks funds, politely inform them and suggest top
 
       return res.json({
         message: finalCompletion.choices[0].message.content,
-        toolsUsed: toolCalls.map(tc => tc.function.name),
+        toolsUsed: toolCalls
+          .filter((toolCall): toolCall is OpenAI.Chat.Completions.ChatCompletionMessageFunctionToolCall => toolCall.type === 'function')
+          .map((toolCall) => toolCall.function.name),
         chatFee: CHAT_FEE,
         serviceCosts,
         creditsSpent,

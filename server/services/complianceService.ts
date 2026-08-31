@@ -20,6 +20,20 @@ interface RiskAssessment {
   blockedTransaction: boolean;
 }
 
+interface ComplianceReport {
+  reportId: string;
+  generatedAt: string;
+  period: { startDate: string; endDate: string };
+  summary: {
+    totalTransactions: number;
+    totalVolume: number;
+    suspiciousTransactions: number;
+    blockedTransactions: number;
+  };
+  findings: string[];
+  recommendations: string[];
+}
+
 export class ComplianceService {
   private sanctionsLists: Set<string> = new Set(); // OFAC, EU, UN sanctions lists
   private pepsLists: Set<string> = new Set(); // Politically Exposed Persons
@@ -33,6 +47,10 @@ export class ComplianceService {
     // In production, this would load from OFAC SDN list, EU sanctions, etc.
     // For now, we'll use placeholder data structure
     console.log('Loading sanctions and PEPs data...');
+  }
+
+  private async logComplianceEvent(event: string, data: Record<string, unknown>): Promise<void> {
+    console.info(`Compliance event: ${event}`, data);
   }
 
   async performAMLCheck(check: ComplianceCheck): Promise<RiskAssessment> {
@@ -360,7 +378,7 @@ export class ComplianceService {
     // Check user transaction history
     const recentTransactions = await storage.getUserTransactions(userId, 10);
     const recentTotal = recentTransactions
-      .filter(tx => new Date(tx.createdAt).getTime() > Date.now() - 24 * 60 * 60 * 1000)
+      .filter(tx => new Date(tx.createdAt ?? 0).getTime() > Date.now() - 24 * 60 * 60 * 1000)
       .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
 
     if (recentTotal > 5000) {
@@ -419,7 +437,7 @@ export class ComplianceService {
       flags.push('ai_transaction_monitored');
     }
 
-    await loggingService.log('INFO', 'AI transaction compliance check completed', {
+    await this.logComplianceEvent('AI_TRANSACTION_COMPLIANCE_CHECK_COMPLETED', {
       transactionId: transaction.id,
       approved: flags.length === 0 || !flags.includes('ai_transaction_limit_exceeded'),
       flags

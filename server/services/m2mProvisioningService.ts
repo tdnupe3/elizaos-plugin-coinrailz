@@ -118,7 +118,7 @@ export async function provisionCreditsAndKey(params: ProvisionParams): Promise<P
       creditResult = await creditsService.addCredits({
         userId,
         amount,
-        paymentMethod: 'stripe-m2m',
+        paymentMethod: 'stripe',
         referenceId: paymentIntentId,
         description: `M2M card purchase — $${amount} via Stripe`,
         metadata: { source: purpose, paymentIntentId, email },

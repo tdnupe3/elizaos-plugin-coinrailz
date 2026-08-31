@@ -316,7 +316,7 @@ export class DatabaseServiceDelivery {
         reason,
         customerEvidence: customerEvidence,
         status: 'open',
-        requiresManualReview: riskProfile.riskScore > 50 || verification.evidenceScore < 60
+        requiresManualReview: (riskProfile.riskScore ?? 0) > 50 || (verification.evidenceScore ?? 0) < 60
       }).returning();
       
       // Update delivery verification status
@@ -363,7 +363,7 @@ export class DatabaseServiceDelivery {
       return {
         success: true,
         disputeId,
-        requiresReview: dispute.requiresManualReview
+        requiresReview: dispute.requiresManualReview ?? false
       };
       
     } catch (error: any) {
@@ -476,9 +476,9 @@ export class DatabaseServiceDelivery {
     try {
       const profile = await this.getCustomerRiskProfile(customerId);
       
-      let newRiskScore = profile.riskScore;
-      let newDisputeHistory = profile.disputeHistory;
-      let newSuccessfulTransactions = profile.successfulTransactions;
+      let newRiskScore = profile.riskScore ?? 0;
+      let newDisputeHistory = profile.disputeHistory ?? 0;
+      let newSuccessfulTransactions = profile.successfulTransactions ?? 0;
       
       switch (action) {
         case 'successful_transaction':

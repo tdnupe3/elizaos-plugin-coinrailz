@@ -181,7 +181,9 @@ router.post('/subscriptions', async (req, res) => {
       },
       stripeSubscription: stripeSubscription ? {
         id: stripeSubscription.id,
-        clientSecret: typeof stripeSubscription.latest_invoice === 'object' && stripeSubscription.latest_invoice?.payment_intent ? (stripeSubscription.latest_invoice.payment_intent as any).client_secret : null
+        clientSecret: typeof stripeSubscription.latest_invoice === 'object'
+          ? ((stripeSubscription.latest_invoice as any).payment_intent as { client_secret?: string } | null)?.client_secret ?? null
+          : null
       } : null,
       nextSteps: validatedData.paymentMethod === 'stripe' ? [
         'Complete payment setup using the Stripe client secret',
@@ -258,7 +260,7 @@ router.post('/validate', async (req, res) => {
       },
       limits: {
         transactionsRemaining: tier!.monthlyTransactionLimit ? 
-          Math.max(0, tier!.monthlyTransactionLimit - subscription!.currentMonthTransactions) : null,
+          Math.max(0, tier!.monthlyTransactionLimit - (subscription!.currentMonthTransactions ?? 0)) : null,
         volumeRemaining: tier!.monthlyVolumeLimit ? 
           Math.max(0, parseFloat(tier!.monthlyVolumeLimit) - parseFloat(subscription!.currentMonthVolume || '0')) : null
       }

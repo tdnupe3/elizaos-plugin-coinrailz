@@ -61,7 +61,7 @@ export class UnifiedPaymentWebhooks {
       console.log(`🔵 Circle webhook received: ${event.Type}`);
       
       if (event.Type === 'transfers' && event.Status === 'complete') {
-        const paymentData = this.extractCirclePaymentData(event);
+        const paymentData = this.extractCirclePayhmentData(event);
         await this.processSuccessfulPayment(paymentData);
       }
       
@@ -291,7 +291,7 @@ export class UnifiedPaymentWebhooks {
    * 🏷️ HELPER METHODS
    */
   private getProductType(productId: number): string {
-    const productTypes = {
+    const productTypes: Record<number, string> = {
       1: 'api_access',
       2: 'api_access', 
       3: 'api_access',
@@ -303,7 +303,7 @@ export class UnifiedPaymentWebhooks {
   }
 
   private getReportType(productId: number): string {
-    const reportTypes = {
+    const reportTypes: Record<number, string> = {
       5: 'crypto_flow_intelligence',
       6: 'ai_marketplace_analytics'
     };
@@ -311,7 +311,7 @@ export class UnifiedPaymentWebhooks {
   }
 
   private getTierName(productId: number): string {
-    const tiers = { 1: 'Starter', 2: 'Pro', 3: 'Enterprise' };
+    const tiers: Record<number, string> = { 1: 'Starter', 2: 'Pro', 3: 'Enterprise' };
     return tiers[productId] || 'Starter';
   }
 }

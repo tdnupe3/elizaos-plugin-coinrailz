@@ -60,7 +60,7 @@ router.post('/marketplace/fee-calculation', async (req, res) => {
       });
     }
     
-    const fees = FeeCalculator.calculateMarketplaceFees(amount);
+    const fees = FeeCalculator.calculateMarketplaceFees(amount, 'standard');
     
     // Determine tier name based on amount
     let tier = 'Basic';

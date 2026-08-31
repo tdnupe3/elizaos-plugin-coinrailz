@@ -199,7 +199,6 @@ router.post('/record-trading-fee', async (req, res) => {
 
     // Record the trading fee
     await db.insert(tradingFees).values({
-      userId,
       userAddress,
       fromToken,
       toToken,

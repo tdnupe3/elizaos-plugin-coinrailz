@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { sdkLicenseTiers, sdkLicenseSubscriptions, type SDKLicenseTier, type SDKLicenseSubscription } from "@shared/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
-import { stripe } from './stripeClient';
+import Stripe, { stripe } from './stripeClient';
 import crypto from "crypto";
 import { nanoid } from "nanoid";
 
@@ -18,8 +18,8 @@ export interface SDKLicenseTierConfig {
   setupFee?: number;
   transactionFeeRate: number; // e.g., 0.0099 for 0.99%
   fixedFeePerTransaction: number; // e.g., 0.05
-  monthlyTransactionLimit?: number; // null = unlimited
-  monthlyVolumeLimit?: number; // null = unlimited
+  monthlyTransactionLimit?: number | null; // null = unlimited
+  monthlyVolumeLimit?: number | null; // null = unlimited
   supportLevel: 'email' | 'priority' | 'dedicated' | 'white_glove';
   slaGuarantee?: string; // e.g., '99.9%'
   customIntegrations?: boolean;

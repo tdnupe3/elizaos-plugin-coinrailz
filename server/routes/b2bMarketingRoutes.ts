@@ -49,8 +49,8 @@ router.get('/ecosystem-stats', async (req, res) => {
 router.get('/revenue-projection', async (req, res) => {
   try {
     const projection = await b2bMarketingService.generateRevenueProjection();
-    if (!projection.success) {
-      return res.status(500).json({ error: projection.error });
+    if (!projection.success || !('projection' in projection)) {
+      return res.status(500).json({ error: 'error' in projection ? projection.error : 'Failed to generate revenue projection' });
     }
     
     res.json({

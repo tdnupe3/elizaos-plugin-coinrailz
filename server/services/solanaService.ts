@@ -11,10 +11,32 @@ import {
   SystemProgram, 
   LAMPORTS_PER_SOL,
   Keypair,
+  TransactionInstruction,
   sendAndConfirmTransaction,
   clusterApiUrl
 } from '@solana/web3.js';
 import bs58 from 'bs58';
+import * as splTokenModule from '@solana/spl-token';
+
+const {
+  createTransferInstruction,
+  getAssociatedTokenAddress,
+  getOrCreateAssociatedTokenAccount,
+} = splTokenModule as unknown as {
+  createTransferInstruction: (
+    source: PublicKey,
+    destination: PublicKey,
+    owner: PublicKey,
+    amount: number | bigint,
+  ) => TransactionInstruction;
+  getAssociatedTokenAddress: (mint: PublicKey, owner: PublicKey) => Promise<PublicKey>;
+  getOrCreateAssociatedTokenAccount: (
+    connection: Connection,
+    payer: Keypair,
+    mint: PublicKey,
+    owner: PublicKey,
+  ) => Promise<{ address: PublicKey }>;
+};
 
 export interface SolanaWallet {
   address: string;
@@ -249,8 +271,6 @@ export class SolanaService {
     const amount = Math.floor(amountUsdc * Math.pow(10, USDC_DECIMALS));
 
     try {
-      const { getAssociatedTokenAddress, createTransferInstruction, getOrCreateAssociatedTokenAccount } = await import('@solana/spl-token');
-
       const fromAta = await getAssociatedTokenAddress(USDC_MINT, this.platformKeypair.publicKey);
       
       const toAta = await getOrCreateAssociatedTokenAccount(

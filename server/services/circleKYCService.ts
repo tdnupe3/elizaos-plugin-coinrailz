@@ -146,15 +146,32 @@ class CircleKYCService {
         status: user.kycStatus as 'pending' | 'approved' | 'rejected' | 'review_required' || 'pending',
         verificationLevel,
         transactionLimits,
-        approvedAt: user.kycApprovedAt,
-        rejectionReason: user.kycRejectionReason,
-        requiredDocuments: user.kycRequiredDocuments ? JSON.parse(user.kycRequiredDocuments) : []
+        approvedAt: user.kycApprovedAt ?? undefined,
+        rejectionReason: user.kycRejectionReason ?? undefined,
+        requiredDocuments: this.parseRequiredDocuments(user.kycRequiredDocuments)
       };
 
     } catch (error) {
       console.error('Error getting KYC status:', error);
       return null;
     }
+  }
+
+  private parseRequiredDocuments(value: unknown): string[] {
+    if (Array.isArray(value) && value.every((document): document is string => typeof document === 'string')) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      try {
+        const parsed: unknown = JSON.parse(value);
+        return Array.isArray(parsed) && parsed.every((document): document is string => typeof document === 'string')
+          ? parsed
+          : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
   }
 
   /**

@@ -3,7 +3,7 @@
  * Real payment processing for $2K-$200K enterprise license purchases
  */
 
-import { stripe } from './stripeClient';
+import Stripe, { stripe } from './stripeClient';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { sdkLicenseSubscriptions, sdkLicenseTiers } from '../../shared/schema';

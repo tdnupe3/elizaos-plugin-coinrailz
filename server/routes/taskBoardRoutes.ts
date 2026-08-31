@@ -41,7 +41,7 @@ router.post('/emergency-outreach', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to post to task boards',
-      details: error.message
+      details: error instanceof Error ? error.message : String(error)
     });
   }
 });

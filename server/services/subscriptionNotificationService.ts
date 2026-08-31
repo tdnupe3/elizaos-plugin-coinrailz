@@ -139,7 +139,7 @@ export class SubscriptionNotificationService {
               <ul>
                 <li>{{tradingDiscount}}% discount on all trading fees</li>
                 <li>{{crossChainDiscount}}% discount on cross-chain transactions</li>
-                <li>${{aiCredits}} AI marketplace credits</li>
+                <li>{{aiCredits}} AI marketplace credits</li>
                 <li>Priority customer support</li>
               </ul>
             </div>
@@ -157,7 +157,7 @@ export class SubscriptionNotificationService {
             <p>Your {{planName}} subscription has been renewed for another billing period.</p>
             <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <p><strong>Next billing date:</strong> {{nextBillingDate}}</p>
-              <p><strong>Amount charged:</strong> ${{amount}}</p>
+                <p><strong>Amount charged:</strong> \${{amount}}</p>
             </div>
             <p>Continue enjoying your {{tradingDiscount}}% fee discounts and premium features!</p>
           </div>
@@ -190,7 +190,7 @@ export class SubscriptionNotificationService {
             <p>You've successfully upgraded from {{oldPlan}} to {{newPlan}}.</p>
             <div style="background: #faf5ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3>Your Enhanced Benefits:</h3>
-              <p>💰 <strong>Monthly savings:</strong> ${{monthlySavings}}</p>
+                <p>💰 <strong>Monthly savings:</strong> \${{monthlySavings}}</p>
               <p>📅 <strong>Effective date:</strong> {{effectiveDate}}</p>
             </div>
             <p><a href="https://coinrailz.com/dex" style="background: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Start Trading with Lower Fees</a></p>

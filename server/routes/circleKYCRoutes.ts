@@ -50,7 +50,8 @@ router.use(requireAuth);
 // Submit KYC verification
 router.post('/submit', upload.array('documents', 5), async (req, res) => {
   try {
-    const userId = req.user.id;
+    if (!req.user) return res.status(401).json({ success: false, error: 'User not authenticated' });
+    const userId = (req.user as unknown as { id: string }).id;
     const files = req.files as Express.Multer.File[];
     
     // Validate request body
@@ -110,7 +111,8 @@ router.post('/submit', upload.array('documents', 5), async (req, res) => {
 // Get KYC status
 router.get('/status', async (req, res) => {
   try {
-    const userId = req.user.id;
+    if (!req.user) return res.status(401).json({ success: false, error: 'User not authenticated' });
+    const userId = (req.user as unknown as { id: string }).id;
     const status = await circleKYCService.getKYCStatus(userId);
     
     if (!status) {
@@ -137,7 +139,8 @@ router.get('/status', async (req, res) => {
 // Check transaction permission
 router.post('/check-permission', async (req, res) => {
   try {
-    const userId = req.user.id;
+    if (!req.user) return res.status(401).json({ success: false, error: 'User not authenticated' });
+    const userId = (req.user as unknown as { id: string }).id;
     const { amount } = req.body;
 
     if (!amount || isNaN(parseFloat(amount))) {
@@ -194,7 +197,8 @@ router.get('/requirements/:country', async (req, res) => {
 // Generate KYC onboarding link
 router.post('/generate-link', async (req, res) => {
   try {
-    const userId = req.user.id;
+    if (!req.user) return res.status(401).json({ success: false, error: 'User not authenticated' });
+    const userId = (req.user as unknown as { id: string }).id;
     const result = await circleKYCService.generateKYCLink(userId);
     
     if (!result.success) {

@@ -145,7 +145,7 @@ router.post('/create-payment-intent', async (req, res) => {
         clientSecret,
         paymentUrl,
         amount,
-        platformFee: payment.platformFee,
+        platformFee: payment.platformCommission,
         processingFee: payment.processingFee,
         netAmount: amount - payment.processingFee,
         expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes
@@ -282,7 +282,15 @@ router.post('/refund', async (req, res) => {
       });
     }
 
-    const refund = {
+    const refund: {
+      id: string;
+      paymentId: string;
+      amount: number;
+      reason: unknown;
+      status: string;
+      createdAt: string;
+      completedAt?: string;
+    } = {
       id: `ref_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`,
       paymentId,
       amount: refundAmount || payment.amount,
@@ -409,7 +417,7 @@ router.get('/analytics', (req, res) => {
     totalProcessingFees: successfulPayments.reduce((sum, p) => sum + p.processingFee, 0),
     averageTransactionSize: successfulPayments.length > 0 ? 
       successfulPayments.reduce((sum, p) => sum + p.amount, 0) / successfulPayments.length : 0,
-    byPaymentMethod: {},
+    byPaymentMethod: {} as Record<string, { count: number; volume: number; averageAmount: number }>,
     conversionRate: allPayments.length > 0 ? 
       (successfulPayments.length / allPayments.length * 100).toFixed(2) + '%' : '0%'
   };
@@ -528,9 +536,8 @@ router.get('/fee-structure', (req, res) => {
     try {
       const fees = calculateFeesForPaymentMethod(method, testAmount);
       return {
-        paymentMethod: method,
+        ...fees,
         enabled: paymentMethods[method as keyof typeof paymentMethods].enabled,
-        ...fees
       };
     } catch (error) {
       return null;

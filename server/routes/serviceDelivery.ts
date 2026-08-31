@@ -154,7 +154,7 @@ router.post('/submit', upload.array('files', 10), async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Delivery submission failed',
-      message: error.message
+      message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
@@ -231,7 +231,7 @@ router.post('/approve', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Delivery approval failed',
-      message: error.message
+      message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
@@ -261,7 +261,7 @@ async function triggerEscrowRelease(orderId: string, customerApproval: any) {
       escrowId: escrow.id 
     };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
@@ -312,7 +312,7 @@ router.get('/download/:deliveryId/:filename', (req, res) => {
     });
   }
 
-  const file = delivery.files.find(f => f.originalName === filename);
+  const file = delivery.files.find((f: { originalName: string }) => f.originalName === filename);
   if (!file) {
     return res.status(404).json({
       success: false,

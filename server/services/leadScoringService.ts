@@ -376,8 +376,11 @@ export class LeadScoringService {
 
   private scoreReferralPotential(target: EnterpriseOutreachTarget): number {
     // Score based on referral potential (0-10 points)
-    const hasNetwork = target.linkedinUrl && target.contactTitle.toLowerCase().includes('ceo', 'cto', 'founder');
-    const isInfluencer = target.companyDescription.toLowerCase().includes('influencer', 'thought leader');
+    const title = target.contactTitle.toLowerCase();
+    const description = target.companyDescription.toLowerCase();
+    const hasNetwork = Boolean(target.linkedinUrl) &&
+      ['ceo', 'cto', 'founder'].some((role) => title.includes(role));
+    const isInfluencer = ['influencer', 'thought leader'].some((term) => description.includes(term));
     
     if (hasNetwork && isInfluencer) return 10;
     if (hasNetwork || isInfluencer) return 7;

@@ -144,7 +144,11 @@ export class UsageMonitoringService {
       }
     };
 
-    return packageUpgrades[currentPackage as keyof typeof packageUpgrades]?.[upgradeType as keyof typeof packageUpgrades[typeof currentPackage]] || 0;
+    const upgrades = packageUpgrades[currentPackage as keyof typeof packageUpgrades];
+    if (!upgrades || !Object.prototype.hasOwnProperty.call(upgrades, upgradeType)) {
+      return 0;
+    }
+    return upgrades[upgradeType as keyof typeof upgrades];
   }
 
   /**

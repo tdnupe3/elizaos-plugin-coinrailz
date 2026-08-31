@@ -146,7 +146,7 @@ export class TransactionStateRecovery {
         }
       } catch (error) {
         console.error(`Recovery failed for transaction ${transactionId}:`, error);
-        await this.flagForManualReview(state, `Recovery error: ${error.message}`);
+        await this.flagForManualReview(state, `Recovery error: ${error instanceof Error ? error.message : String(error)}`);
         requiresManualReview++;
       }
     }
@@ -226,7 +226,7 @@ export class TransactionStateRecovery {
         await this.executeTransactionStep(state, step);
         await this.updateTransactionProgress(state.transactionId, step);
       } catch (error) {
-        await this.markTransactionStepFailed(state.transactionId, step, error.message);
+        await this.markTransactionStepFailed(state.transactionId, step, error instanceof Error ? error.message : String(error));
         throw error;
       }
     }
@@ -397,7 +397,7 @@ export class TransactionStateRecovery {
       }
     } catch (error) {
       console.error(`Recovery action failed for ${action.transactionId}:`, error);
-      await this.flagForManualReview(state, `Recovery failed: ${error.message}`);
+      await this.flagForManualReview(state, `Recovery failed: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     this.recoveryQueue.delete(action.transactionId);

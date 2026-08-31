@@ -176,22 +176,6 @@ export class BaseWhaleTargetingService {
       
       // ERROR: Real blockchain messaging not implemented
       throw new Error('Real blockchain messaging system not implemented yet');
-      
-      this.messagesSent++;
-      this.totalCost += 0.0001; // Base transaction cost
-      
-      console.log(`✅ REAL BASE MESSAGE SENT to ${whale.address.slice(0, 8)}... - TX: ${txHash.slice(0, 12)}...`);
-      
-      return {
-        success: true,
-        address: whale.address,
-        category: whale.category,
-        ethBalance: whale.ethBalance,
-        txHash: txHash,
-        cost: 0.0001,
-        estimatedDealSize: whale.estimatedValue
-      };
-      
     } catch (error) {
       console.error(`❌ Failed to message whale ${whale.address}:`, (error as Error).message);
       return {

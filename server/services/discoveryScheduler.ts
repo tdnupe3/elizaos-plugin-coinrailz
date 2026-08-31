@@ -11,7 +11,7 @@
  * 4. Rate-limited to avoid spam (1 message/second, max 50/campaign)
  */
 
-import cron from 'node-cron';
+import cron, { type ScheduledTask } from 'node-cron';
 import { spawn } from 'child_process';
 import { db } from '../db';
 import { discoveryRuns, discoveredAgents, agentOutreachMessages } from '@shared/schema';
@@ -42,7 +42,7 @@ interface DiscoveryOutput {
 }
 
 let isRunning = false;
-let scheduledTask: cron.ScheduledTask | null = null;
+let scheduledTask: ScheduledTask | null = null;
 
 async function runMasterDiscovery(): Promise<DiscoveryOutput | null> {
   return new Promise((resolve) => {

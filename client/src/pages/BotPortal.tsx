@@ -694,7 +694,7 @@ if response.status_code == 200:
 catalog = httpx.get("https://coinrailz.com/x402/catalog").json()
 
 for service in catalog["services"]:
-    print(f"{service['id']}: ${service['price']} USDC")`}
+    print(f"{service['id']}: \${service['price']} USDC")`}
               </pre>
             </div>
 

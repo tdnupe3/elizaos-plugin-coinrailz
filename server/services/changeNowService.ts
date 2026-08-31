@@ -2,7 +2,6 @@
 // Supporting 900+ cryptocurrencies with instant exchanges
 
 import { storage } from "../storage";
-import { ISO20022Utils } from "@shared/iso20022";
 
 export interface ChangeNowExchange {
   id: string;
@@ -164,11 +163,13 @@ export class ChangeNowService {
   async rebalancePortfolio(userId: string, targetAllocations: Record<string, number>): Promise<any> {
     try {
       const currentHoldings = await storage.getUserCryptoHoldings(userId);
-      const rebalanceTransactions = [];
+      const rebalanceTransactions: ChangeNowExchange[] = [];
 
       for (const [targetCurrency, targetPercentage] of Object.entries(targetAllocations)) {
         const currentHolding = currentHoldings.find(h => h.coinSymbol === targetCurrency);
-        const currentValue = currentHolding ? parseFloat(currentHolding.usdValue || '0') : 0;
+        const currentValue = currentHolding
+          ? parseFloat(currentHolding.amount) * parseFloat(currentHolding.averageBuyPrice ?? '0')
+          : 0;
         
         // Calculate needed adjustments (simplified logic)
         // In production, you'd implement sophisticated rebalancing algorithms
@@ -258,34 +259,17 @@ export class ChangeNowService {
 
   private async logExchangeTransaction(userId: string, exchange: any, request: CreateExchangeRequest): Promise<void> {
     try {
-      // Create ISO20022 compliant transaction record
-      const transactionRecord = {
-        userId,
-        exchangeId: exchange.id,
-        fromCurrency: request.fromCurrency,
-        toCurrency: request.toCurrency,
-        fromAmount: request.fromAmount,
-        toAmount: exchange.toAmount,
-        payinAddress: exchange.payinAddress,
-        payoutAddress: request.toAddress,
-        status: 'created',
-        provider: 'changenow',
-        createdAt: new Date(),
-        messageId: ISO20022Utils.generateMessageId()
-      };
-
-      // Store in database (implement based on your schema)
+      // Store the exchange as a normalized crypto transaction record.
       await storage.createCryptoTransaction({
         userId,
-        type: 'exchange',
-        fromCurrency: request.fromCurrency,
-        toCurrency: request.toCurrency,
-        fromAmount: request.fromAmount.toString(),
-        toAmount: exchange.toAmount?.toString() || '0',
+        transactionType: 'exchange',
+        coinSymbol: `${request.fromCurrency}/${request.toCurrency}`,
+        amount: request.fromAmount.toString(),
+        totalValue: request.fromAmount.toString(),
         status: 'pending',
-        transactionHash: exchange.id,
-        fee: '0', // ChangeNOW fee is built into exchange rate
-        metadata: JSON.stringify(transactionRecord)
+        blockchainHash: exchange.id,
+        blockchainAddress: request.toAddress,
+        networkFee: '0', // ChangeNOW fee is built into exchange rate
       });
     } catch (error) {
       console.error('Exchange transaction logging error:', error);

@@ -236,7 +236,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
         wallet: domain.owner?.id,
         channels: {
           webhook: url,
-          email: await this.getENSTextRecord(domain.name, 'email')
+          email: (await this.getENSTextRecord(domain.name, 'email')) ?? undefined
         },
         capabilities: this.inferCapabilitiesFromDomain(domain.name),
         metadata: {
@@ -314,7 +314,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
     
     try {
       // Search for agent-like contract patterns on Base
-      const contracts = await this.findAgentContracts();
+      const contracts = await this.findPotentialAgentContracts();
       
       for (const contract of contracts.slice(0, limit)) {
         agents.push({
@@ -322,7 +322,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
           source: 'base-chain-contract',
           wallet: contract.address,
           channels: {
-            onChain: contract.address
+            webhook: `https://basescan.org/address/${contract.address}`
           },
           capabilities: {
             trading: true,
@@ -356,7 +356,6 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
           source: 'coinbase-cdp-wallet',
           wallet: wallet.address,
           channels: {
-            onChain: wallet.address,
             webhook: wallet.webhook
           },
           capabilities: {
@@ -378,7 +377,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
     return agents;
   }
 
-  private async findAgentContracts(): Promise<any[]> {
+  private async findPotentialAgentContracts(): Promise<any[]> {
     // Simplified implementation - would use Base Chain API
     return [
       { address: '0x' + Math.random().toString(16).substr(2, 40), type: 'agent_contract', deployedAt: new Date() }
@@ -404,7 +403,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
         url: 'https://www.virtuals.io/agents/aixbt',
         source: 'known-base-agent',
         wallet: '0x742d35Cc6634C0532925a3b8D4B9d8edaD1f2468',
-        channels: { onChain: '0x742d35Cc6634C0532925a3b8D4B9d8edaD1f2468' },
+        channels: {},
         capabilities: { trading: true, analytics: true },
         metadata: { platform: 'base', known_agent: true }
       },
@@ -412,7 +411,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
         url: 'https://agentkit.coinbase.com/terminal',
         source: 'coinbase-agentkit',
         wallet: '0x8866414733F22295b7563f9C5299715D2D76CAf4',
-        channels: { onChain: '0x8866414733F22295b7563f9C5299715D2D76CAf4' },
+        channels: {},
         capabilities: { trading: true, defi: true, terminal: true },
         metadata: { platform: 'base', official_coinbase: true }
       }
@@ -468,7 +467,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
         source: 'on-chain-participants',
         wallet: participant.address,
         channels: {
-          onChain: true
+          push_protocol: true
         },
         capabilities: {
           messaging: true,
@@ -551,8 +550,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
         source: 'farcaster-protocol',
         wallet: user.custodyAddress || user.verifications?.[0],
         channels: {
-          farcaster: `@${user.username}`,
-          onChain: user.verifications?.length > 0
+          farcaster: `@${user.username}`
         },
         capabilities: {
           social_media: true,
@@ -655,7 +653,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
         source: 'lens-protocol',
         wallet: profile.ownedBy,
         channels: {
-          lens: `@${profile.handle}`
+          webhook: `https://lenster.xyz/u/${profile.handle}`
         },
         capabilities: {
           social_media: true,
@@ -766,7 +764,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
         source: `${network}-contracts`,
         wallet: contract.address,
         channels: {
-          contract_call: true
+          webhook: `https://agent.contract/${contract.address}`
         },
         capabilities: {
           smart_contract: true,
@@ -820,7 +818,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
         url: 'https://on-chain.agent/known1',
         source: 'on-chain-known',
         wallet: '0x1234567890123456789012345678901234567890',
-        channels: { onChain: true },
+        channels: { push_protocol: true },
         capabilities: { messaging: true },
         metadata: { source: 'known_participant' }
       }
@@ -846,7 +844,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
         url: 'https://lenster.xyz/u/agent.lens',
         source: 'lens-known',
         wallet: '0x3234567890123456789012345678901234567890',
-        channels: { lens: '@agent.lens' },
+        channels: { webhook: 'https://lenster.xyz/u/agent.lens' },
         capabilities: { social_media: true },
         metadata: { source: 'known_lens_agent' }
       }

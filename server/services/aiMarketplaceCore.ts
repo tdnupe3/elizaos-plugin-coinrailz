@@ -78,10 +78,10 @@ export class AIMarketplaceCore {
         platformFee: platformFee.toString(),
         status: 'pending',
         paymentMethod: orderData.paymentMethod,
-        escrowStatus: 'held',
         serviceDescription: orderData.serviceDescription,
-        deliverables: orderData.deliverables || null,
-        customerRequirements: orderData.customerRequirements || null,
+        customerRequirements: orderData.customerRequirements
+          ? JSON.stringify(orderData.customerRequirements)
+          : null,
         estimatedDeliveryHours: orderData.estimatedDeliveryHours || 24,
       };
 
@@ -152,7 +152,7 @@ export class AIMarketplaceCore {
       await db.update(aiMarketplaceOrders)
         .set({ 
           status: 'delivered',
-          actualDeliveryTime: new Date(),
+          completedAt: new Date(),
           updatedAt: new Date()
         })
         .where(eq(aiMarketplaceOrders.id, deliveryData.orderId));
@@ -231,7 +231,6 @@ export class AIMarketplaceCore {
       await db.update(aiMarketplaceOrders)
         .set({
           status: 'completed',
-          escrowStatus: 'released',
           updatedAt: new Date()
         })
         .where(eq(aiMarketplaceOrders.id, orderId));
@@ -329,7 +328,6 @@ export class AIMarketplaceCore {
       await db.update(aiMarketplaceOrders)
         .set({
           status: 'refunded',
-          escrowStatus: 'released',
           updatedAt: new Date()
         })
         .where(eq(aiMarketplaceOrders.id, refundData.orderId));

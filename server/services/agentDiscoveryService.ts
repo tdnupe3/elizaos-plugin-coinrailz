@@ -14,7 +14,7 @@ import { db } from '../db';
 import { discoveredAgents } from '@shared/schema';
 import { eq, and, or, sql, desc, asc, inArray } from 'drizzle-orm';
 import { CommunicationOrchestrator } from './communicationOrchestrator';
-import cron from 'node-cron';
+import cron, { type ScheduledTask } from 'node-cron';
 import Redis from 'ioredis';
 
 // Discovery Adapter Interface
@@ -88,12 +88,11 @@ export interface DiscoveryStats {
 export class AgentDiscoveryService {
   private static instance: AgentDiscoveryService | null = null;
   private adapters: Map<string, DiscoveryAdapter> = new Map();
-  private communicationOrchestrator: CommunicationOrchestrator;
+  private communicationOrchestrator!: CommunicationOrchestrator;
   private isRunning: boolean = false;
-  private stats: DiscoveryStats;
-  private cronJob: cron.ScheduledTask | null = null;
+  private cronJob: ScheduledTask | null = null;
   private redis: Redis | null = null;
-  private processId: string;
+  private processId!: string;
   private readonly DISCOVERY_LOCK_KEY = 'agent_discovery_lock';
   private readonly LOCK_TTL = 14400000; // 4 hour TTL for discovery lock
   private heartbeatInterval: NodeJS.Timeout | null = null;
@@ -167,7 +166,7 @@ export class AgentDiscoveryService {
    */
   public static destroyInstance(): void {
     if (AgentDiscoveryService.instance) {
-      AgentDiscoveryService.instance.shutdown();
+      void AgentDiscoveryService.instance.gracefulShutdown();
       AgentDiscoveryService.instance = null;
     }
   }
@@ -187,7 +186,6 @@ export class AgentDiscoveryService {
       }
       
       this.redis = new Redis(redisUrl, {
-        retryDelayOnFailover: 100,
         maxRetriesPerRequest: 3,
         lazyConnect: true,
         enableOfflineQueue: false // Prevent queuing commands when disconnected
@@ -260,7 +258,9 @@ export class AgentDiscoveryService {
           end
         `;
         
-        const result = await this.redis.eval(
+        const redis = this.redis;
+        if (!redis) return;
+        const result = await redis.eval(
           luaScript,
           1,
           this.DISCOVERY_LOCK_KEY,
@@ -534,7 +534,8 @@ export class AgentDiscoveryService {
 
     } catch (error) {
       const duration = Date.now() - startTime;
-      console.error(`❌ ${adapterId} failed:`, error.message);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`❌ ${adapterId} failed:`, errorMessage);
       
       return {
         adapterId,
@@ -545,7 +546,7 @@ export class AgentDiscoveryService {
         duration,
         agentsPerSecond: 0,
         success: false,
-        errorMessage: error.message
+        errorMessage
       };
     }
   }
@@ -584,7 +585,7 @@ export class AgentDiscoveryService {
         }
         
       } catch (error) {
-        console.error(`❌ Chunk processing failed for chunk ${Math.floor(i/CHUNK_SIZE) + 1}:`, error.message);
+        console.error(`❌ Chunk processing failed for chunk ${Math.floor(i/CHUNK_SIZE) + 1}:`, error instanceof Error ? error.message : String(error));
         // Continue with next chunk instead of failing entire batch
         continue;
       }
@@ -817,7 +818,7 @@ export class AgentDiscoveryService {
         }
 
       } catch (error) {
-        console.error(`❌ Failed to store agent ${rawAgent.url}:`, error.message);
+        console.error(`❌ Failed to store agent ${rawAgent.url}:`, error instanceof Error ? error.message : String(error));
         duplicates++; // Count errors as duplicates to maintain metrics
       }
     }
@@ -1100,8 +1101,6 @@ ${batchResults
       } catch (error) {
         console.error('🚨 Scheduled discovery failed:', error);
       }
-    }, {
-      scheduled: false // Start manually
     });
 
   }
@@ -1190,7 +1189,8 @@ ${batchResults
           content: messageType === 'test' 
             ? '🤖 Test message from CoinRailz Discovery System'
             : '🚀 Partnership opportunity with CoinRailz platform',
-          priority: 'normal' as const
+          priority: 'normal' as const,
+          campaignType: 'payment_request' as const,
         };
 
         const deliveryResult = await this.communicationOrchestrator.sendMessage(messageRequest);
@@ -1217,7 +1217,7 @@ ${batchResults
 
       } catch (error) {
         console.error(`❌ Communication test failed for agent ${agentId}:`, error);
-        results.push({ agentId, status: 'failed', error: error.message });
+        results.push({ agentId, status: 'failed', error: error instanceof Error ? error.message : String(error) });
       }
     }
 

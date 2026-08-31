@@ -11,7 +11,7 @@ import { CoinbaseCDPService } from './coinbaseCDPService';
 interface BlockchainTarget {
   name: string;
   wallet: string;
-  category: 'defi_protocol' | 'exchange' | 'treasury' | 'infrastructure';
+  category: string;
   description: string;
   dealSize: string;
   valueProposition: string;
@@ -19,7 +19,7 @@ interface BlockchainTarget {
 
 export class BlockchainMessagingService {
   private provider: ethers.JsonRpcProvider;
-  private platformWallet: ethers.Wallet;
+  private platformWallet!: ethers.Wallet;
   private messagesSent: number = 0;
   private totalCost: number = 0;
 
@@ -120,8 +120,11 @@ export class BlockchainMessagingService {
         console.log('---');
       }
 
-    } catch (error: any) {
-      console.error(`❌ Failed to send message to ${target.name}:`, error.message);
+    } catch (error) {
+      console.error(
+        `❌ Failed to send message to ${target.name}:`,
+        error instanceof Error ? error.message : error,
+      );
     }
   }
 

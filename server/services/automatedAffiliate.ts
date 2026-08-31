@@ -250,7 +250,7 @@ export class AutomatedAffiliateSystem {
     } catch (error) {
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -289,6 +289,7 @@ export class AutomatedAffiliateSystem {
 
     await sendEmail({
       to: email,
+      from: 'support@coinrailz.com',
       subject: 'Welcome to Coin Railz Affiliates - 50% Commission!',
       html: emailHtml
     });
@@ -317,6 +318,7 @@ export class AutomatedAffiliateSystem {
 
     await sendEmail({
       to: email,
+      from: 'support@coinrailz.com',
       subject: `Affiliate Payout Sent: $${data.amount.toFixed(2)}`,
       html: emailHtml
     });

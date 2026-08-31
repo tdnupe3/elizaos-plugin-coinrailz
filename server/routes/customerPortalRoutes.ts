@@ -36,8 +36,8 @@ router.get('/license', authenticateUser, async (req, res) => {
         tier: sdkLicenseTiers.name,
         status: sdkLicenseSubscriptions.status,
         billingCycle: sdkLicenseSubscriptions.billingCycle,
-        expiresAt: sdkLicenseSubscriptions.expiresAt,
-        price: sdkLicenseSubscriptions.yearlyPrice,
+        expiresAt: sdkLicenseSubscriptions.endDate,
+        price: sdkLicenseTiers.yearlyPrice,
         setupFee: sdkLicenseTiers.setupFee,
         monthlyVolumeLimit: sdkLicenseTiers.monthlyVolumeLimit,
         featuresEnabled: sdkLicenseTiers.features
@@ -46,7 +46,7 @@ router.get('/license', authenticateUser, async (req, res) => {
       .innerJoin(sdkLicenseTiers, eq(sdkLicenseSubscriptions.tierId, sdkLicenseTiers.id))
       .where(
         and(
-          eq(sdkLicenseSubscriptions.contactEmail, req.user.email),
+          eq(sdkLicenseSubscriptions.contactEmail, req.user.email ?? ''),
           eq(sdkLicenseSubscriptions.status, 'active')
         )
       )
@@ -116,7 +116,7 @@ router.get('/metrics', authenticateUser, async (req, res) => {
       .from(sdkLicenseSubscriptions)
       .where(
         and(
-          eq(sdkLicenseSubscriptions.contactEmail, req.user.email),
+          eq(sdkLicenseSubscriptions.contactEmail, req.user.email ?? ''),
           eq(sdkLicenseSubscriptions.status, 'active')
         )
       )
@@ -192,7 +192,7 @@ router.get('/billing', authenticateUser, async (req, res) => {
       .from(sdkLicenseSubscriptions)
       .where(
         and(
-          eq(sdkLicenseSubscriptions.contactEmail, req.user.email),
+          eq(sdkLicenseSubscriptions.contactEmail, req.user.email ?? ''),
           eq(sdkLicenseSubscriptions.status, 'active')
         )
       )
@@ -348,7 +348,7 @@ router.post('/regenerate-key', authenticateUser, async (req, res) => {
       })
       .where(
         and(
-          eq(sdkLicenseSubscriptions.contactEmail, req.user.email),
+          eq(sdkLicenseSubscriptions.contactEmail, req.user.email ?? ''),
           eq(sdkLicenseSubscriptions.status, 'active')
         )
       )
@@ -406,7 +406,7 @@ router.get('/downloads', authenticateUser, async (req, res) => {
       .innerJoin(sdkLicenseTiers, eq(sdkLicenseSubscriptions.tierId, sdkLicenseTiers.id))
       .where(
         and(
-          eq(sdkLicenseSubscriptions.contactEmail, req.user.email),
+          eq(sdkLicenseSubscriptions.contactEmail, req.user.email ?? ''),
           eq(sdkLicenseSubscriptions.status, 'active')
         )
       )

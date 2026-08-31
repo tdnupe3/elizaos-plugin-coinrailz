@@ -279,7 +279,7 @@ export class CoinbaseAgentEcosystemService {
       return {
         success: false,
         agentId: agentAddress,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }

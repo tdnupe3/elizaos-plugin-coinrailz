@@ -119,7 +119,7 @@ export class CommissionIdempotencyManager {
 
       const errorResult: CommissionResult = {
         success: false,
-        error: `Commission processing failed: ${error.message}`
+        error: `Commission processing failed: ${error instanceof Error ? error.message : String(error)}`
       };
 
       this.requestCache.set(request.requestId, errorResult);
@@ -277,7 +277,7 @@ export class CommissionIdempotencyManager {
     } catch (error) {
       return {
         success: false,
-        error: `Rollback failed: ${error.message}`
+        error: `Rollback failed: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }

@@ -62,7 +62,7 @@ export class AgentMarketplaceService {
         service.isActive && (
           service.name.toLowerCase().includes(searchTerm) ||
           service.description.toLowerCase().includes(searchTerm) ||
-          service.tags.some(tag => tag.toLowerCase().includes(searchTerm))
+          service.tags.some((tag: string) => tag.toLowerCase().includes(searchTerm))
         )
       );
     } catch (error) {
@@ -108,7 +108,7 @@ export class AgentMarketplaceService {
       }
 
       // Calculate fees (3.5% marketplace fee)
-      const { platformFee } = calculateAgentCommission(service.pricing);
+      const platformFee = calculateAgentCommission(service.pricing);
       const total = service.pricing;
 
       // Create service order

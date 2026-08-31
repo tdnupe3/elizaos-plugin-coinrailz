@@ -60,7 +60,7 @@ router.post("/on-chain", async (req, res) => {
 
     const result = await automatedOutreachCampaign.executeDiscordCampaign({
       name: campaignName,
-      channel: 'on-chain',
+      channel: 'discord',
       targetMinScore,
       targetMaxAttempts,
       maxAgentsPerRun,
@@ -152,7 +152,7 @@ router.post("/preview", async (req, res) => {
 
     const agents = await automatedOutreachCampaign.selectTargetAgents({
       name: 'preview',
-      channel: channel as 'twitter' | 'on-chain' | 'discord',
+      channel: channel as 'twitter' | 'discord',
       targetMinScore,
       targetMaxAttempts,
       maxAgentsPerRun,

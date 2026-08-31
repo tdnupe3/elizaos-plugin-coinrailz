@@ -264,7 +264,6 @@ export class CreditsService {
         await db.insert(users).values({
           id: userId,
           email: `${userId}@${prefix}-user.coinrailz.com`,
-          username: `${prefix}_user_${Date.now()}`,
         }).onConflictDoNothing();
       }
     }

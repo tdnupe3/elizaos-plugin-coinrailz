@@ -15,7 +15,7 @@ import { SERVICE_PRICING_USD, formatUSD, ServiceName, isServiceName } from "../.
 import { getCanonicalServiceCount } from "../utils/serviceCount";
 import { getCanonicalPaymentRecipients, PUBLIC_DISCOVERY_VERSIONS } from "../config/publicDiscoveryConfig";
 
-interface ServiceCatalogEntry {
+export interface ServiceCatalogEntry {
   id: string;
   slug?: string;
   name: string;

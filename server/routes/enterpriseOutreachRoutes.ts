@@ -8,6 +8,9 @@ import { enterpriseOutreachCampaigns, enterpriseOutreachTargets } from '../../sh
 import authenticateUser from '../middleware/authMiddleware';
 
 const router = Router();
+type AuthenticatedUser = { id?: string };
+const getAuthenticatedUserId = (req: { user?: unknown }) =>
+  (req.user as AuthenticatedUser | undefined)?.id;
 
 // Schema definitions
 const campaignCreateSchema = z.object({
@@ -34,7 +37,7 @@ const leadGenerationSchema = z.object({
 // GET /api/enterprise-outreach/campaigns
 router.get('/campaigns', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = getAuthenticatedUserId(req);
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
@@ -66,7 +69,7 @@ router.get('/campaigns', authenticateUser, async (req, res) => {
 // POST /api/enterprise-outreach/campaigns
 router.post('/campaigns', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = getAuthenticatedUserId(req);
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
@@ -92,7 +95,7 @@ router.post('/campaigns', authenticateUser, async (req, res) => {
         responses: 0,
         qualified: 0,
         conversions: 0,
-        revenue: 0,
+        revenue: '0.00',
         createdAt: now,
         updatedAt: now,
         lastActivity: now,
@@ -127,7 +130,7 @@ router.post('/campaigns', authenticateUser, async (req, res) => {
 // POST /api/enterprise-outreach/campaigns/:campaignId/generate-leads
 router.post('/campaigns/:campaignId/generate-leads', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = getAuthenticatedUserId(req);
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
@@ -205,7 +208,7 @@ router.post('/campaigns/:campaignId/generate-leads', authenticateUser, async (re
 // GET /api/enterprise-outreach/targets
 router.get('/targets', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = getAuthenticatedUserId(req);
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
@@ -219,30 +222,31 @@ router.get('/targets', authenticateUser, async (req, res) => {
       search 
     } = req.query;
 
-    let query = db
-      .select()
-      .from(enterpriseOutreachTargets)
-      .where(eq(enterpriseOutreachTargets.userId, userId));
+    const filters = [eq(enterpriseOutreachTargets.userId, userId)];
 
     // Apply filters
     if (status) {
-      query = query.where(eq(enterpriseOutreachTargets.status, status as string));
+      filters.push(eq(enterpriseOutreachTargets.status, status as string));
     }
     if (priority) {
-      query = query.where(eq(enterpriseOutreachTargets.priority, priority as string));
+      filters.push(eq(enterpriseOutreachTargets.priority, priority as string));
     }
     if (industry) {
-      query = query.where(ilike(enterpriseOutreachTargets.industry, `%${industry}%`));
+      filters.push(ilike(enterpriseOutreachTargets.industry, `%${industry}%`));
     }
     if (search) {
-      query = query.where(or(
+      const searchFilter = or(
         ilike(enterpriseOutreachTargets.companyName, `%${search}%`),
         ilike(enterpriseOutreachTargets.contactName, `%${search}%`),
-        ilike(enterpriseOutreachTargets.contactEmail, `%${search}%`)
-      ));
+        ilike(enterpriseOutreachTargets.contactEmail, `%${search}%`),
+      );
+      if (searchFilter) filters.push(searchFilter);
     }
 
-    const targets = await query
+    const targets = await db
+      .select()
+      .from(enterpriseOutreachTargets)
+      .where(and(...filters))
       .orderBy(desc(enterpriseOutreachTargets.createdAt))
       .limit(Number(limit))
       .offset(Number(offset));
@@ -275,7 +279,7 @@ router.get('/targets', authenticateUser, async (req, res) => {
 // POST /api/enterprise-outreach/targets/:targetId/contact
 router.post('/targets/:targetId/contact', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = getAuthenticatedUserId(req);
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }

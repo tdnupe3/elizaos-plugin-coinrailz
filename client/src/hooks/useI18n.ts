@@ -32,6 +32,11 @@ export function useI18n() {
 }
 
 export function useI18nProvider() {
+  const showLanguageConfirmation = (detectedLanguage: SupportedLanguage) => {
+    window.dispatchEvent(new CustomEvent("coin-railz-language-detected", {
+      detail: { language: detectedLanguage },
+    }));
+  };
   const [language, setLanguageState] = useState<SupportedLanguage>(() => {
     // Check if user has explicitly set a language (overrides auto-detection)
     const userOverride = localStorage.getItem('coin-railz-language-override');
@@ -98,22 +103,22 @@ export function useI18nProvider() {
   // Translation function with nested key support
   const t = (key: string): string => {
     const keys = key.split('.');
-    let value: any = translations[language];
+    let value: unknown = translations[language as keyof typeof translations] ?? translations.en;
     
     for (const k of keys) {
       if (value && typeof value === 'object' && k in value) {
-        value = value[k];
+        value = (value as Record<string, unknown>)[k];
       } else {
         // Fallback to English if key not found
-        let fallback: any = translations.en;
+        let fallback: unknown = translations.en;
         for (const fk of keys) {
           if (fallback && typeof fallback === 'object' && fk in fallback) {
-            fallback = fallback[fk];
+            fallback = (fallback as Record<string, unknown>)[fk];
           } else {
             return key; // Return key if not found in fallback either
           }
         }
-        return fallback;
+        return typeof fallback === "string" ? fallback : key;
       }
     }
     

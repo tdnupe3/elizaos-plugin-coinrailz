@@ -134,7 +134,7 @@ export class XRPLedgerService {
       });
 
       const balanceDrops = response.result.account_data.Balance;
-      const balanceXRP = parseFloat(dropsToXrp(balanceDrops.toString()));
+      const balanceXRP = Number(dropsToXrp(String(balanceDrops)));
       
       // Cache for 30 seconds
       cacheService.set(cacheKey, balanceXRP, 30000);
@@ -167,7 +167,7 @@ export class XRPLedgerService {
       const payment: any = {
         TransactionType: 'Payment',
         Account: wallet.address,
-        Amount: xrpToDrops(amount),
+        Amount: xrpToDrops(amount.toString()),
         Destination: destinationAddress
       };
 
@@ -192,8 +192,8 @@ export class XRPLedgerService {
         hash: response.result.hash,
         account: payment.Account,
         destination: payment.Destination,
-        amount: dropsToXrp(payment.Amount),
-        fee: dropsToXrp(((response.result as any).Fee || '12').toString()),
+        amount: dropsToXrp(payment.Amount).toString(),
+        fee: dropsToXrp(((response.result as any).Fee || '12').toString()).toString(),
         sequence: (response.result as any).Sequence || 0,
         memo,
         ledgerIndex: (response.result as any).ledger_index || 0,
@@ -311,15 +311,18 @@ export class XRPLedgerService {
         TransactionType: 'PaymentChannelCreate',
         Account: wallet.address,
         Destination: destinationAddress,
-        Amount: xrpToDrops(amount),
+        Amount: xrpToDrops(amount.toString()),
         SettleDelay: settleDelay,
         PublicKey: wallet.publicKey
       };
 
       const response = await this.client.submitAndWait(channelCreate, { wallet });
       
-      if (response.result.meta?.TransactionResult !== 'tesSUCCESS') {
-        throw new Error(`Payment channel creation failed: ${response.result.meta?.TransactionResult}`);
+      const transactionResult = response.result.meta && typeof response.result.meta === 'object'
+        ? (response.result.meta as { TransactionResult?: string }).TransactionResult
+        : undefined;
+      if (transactionResult !== 'tesSUCCESS') {
+        throw new Error(`Payment channel creation failed: ${transactionResult ?? 'unknown'}`);
       }
 
       return response.result.hash;
@@ -404,12 +407,12 @@ export class XRPLedgerService {
         ledger_index_max: -1
       });
 
-      return response.result.transactions.map((tx: any) => ({
+      return response.result.transactions.map((tx: any): XRPTransaction => ({
         hash: tx.tx.hash,
         account: tx.tx.Account,
         destination: tx.tx.Destination,
-        amount: tx.tx.Amount ? (typeof tx.tx.Amount === 'string' ? dropsToXrp(tx.tx.Amount) : tx.tx.Amount.toString()) : '0',
-        fee: dropsToXrp(tx.tx.Fee?.toString() || '12'),
+        amount: tx.tx.Amount ? (typeof tx.tx.Amount === 'string' ? String(dropsToXrp(tx.tx.Amount)) : tx.tx.Amount.toString()) : '0',
+        fee: String(dropsToXrp(tx.tx.Fee?.toString() || '12')),
         sequence: tx.tx.Sequence,
         memo: tx.tx.Memos?.[0]?.Memo?.MemoData ? 
           Buffer.from(tx.tx.Memos[0].Memo.MemoData, 'hex').toString('utf8') : undefined,
@@ -419,6 +422,27 @@ export class XRPLedgerService {
     } catch (error) {
       console.error('Error getting XRP transaction history:', error);
       return [];
+    }
+  }
+
+  static async getTransactionInfo(transactionHash: string): Promise<XRPTransaction | null> {
+    await this.ensureConnected();
+    try {
+      const response = await this.client.request({ command: 'tx', transaction: transactionHash });
+      const transaction = response.result as any;
+      return {
+        hash: transaction.hash,
+        account: transaction.Account,
+        destination: transaction.Destination ?? '',
+        amount: transaction.Amount ? (typeof transaction.Amount === 'string' ? String(dropsToXrp(transaction.Amount)) : String(transaction.Amount)) : '0',
+        fee: String(dropsToXrp(String(transaction.Fee ?? '0'))),
+        sequence: transaction.Sequence ?? 0,
+        ledgerIndex: transaction.ledger_index ?? 0,
+        validated: Boolean(transaction.validated),
+      };
+    } catch (error: any) {
+      if (error?.data?.error === 'txnNotFound') return null;
+      throw error;
     }
   }
 

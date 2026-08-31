@@ -1,5 +1,6 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { getCanonicalServiceCount, getCanonicalServices } from "../utils/serviceCount";
+import { getCanonicalPayableNetworks } from "../config/publicDiscoveryConfig";
 import { db } from "../db";
 import { getFacilitatorUrl, getAllFacilitatorUrls, NETWORK_LEGACY, NETWORK_CAIP2, USDC_BASE_ADDRESS, USDT_BASE_ADDRESS, PLATFORM_WALLETS, STABLECOIN_CONFIG } from "../utils/facilitatorHelper";
 import { getConfidenceMetrics } from "../middleware/x402ResponseEnricher";
@@ -65,7 +66,7 @@ import { CoinbaseCDPService } from "../services/coinbaseCDPService";
 import { x402TrackingMiddleware } from "../middleware/x402TrackingMiddleware";
 import { hybridPaymentMiddleware, verifyTransactionPayment } from "../middleware/hybridPaymentMiddleware";
 import { usageAnalyticsMiddleware } from "../middleware/usageAnalyticsMiddleware";
-import { createPaymentOrchestrator, buildExecutionGuide } from "../middleware/paymentOrchestrator";
+import { createPaymentOrchestrator as createBasePaymentOrchestrator, buildExecutionGuide } from "../middleware/paymentOrchestrator";
 import { bundleAuthMiddleware } from "../middleware/bundleAuthMiddleware";
 import { deductBundleCredits } from "../services/bundleCreditService";
 import { serviceCatalogService, ServiceCatalogService } from "../services/serviceCatalogService";
@@ -88,6 +89,15 @@ import { tokenizedYieldCompareService } from '../services/tokenizedYieldCompareS
 import { buildCanonicalPaymentManifest } from '../config/publicDiscoveryConfig';
 
 const router = Router();
+
+type PaymentHandler = (req: Request, res: Response) => void | Promise<unknown>;
+const createPaymentOrchestrator = (
+  serviceName: string,
+  requiredAmount: number,
+  handler: PaymentHandler,
+) => createBasePaymentOrchestrator(serviceName, requiredAmount, async (req, res) => {
+  await handler(req, res);
+});
 
 // Helper function to track bundle credits after successful service execution
 async function trackBundleUsage(
@@ -2487,7 +2497,14 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
   const priceInMicroUnits = Math.round(priceUsd * 1_000_000).toString();
 
   const servicePath = serviceKey.replace('POST ', '');
-  const config = routeConfig.config;
+  const config: {
+    description?: string;
+    mimeType?: string;
+    maxTimeoutSeconds?: number;
+    name?: string;
+    inputSchema?: { bodyFields?: Record<string, { type?: string; description?: string; required?: boolean }> };
+    schema?: { input?: { type?: string; properties?: Record<string, unknown>; required?: string[] }; output?: unknown };
+  } = routeConfig.config;
 
   // CRITICAL: Preserve offer_tracking param in resource URL for attribution
   // When agent pays, they POST to this resource URL - tracking must survive
@@ -2524,7 +2541,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
         }
       };
 
-  const response = {
+  const response: Record<string, unknown> = {
     x402Version: 2,
     error: "X-PAYMENT header is required",
     accepts: [{
@@ -2820,8 +2837,9 @@ const getServiceHandlers: Record<string, (req: Request) => Promise<any>> = {
     req.query.symbol as string || 'ETH'
   ),
   "whale-alerts": async (req) => await whaleWalletAlertsService(
-    Number(req.query.minValue) || 100000,
-    req.query.chain as string || 'ethereum'
+    undefined,
+    req.query.chain as string || 'ethereum',
+    Number(req.query.minValue) || 100000
   ),
   "dex-liquidity": async (req) => await dexLiquidityMonitorService(
     req.query.pair as string || 'ETH/USDC',
@@ -2832,11 +2850,15 @@ const getServiceHandlers: Record<string, (req: Request) => Promise<any>> = {
     req.query.chain as string || 'ethereum'
   ),
   "portfolio-tracker": async (req) => await portfolioTrackerService(
-    req.query.address as string || '0x0000000000000000000000000000000000000000'
+    req.query.address as string || '0x0000000000000000000000000000000000000000',
+    [req.query.chain as string || 'ethereum']
   ),
-  "approval-manager": async (req) => await approvalManagerService(
-    req.query.address as string || '0x0000000000000000000000000000000000000000'
-  ),
+  "approval-manager": async (req) => await approvalManagerService({
+    tokenAddress: req.query.address as string || '0x0000000000000000000000000000000000000000',
+    spender: req.query.token as string || 'USDC',
+    amount: req.query.amount as string || '0',
+    chain: req.query.chain as string || 'ethereum',
+  }),
   "batch-quote": async (req) => {
     const pairsParam = req.query.pairs;
     const pairs = Array.isArray(pairsParam) 
@@ -2844,7 +2866,12 @@ const getServiceHandlers: Record<string, (req: Request) => Promise<any>> = {
       : pairsParam 
         ? [pairsParam as string] 
         : ['ETH/USDC', 'BTC/USDC'];
-    return await batchQuoteService(pairs);
+    return await batchQuoteService({
+      fromToken: pairs[0]?.split('/')[0] ?? 'ETH',
+      toToken: pairs[0]?.split('/')[1] ?? 'USDC',
+      amount: req.query.amount as string || '1',
+      chain: req.query.chain as string || 'ethereum',
+    });
   },
   "instant-agent-wallet": async (req) => await instantAgentWalletService({
     agentId: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -3945,8 +3972,8 @@ const instantAgentWalletHandler = async (req: Request, res: Response) => {
       description, 
       initialFundingAmount,
       payerWalletAddress,
-      payerIpAddress,
-      payerUserAgent,
+      payerIpAddress: payerIpAddress || undefined,
+      payerUserAgent: payerUserAgent?.toString(),
       paymentTxHash,
     });
     const responseTime = Date.now() - startTime;
@@ -4348,7 +4375,7 @@ router.post("/test-payment-flow", async (req: Request, res: Response) => {
           status: "ready",
           network: "eip155:8453",
           token: "USDC",
-          amount: SERVICE_PRICING_MICRO[serviceId as ServiceName] || 500000,
+          amount: SERVICE_PRICING_MICRO[serviceId as keyof typeof SERVICE_PRICING_MICRO] || 500000,
           payTo: PLATFORM_WALLET,
           facilitator: getFacilitatorUrl(),
         },
@@ -5992,7 +6019,7 @@ router.post("/b20-token-info",
       if (!tokenAddress || typeof tokenAddress !== "string") {
         return res.status(400).json({ success: false, error: "tokenAddress is required (ERC-20/B20 contract address on Base)" });
       }
-      const result = await b20TokenInfoService({ tokenAddress });
+      const result = await b20TokenInfoService(tokenAddress);
       const responseTime = Date.now() - startTime;
       await trackRequest("b20-token-info", req.body, result, responseTime, SERVICE_PRICING_USD["b20-token-info"], req.ip || "unknown");
       await trackBundleUsage(req, res, "b20-token-info", { tokenAddress });
@@ -6013,7 +6040,7 @@ router.post("/b20-transfer-check",
       if (!tokenAddress || !from || !to) {
         return res.status(400).json({ success: false, error: "tokenAddress, from, and to are required" });
       }
-      const result = await b20TransferCheckService({ tokenAddress, from, to, amount });
+      const result = await b20TransferCheckService(tokenAddress, from, to, amount);
       const responseTime = Date.now() - startTime;
       await trackRequest("b20-transfer-check", req.body, result, responseTime, SERVICE_PRICING_USD["b20-transfer-check"], req.ip || "unknown");
       await trackBundleUsage(req, res, "b20-transfer-check", { tokenAddress, from, to });
@@ -6034,7 +6061,10 @@ router.post("/b20-compliance-scan",
       if (!walletAddress || typeof walletAddress !== "string") {
         return res.status(400).json({ success: false, error: "walletAddress is required" });
       }
-      const result = await b20ComplianceScanService({ walletAddress, tokenAddresses });
+      const result = await b20ComplianceScanService(
+        walletAddress,
+        Array.isArray(tokenAddresses) ? tokenAddresses.filter((token): token is string => typeof token === 'string') : []
+      );
       const responseTime = Date.now() - startTime;
       await trackRequest("b20-compliance-scan", req.body, result, responseTime, SERVICE_PRICING_USD["b20-compliance-scan"], req.ip || "unknown");
       await trackBundleUsage(req, res, "b20-compliance-scan", { walletAddress });

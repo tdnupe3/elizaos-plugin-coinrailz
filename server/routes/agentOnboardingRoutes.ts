@@ -127,7 +127,9 @@ router.get('/agent/:agentId/profile', async (req, res) => {
       WHERE agent_id = ${agentId}
     `);
 
-    const stats = statsResult.rows[0];
+    const stats = statsResult.rows[0] as Record<string, unknown> | undefined;
+    const stringValue = (value: unknown): string =>
+      typeof value === 'string' || typeof value === 'number' ? String(value) : '0';
 
     res.json({
       success: true,
@@ -135,20 +137,20 @@ router.get('/agent/:agentId/profile', async (req, res) => {
         id: agent.id,
         name: agent.agent_name,
         email: agent.email,
-        specialties: JSON.parse(agent.specialties || '[]'),
+        specialties: JSON.parse(typeof agent.specialties === 'string' ? agent.specialties : '[]'),
         experience: agent.experience,
         bio: agent.bio,
-        skills: JSON.parse(agent.skills || '[]'),
-        hourlyRate: parseFloat(agent.hourly_rate),
-        rating: parseFloat(agent.rating),
-        reviewCount: parseInt(agent.review_count),
+        skills: JSON.parse(typeof agent.skills === 'string' ? agent.skills : '[]'),
+        hourlyRate: parseFloat(stringValue(agent.hourly_rate)),
+        rating: parseFloat(stringValue(agent.rating)),
+        reviewCount: parseInt(stringValue(agent.review_count)),
         isActive: agent.is_active,
         verificationStatus: agent.verification_status,
         statistics: {
-          totalOrders: parseInt(stats.total_orders) || 0,
-          completedOrders: parseInt(stats.completed_orders) || 0,
-          totalEarnings: parseFloat(stats.total_earnings) || 0,
-          avgOrderValue: parseFloat(stats.avg_order_value) || 0
+          totalOrders: parseInt(stringValue(stats?.total_orders)) || 0,
+          completedOrders: parseInt(stringValue(stats?.completed_orders)) || 0,
+          totalEarnings: parseFloat(stringValue(stats?.total_earnings)) || 0,
+          avgOrderValue: parseFloat(stringValue(stats?.avg_order_value)) || 0
         }
       }
     });

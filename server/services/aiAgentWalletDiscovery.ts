@@ -34,6 +34,7 @@ interface DiscoveredWallet {
   balance?: string;
   holderRank?: number;
   lastActivity?: Date;
+  canReceiveXMTP?: boolean;
   canReceiveOnChain?: boolean;
   canReceiveDialect?: boolean;
   discoveredAt: Date;
@@ -52,7 +53,7 @@ export class AIAgentWalletDiscovery {
   private etherscanApiKey: string;
   private heliusRpcUrl: string;
   private baseRpcUrl: string;
-  private solanaConnection: Connection;
+  private solanaConnection!: Connection;
   private xrplClient: XrplClient;
 
   constructor() {
@@ -87,7 +88,13 @@ export class AIAgentWalletDiscovery {
           `https://api.etherscan.io/v2/api?chainid=8453&module=token&action=tokenholderlist&contractaddress=${seed.contract}&page=1&offset=${maxHolders}&apikey=${this.etherscanApiKey}`
         );
         
-        const data = await response.json();
+        const data = await response.json() as {
+          status?: string;
+          result?: Array<{
+            TokenHolderAddress: string;
+            TokenHolderQuantity: string;
+          }>;
+        };
         
         if (data.status === '1' && data.result) {
           console.log(`✅ Found ${data.result.length} holders for ${seed.label}`);

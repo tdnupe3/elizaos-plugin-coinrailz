@@ -192,7 +192,7 @@ DONATION ADDRESSES (Tax-deductible platform development):
         results.push({
           platform: platform.name,
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
           estimatedReach: 0
         });
       }
@@ -264,7 +264,7 @@ DONATION ADDRESSES (Tax-deductible platform development):
     } catch (error) {
       return { 
         success: false, 
-        error: `Network error: ${error.message}`,
+        error: `Network error: ${error instanceof Error ? error.message : String(error)}`,
         response: null 
       };
     }
@@ -298,7 +298,7 @@ DONATION ADDRESSES (Tax-deductible platform development):
     } catch (error) {
       return { 
         success: false, 
-        error: `Webhook error: ${error.message}`,
+        error: `Webhook error: ${error instanceof Error ? error.message : String(error)}`,
         response: null 
       };
     }

@@ -892,7 +892,7 @@ router.post('/api/discovery/outreach/run', async (req: Request, res: Response) =
     const result = await runAutomatedOutreach({
       minQualityScore: minQualityScore ? parseInt(minQualityScore) : undefined,
       maxAgents: maxAgents ? parseInt(maxAgents) : undefined,
-      onlyOnChain: onlyOnChain !== undefined ? Boolean(onlyOnChain) : undefined,
+      onlyReachable: onlyOnChain !== undefined ? Boolean(onlyOnChain) : undefined,
     });
     
     res.json({
@@ -942,7 +942,7 @@ router.get('/api/discovery/outreach/ready', async (req: Request, res: Response) 
     const agents = await getAgentsReadyForOutreach({
       limit,
       minQualityScore,
-      onlyOnChainReachable: onlyOnChainReachable,
+      onlyReachable: onlyOnChainReachable,
     });
     
     res.json({

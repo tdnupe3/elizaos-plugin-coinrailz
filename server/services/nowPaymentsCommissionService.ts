@@ -23,6 +23,7 @@ interface NOWPaymentsPayout {
   batch_id?: string;
   created_at: string;
   updated_at: string;
+  extra_id?: string;
 }
 
 export class NOWPaymentsCommissionService {
@@ -161,14 +162,22 @@ export class NOWPaymentsCommissionService {
     try {
       // Get pending commission payouts from database
       const { db } = await import('../db');
-      const { globalAIAgents } = await import('../../shared/schema');
-      const { gt } = await import('drizzle-orm');
+      const { aiMarketplaceCommissions, globalAIAgents } = await import('../../shared/schema');
+      const { eq } = await import('drizzle-orm');
 
-      // Find agents with commission balances > $10
+      // Payouts are derived from the commission ledger rather than a denormalized
+      // balance on agent profiles.
       const agentsWithCommissions = await db
-        .select()
-        .from(globalAIAgents)
-        .where(gt(globalAIAgents.totalCommissions, 10));
+        .select({
+          commissionId: aiMarketplaceCommissions.id,
+          agentId: globalAIAgents.id,
+          amount: aiMarketplaceCommissions.commissionAmount,
+          walletAddress: globalAIAgents.primaryWalletAddress,
+          agentName: globalAIAgents.agentName,
+        })
+        .from(aiMarketplaceCommissions)
+        .innerJoin(globalAIAgents, eq(aiMarketplaceCommissions.agentId, globalAIAgents.id))
+        .where(eq(aiMarketplaceCommissions.payoutStatus, 'pending'));
 
       if (agentsWithCommissions.length === 0) {
         return {
@@ -181,9 +190,11 @@ export class NOWPaymentsCommissionService {
       }
 
       // Prepare commission payouts
-      const commissionPayouts: CommissionPayout[] = agentsWithCommissions.map(agent => ({
-        agentId: agent.id,
-        amount: parseFloat(agent.totalCommissions),
+      const commissionPayouts: CommissionPayout[] = agentsWithCommissions
+        .filter(agent => parseFloat(agent.amount) >= 10)
+        .map(agent => ({
+        agentId: agent.agentId,
+        amount: parseFloat(agent.amount),
         currency: 'USDT', // Default to USDT for stable payouts
         walletAddress: agent.walletAddress,
         description: `Weekly commission payout for agent ${agent.agentName}`
@@ -192,18 +203,17 @@ export class NOWPaymentsCommissionService {
       // Process batch payouts
       const batchResult = await this.createBatchCommissionPayouts(commissionPayouts);
 
-      // Update agent commission balances (reset to 0 after payout)
-      const { eq } = await import('drizzle-orm');
+      // Mark the underlying commission ledger entries with the provider outcome.
       for (const payout of batchResult.payouts) {
         try {
           await db
-            .update(globalAIAgents)
+            .update(aiMarketplaceCommissions)
             .set({ 
-              totalCommissions: '0.00',
-              lastPayoutDate: new Date(),
-              totalEarnings: String(parseFloat(globalAIAgents.totalEarnings || '0') + parseFloat(payout.amount.toString()))
+              payoutStatus: payout.status === 'finished' ? 'completed' : payout.status,
+              payoutTransactionId: payout.id,
+              paidAt: payout.status === 'finished' ? new Date() : null,
             })
-            .where(eq(globalAIAgents.id, payout.extra_id || ''));
+            .where(eq(aiMarketplaceCommissions.agentId, payout.extra_id || ''));
         } catch (updateError) {
           errors.push(`Failed to update agent ${payout.extra_id}: ${updateError}`);
         }
@@ -242,16 +252,17 @@ export class NOWPaymentsCommissionService {
       // Update database with payout status
       if (extra_id) {
         const { db } = await import('../db');
-        const { globalAIAgents } = await import('../../shared/schema');
+        const { aiMarketplaceCommissions } = await import('../../shared/schema');
         const { eq } = await import('drizzle-orm');
 
         await db
-          .update(globalAIAgents)
+          .update(aiMarketplaceCommissions)
           .set({ 
-            lastPayoutStatus: status,
-            updatedAt: new Date()
+            payoutStatus: status,
+            payoutTransactionId: payout_id,
+            paidAt: status === 'finished' ? new Date() : null,
           })
-          .where(eq(globalAIAgents.id, extra_id));
+          .where(eq(aiMarketplaceCommissions.agentId, extra_id));
       }
 
       // Send notification to agent
@@ -280,22 +291,21 @@ export class NOWPaymentsCommissionService {
   }> {
     try {
       const { db } = await import('../db');
-      const { globalAIAgents } = await import('../../shared/schema');
+      const { aiMarketplaceCommissions } = await import('../../shared/schema');
       const { count, sum } = await import('drizzle-orm');
 
       const stats = await db
         .select({
-          totalAgents: count(),
-          totalCommissions: sum(globalAIAgents.totalCommissions),
-          totalEarnings: sum(globalAIAgents.totalEarnings)
+          totalPayouts: count(),
+          totalCommissions: sum(aiMarketplaceCommissions.commissionAmount)
         })
-        .from(globalAIAgents);
+        .from(aiMarketplaceCommissions);
 
       return {
-        totalPayouts: stats[0]?.totalAgents || 0,
-        totalAmount: parseFloat(stats[0]?.totalEarnings || '0'),
+        totalPayouts: stats[0]?.totalPayouts || 0,
+        totalAmount: parseFloat(stats[0]?.totalCommissions || '0'),
         successRate: 95.0, // Based on NOWPayments reliability
-        pendingPayouts: stats[0]?.totalAgents || 0,
+        pendingPayouts: stats[0]?.totalPayouts || 0,
         lastProcessed: new Date().toISOString()
       };
     } catch (error) {

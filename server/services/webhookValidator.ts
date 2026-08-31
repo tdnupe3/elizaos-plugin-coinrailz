@@ -62,7 +62,7 @@ export class WebhookValidator {
    */
   static validatePayPalWebhook(payload: string, headers: any): boolean {
     try {
-      if (!env.PAYPAL_WEBHOOK_ID) {
+      if (!process.env.PAYPAL_WEBHOOK_ID) {
         throw new Error('PayPal webhook ID not configured');
       }
 

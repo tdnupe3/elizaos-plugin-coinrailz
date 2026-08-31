@@ -5,6 +5,7 @@
 
 import express from 'express';
 import { stripe } from '../services/stripeClient';
+import type Stripe from 'stripe';
 import { secureRevenueAuth } from '../middleware/secureAuthMiddleware.js';
 import { FastRevenueService } from '../services/fastRevenueService.js';
 
@@ -123,8 +124,7 @@ export const stripeWebhookHandler = async (req: any, res: any) => {
           userId,
           tier as any,
           parseInt(creditAmount),
-          paymentIntent.id,
-          parseFloat(pricePerCredit)
+          paymentIntent.id
         );
 
         console.log(`✅ Payment confirmed: ${creditAmount} ${tier} credits for user ${userId}`);

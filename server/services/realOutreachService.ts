@@ -339,7 +339,8 @@ AI-Powered Fintech Infrastructure`;
 
   private async sendBusinessOutreachEmail(target: OutreachTarget): Promise<boolean> {
     const subject = `AI Agent Infrastructure Partnership - CoinRailz Platform`;
-    const emailContent = `Dear ${target.organization} Team,
+    const organization = target.organization ?? 'Partner';
+    const emailContent = `Dear ${organization} Team,
 
 I'm writing to introduce CoinRailz, an AI-powered fintech platform that could provide significant value to ${target.organization}'s portfolio and strategic initiatives.
 
@@ -352,7 +353,7 @@ KEY DIFFERENTIATORS:
 • Enterprise-ready AI agent marketplace
 • Proven user traction and financial metrics
 
-STRATEGIC ALIGNMENT WITH ${target.organization.toUpperCase()}:
+STRATEGIC ALIGNMENT WITH ${organization.toUpperCase()}:
 ${this.getPersonalizedValue(target)}
 
 IMMEDIATE OPPORTUNITY:

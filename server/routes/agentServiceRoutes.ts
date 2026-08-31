@@ -52,13 +52,13 @@ router.post('/order/smart-contract-audit', isAuthenticated, async (req: Request,
       customerId: userId,
       serviceType: 'smart_contract_audit',
       amount: orderData.amount.toString(),
-      requirements: JSON.stringify({
+      customerRequirements: JSON.stringify({
         contractCode: orderData.contractCode,
         contractName: orderData.contractName
       }),
       status: 'pending',
       platformFee: (orderData.amount * 0.15).toString(),
-      agentPayout: (orderData.amount * 0.85).toString()
+      agentCommission: (orderData.amount * 0.85).toString()
     }).returning();
 
     // Start audit asynchronously
@@ -112,7 +112,7 @@ router.post('/order/compliance-consultation', isAuthenticated, async (req: Reque
       customerId: userId,
       serviceType: 'compliance_consultation',
       amount: orderData.amount.toString(),
-      requirements: JSON.stringify({
+      customerRequirements: JSON.stringify({
         projectName: orderData.projectName,
         projectType: orderData.projectType,
         jurisdiction: orderData.jurisdiction,
@@ -122,7 +122,7 @@ router.post('/order/compliance-consultation', isAuthenticated, async (req: Reque
       }),
       status: 'pending',
       platformFee: (orderData.amount * 0.15).toString(),
-      agentPayout: (orderData.amount * 0.85).toString()
+      agentCommission: (orderData.amount * 0.85).toString()
     }).returning();
 
     // Generate compliance report asynchronously
@@ -234,8 +234,7 @@ async function executeAudit(orderId: string, contractCode: string, contractName:
       orderId,
       agentId: 'smart-contract-auditor',
       deliveryMethod: 'api_response',
-      deliveryContent: auditResult as any,
-      deliveredAt: new Date()
+      deliveryContent: auditResult as object
     });
 
     // Update order status
@@ -287,8 +286,7 @@ async function executeCompliance(orderId: string, orderData: any, userId: string
       orderId,
       agentId: 'compliance-consultant',
       deliveryMethod: 'api_response',
-      deliveryContent: complianceReport as any,
-      deliveredAt: new Date()
+      deliveryContent: complianceReport as object
     });
 
     // Update order status

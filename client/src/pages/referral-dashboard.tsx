@@ -36,12 +36,12 @@ export default function ReferralDashboard() {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
 
-  const { data: referralStats, isLoading: statsLoading } = useQuery({
+  const { data: referralStats, isLoading: statsLoading } = useQuery<ReferralStats>({
     queryKey: ['/api/referrals/stats'],
     enabled: isAuthenticated,
   });
 
-  const { data: referralActivity, isLoading: activityLoading } = useQuery({
+  const { data: referralActivity, isLoading: activityLoading } = useQuery<ReferralActivity[]>({
     queryKey: ['/api/referrals/activity'],
     enabled: isAuthenticated,
   });

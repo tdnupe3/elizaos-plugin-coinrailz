@@ -114,10 +114,10 @@ router.post('/collect-automated-payment', requireAuth, validateRequest(paymentRe
       currency,
       network,
       serviceDescription
-    } = req.validatedBody;
+    } = (req as typeof req & { validatedBody: z.infer<typeof paymentRequestSchema> }).validatedBody;
     
     // 🔒 CRITICAL SECURITY: Verify wallet ownership before collection
-    const userId = req.user?.id;
+    const userId = (req.user as { id?: string } | undefined)?.id;
     if (!userId) {
       return res.status(401).json({
         success: false,
@@ -286,7 +286,7 @@ router.post('/create-token-payment', requireAuth, validateRequest(tokenPaymentSc
       paymentAmountUSD,
       serviceDescription,
       network = 'base'
-    } = req.validatedBody;
+    } = (req as typeof req & { validatedBody: z.infer<typeof tokenPaymentSchema> }).validatedBody;
     
     console.log(`🪙 REVOLUTIONARY: Creating custom token payment for ${recipientWallet}`);
     

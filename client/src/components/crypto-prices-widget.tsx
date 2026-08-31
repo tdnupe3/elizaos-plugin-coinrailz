@@ -140,12 +140,8 @@ export function CryptoPricesWidget() {
               <div key={key} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
                 <div className="flex items-center gap-3">
                   {isPeezy ? (
-                    <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
-                      <img 
-                        src={peezyMascot} 
-                        alt="PEEZY Mascot" 
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center">
+                      <span className="text-white font-bold text-xs">P</span>
                     </div>
                   ) : (
                     <div className={`w-8 h-8 ${info.color} rounded-full flex items-center justify-center`}>

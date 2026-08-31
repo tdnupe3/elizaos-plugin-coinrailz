@@ -94,19 +94,19 @@ export default function XrpEcosystemDashboard() {
   // No forced redirect - allow public viewing
 
   // Fetch user's XRP wallets
-  const { data: walletsData, isLoading: walletsLoading } = useQuery({
+  const { data: walletsData, isLoading: walletsLoading } = useQuery<{ wallets: XrpWallet[] }>({
     queryKey: ['/api/xrp/wallets'],
     enabled: isAuthenticated
   });
 
   // Fetch transaction history
-  const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
+  const { data: transactionsData, isLoading: transactionsLoading } = useQuery<{ transactions: XrpTransaction[] }>({
     queryKey: ['/api/xrp/transactions'],
     enabled: isAuthenticated && selectedWallet !== null
   });
 
   // Fetch trading orders
-  const { data: ordersData, isLoading: ordersLoading } = useQuery({
+  const { data: ordersData, isLoading: ordersLoading } = useQuery<{ orders: XrpOrder[] }>({
     queryKey: ['/api/xrp/trading/orders'],
     enabled: isAuthenticated && selectedWallet !== null
   });

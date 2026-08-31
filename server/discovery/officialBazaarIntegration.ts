@@ -10,7 +10,7 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
-import { ServiceCatalogService, CatalogService } from '../services/serviceCatalogService';
+import { ServiceCatalogService, type ServiceCatalogEntry } from '../services/serviceCatalogService';
 import { getCdpFacilitatorUrl, USDC_BASE_ADDRESS, NETWORK_CAIP2 } from '../utils/facilitatorHelper';
 import { getCanonicalServices } from '../utils/serviceCount';
 import fs from 'fs';
@@ -69,7 +69,7 @@ function parsePriceToMicros(priceUSD: string): number {
   return Math.round(dollars * 1_000_000);
 }
 
-function generateExampleOutput(service: CatalogService): Record<string, unknown> {
+function generateExampleOutput(service: ServiceCatalogEntry): Record<string, unknown> {
   const baseOutput: Record<string, unknown> = {
     success: true,
     timestamp: new Date().toISOString(),
@@ -94,7 +94,7 @@ function generateExampleOutput(service: CatalogService): Record<string, unknown>
   }
 }
 
-function generateExampleBody(service: CatalogService): Record<string, unknown> {
+function generateExampleBody(service: ServiceCatalogEntry): Record<string, unknown> {
   if (service.id.includes('balance') || service.id.includes('wallet') || service.id.includes('risk')) {
     return {
       walletAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f7DEAD',
@@ -127,7 +127,7 @@ function generateExampleBody(service: CatalogService): Record<string, unknown> {
   };
 }
 
-export function buildBazaarDiscoveryMetadata(service: CatalogService, method: 'GET' | 'POST' = 'POST'): BazaarDiscoveryInfo {
+export function buildBazaarDiscoveryMetadata(service: ServiceCatalogEntry, method: 'GET' | 'POST' = 'POST'): BazaarDiscoveryInfo {
   const exampleOutput = generateExampleOutput(service);
   
   if (method === 'GET') {
@@ -169,7 +169,7 @@ export function buildBazaarDiscoveryMetadata(service: CatalogService, method: 'G
 }
 
 export function generate402ResponseWithBazaar(
-  service: CatalogService,
+  service: ServiceCatalogEntry,
   req: Request
 ): Record<string, unknown> {
   const priceInMicro = parsePriceToMicros(service.priceUSD);

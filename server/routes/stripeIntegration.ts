@@ -141,6 +141,9 @@ router.post('/api/stripe/webhook', async (req, res) => {
     }
 
     const sig = req.headers['stripe-signature'];
+    if (typeof sig !== 'string' || !process.env.STRIPE_WEBHOOK_SECRET) {
+      return res.status(400).send('Webhook signature or secret missing');
+    }
     let event;
 
     try {

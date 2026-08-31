@@ -198,7 +198,7 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
       // Use Discord Bot API if token available
       if (this.platforms.discord.botToken) {
         console.log('🔑 Using Discord Bot API with authentication');
-        const apiAgents = await this.searchDiscordDirectory('https://discord.com/api/v10/applications');
+        const apiAgents = await this.searchDiscordDirectory('https://discord.com/api/v10/applications', deepScrape);
         agents.push(...apiAgents);
       } else {
         console.log('⚠️ No Discord bot token - using directory fallback');

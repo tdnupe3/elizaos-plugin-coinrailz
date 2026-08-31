@@ -47,7 +47,7 @@ async function runKeeperCycle(): Promise<void> {
       (y: any) => y.protocol?.toLowerCase().includes('kamino') || y.name?.toLowerCase().includes('kamino'),
     ) ?? dialectData?.topYields?.[0];
 
-    let apyPct: number | null = kaminoRate?.apy ?? null;
+    let apyPct: number | null = kaminoRate?.totalApy ?? null;
 
     // Fallback: DeFiLlama if Dialect unavailable (Dialect returns 401 when key missing)
     if (apyPct == null) {
@@ -116,7 +116,7 @@ async function runKeeperCycle(): Promise<void> {
     //        immediately even before the first HTTP request triggers a fetch.
     //        This eliminates cold-start misses for external hourly monitors.
     try {
-      const apySource = (dialectData != null && kaminoRate?.apy != null)
+      const apySource = (dialectData != null && kaminoRate?.totalApy != null)
         ? 'Dialect Markets'
         : (apyPct != null ? 'DeFiLlama' : null);
 

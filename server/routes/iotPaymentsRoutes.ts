@@ -842,7 +842,7 @@ router.post('/transfer', requiredAuth, async (req: Request, res: Response) => {
       });
     }
 
-    if ((paymentMethod === 'usdc_onchain' || paymentMethod === 'usdt_onchain') && !toWallet && !toDeviceId) {
+    if (paymentMethod === 'usdc_onchain' && !toWallet && !toDeviceId) {
       return res.status(400).json({
         success: false,
         error: 'On-chain stablecoin transfers require toWallet or toDeviceId',
@@ -1023,10 +1023,10 @@ router.post('/transfer', requiredAuth, async (req: Request, res: Response) => {
         durationMs,
         timestamp: new Date().toISOString(),
       });
-    } else if (paymentMethod === 'usdc_onchain' || paymentMethod === 'usdt_onchain') {
+    } else if (paymentMethod === 'usdc_onchain') {
       const targetChain = chain || 'base-mainnet';
       const recipientAddress = toWallet || toDevice?.walletAddress;
-      const token = paymentMethod === 'usdt_onchain' ? 'USDT' : 'USDC';
+      const token = 'USDC';
       
       if (!recipientAddress) {
         return res.status(400).json({

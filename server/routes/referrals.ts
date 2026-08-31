@@ -43,7 +43,7 @@ export function setupReferralRoutes(app: Express) {
   // Get referral statistics for authenticated user
   app.get("/api/referrals/stats", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as { claims?: { sub?: string } } | undefined)?.claims?.sub;
       if (!userId) {
         return res.status(401).json({ error: "User not authenticated" });
       }
@@ -99,7 +99,7 @@ export function setupReferralRoutes(app: Express) {
   // Get referral activity for authenticated user
   app.get("/api/referrals/activity", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as { claims?: { sub?: string } } | undefined)?.claims?.sub;
       if (!userId) {
         return res.status(401).json({ error: "User not authenticated" });
       }

@@ -9,7 +9,7 @@ import { ethers } from 'ethers';
 import fetch from 'node-fetch';
 import { db } from '../db';
 import { coinbaseAddressDatabase } from '../../shared/schema';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 
 interface CoinbaseAddress {
   address: string;
@@ -110,7 +110,7 @@ export class CoinbaseIdBaseEthOutreach {
       
       [...ensAddresses, ...txAddresses, ...knownAddresses].forEach(addr => {
         const existing = allAddresses.get(addr.address);
-        if (!existing || addr.lastActivity > (existing.lastActivity || new Date(0))) {
+        if (!existing || (addr.lastActivity ?? new Date(0)) > (existing.lastActivity ?? new Date(0))) {
           allAddresses.set(addr.address, addr);
         }
       });
@@ -202,7 +202,7 @@ export class CoinbaseIdBaseEthOutreach {
           await new Promise(resolve => setTimeout(resolve, 100));
 
         } catch (error) {
-          console.log(`⚠️ Could not resolve ${domain}:`, error.message);
+          console.log(`⚠️ Could not resolve ${domain}:`, error instanceof Error ? error.message : error);
         }
       }
 
@@ -235,8 +235,12 @@ export class CoinbaseIdBaseEthOutreach {
           const block = await this.provider.getBlock(blockNumber, true);
           
           if (block && block.transactions) {
-            for (const tx of block.transactions) {
-              if (typeof tx === 'object' && tx.to) {
+            for (const transaction of block.transactions) {
+              const tx = typeof transaction === 'string'
+                ? await this.provider.getTransaction(transaction)
+                : transaction;
+              if (!tx) continue;
+              if (tx.to) {
                 // Check if transaction data might contain ENS references
                 if (tx.data && tx.data.length > 10) {
                   try {
@@ -442,16 +446,12 @@ export class CoinbaseIdBaseEthOutreach {
     }
 
     // Get target addresses from database
-    let query = db.select().from(coinbaseAddressDatabase)
-      .where(eq(coinbaseAddressDatabase.canReceiveMessages, true));
-
-    if (targetType === '.cb.id') {
-      query = query.where(eq(coinbaseAddressDatabase.domainType, '.cb.id'));
-    } else if (targetType === '.base.eth') {
-      query = query.where(eq(coinbaseAddressDatabase.domainType, '.base.eth'));
-    }
-
-    const targets = await query;
+    const targetCondition = targetType === '.cb.id'
+      ? and(eq(coinbaseAddressDatabase.canReceiveMessages, true), eq(coinbaseAddressDatabase.domainType, '.cb.id'))
+      : targetType === '.base.eth'
+        ? and(eq(coinbaseAddressDatabase.canReceiveMessages, true), eq(coinbaseAddressDatabase.domainType, '.base.eth'))
+        : eq(coinbaseAddressDatabase.canReceiveMessages, true);
+    const targets = await db.select().from(coinbaseAddressDatabase).where(targetCondition);
     console.log(`🎯 Found ${targets.length} target addresses`);
 
     if (targets.length === 0) {
@@ -512,7 +512,7 @@ export class CoinbaseIdBaseEthOutreach {
         await new Promise(resolve => setTimeout(resolve, 2000));
 
       } catch (error) {
-        console.error(`❌ Failed to message ${target.address}:`, error.message);
+        console.error(`❌ Failed to message ${target.address}:`, error instanceof Error ? error.message : error);
         
         results.push({
           to: target.address,
@@ -568,14 +568,13 @@ export class CoinbaseIdBaseEthOutreach {
     const campaignId = `ADV_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
     // Get available addresses for targeting
-    let query = db.select().from(coinbaseAddressDatabase)
-      .where(eq(coinbaseAddressDatabase.canReceiveMessages, true));
-
-    if (targetPreference !== 'all') {
-      query = query.where(eq(coinbaseAddressDatabase.domainType, targetPreference));
-    }
-
-    const availableAddresses = await query;
+    const targetCondition = targetPreference === 'all'
+      ? eq(coinbaseAddressDatabase.canReceiveMessages, true)
+      : and(
+          eq(coinbaseAddressDatabase.canReceiveMessages, true),
+          eq(coinbaseAddressDatabase.domainType, targetPreference)
+        );
+    const availableAddresses = await db.select().from(coinbaseAddressDatabase).where(targetCondition);
     const estimatedReach = availableAddresses.length;
     const costPerMessage = amountPaid / estimatedReach;
 

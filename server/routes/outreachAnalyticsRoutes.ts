@@ -455,7 +455,12 @@ router.get('/research/protocol-comparison', async (req, res) => {
   try {
     const sessions = researchBackedOutreach.getActiveSessions();
     
-    const protocolStats = {
+    const protocolStats: Record<string, {
+      attempts: number;
+      successful: number;
+      avg_response_time: number;
+      success_rate?: string;
+    }> = {
       a2a: { attempts: 0, successful: 0, avg_response_time: 0 },
       mcp: { attempts: 0, successful: 0, avg_response_time: 0 },
       acp: { attempts: 0, successful: 0, avg_response_time: 0 },
@@ -478,18 +483,18 @@ router.get('/research/protocol-comparison', async (req, res) => {
     Object.keys(protocolStats).forEach(protocol => {
       const stats = protocolStats[protocol];
       if (stats.attempts > 0) {
-        stats.avg_response_time = (stats.avg_response_time / stats.attempts).toFixed(1);
+        stats.avg_response_time = Number((stats.avg_response_time / stats.attempts).toFixed(1));
         stats.success_rate = ((stats.successful / stats.attempts) * 100).toFixed(1) + '%';
       } else {
-        stats.avg_response_time = '0';
+        stats.avg_response_time = 0;
         stats.success_rate = '0%';
       }
     });
     
     // Find most effective protocol
     const mostEffective = Object.keys(protocolStats).reduce((best, current) => {
-      const currentSuccessRate = parseFloat(protocolStats[current].success_rate);
-      const bestSuccessRate = parseFloat(protocolStats[best].success_rate);
+      const currentSuccessRate = parseFloat(protocolStats[current].success_rate ?? '0');
+      const bestSuccessRate = parseFloat(protocolStats[best].success_rate ?? '0');
       return currentSuccessRate > bestSuccessRate ? current : best;
     });
     

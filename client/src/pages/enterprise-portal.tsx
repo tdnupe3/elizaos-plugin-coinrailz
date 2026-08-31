@@ -31,7 +31,7 @@ export default function EnterprisePortal() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
 
-  const { data: enterpriseStats, isLoading: statsLoading } = useQuery({
+  const { data: enterpriseStats, isLoading: statsLoading } = useQuery<EnterpriseStats>({
     queryKey: ['/api/enterprise/stats'],
     enabled: isAuthenticated,
   });

@@ -48,10 +48,10 @@ router.post('/execute-emergency-campaign', async (req, res) => {
     // 2. ON-CHAIN WALLET MESSAGING - Direct outreach to profitable wallets
     console.log('💰 Targeting profitable crypto wallets via on-chain messaging...');
     try {
-      const onChainResults = await outreachService.executeCampaign();
-      results.onChain = onChainResults;
-      results.totalReach += onChainResults.sent;
-      console.log(`✅ On-chain: ${onChainResults.sent} wallet messages sent`);
+      const onChainResults = await outreachService.executeAllCampaigns();
+      results.onChain = { sent: onChainResults.totalReach, wallets: [] };
+      results.totalReach += onChainResults.totalReach;
+      console.log(`✅ On-chain: ${onChainResults.totalReach} wallet messages sent`);
     } catch (error) {
       console.error('❌ On-chain campaign failed:', error);
     }

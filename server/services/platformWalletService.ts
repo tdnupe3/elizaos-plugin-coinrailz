@@ -83,7 +83,7 @@ export class PlatformWalletService {
       if (data.result && data.result.account_data) {
         const balanceDrops = parseInt(data.result.account_data.Balance);
         const balanceXRP = balanceDrops / 1000000; // Convert drops to XRP
-        const balanceUSD = await XRPServiceSimple.xrpToUSD(balanceXRP);
+        const balanceUSD = await XRPServiceSimple.calculateUSDValue(balanceXRP);
         
         return {
           xrp: balanceXRP,
@@ -120,26 +120,10 @@ export class PlatformWalletService {
     try {
       const platformWallet = await this.initializePlatformWallet();
       
-      const feeAmountXRP = await XRPServiceSimple.usdToXRP(params.feeAmount);
-      
-      const result = await XRPServiceSimple.processPayment({
-        fromAddress: params.fromAddress,
-        fromSeed: params.fromSeed,
-        toAddress: platformWallet.address,
-        amount: feeAmountXRP,
-        currency: 'XRP',
-        memo: params.memo || `Platform fee for transaction ${params.transactionId}`
-      });
-
-      if (result.success) {
-        console.log(`Fee collected: $${params.feeAmount} (${feeAmountXRP} XRP) from ${params.fromAddress}`);
-      }
-
-      return {
-        success: result.success,
-        transactionHash: result.transactionHash,
-        error: result.error
-      };
+      const feeAmountXRP = await XRPServiceSimple.calculateXRPFromUSD(params.feeAmount);
+      throw new Error(
+        `XRP payment submission is not configured. Collect ${feeAmountXRP} XRP from ${params.fromAddress} to ${platformWallet.address} for transaction ${params.transactionId}.`
+      );
     } catch (error: any) {
       console.error('Error collecting platform fee:', error);
       return {
@@ -162,8 +146,8 @@ export class PlatformWalletService {
     };
   }> {
     const wallet = await this.initializePlatformWallet();
-    const networkFee = await XRPServiceSimple.calculateTransactionFee();
-    const networkFeeUSD = await XRPServiceSimple.xrpToUSD(networkFee);
+    const networkFee = XRPServiceSimple.calculateTransactionFee(0);
+    const networkFeeUSD = await XRPServiceSimple.calculateUSDValue(networkFee);
     
     return {
       platformAddress: wallet.address,

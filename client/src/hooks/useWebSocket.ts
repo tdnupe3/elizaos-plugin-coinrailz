@@ -13,6 +13,7 @@ interface WebSocketMessage {
   data?: any;
   timestamp?: number;
   error?: string;
+  symbols?: string[];
 }
 
 interface UseWebSocketOptions {

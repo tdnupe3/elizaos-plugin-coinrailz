@@ -393,6 +393,8 @@ export class PredictionMarketSpreadHandler implements ServiceHandler {
     }
 
     // ── Cross-reference: Kalshi × Polymarket ─────────────────────────────────
+    const availablePolyMarkets = polyMarkets as PolyMarket[];
+    const availableKalshiMarkets = kalshiMarkets as KalshiMarket[];
     const candidates: Array<{
       polySlug:        string;
       polyQuestion:    string;
@@ -414,12 +416,12 @@ export class PredictionMarketSpreadHandler implements ServiceHandler {
       cheaperYesOn:    'polymarket' | 'kalshi';
     }> = [];
 
-    for (const kalshi of kalshiMarkets) {
+    for (const kalshi of availableKalshiMarkets) {
       const kProb = kalshiYesProb(kalshi);
       if (kProb <= 0.01 || kProb >= 0.99) continue;
       const kalshiTokens = tokenize(kalshi.title);
 
-      for (const poly of polyMarkets) {
+      for (const poly of availablePolyMarkets) {
         const parsed = parsePolyPrices(poly);
         if (!parsed) continue;
 
@@ -559,7 +561,7 @@ export class PredictionMarketSpreadHandler implements ServiceHandler {
         highConfidenceMatches:    highConf,
         mediumConfidenceMatches:  medConf,
         lowConfidenceMatches:     lowConf,
-        candidatesCrossReferenced:`${kalshiMarkets.length} Kalshi × ${polyMarkets.length} Polymarket`,
+        candidatesCrossReferenced:`${availableKalshiMarkets.length} Kalshi × ${availablePolyMarkets.length} Polymarket`,
         widestSpread: opportunities[0]
           ? `${opportunities[0].spread.absPctPoints.toFixed(1)}pp on "${opportunities[0].kalshi.title}"`
           : 'No cross-platform matches found',
@@ -574,7 +576,7 @@ export class PredictionMarketSpreadHandler implements ServiceHandler {
         'Kalshi Exchange API CFTC-regulated (api.elections.kalshi.com)',
       ],
       note: opportunities.length === 0
-        ? `No cross-platform matches found. Both exchanges may be trading on different event slates. Searched ${kalshiMarkets.length} Kalshi × ${polyMarkets.length} Polymarket active markets.`
+        ? `No cross-platform matches found. Both exchanges may be trading on different event slates. Searched ${availableKalshiMarkets.length} Kalshi × ${availablePolyMarkets.length} Polymarket active markets.`
         : 'Verify match identity before acting. This is a data signal, not financial advice. Execution risk and regulatory differences apply.',
     };
   }

@@ -292,17 +292,17 @@ router.post('/initiate', async (req, res) => {
     }
 
     // Use P2P transfer service with profitable rates
-    const transferService = new P2PTransferService();
-    const result = await transferService.initiateTransfer({
-      recipient,
+    const result = await P2PTransferService.initiateTransfer({
+      recipientPlatform: recipientMethod,
+      recipientIdentifier: recipient,
       amount: parseFloat(amount),
       senderMethod,
-      recipientMethod
+      message: undefined
     });
 
     res.json({
-      success: true,
       ...result,
+      success: result.success,
       businessLogicCompliant: true
     });
   } catch (error) {

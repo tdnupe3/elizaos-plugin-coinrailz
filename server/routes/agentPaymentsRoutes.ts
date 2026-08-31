@@ -186,7 +186,19 @@ router.get('/agent-payments/status/:paymentId', async (req, res) => {
     const orderData = order[0];
     
     // Parse customer requirements to get real payment data
-    let paymentData = {};
+    let paymentData: {
+      stripePaymentIntentId: string | null;
+      stripeChargeId: string | null;
+      completedVia: string | null;
+      verifiedAt: string | null;
+      customerWalletAddress: string | null;
+    } = {
+      stripePaymentIntentId: null,
+      stripeChargeId: null,
+      completedVia: null,
+      verifiedAt: null,
+      customerWalletAddress: null,
+    };
     try {
       const requirements = JSON.parse(orderData.customerRequirements || '{}');
       paymentData = {
@@ -201,7 +213,13 @@ router.get('/agent-payments/status/:paymentId', async (req, res) => {
     }
     
     // Return ONLY real data - no fake generation
-    const response = {
+    const response: {
+      success: boolean; paymentId: string; amount: number; platformFee: number;
+      status: string | null; completedAt: Date | null; agentId: string;
+      stripePaymentIntentId: string | null; stripeChargeId: string | null;
+      completedVia: string | null; verifiedAt: string | null; customerWalletAddress: string | null;
+      transactionReference?: string;
+    } = {
       success: true,
       paymentId: orderData.id,
       amount: parseFloat(orderData.amount),
@@ -416,31 +434,9 @@ router.post('/agent-payments/create-payment-intent/:paymentId', async (req, res)
       case 'usdc':
       case 'circle':
         // CIRCLE USDC PAYMENT
-        const { CircleService } = await import('../services/circleService');
-        const circleService = new CircleService();
-        
-        // Create Circle transfer intent
-        const transferIntent = await circleService.createTransferIntent?.({
-          amount: amount.toString(),
-          currency: 'USDC',
-          metadata: {
-            orderId: paymentId,
-            agentId: orderData.agentId,
-            platformFee: orderData.platformFee
-          }
-        });
-        
-        console.log(`🔗 REAL Circle USDC transfer intent created for $${amount}`);
-        
-        return res.json({
-          success: true,
-          paymentMethod: 'usdc',
-          transferIntentId: transferIntent?.id || `circle_${Date.now()}`,
-          walletAddress: '0x742d35Cc8BfEc06C0c2e564e96b9b1dE5734b4c1', // Real Circle wallet
-          amount,
-          currency: 'USDC',
-          orderId: paymentId,
-          message: 'Real Circle USDC payment address generated'
+        return res.status(501).json({
+          success: false,
+          error: 'Circle payment intents are not supported by the configured Circle service'
         });
 
       case 'eth':
@@ -486,7 +482,10 @@ router.post('/agent-payments/create-payment-intent/:paymentId', async (req, res)
           arbitrum: { chainId: 42161, name: 'Arbitrum' }
         };
         
-        const config = chainConfig[paymentMethod.toLowerCase()] || chainConfig.polygon;
+        const network = paymentMethod.toLowerCase();
+        const config = network in chainConfig
+          ? chainConfig[network as keyof typeof chainConfig]
+          : chainConfig.polygon;
         
         console.log(`🌐 REAL ${config.name} payment address created for $${amount}`);
         
@@ -555,7 +554,7 @@ router.post('/agent-payments/create-payment-intent/:paymentId', async (req, res)
           console.error('NOWPayments creation failed:', error);
           return res.status(500).json({ 
             success: false, 
-            error: 'NOWPayments creation failed: ' + error.message 
+            error: 'NOWPayments creation failed: ' + (error instanceof Error ? error.message : String(error))
           });
         }
 
@@ -570,7 +569,7 @@ router.post('/agent-payments/create-payment-intent/:paymentId', async (req, res)
     console.error('Payment intent creation failed:', error);
     res.status(500).json({
       success: false,
-      error: 'Payment intent creation failed: ' + error.message
+      error: 'Payment intent creation failed: ' + (error instanceof Error ? error.message : String(error))
     });
   }
 });
@@ -601,7 +600,7 @@ router.post('/agent-payments/verify-payment/:paymentId', async (req, res) => {
     }
 
     const amount = parseFloat(orderData.amount);
-    const platformFee = parseFloat(orderData.platformFee);
+    const platformFee = parseFloat(orderData.platformFee ?? '0');
     let verificationResult = null;
 
     switch (paymentMethod.toLowerCase()) {
@@ -683,30 +682,10 @@ router.post('/agent-payments/verify-payment/:paymentId', async (req, res) => {
       case 'usdc':
       case 'circle':
         // VERIFY CIRCLE USDC TRANSFER
-        const { CircleService } = await import('../services/circleService');
-        const circleService = new CircleService();
-        
-        // Verify USDC transfer was received
-        const transfer = await circleService.getTransfer?.(transactionId);
-        
-        if (!transfer || transfer.status !== 'completed') {
-          return res.status(400).json({ 
-            success: false, 
-            error: 'Circle USDC transfer not confirmed' 
-          });
-        }
-        
-        verificationResult = {
-          circleTransferId: transactionId,
-          usdcAmount: transfer.amount,
-          fromAddress: transfer.source,
-          toAddress: transfer.destination,
-          completedVia: 'circle_verified',
-          verifiedAt: new Date().toISOString()
-        };
-        
-        console.log(`✅ REAL CIRCLE USDC PAYMENT VERIFIED: $${amount} via ${transactionId}`);
-        break;
+        return res.status(501).json({
+          success: false,
+          error: 'Circle transfer verification is not supported by the configured Circle service'
+        });
 
       case 'eth':
       case 'ethereum':
@@ -816,7 +795,7 @@ router.post('/agent-payments/verify-payment/:paymentId', async (req, res) => {
           console.error('NOWPayments verification failed:', error);
           return res.status(400).json({ 
             success: false, 
-            error: 'NOWPayments verification failed: ' + error.message 
+            error: 'NOWPayments verification failed: ' + (error instanceof Error ? error.message : String(error))
           });
         }
         break;
@@ -871,7 +850,7 @@ router.post('/agent-payments/verify-payment/:paymentId', async (req, res) => {
     console.error('Payment verification failed:', error);
     res.status(500).json({
       success: false,
-      error: 'Payment verification failed: ' + error.message
+      error: 'Payment verification failed: ' + (error instanceof Error ? error.message : String(error))
     });
   }
 });
@@ -912,7 +891,7 @@ router.post('/agent-payments/stripe-webhook', async (req, res) => {
         
         if (order.length && order[0].status === 'pending') {
           const orderData = order[0];
-          const platformFee = parseFloat(orderData.platformFee);
+          const platformFee = parseFloat(orderData.platformFee ?? '0');
           
           // Mark order as completed
           await db.update(aiMarketplaceOrders)
@@ -971,7 +950,7 @@ router.post('/agent-payments/nowpayments-webhook', async (req, res) => {
         
         if (order.length && order[0].status === 'pending') {
           const orderData = order[0];
-          const platformFee = parseFloat(orderData.platformFee);
+          const platformFee = parseFloat(orderData.platformFee ?? '0');
           
           // Mark order as completed
           await db.update(aiMarketplaceOrders)

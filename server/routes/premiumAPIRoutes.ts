@@ -49,7 +49,7 @@ router.post('/circle/wallet/create', async (req: AuthenticatedRequest, res) => {
     console.log(`💳 Wallet creation requested by agent ${req.agentId}`);
     
     // Create Circle wallet (this would use actual Circle SDK)
-    const wallet = await createCircleWallet(req.agentId);
+    const wallet = await createCircleWallet(req.agentId ?? 'unknown-agent');
     
     res.json({
       success: true,
@@ -134,7 +134,7 @@ router.post('/messaging/send', requireTier(2), async (req: AuthenticatedRequest,
     }
     
     // Send on-chain message
-    const result = await sendOnChainMessage(to, message, req.agentId);
+    const result = await sendOnChainMessage(to, message, req.agentId ?? 'unknown-agent');
     
     res.json({
       success: true,
@@ -158,7 +158,7 @@ router.post('/p2p/transfer', requireTier(2), async (req: AuthenticatedRequest, r
     const { to, amount, currency } = req.body;
     
     // Process P2P transfer
-    const transfer = await processP2PTransfer(to, amount, currency, req.agentId);
+    const transfer = await processP2PTransfer(to, amount, currency, req.agentId ?? 'unknown-agent');
     
     res.json({
       success: true,
@@ -208,7 +208,7 @@ router.post('/xrp/transfer', requireTier(3), async (req: AuthenticatedRequest, r
     const { to, amount } = req.body;
     
     // Process XRP transfer
-    const transfer = await processXRPTransfer(to, amount, req.agentId);
+    const transfer = await processXRPTransfer(to, amount, req.agentId ?? 'unknown-agent');
     
     res.json({
       success: true,
@@ -227,7 +227,7 @@ router.post('/xrp/transfer', requireTier(3), async (req: AuthenticatedRequest, r
 // Advanced analytics (Enterprise tier only)
 router.get('/analytics/advanced', requireTier(3), async (req: AuthenticatedRequest, res) => {
   try {
-    const analytics = await getAdvancedAnalytics(req.agentId);
+    const analytics = await getAdvancedAnalytics(req.agentId ?? 'unknown-agent');
     
     res.json({
       success: true,
@@ -248,7 +248,7 @@ router.get('/analytics/advanced', requireTier(3), async (req: AuthenticatedReque
 
 async function fetchCryptoPrices(symbols: string[]): Promise<any> {
   // In production, this would call CoinGecko API
-  const mockPrices = {
+  const mockPrices: Record<string, { price: number; change_24h: number }> = {
     BTC: { price: 67500, change_24h: 2.5 },
     ETH: { price: 3200, change_24h: 1.8 },
     SOL: { price: 155, change_24h: 4.2 },

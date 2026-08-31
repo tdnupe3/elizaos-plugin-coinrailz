@@ -99,8 +99,8 @@ class ResponseMonitoringService {
           const block = await this.provider.getBlock(blockNumber, true);
           if (!block || !block.transactions) return;
 
-          for (const tx of block.transactions) {
-            if (typeof tx === 'string') continue;
+          for (const transaction of block.prefetchedTransactions) {
+            const tx = transaction;
             
             // Check if transaction involves any of our monitored wallets
             const isFromMonitored = this.monitoredWallets.has(tx.from);
@@ -223,7 +223,7 @@ class ResponseMonitoringService {
   private requiresFollowUp(activity: Partial<ResponseActivity>): boolean {
     return activity.activityType === 'contract_interaction' || 
            activity.activityType === 'api_call' ||
-           (activity.value && parseFloat(activity.value) > 100);
+           Boolean(activity.value && parseFloat(activity.value) > 100);
   }
 
   /**

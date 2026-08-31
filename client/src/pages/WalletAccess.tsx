@@ -6,7 +6,12 @@ import { AlertTriangle, Key, Wallet, MessageSquare, Shield } from 'lucide-react'
 
 export default function WalletAccess() {
   const [showPrivateKey, setShowPrivateKey] = useState(false);
-  const [walletInfo, setWalletInfo] = useState(null);
+  const [walletInfo, setWalletInfo] = useState<{
+    address: string;
+    privateKey?: string;
+    fundingInstructions?: string;
+    setupInstructions?: string;
+  } | null>(null);
 
   const handleGetWalletInfo = async () => {
     try {

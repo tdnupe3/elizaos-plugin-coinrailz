@@ -69,8 +69,10 @@ export function PlaidLinkComponent({ onAccountConnected }: PlaidLinkComponentPro
         setAccessToken(response.access_token);
         
         // Fetch account information
-        const accountsResponse = await apiRequest('GET', '/api/plaid/accounts', undefined, {
-          'x-access-token': response.access_token
+        const accountsResponse = await apiRequest('/api/plaid/accounts', {
+          headers: {
+            'x-access-token': response.access_token
+          }
         });
         
         setConnectedAccounts(accountsResponse.accounts);
@@ -133,11 +135,15 @@ export function PlaidLinkComponent({ onAccountConnected }: PlaidLinkComponentPro
     try {
       setLoading(true);
       
-      const response = await apiRequest('POST', '/api/plaid/transfer', {
-        account_id: accountId,
-        amount: amount
-      }, {
-        'x-access-token': accessToken!
+      const response = await apiRequest('/api/plaid/transfer', {
+        method: 'POST',
+        headers: {
+          'x-access-token': accessToken!
+        },
+        body: {
+          account_id: accountId,
+          amount
+        }
       });
 
       if (response.success) {

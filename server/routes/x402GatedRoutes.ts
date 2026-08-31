@@ -405,10 +405,8 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
     return;
   }
 
-  const config = routeConfig.config;
-  const priceUsd = typeof routeConfig.price === 'string' 
-    ? parseFloat(routeConfig.price.replace('$', ''))
-    : routeConfig.price;
+  const config = routeConfig;
+  const priceUsd = parseFloat(routeConfig.accepts.price.replace('$', ''));
   const priceInMicroUnits = Math.round(priceUsd * 1_000_000).toString();
 
   // Build official Bazaar discovery extension metadata (spec-compliant format)
@@ -442,7 +440,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       description: config.description,
       payTo: PLATFORM_WALLET,
       asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-      maxTimeoutSeconds: config.maxTimeoutSeconds || 60,
+      maxTimeoutSeconds: config.accepts.maxTimeoutSeconds || 60,
       mimeType: config.mimeType || "application/json",
       discoverable: true,
       category: "Enterprise Services",

@@ -300,9 +300,10 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           id: topupId || `iot_topup_${nanoid(16)}`,
           accountId,
           amount: amountPaid.toString(),
-          credits: creditsAmount.toString(),
+          amountPaid: amountPaid.toString(),
+          packType: 'custom',
           paymentMethod: 'stripe',
-          stripePaymentId: session.payment_intent as string,
+          stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id,
           status: 'completed',
         });
       });

@@ -129,7 +129,9 @@ export type X402ErrorCode =
   | 'PAYMENT_VERIFICATION_EXCEPTION'
   | 'PAYMENT_AMOUNT_INSUFFICIENT'
   | 'PAYMENT_EXPIRED'
-  | 'SOLANA_VERIFICATION_FAILED';
+  | 'SOLANA_VERIFICATION_FAILED'
+  | 'SOLANA_REPLAY_REJECTED'
+  | 'SOLANA_DUPLICATE_REQUEST';
 
 interface X402ErrorResponse {
   success: false;
@@ -406,6 +408,12 @@ const DECODE_PATH_METRICS = {
   total: 0,
   lastReset: new Date().toISOString()
 };
+
+function incrementDecodeMetric(
+  key: Exclude<keyof typeof DECODE_PATH_METRICS, 'lastReset'>,
+): void {
+  DECODE_PATH_METRICS[key] += 1;
+}
 
 // OBSERVABILITY: Decompression-specific metrics for security monitoring
 const DECOMPRESS_METRICS = {
@@ -784,8 +792,7 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
           try {
             const jsonStr = decompressed.toString("utf-8");
             const data = JSON.parse(jsonStr);
-            DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] = 
-              ((DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] as number) || 0) + 1;
+            incrementDecodeMetric(compressionFormat === 'gzip' ? 'compressed-gzip' : compressionFormat === 'deflate' ? 'compressed-deflate' : 'compressed-brotli');
             console.log(`🔓 Payment payload decoded as compressed JSON (${compressionFormat}: ${buffer.length} → ${decompressed.length} bytes)`);
             return { success: true, format: 'json', data };
           } catch (jsonError) {
@@ -796,8 +803,7 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
           try {
             const rawData = cbor.decodeFirstSync(decompressed);
             const data = normalizeCborData(rawData);
-            DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] = 
-              ((DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] as number) || 0) + 1;
+            incrementDecodeMetric(compressionFormat === 'gzip' ? 'compressed-gzip' : compressionFormat === 'deflate' ? 'compressed-deflate' : 'compressed-brotli');
             console.log(`🔓 Payment payload decoded as compressed CBOR (${compressionFormat}: ${buffer.length} → ${decompressed.length} bytes)`);
             return { success: true, format: 'cbor', data };
           } catch (cborError) {
@@ -807,8 +813,7 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
           // Try MessagePack on decompressed data
           try {
             const msgpackData = msgpackDecode(decompressed);
-            DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] = 
-              ((DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] as number) || 0) + 1;
+            incrementDecodeMetric(compressionFormat === 'gzip' ? 'compressed-gzip' : compressionFormat === 'deflate' ? 'compressed-deflate' : 'compressed-brotli');
             console.log(`🔓 Payment payload decoded as compressed MessagePack (${compressionFormat}: ${buffer.length} → ${decompressed.length} bytes)`);
             return { success: true, format: 'msgpack', data: msgpackData };
           } catch (msgpackError) {
@@ -818,8 +823,7 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
           // Try EIP-3009 on decompressed data
           const eip3009Decompressed = parseRawEIP3009Binary(decompressed);
           if (eip3009Decompressed) {
-            DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] = 
-              ((DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] as number) || 0) + 1;
+            incrementDecodeMetric(compressionFormat === 'gzip' ? 'compressed-gzip' : compressionFormat === 'deflate' ? 'compressed-deflate' : 'compressed-brotli');
             console.log(`🔓 Payment payload decoded as compressed EIP-3009 (${compressionFormat}: ${buffer.length} → ${decompressed.length} bytes)`);
             return { 
               success: true, 
@@ -1035,12 +1039,15 @@ async function getPlatformTokenAccount(mintAddress: string): Promise<string | nu
   
   try {
     const { PublicKey } = await import("@solana/web3.js");
-    const { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } = await import("@solana/spl-token");
+    const { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } = await import("@solana/spl-token");
     
     const platformWallet = new PublicKey(SOLANA_PLATFORM_WALLET);
     const mint = new PublicKey(mintAddress);
     
-    const ata = getAssociatedTokenAddressSync(mint, platformWallet, false, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+    const [ata] = PublicKey.findProgramAddressSync(
+      [platformWallet.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
     PLATFORM_TOKEN_ACCOUNTS[cacheKey] = ata.toBase58();
     console.log(`✅ Platform ATA for ${mintAddress.substring(0,8)}...: ${ata.toBase58()}`);
     return ata.toBase58();
@@ -1056,12 +1063,16 @@ async function getAllPlatformTokenAccounts(mintAddress: string): Promise<string[
   const accounts: string[] = [];
   try {
     const { PublicKey } = await import("@solana/web3.js");
-    const { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } = await import("@solana/spl-token");
+    const { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } = await import("@solana/spl-token");
     const mint = new PublicKey(mintAddress);
     for (const walletAddr of [SOLANA_PLATFORM_WALLET, ...LEGACY_SOLANA_PAYMENT_RECIPIENTS]) {
       try {
         // Correct order: mint first, owner (wallet) second
-        const ata = getAssociatedTokenAddressSync(mint, new PublicKey(walletAddr), false, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+        const owner = new PublicKey(walletAddr);
+        const [ata] = PublicKey.findProgramAddressSync(
+          [owner.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+          ASSOCIATED_TOKEN_PROGRAM_ID,
+        );
         accounts.push(ata.toBase58());
       } catch (_) {}
     }
@@ -1168,7 +1179,7 @@ async function verifySolanaPayment(signature: string, expectedAmount: number, ma
       
       // Get pre-balance for comparison
       const preBalance = preTokenBalances.find(
-        pb => pb.accountIndex === accountIndex && pb.mint === postBalance.mint
+        (pb: { accountIndex: number; mint: string }) => pb.accountIndex === accountIndex && pb.mint === postBalance.mint
       );
       
       const preAmount = preBalance?.uiTokenAmount?.uiAmount || 0;
@@ -1245,8 +1256,8 @@ const EIP3009_ABI = parseAbi([
 ]);
 
 // Initialize platform wallet client for EIP-3009 execution
-let platformWalletClient: ReturnType<typeof createWalletClient> | null = null;
-let platformPublicClient: ReturnType<typeof createPublicClient> | null = null;
+let platformWalletClient: ReturnType<typeof createWalletClient<ReturnType<typeof http>, typeof base, ReturnType<typeof privateKeyToAccount>>> | null = null;
+let platformPublicClient: ReturnType<typeof createPublicClient<ReturnType<typeof http>, typeof base>> | null = null;
 
 function getPlatformWalletClient() {
   if (!platformWalletClient) {
@@ -1786,7 +1797,7 @@ export function createPaymentOrchestrator(
       // Verify Solana payment directly
       const solanaResult = await verifySolanaPayment(xPayment, requiredAmount);
       
-      if (solanaResult.verified) {
+        if (solanaResult.verified && solanaResult.amount !== undefined) {
         console.log(`✅ Orchestrator: Solana payment verified! Amount: $${solanaResult.amount} ${solanaResult.token}`);
         
         // Set payment info in res.locals for handler
@@ -2123,6 +2134,10 @@ export function createPaymentOrchestrator(
                 { recoverable: false, httpStatus: 500 }
               );
             }
+            const platformAccount = walletClient.account;
+            if (!platformAccount) {
+              throw new Error("Platform wallet client has no signing account");
+            }
             
             const auth = payloadObj.authorization;
             const sig = payloadObj.signature as string;
@@ -2157,6 +2172,8 @@ export function createPaymentOrchestrator(
             
             // Execute the transferWithAuthorization
             const hash = await walletClient.writeContract({
+              chain: base,
+              account: platformAccount,
               address: USDC_BASE,
               abi: EIP3009_ABI,
               functionName: "transferWithAuthorization",
@@ -2309,7 +2326,7 @@ export function createPaymentOrchestrator(
             }
 
             const solanaResult = await verifySolanaPayment(solanaSig, requiredAmount);
-            if (solanaResult.verified) {
+            if (solanaResult.verified && solanaResult.amount !== undefined) {
               console.log(`✅ Orchestrator: Solana ExactSvmScheme payment verified! Amount: $${solanaResult.amount} ${solanaResult.token}`);
               res.locals.payment = {
                 method: 'solana-transaction',
@@ -2467,7 +2484,7 @@ export function createPaymentOrchestrator(
       console.log(`🔐 Orchestrator: Routing to Solana verification for ${serviceName} (chain: ${paymentChain}, sig: ${txHash.substring(0, 10)}...)`);
       const solanaResult = await verifySolanaPayment(txHash, requiredAmount);
 
-      if (solanaResult.verified) {
+      if (solanaResult.verified && solanaResult.amount !== undefined) {
         console.log(`✅ Orchestrator: Solana payment (Dexter) verified! Amount: $${solanaResult.amount} ${solanaResult.token}`);
         res.locals.payment = {
           method: 'solana-transaction',

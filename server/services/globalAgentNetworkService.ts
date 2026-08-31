@@ -139,6 +139,8 @@ export class GlobalAgentNetworkService {
       geolocation: request.geolocation,
       timezone: request.timezone,
       status: "pending_verification",
+      verificationLevel: "pending",
+      metadata: request.metadata ?? {},
       reputation: "0.0",
       transactionCount: 0,
       totalVolume: "0",
@@ -553,8 +555,7 @@ export class GlobalAgentNetworkService {
       .update(globalAIAgents)
       .set({ 
         status: "active",
-        verificationLevel: "verified",
-        lastVerificationCheck: new Date()
+        verificationLevel: "verified"
       })
       .where(eq(globalAIAgents.id, agentId));
   }
@@ -564,7 +565,7 @@ export class GlobalAgentNetworkService {
       .update(globalAIAgents)
       .set({ 
         status: "pending_review",
-        metadata: sql`COALESCE(${globalAIAgents.metadata}, '{}')::jsonb || ${{ reviewReason: reason, flaggedAt: new Date().toISOString() }}::jsonb`
+        metadata: sql`COALESCE(${globalAIAgents.metadata}, '{}'::jsonb) || jsonb_build_object('reviewReason', ${reason}, 'flaggedAt', ${new Date().toISOString()})`
       })
       .where(eq(globalAIAgents.id, agentId));
   }
@@ -606,7 +607,7 @@ export class GlobalAgentNetworkService {
       .update(globalAIAgents)
       .set({
         status: "suspended",
-        metadata: sql`COALESCE(${globalAIAgents.metadata}, '{}')::jsonb || ${{ suspensionReason: reason, suspendedAt: new Date().toISOString() }}::jsonb`
+        metadata: sql`COALESCE(${globalAIAgents.metadata}, '{}'::jsonb) || jsonb_build_object('suspensionReason', ${reason}, 'suspendedAt', ${new Date().toISOString()})`
       })
       .where(eq(globalAIAgents.id, agentId));
   }

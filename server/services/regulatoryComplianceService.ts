@@ -47,7 +47,7 @@ export class RegulatoryComplianceService {
   private static instance: RegulatoryComplianceService;
   private reports: ComplianceReport[] = [];
   private alerts: SuspiciousActivityAlert[] = [];
-  private thresholds: RegulatoryThreshold[];
+  private thresholds: RegulatoryThreshold[] = [];
 
   constructor() {
     this.initializeRegulatoryThresholds();

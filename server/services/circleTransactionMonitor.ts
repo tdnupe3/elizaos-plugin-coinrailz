@@ -19,6 +19,7 @@ interface TransactionUpdate {
 class CircleTransactionMonitor {
   private monitoringInterval: NodeJS.Timeout | null = null;
   private isMonitoring: boolean = false;
+  private readonly circleService = new CircleService();
 
   /**
    * Start monitoring all Circle wallets for transaction updates
@@ -69,7 +70,7 @@ class CircleTransactionMonitor {
       let updatedCount = 0;
       for (const user of usersWithWallets) {
         if (user.circleWalletId) {
-          const result = await this.syncWalletBalance(user.id, user.circleWalletId, user.email);
+          const result = await this.syncWalletBalance(user.id, user.circleWalletId, user.email ?? undefined);
           if (result.updated) {
             updatedCount++;
           }
@@ -90,7 +91,7 @@ class CircleTransactionMonitor {
   private async syncWalletBalance(userId: string, walletId: string, userEmail?: string): Promise<{ updated: boolean; error?: string }> {
     try {
       // Get current balance from Circle API
-      const balances = await circleService.getWalletBalance(walletId);
+      const balances = await this.circleService.getWalletBalance(walletId);
       
       if (!balances || !Array.isArray(balances)) {
         console.log(`⚠️ No balance data returned for wallet ${walletId}`);
@@ -155,7 +156,7 @@ class CircleTransactionMonitor {
    */
   public async getWalletTransactions(walletId: string, limit: number = 10) {
     try {
-      const transactions = await circleService.listTransactions(walletId, limit);
+      const transactions = await this.circleService.listTransactions({ walletId });
       return {
         success: true,
         transactions: transactions || []
@@ -183,7 +184,7 @@ class CircleTransactionMonitor {
         };
       }
 
-      await this.syncWalletBalance(userId, user[0].circleWalletId, user[0].email);
+      await this.syncWalletBalance(userId, user[0].circleWalletId, user[0].email ?? undefined);
       
       // Get updated balance
       const updatedUser = await db.select().from(users).where(eq(users.id, userId)).limit(1);

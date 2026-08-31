@@ -86,7 +86,7 @@ export class SafeMath {
         result: { value: resultValue, decimals: maxDecimals }
       };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -109,7 +109,7 @@ export class SafeMath {
         result: { value: resultValue, decimals: maxDecimals }
       };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -141,7 +141,7 @@ export class SafeMath {
         result: { value: resultValue, decimals: Math.max(a.decimals, b.decimals) }
       };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -168,7 +168,7 @@ export class SafeMath {
         result: { value: resultValue, decimals: Math.max(a.decimals, b.decimals) }
       };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -184,7 +184,7 @@ export class SafeMath {
       const percentSafe = this.createSafeNumber(percent / 100, 6); // 6 decimals for precision
       return this.multiply(amount, percentSafe);
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -218,7 +218,7 @@ export class SafeMath {
         result: { value: resultValue, decimals }
       };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -326,7 +326,7 @@ export class SafeCommissionCalculator {
 
       return { success: true, commission: roundedResult.result };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -368,7 +368,7 @@ export class SafeCommissionCalculator {
         breakdown
       };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -416,7 +416,7 @@ export class SafeCommissionCalculator {
 
       return { success: true, fee: roundedResult.result };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 }

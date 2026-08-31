@@ -367,7 +367,7 @@ export class CircularReferralDetection {
         success: false,
         chainsBroken: 0,
         affectedAgents: [],
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }

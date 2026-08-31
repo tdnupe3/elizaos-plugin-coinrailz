@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Smartphone, Mail, CheckCircle, Clock } from "@/lib/icons";
+import { Shield, Smartphone, Mail, CheckCircle, Clock, Copy, Key } from "@/lib/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -16,6 +16,14 @@ interface MfaMethod {
   type: string;
   isEnabled: boolean;
   lastUsed?: string;
+  isVerified?: boolean;
+  identifier?: string;
+}
+
+interface TotpSetup {
+  secret: string;
+  manualEntryKey: string;
+  qrCode?: string;
 }
 
 export default function MfaSetup() {
@@ -29,12 +37,12 @@ export default function MfaSetup() {
   const [showBackupCodes, setShowBackupCodes] = useState(false);
 
   // Fetch current MFA methods
-  const { data: mfaMethods = [], refetch } = useQuery({
+  const { data: mfaMethods = [], refetch } = useQuery<MfaMethod[]>({
     queryKey: ['/api/mfa/methods'],
   });
 
   // Generate TOTP secret
-  const generateTotpMutation = useMutation({
+  const generateTotpMutation = useMutation<TotpSetup>({
     mutationFn: () => apiRequest('POST', '/api/mfa/totp/generate'),
     onSuccess: (data) => {
       setTotpSetup(data);

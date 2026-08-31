@@ -80,9 +80,8 @@ router.post('/setup-enterprise-payment', async (req, res) => {
       case 'paypal':
         // PayPal enterprise setup
         const paypalOrder = await paypalService.createOrder({
-          amount: (amount / 100).toString(), // PayPal uses dollars
+          amount: amount / 100, // PayPal uses dollars
           currency: 'USD',
-          intent: 'CAPTURE'
         });
 
         res.json({
@@ -96,7 +95,7 @@ router.post('/setup-enterprise-payment', async (req, res) => {
 
       case 'circle_usdc':
         // Circle USDC direct payment
-        const usdcWallet = await userCircleService.createOrGetWallet(customerEmail);
+        const usdcWallet = await userCircleService.createUserWallet(customerEmail);
         
         res.json({
           method: 'circle_usdc',
@@ -110,11 +109,7 @@ router.post('/setup-enterprise-payment', async (req, res) => {
 
       case 'coinbase_crypto':
         // Coinbase CDP crypto payment
-        const cryptoAddress = await coinbaseCDPService.createPaymentAddress({
-          customerEmail,
-          amount: amount / 100,
-          configId
-        });
+        const cryptoAddress = await coinbaseCDPService.createWallet(customerEmail, 'base-mainnet');
 
         res.json({
           method: 'coinbase_crypto',
@@ -328,7 +323,7 @@ router.post('/execute-watson-task', async (req, res) => {
       case 'paypal':
         // CRITICAL SECURITY: Complete PayPal validation matching Stripe security
         try {
-          const paypalValidation = await paypalService.validateOrderCapture(paymentConfirmation.orderId);
+          const paypalValidation = await paypalService.captureOrder(paymentConfirmation.orderId);
           
           // CRITICAL SECURITY: Complete validation matching main enterprise routes
           const isValidStatus = paypalValidation.status === 'COMPLETED';
@@ -374,7 +369,14 @@ router.post('/execute-watson-task', async (req, res) => {
       case 'circle_usdc':
         // CRITICAL SECURITY: Complete Circle USDC validation matching Stripe security
         try {
-          const usdcValidation = await userCircleService.validateTransfer(paymentConfirmation.transferId);
+          const transactionHistory = await userCircleService.getUserTransactionHistory(customerEmail);
+          if (!transactionHistory.success || !transactionHistory.transactions) {
+            throw new Error(transactionHistory.error || 'Unable to retrieve Circle transaction history');
+          }
+          const usdcValidation = transactionHistory.transactions.find(
+            (transaction: { id: string }) => transaction.id === paymentConfirmation.transferId,
+          );
+          if (!usdcValidation) throw new Error('Circle transfer was not found');
           
           // CRITICAL SECURITY: Complete validation matching main enterprise routes
           const isValidStatus = usdcValidation.status === 'complete';
@@ -418,44 +420,10 @@ router.post('/execute-watson-task', async (req, res) => {
         break;
 
       case 'coinbase_crypto':
-        // CRITICAL SECURITY: Complete Coinbase CDP validation matching Stripe security
+        // CDP does not expose transaction-proof verification through this service.
+        // Never accept an unverified transaction reference as payment.
         try {
-          const cryptoValidation = await coinbaseCDPService.validatePayment(paymentConfirmation.transactionHash);
-          
-          // CRITICAL SECURITY: Complete validation matching main enterprise routes
-          const isValidStatus = cryptoValidation.confirmed;
-          const isValidCurrency = cryptoValidation.currency === 'USD'; // USD value required
-          const cryptoAmountCents = parseFloat(cryptoValidation.usdValue) * 100;
-          const isValidAmount = cryptoAmountCents >= 500; // $5 minimum
-          const isValidService = cryptoValidation.metadata?.service === 'enterprise-a2a-call-preauth';
-          const isValidConfig = cryptoValidation.metadata?.configId === configId;
-          
-          // CRITICAL SECURITY: Check if crypto transaction already used (replay prevention)
-          const { db } = await import('../db');
-          const { paymentIntentTracking } = await import('../../shared/schema');
-          const { eq } = await import('drizzle-orm');
-          
-          const existingUsage = await db
-            .select()
-            .from(paymentIntentTracking)
-            .where(eq(paymentIntentTracking.paymentIntentId, paymentConfirmation.transactionHash))
-            .limit(1);
-          
-          const isNotReplayed = existingUsage.length === 0;
-          
-          paymentValid = isValidStatus && isValidCurrency && isValidAmount && isValidService && isValidConfig && isNotReplayed;
-          paymentAmount = cryptoAmountCents;
-          
-          if (!paymentValid) {
-            console.error(`🚨 Coinbase CDP validation failed:`, {
-              confirmed: cryptoValidation.confirmed,
-              currency: cryptoValidation.currency,
-              amount: cryptoAmountCents,
-              service: cryptoValidation.metadata?.service,
-              configId: cryptoValidation.metadata?.configId,
-              alreadyUsed: !isNotReplayed
-            });
-          }
+          throw new Error('Coinbase crypto payment verification is not available');
         } catch (error: any) {
           console.error(`❌ Coinbase CDP transaction validation failed:`, error);
           paymentValid = false;
@@ -632,7 +600,7 @@ router.post('/execute-watson-task', async (req, res) => {
           'User-Agent': 'CoinRailz-Enterprise-A2A/1.0'
         },
         body: JSON.stringify(a2aRequest),
-        timeout: 30000 // 30 second timeout for enterprise agents
+        signal: AbortSignal.timeout(30000) // 30 second timeout for enterprise agents
       });
 
       if (agentResponse.ok) {
@@ -661,22 +629,9 @@ router.post('/execute-watson-task', async (req, res) => {
     const { outreachLogs } = await import('../../shared/schema');
     
     await db.insert(outreachLogs).values({
-      outreachType: 'google_a2a_enterprise_execution',
-      targetPlatform: `${selectedAgent.vendor} ${selectedAgent.name}`,
-      cost: paymentAmount / 100,
-      result: agentResult.error ? 'failed' : 'success',
-      details: JSON.stringify({
-        type: 'google_a2a_protocol_execution',
-        paymentMethod: paymentMethod,
-        paymentAmount: paymentAmount / 100,
-        enterpriseAgent: selectedAgent.name,
-        agentVendor: selectedAgent.vendor,
-        agentCapabilities: selectedAgent.capabilities,
-        taskType: task.name || 'analyze_sentiment',
-        agentStatus: agentResult.status || 'completed',
-        agentResult: agentResult,
-        executedAt: new Date().toISOString()
-      })
+      platform: selectedAgent.vendor,
+      target: selectedAgent.name,
+      status: agentResult.error ? 'failed' : 'success',
     });
 
     res.json({

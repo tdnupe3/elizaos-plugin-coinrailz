@@ -215,9 +215,6 @@ export class X402ScanAgentDiscovery {
             score,
             capabilities,
             metadata,
-            lastSeenAt: new Date(),
-            attempts: 0,
-            successCount: 0
           });
           
           console.log(`✅ Saved new agent: ${profile.walletAddress.slice(0, 10)}... (score: ${score})`);

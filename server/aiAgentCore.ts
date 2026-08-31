@@ -4,6 +4,7 @@
  */
 
 import { storage } from './storage';
+import { nanoid } from 'nanoid';
 
 interface AgentRegistration {
   agentName: string;
@@ -36,19 +37,18 @@ export class AIAgentCore {
       }
 
       // Create agent with basic fields
-      const agent = await storage.createAIAgent({
+      const agent = await storage.createAgent({
+        id: nanoid(),
         agentName: data.agentName,
-        walletAddress: data.walletAddress,
+        primaryWalletAddress: data.walletAddress,
         walletNetwork: data.walletNetwork || 'ethereum',
         capabilities: data.capabilities || [],
         description: data.description || '',
-        status: 'pending',
+        status: 'inactive',
         publicKey: `pk_${Date.now()}`,
         signature: `sig_${Date.now()}`,
         preferredCurrencies: ['USD', 'ETH'],
         complianceLevel: 'basic',
-        monthlySubscriptionFee: 50.00, // Fixed $50/month
-        isActive: false
       });
 
       return { success: true, agentId: agent.id };
@@ -62,18 +62,18 @@ export class AIAgentCore {
    */
   static async getActiveAgents(): Promise<SimpleAgent[]> {
     try {
-      const agents = await storage.getAIAgents();
+      const agents = await storage.getGlobalAIAgents();
       
       return agents
         .filter(agent => agent.status === 'active')
         .map(agent => ({
           id: agent.id,
           agentName: agent.agentName,
-          walletAddress: agent.walletAddress,
-          status: agent.status as 'active' | 'pending' | 'suspended',
+          walletAddress: agent.primaryWalletAddress,
+          status: agent.status === 'inactive' ? 'pending' : agent.status as 'active' | 'suspended',
           monthlyFee: 50.00, // Simplified pricing
           totalRevenue: 0, // Placeholder for revenue tracking
-          isActive: agent.isActive || false
+          isActive: agent.status === 'active'
         }));
     } catch (error) {
       console.error('Error fetching agents:', error);
@@ -86,7 +86,7 @@ export class AIAgentCore {
    */
   static async processSubscription(agentId: string, paymentMethod: string = 'stripe'): Promise<{ success: boolean; subscriptionId?: string; error?: string }> {
     try {
-      const agent = await storage.getAIAgent(agentId);
+      const agent = await storage.getAgent(agentId);
       if (!agent) {
         return { success: false, error: 'Agent not found' };
       }
@@ -95,11 +95,7 @@ export class AIAgentCore {
       const subscriptionId = `sub_${Date.now()}_${agentId}`;
       
       // Update agent status
-      await storage.updateAIAgent(agentId, {
-        status: 'active',
-        isActive: true,
-        updatedAt: new Date()
-      });
+      await storage.updateAgentStatus(agentId, true);
 
       return { success: true, subscriptionId };
     } catch (error) {
@@ -117,11 +113,11 @@ export class AIAgentCore {
       
       // Record referral
       await storage.createReferral({
-        referredBy: referrerAgentId,
-        referredUser: referredUserId,
+        referrerId: referrerAgentId,
+        refereeId: referredUserId,
+        referralCode: `agent_${referrerAgentId}`,
         status: 'completed',
-        bonusAmount: commission,
-        currency: 'USD'
+        bonusAmount: commission.toFixed(2)
       });
 
       return { success: true, commission };
@@ -135,7 +131,7 @@ export class AIAgentCore {
    */
   static async getAgentStatus(agentId: string): Promise<{ success: boolean; agent?: SimpleAgent; error?: string }> {
     try {
-      const agent = await storage.getAIAgent(agentId);
+      const agent = await storage.getAgent(agentId);
       if (!agent) {
         return { success: false, error: 'Agent not found' };
       }
@@ -145,11 +141,11 @@ export class AIAgentCore {
         agent: {
           id: agent.id,
           agentName: agent.agentName,
-          walletAddress: agent.walletAddress,
-          status: agent.status as 'active' | 'pending' | 'suspended',
+          walletAddress: agent.primaryWalletAddress,
+          status: agent.status === 'inactive' ? 'pending' : agent.status as 'active' | 'suspended',
           monthlyFee: 50.00,
           totalRevenue: 0,
-          isActive: agent.isActive || false
+          isActive: agent.status === 'active'
         }
       };
     } catch (error) {
@@ -162,7 +158,7 @@ export class AIAgentCore {
    */
   static async getMarketplaceStats(): Promise<{ totalAgents: number; activeAgents: number; monthlyRevenue: number }> {
     try {
-      const agents = await storage.getAIAgents();
+      const agents = await storage.getGlobalAIAgents();
       const activeAgents = agents.filter(agent => agent.status === 'active').length;
       
       return {

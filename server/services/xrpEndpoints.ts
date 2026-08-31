@@ -4,6 +4,7 @@
  */
 
 import { XRPLedgerService } from './xrpLedgerService';
+import { XRPServiceSimple } from './xrpServiceSimple';
 import { SecureWalletManager } from './secureWalletManager';
 
 export class XRPEndpoints {
@@ -162,19 +163,17 @@ export class XRPEndpoints {
         };
       }
 
-      const result = await XRPServiceSimple.processPayment(params);
-      
-      if (!result.success) {
-        return {
-          success: false,
-          message: result.error || 'Payment processing failed'
-        };
-      }
+      const result = await XRPLedgerService.sendPayment(
+        params.fromSeed,
+        params.toAddress,
+        params.amount,
+        params.memo,
+      );
 
       return {
         success: true,
         transaction: {
-          hash: result.transactionHash,
+          hash: result.hash,
           amount: result.amount,
           fee: result.fee,
           timestamp: new Date().toISOString(),
@@ -202,11 +201,11 @@ export class XRPEndpoints {
         };
       }
 
-      const transactions = await XRPServiceSimple.getTransactionHistory(address, limit);
+      const transactions = await XRPLedgerService.getTransactionHistory(address, limit);
       
       return {
         success: true,
-        transactions: transactions.map(tx => ({
+        transactions: transactions.map((tx) => ({
           hash: tx.hash,
           account: tx.account,
           destination: tx.destination,
@@ -233,16 +232,16 @@ export class XRPEndpoints {
    */
   static async getNetworkStatus() {
     try {
-      const status = await XRPServiceSimple.getNetworkStatus();
+      const ledger = await XRPLedgerService.getLedgerInfo();
       
       return {
         success: true,
         network: {
-          connected: status.connected,
-          ledgerIndex: status.ledgerIndex,
-          avgFee: status.avgFee,
-          avgSettlementTime: status.avgSettlementTime,
-          networkLoad: status.networkLoad,
+          connected: true,
+          ledgerIndex: ledger?.ledger_index ?? null,
+          avgFee: await XRPLedgerService.calculateTransactionFee(),
+          avgSettlementTime: XRPServiceSimple.estimateConfirmationTime(),
+          networkLoad: ledger?.load_factor ?? null,
           lastUpdate: new Date().toISOString()
         }
       };
@@ -284,9 +283,9 @@ export class XRPEndpoints {
       let convertedAmount: number;
       
       if (from === 'USD' && to === 'XRP') {
-        convertedAmount = await XRPServiceSimple.usdToXRP(amount);
+        convertedAmount = await XRPLedgerService.usdToXRP(amount);
       } else if (from === 'XRP' && to === 'USD') {
-        convertedAmount = await XRPServiceSimple.xrpToUSD(amount);
+        convertedAmount = await XRPLedgerService.xrpToUSD(amount);
       } else {
         convertedAmount = amount; // Same currency
       }

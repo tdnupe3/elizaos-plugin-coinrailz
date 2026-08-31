@@ -119,7 +119,8 @@ router.post('/wallet/additional', checkAuth, async (req: any, res) => {
 router.post('/transfer', async (req, res) => {
   try {
     const { toAddress, amount, blockchain } = req.body;
-    const userId = req.user.id;
+    const userId = (req.user as { id?: string } | undefined)?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Authentication required' });
 
     if (!toAddress || !amount || !blockchain) {
       return res.status(400).json({
@@ -163,7 +164,8 @@ router.post('/transfer', async (req, res) => {
 // Get user's transaction history
 router.get('/transactions', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = (req.user as { id?: string } | undefined)?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Authentication required' });
     const result = await userCircleService.getUserTransactionHistory(userId);
     
     if (!result.success) {
@@ -183,7 +185,8 @@ router.get('/transactions', async (req, res) => {
 // Get user's Circle wallet info
 router.get('/wallet/info', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = (req.user as { id?: string } | undefined)?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Authentication required' });
     
     // Get basic wallet info from database
     const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -229,7 +232,8 @@ router.get('/wallet/info', async (req, res) => {
 router.post('/swap', async (req, res) => {
   try {
     const { toToken, amount, slippage, chainId } = req.body;
-    const userId = req.user.id;
+    const userId = (req.user as { id?: string } | undefined)?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Authentication required' });
 
     if (!toToken || !amount || !chainId) {
       return res.status(400).json({

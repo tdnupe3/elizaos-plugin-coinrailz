@@ -156,7 +156,7 @@ export class AtomicCrossPlatformOperations {
         failedInterfaces: operation.requiredInterfaces,
         rollbackRequired: true,
         consistencyScore: 0,
-        error: `Operation failed: ${error.message}`
+        error: `Operation failed: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }
@@ -199,7 +199,7 @@ export class AtomicCrossPlatformOperations {
     } catch (error) {
       return {
         success: false,
-        error: `Cross-interface execution failed: ${error.message}`
+        error: `Cross-interface execution failed: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }
@@ -246,7 +246,7 @@ export class AtomicCrossPlatformOperations {
       interfaceConfig.syncStatus = 'conflicted';
       return {
         success: false,
-        error: `Interface execution failed: ${error.message}`
+          error: `Interface execution failed: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }
@@ -296,7 +296,7 @@ export class AtomicCrossPlatformOperations {
       return {
         consistent: false,
         score: 0,
-        error: `Consistency validation error: ${error.message}`
+        error: `Consistency validation error: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }

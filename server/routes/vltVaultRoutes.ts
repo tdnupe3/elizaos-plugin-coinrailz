@@ -90,7 +90,7 @@ router.post('/vlt-deposit-calldata', async (req: Request, res: Response) => {
     }
 
     const calldata = await buildVltUsdcDeposit(depositAmount, recipient);
-    return res.json({ success: true, free: true, ...calldata });
+    return res.json({ ...calldata, success: true, free: true });
 
   } catch (err: any) {
     console.error('[vlt-vault] Balanced deposit error:', err.message);
@@ -154,7 +154,7 @@ router.post('/vlt-zap-deposit', async (req: Request, res: Response) => {
     if (!result.success) {
       return res.status(400).json(result);
     }
-    return res.json({ success: true, free: true, ...result });
+    return res.json({ ...result, success: true, free: true });
 
   } catch (err: any) {
     console.error('[vlt-zap] Unexpected error:', err.message);

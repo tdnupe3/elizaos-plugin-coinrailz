@@ -7,7 +7,7 @@
 import cron from 'node-cron';
 import axios from 'axios';
 import { db } from '../db';
-import { enterpriseOutreachTargets, enterpriseOutreachCampaigns } from '../../shared/schema';
+import { enterpriseOutreachTargets, enterpriseOutreachCampaigns, users } from '../../shared/schema';
 import { eq, sql, and, or, gte, lt, count, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -79,11 +79,6 @@ export class SDKLeadGenerationService {
       this.executeLeadDiscoveryCampaign();
     });
     
-    // Run lead qualification every 4 hours
-    cron.schedule('0 */4 * * *', () => {
-      this.executeLeadQualificationCampaign();
-    });
-    
     // Run outreach sequences every 2 hours (high frequency for rapid conversion)
     cron.schedule('0 */2 * * *', () => {
       this.executeAutomatedOutreachSequences();
@@ -127,6 +122,12 @@ export class SDKLeadGenerationService {
     } catch (error) {
       console.error('❌ Lead Discovery Campaign failed:', error);
     }
+  }
+
+  private async executeLeadQualificationCampaign(): Promise<void> {
+    // Discovery methods qualify leads before persistence; this job is retained
+    // to rescore leads that have been imported by other acquisition channels.
+    await this.analyzeConversionMetrics();
   }
 
   /**
@@ -363,28 +364,33 @@ export class SDKLeadGenerationService {
    */
   private async storeQualifiedLead(lead: QualifiedLead) {
     try {
+      const userId = await this.getCampaignOwnerId();
       await db.insert(enterpriseOutreachTargets).values({
         id: lead.id,
-        campaignId: 'sdk-lead-generation',
+        campaignId: undefined,
+        userId,
         companyName: lead.companyName,
         contactEmail: lead.contactInfo.email || '',
-        website: lead.website,
+        domain: new URL(lead.website).hostname,
         industry: lead.industry,
-        employeeCount: lead.employeeCount,
-        estimatedRevenue: lead.estimatedRevenue.toString(),
+        employeeCount: lead.employeeCount.toString(),
+        revenue: lead.estimatedRevenue.toString(),
+        contactName: `${lead.companyName} Partnerships`,
+        contactTitle: 'Partnerships',
+        companyDescription: `${lead.industry} company identified through automated SDK lead discovery.`,
+        useCase: `Payment SDK integration for ${lead.industry} payment volume of ${lead.paymentVolume}.`,
         priority: lead.priorityTier === 'fortune500' || lead.priorityTier === 'custom' ? 'high' : 
                   lead.priorityTier === 'enterprise' ? 'medium' : 'low',
         status: 'discovered',
-        targetCriteria: {
+        notes: JSON.stringify({
+          priorityTier: lead.priorityTier,
           needsScore: lead.needsScore,
           fitScore: lead.fitScore,
           paymentVolume: lead.paymentVolume,
           techStack: lead.techStack,
-          expectedLicenseValue: this.enterpriseTiers[lead.priorityTier].annualLicense
-        },
-        notes: `SDK Lead: ${lead.priorityTier} tier, ${lead.needsScore}% needs score, ${lead.fitScore}% fit score`,
-        lastContacted: null,
-        responseReceived: false,
+          expectedLicenseValue: this.enterpriseTiers[lead.priorityTier].annualLicense,
+        }),
+        lastContactDate: null,
         leadScore: lead.needsScore + lead.fitScore,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -410,9 +416,8 @@ export class SDKLeadGenerationService {
         .from(enterpriseOutreachTargets)
         .where(
           and(
-            eq(enterpriseOutreachTargets.status, 'discovered'),
+            eq(enterpriseOutreachTargets.status, 'new'),
             eq(enterpriseOutreachTargets.priority, 'high'),
-            eq(enterpriseOutreachTargets.responseReceived, false)
           )
         )
         .limit(50);
@@ -432,7 +437,9 @@ export class SDKLeadGenerationService {
    * SEND SDK OUTREACH EMAIL
    */
   private async sendSDKOutreachEmail(lead: any) {
-    const tierInfo = this.enterpriseTiers[lead.targetCriteria?.priorityTier] || this.enterpriseTiers.startup;
+    const tierInfo = this.enterpriseTiers[
+      this.determinePriorityTier(Number(lead.employeeCount), Number(lead.revenue))
+    ];
     
     const emailTemplate = `Subject: Reduce Payment Processing Costs by 83% - ${lead.companyName}
 
@@ -467,7 +474,7 @@ Coin Railz Platform`;
       .update(enterpriseOutreachTargets)
       .set({
         status: 'contacted',
-        lastContacted: new Date(),
+        lastContactDate: new Date(),
         updatedAt: new Date()
       })
       .where(eq(enterpriseOutreachTargets.id, lead.id));
@@ -551,16 +558,17 @@ Coin Railz Platform`;
     try {
       await db.insert(enterpriseOutreachCampaigns).values({
         id: `${campaignType}-${Date.now()}`,
+        userId: await this.getCampaignOwnerId(),
         name: `SDK ${campaignType} Campaign`,
         targetMarket: 'ai_companies',
         targetCount: metrics.leadsDiscovered || 0,
         emailTemplate: 'SDK Lead Generation Template',
         followUpTemplate: 'SDK Follow-up Template',
-        targetCriteria: {
+        targetCriteria: JSON.stringify({
           leadsDiscovered: metrics.leadsDiscovered,
           leadsQualified: metrics.leadsQualified,
           timestamp: metrics.timestamp
-        },
+        }),
         status: 'active',
         createdAt: new Date(),
         updatedAt: new Date()
@@ -569,6 +577,14 @@ Coin Railz Platform`;
     } catch (error) {
       console.error('❌ Failed to update campaign metrics:', error);
     }
+  }
+
+  private async getCampaignOwnerId(): Promise<string> {
+    const [owner] = await db.select({ id: users.id }).from(users).limit(1);
+    if (!owner) {
+      throw new Error('Cannot persist SDK outreach data before a platform user exists');
+    }
+    return owner.id;
   }
 }
 

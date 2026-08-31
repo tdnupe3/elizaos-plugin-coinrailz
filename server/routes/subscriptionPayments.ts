@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import { stripe } from '../services/stripeClient';
+import type Stripe from 'stripe';
 import { db } from '../db';
 import { subscriptions, subscriptionPlans } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
@@ -14,7 +15,7 @@ router.post('/create-subscription', async (req, res) => {
     const { plan } = req.body; // 'monthly' or 'yearly'
     
     // CryptoJoiner Pro pricing
-    const pricing = {
+    const pricing: Record<'monthly' | 'yearly', { price: number; name: string; planId: string }> = {
       monthly: {
         price: 4900, // $49 in cents
         name: 'CryptoJoiner Pro - Monthly',
@@ -27,14 +28,14 @@ router.post('/create-subscription', async (req, res) => {
       }
     };
 
-    if (!pricing[plan]) {
+    if (plan !== 'monthly' && plan !== 'yearly') {
       return res.status(400).json({
         success: false,
         error: 'Invalid plan - must be monthly or yearly'
       });
     }
 
-    const priceData = pricing[plan];
+    const priceData = pricing[plan as 'monthly' | 'yearly'];
 
     // Create or get subscription plan in database
     const existingPlan = await db.select().from(subscriptionPlans)
@@ -85,9 +86,9 @@ router.post('/create-subscription', async (req, res) => {
         plan: plan,
         service: 'crypto_joiner_pro',
         planId: priceData.planId,
-        userId: req.user?.id || 'anonymous'
+        userId: (req.user as { id?: string } | undefined)?.id || 'anonymous'
       },
-      customer_email: req.user?.email || undefined,
+      customer_email: (req.user as { email?: string } | undefined)?.email || undefined,
     });
 
     res.json({
@@ -135,12 +136,12 @@ export async function subscriptionStripeWebhookHandler(req: Request, res: Respon
       
       // Get subscription details
       if (session.subscription) {
-        const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+        const subscription = await stripe.subscriptions.retrieve(session.subscription as string) as unknown as Stripe.Subscription;
         
         // Store subscription in database
         try {
-          const currentPeriodStart = new Date(subscription.current_period_start * 1000);
-          const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+          const currentPeriodStart = new Date(subscription.items.data[0]?.current_period_start * 1000);
+          const currentPeriodEnd = new Date(subscription.items.data[0]?.current_period_end * 1000);
           
           await db.insert(subscriptions).values({
             userId: session.metadata?.userId || 'anonymous',
@@ -151,7 +152,7 @@ export async function subscriptionStripeWebhookHandler(req: Request, res: Respon
             stripeSubscriptionId: subscription.id,
             stripeCustomerId: subscription.customer as string,
             isYearly: session.metadata?.plan === 'yearly',
-            lastPaymentAmount: (subscription.items.data[0]?.price.unit_amount || 0) / 100,
+            lastPaymentAmount: ((subscription.items.data[0]?.price.unit_amount || 0) / 100).toString(),
             lastPaymentDate: new Date(),
             nextBillingDate: currentPeriodEnd,
           });
@@ -168,14 +169,16 @@ export async function subscriptionStripeWebhookHandler(req: Request, res: Respon
       console.log('💰 CryptoJoiner Pro payment succeeded:', invoice.id);
       
       // Update subscription payment date
-      if (invoice.subscription) {
+      const subscription = invoice.parent?.subscription_details?.subscription;
+      const subscriptionId = typeof subscription === 'string' ? subscription : subscription?.id;
+      if (subscriptionId) {
         try {
           await db.update(subscriptions)
             .set({ 
               lastPaymentDate: new Date(),
-              lastPaymentAmount: (invoice.amount_paid || 0) / 100
+              lastPaymentAmount: ((invoice.amount_paid || 0) / 100).toString()
             })
-            .where(eq(subscriptions.stripeSubscriptionId, invoice.subscription as string));
+            .where(eq(subscriptions.stripeSubscriptionId, subscriptionId));
         } catch (dbError) {
           console.error('❌ Error updating payment date:', dbError);
         }
@@ -216,7 +219,7 @@ router.get('/status', async (req, res) => {
     // Get user's active CryptoJoiner Pro subscription
     const userSubs = await db.select()
       .from(subscriptions)
-      .where(eq(subscriptions.userId, req.user.id))
+      .where(eq(subscriptions.userId, (req.user as { id: string }).id))
       .orderBy(subscriptions.currentPeriodEnd)
       .limit(1);
 
@@ -258,7 +261,7 @@ router.post('/cancel', async (req, res) => {
     // Get user's active subscription
     const userSubs = await db.select()
       .from(subscriptions)
-      .where(eq(subscriptions.userId, req.user.id))
+      .where(eq(subscriptions.userId, (req.user as { id: string }).id))
       .limit(1);
 
     if (userSubs.length === 0) {

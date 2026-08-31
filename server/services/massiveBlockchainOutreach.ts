@@ -18,7 +18,7 @@ interface MassiveTarget {
 
 export class MassiveBlockchainOutreachService {
   private provider: ethers.JsonRpcProvider;
-  private platformWallet: ethers.Wallet;
+  private platformWallet: ethers.HDNodeWallet | ethers.Wallet;
   private messagesSent: number = 0;
   private totalCost: number = 0;
   private campaignResults: any[] = [];

@@ -418,13 +418,13 @@ router.get('/analytics/overview', (req, res) => {
   
   const analytics = {
     total: allDisputes.length,
-    byStatus: {},
-    byReason: {},
-    byPriority: {},
-    resolutionRate: 0,
+    byStatus: {} as Record<string, number>,
+    byReason: {} as Record<string, number>,
+    byPriority: {} as Record<string, number>,
+    resolutionRate: '0%',
     averageResolutionTime: 0,
     customerSatisfaction: 0,
-    refundRate: 0
+    refundRate: '0%'
   };
 
   // Count by status

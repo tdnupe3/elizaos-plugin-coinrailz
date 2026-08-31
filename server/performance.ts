@@ -4,7 +4,6 @@
  */
 
 import { cache } from './cache';
-import { ProductionStability } from './stability';
 
 export class PerformanceOptimizer {
   private responseTimeCache = new Map<string, number[]>();
@@ -28,11 +27,7 @@ export class PerformanceOptimizer {
       }
 
       // Execute query with stability wrapper
-      const result = await ProductionStability.safeDbOperation(query, null);
-      
-      if (result === null) {
-        throw new Error(`Query ${queryName} returned null`);
-      }
+      const result = await query();
 
       // Cache successful results
       if (cacheKey) {
@@ -73,9 +68,9 @@ export class PerformanceOptimizer {
     for (let i = 0; i < operations.length; i += batchSize) {
       const batch = operations.slice(i, i + batchSize);
       const batchResults = await Promise.all(
-        batch.map(op => ProductionStability.safeDbOperation(op, null))
+        batch.map(op => op())
       );
-      results.push(...batchResults.filter(r => r !== null));
+      results.push(...batchResults);
     }
 
     return results;

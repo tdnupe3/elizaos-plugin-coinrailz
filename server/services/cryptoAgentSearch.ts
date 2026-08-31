@@ -187,7 +187,9 @@ export class CryptoAgentSearchService {
             estimatedRevenue: result.estimatedRevenue
           },
           channels: result.socialLinks,
-          notes: `High-value crypto AI target - ${result.estimatedRevenue || 'revenue data pending'}`
+          metadata: {
+            notes: `High-value crypto AI target - ${result.estimatedRevenue || 'revenue data pending'}`
+          }
         });
 
         console.log(`✅ Added: ${result.name}`);

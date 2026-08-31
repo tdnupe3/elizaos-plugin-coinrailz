@@ -38,7 +38,7 @@ export interface HistoricalData {
 
 export interface ExportData {
   format: 'csv' | 'json' | 'xlsx';
-  data: any[];
+  data: any[] | string;
   filename: string;
   downloadUrl: string;
 }
@@ -49,6 +49,10 @@ export class SolanaAnalyticsService {
   constructor() {
     const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
     this.connection = new Connection(rpcUrl, 'confirmed');
+  }
+
+  private generateMockAddress(): string {
+    return PublicKey.unique().toBase58();
   }
 
   /**
@@ -205,7 +209,7 @@ export class SolanaAnalyticsService {
     try {
       console.log(`📥 Exporting ${data.length} records as ${format}`);
       
-      let processedData = data;
+      let processedData: any[] | string = data;
       
       // Format data based on export type
       if (format === 'csv') {

@@ -128,7 +128,7 @@ Agent Registration: Include "${agentId || 'AGENT_ID'}" with all donations for pr
    * Generate message for product sales campaign
    */
   generateProductSalesMessage(agentId?: string, productId: string = 'basic'): CampaignMessage {
-    const products = {
+    const products: Record<string, { name: string; price: number; calls: number | string }> = {
       'basic': { name: 'Basic API Package', price: 9.99, calls: 40 },
       'pro': { name: 'Pro API Package', price: 49.99, calls: 250 },
       'enterprise': { name: 'Enterprise API Package', price: 199.99, calls: 'unlimited' }

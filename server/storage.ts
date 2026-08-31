@@ -86,6 +86,7 @@ import {
   type OnrampOrder,
   type InsertOnrampOrder,
   onrampWebhookEvents,
+  serviceDisputes,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sum, sql, lte, gte, lt } from "drizzle-orm";
@@ -384,7 +385,7 @@ export class DatabaseStorage implements IStorage {
   async updateMarketplaceOrder(orderId: string, data: any): Promise<any> {
     const [order] = await db.update(aiMarketplaceOrders)
       .set(data)
-      .where(eq(aiMarketplaceOrders.id, parseInt(orderId)))
+      .where(eq(aiMarketplaceOrders.id, orderId))
       .returning();
     return order;
   }
@@ -1089,15 +1090,14 @@ export class DatabaseStorage implements IStorage {
       const agents = await db.select().from(globalAIAgents).orderBy(desc(globalAIAgents.registeredAt));
       return agents.map(agent => ({
         id: agent.id,
-        name: agent.agentName || agent.name,
-        email: agent.email,
-        specialization: agent.specialization,
-        skills: agent.skills || [],
-        pricing: agent.pricing || { hourlyRate: 75 },
-        rating: agent.rating || 4.5,
-        availability: agent.availability || "Available",
-        responseTime: agent.responseTime || "2-4 hours",
-        tier: agent.tier || "Standard",
+        name: agent.agentName,
+        specialization: agent.serviceCategories,
+        skills: agent.capabilities,
+        pricing: { hourlyRate: agent.hourlyRate },
+        rating: Number(agent.reputation),
+        availability: agent.status === 'active' ? "Available" : "Unavailable",
+        responseTime: "Not specified",
+        tier: agent.membershipTier,
         status: agent.status
       }));
     } catch (error) {
@@ -1335,7 +1335,7 @@ export class DatabaseStorage implements IStorage {
             id: delivery.id,
             orderId: delivery.orderId,
             agentId: delivery.agentId,
-            message: delivery.deliveryContent?.message || '',
+            message: typeof delivery.deliveryContent === 'object' && delivery.deliveryContent !== null && 'message' in delivery.deliveryContent && typeof delivery.deliveryContent.message === 'string' ? delivery.deliveryContent.message : '',
             files: delivery.deliveryFiles || [],
             submittedAt: delivery.createdAt,
             status: 'submitted'
@@ -1374,7 +1374,7 @@ export class DatabaseStorage implements IStorage {
             id: delivery.id,
             orderId: delivery.orderId,
             agentId: delivery.agentId,
-            message: delivery.deliveryContent?.message || '',
+            message: typeof delivery.deliveryContent === 'object' && delivery.deliveryContent !== null && 'message' in delivery.deliveryContent && typeof delivery.deliveryContent.message === 'string' ? delivery.deliveryContent.message : '',
             files: delivery.deliveryFiles || [],
             submittedAt: delivery.createdAt,
             status: 'submitted'
@@ -1506,6 +1506,30 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(agentServiceOrders.createdAt));
   }
 
+  async updateServiceOrder(orderId: string, updates: any): Promise<void> {
+    const { status, disputeId: _disputeId, ...orderUpdates } = updates;
+    await db.update(agentServiceOrders)
+      .set({
+        ...orderUpdates,
+        ...(status !== undefined ? { orderStatus: status } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(agentServiceOrders.orderId, orderId));
+  }
+
+  async createDispute(disputeData: any): Promise<any> {
+    const [dispute] = await db.insert(serviceDisputes).values({
+      disputeId: disputeData.disputeId ?? disputeData.id,
+      orderId: disputeData.orderId,
+      customerId: disputeData.customerId,
+      agentId: disputeData.agentId,
+      reason: disputeData.reason ?? disputeData.description,
+      customerEvidence: disputeData.customerEvidence ?? disputeData.evidence,
+      status: disputeData.status ?? "open",
+    }).returning();
+    return dispute;
+  }
+
   // Override updateServiceOrderStatus to handle both string and number orderIds
   async updateServiceOrderStatus(orderId: string | number, status: string, updateData?: any): Promise<void> {
     const orderIdNum = typeof orderId === 'string' ? parseInt(orderId) : orderId;
@@ -1551,15 +1575,6 @@ export class DatabaseStorage implements IStorage {
 
   // Removed duplicate - proper implementation exists below
 
-  // === ESCROW AND COMMISSION METHODS ===
-  async updateServiceOrder(orderId: string, updates: any): Promise<any> {
-    const [order] = await db.update(agentServiceOrders)
-      .set(updates)
-      .where(eq(agentServiceOrders.orderId, orderId))
-      .returning();
-    return order;
-  }
-
   async updateAgentTransaction(transactionId: string, updates: any): Promise<any> {
     const [transaction] = await db.update(agentTransactions)
       .set(updates)
@@ -1588,26 +1603,6 @@ export class DatabaseStorage implements IStorage {
       metadata: revenueData
     }).returning();
     return revenue;
-  }
-
-  async createDispute(disputeData: any): Promise<any> {
-    // Store dispute in agent service orders for now
-    // In production, this would use a dedicated disputes table
-    const disputeRecord = {
-      ...disputeData,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    // For now, store dispute info in order metadata
-    await this.updateServiceOrder(disputeData.orderId, {
-      disputeId: disputeData.id,
-      disputeReason: disputeData.reason,
-      disputeStatus: disputeData.status,
-      disputeCreatedAt: new Date()
-    });
-    
-    return disputeRecord;
   }
 
   // Chat system database operations
@@ -1674,16 +1669,31 @@ export class DatabaseStorage implements IStorage {
   // Removed duplicate - using main implementation above
 
   async createAgentTransaction(transaction: any): Promise<any> {
+    const platformFee = String(transaction.platformFee ?? "0");
+    const gasFee = String(transaction.gasFee ?? "0");
+    const agentCommission = String(transaction.agentCommission ?? "0");
+    const networkFee = String(transaction.networkFee ?? "0");
+    const totalFees = String(
+      Number(platformFee) + Number(gasFee) + Number(agentCommission) + Number(networkFee)
+    );
     const [txn] = await db.insert(agentTransactions).values({
       initiatorAgentId: transaction.agentId || transaction.initiatorAgentId,
-      transactionId: transaction.transactionId,
-      amount: transaction.amount,
-      currency: transaction.currency,
-      transactionType: transaction.transactionType,
-      status: transaction.status,
-      orderId: transaction.orderId,
-      paymentMethod: transaction.paymentMethod,
-      metadata: transaction.metadata
+      transactionId: transaction.transactionId ?? `transaction_${crypto.randomUUID()}`,
+      amount: String(transaction.amount),
+      currency: transaction.currency ?? "USD",
+      transactionType: transaction.transactionType ?? "service",
+      status: transaction.status ?? "pending",
+      platformFee,
+      gasFee,
+      agentCommission,
+      networkFee,
+      totalFees,
+      description: transaction.description,
+      metadata: {
+        ...(transaction.metadata ?? {}),
+        ...(transaction.orderId ? { orderId: transaction.orderId } : {}),
+        ...(transaction.paymentMethod ? { paymentMethod: transaction.paymentMethod } : {}),
+      }
     }).returning();
     
     return txn;
@@ -1904,17 +1914,17 @@ export class DatabaseStorage implements IStorage {
       const [agent] = await db
         .insert(globalAIAgents)
         .values({
-          name: agentData.name,
-          email: agentData.email,
-          category: agentData.category,
-          skills: agentData.skills,
+          id: agentData.id,
+          agentName: agentData.name,
+          capabilities: agentData.skills,
           description: agentData.description,
-          pricing: agentData.hourlyRate ? { hourly: agentData.hourlyRate } : null,
-          verified: false,
+          primaryWalletAddress: agentData.walletAddress,
           apiEndpoint: agentData.apiEndpoint || null,
-          walletAddress: agentData.walletAddress || null,
-          isActive: false, // Requires approval
-          registrationStatus: 'pending'
+          publicKey: agentData.publicKey,
+          signature: agentData.signature,
+          preferredCurrencies: agentData.preferredCurrencies,
+          status: 'inactive',
+          verificationLevel: 'pending'
         })
         .returning();
 
@@ -1927,15 +1937,8 @@ export class DatabaseStorage implements IStorage {
 
   async getMarketplaceAgents(filters: any = {}): Promise<any[]> {
     try {
-      let query = db
-        .select()
-        .from(globalAIAgents);
-
-      if (filters.limit) {
-        query = query.limit(filters.limit);
-      }
-
-      const agents = await query;
+      const query = db.select().from(globalAIAgents);
+      const agents = await (filters.limit ? query.limit(filters.limit) : query);
       return agents;
     } catch (error) {
       console.error('Error fetching marketplace agents:', error);
@@ -1943,47 +1946,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Service Order management implementations
-  async updateServiceOrder(orderId: string, updates: any): Promise<void> {
-    try {
-      await db.update(aiMarketplaceOrders)
-        .set({ ...updates, updatedAt: new Date() })
-        .where(eq(aiMarketplaceOrders.id, orderId));
-    } catch (error) {
-      console.error('Error updating service order:', error);
-      throw error;
-    }
-  }
-
-
-
-
-  async createDispute(disputeData: any): Promise<any> {
-    try {
-      // Create dispute record - using agentTransactions table as temporary storage
-      const [dispute] = await db.insert(agentTransactions)
-        .values({
-          initiatorAgentId: disputeData.agentId,
-          transactionId: disputeData.id,
-          amount: '0',
-          currency: 'USD',
-          transactionType: 'dispute',
-          status: disputeData.status,
-          orderId: disputeData.orderId,
-          metadata: {
-            disputeType: disputeData.reason,
-            customerStatement: disputeData.description,
-            evidence: disputeData.evidence
-          }
-        })
-        .returning();
-      
-      return dispute;
-    } catch (error) {
-      console.error('Error creating dispute:', error);
-      throw error;
-    }
-  }
 
 
   async getMarketplaceOrder(orderId: string): Promise<any> {
@@ -2226,17 +2188,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProducts(filters?: { category?: string; active?: boolean }): Promise<AIAgentProduct[]> {
-    let query = db.select().from(aiAgentProducts);
-    
-    if (filters?.category) {
-      query = query.where(eq(aiAgentProducts.category, filters.category));
-    }
-    
-    if (filters?.active !== undefined) {
-      query = query.where(eq(aiAgentProducts.isActive, filters.active));
-    }
-    
-    return await query;
+    const conditions = [
+      filters?.category ? eq(aiAgentProducts.category, filters.category) : undefined,
+      filters?.active !== undefined ? eq(aiAgentProducts.isActive, filters.active) : undefined,
+    ].filter((condition): condition is NonNullable<typeof condition> => condition !== undefined);
+    return conditions.length > 0
+      ? await db.select().from(aiAgentProducts).where(and(...conditions))
+      : await db.select().from(aiAgentProducts);
   }
 
   async getProductById(id: number): Promise<AIAgentProduct | null> {
@@ -2426,7 +2384,7 @@ export class DatabaseStorage implements IStorage {
       }
       
       if (conditions.length > 0) {
-        query = query.where(and(...conditions));
+        return await query.where(and(...conditions)).orderBy(desc(verifiedSolanaWallets.lastActive));
       }
     }
     

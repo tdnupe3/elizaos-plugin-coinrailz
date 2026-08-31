@@ -12,6 +12,8 @@ const router = Router();
 const escrowAccounts = new Map();
 const payments = new Map();
 const orders = new Map();
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
 
 // Create escrow account for order
 router.post('/create', async (req, res) => {
@@ -60,7 +62,7 @@ router.post('/create', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Escrow creation failed',
-      message: error.message
+      message: errorMessage(error)
     });
   }
 });
@@ -95,7 +97,10 @@ router.post('/process-payment', async (req, res) => {
     // Create payment record
     const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
     
-    const payment = {
+    const payment: {
+      id: string; escrowId: string; orderId: unknown; amount: unknown; method: unknown;
+      status: string; createdAt: string; confirmedAt?: string; transactionId?: string;
+    } = {
       id: paymentId,
       escrowId,
       orderId: escrow.orderId,
@@ -134,7 +139,7 @@ router.post('/process-payment', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Payment processing failed',
-      message: error.message
+      message: errorMessage(error)
     });
   }
 });
@@ -199,7 +204,7 @@ router.post('/release', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Escrow release failed',
-      message: error.message
+      message: errorMessage(error)
     });
   }
 });
@@ -250,7 +255,7 @@ router.post('/refund', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Refund processing failed',
-      message: error.message
+      message: errorMessage(error)
     });
   }
 });

@@ -246,7 +246,7 @@ router.get('/api/orders/my-orders', async (req, res) => {
           orders: dbOrders.map(order => ({
             id: order.id,
             serviceTitle: order.serviceType,
-            budget: parseFloat(order.amount || '0'),
+            budget: parseFloat(String(order.amount || '0')),
             status: order.status,
             agentId: order.agentId,
             customerId: order.customerId,
@@ -284,9 +284,9 @@ router.get('/api/orders/my-orders', async (req, res) => {
 router.get('/api/orders/:orderId', async (req, res) => {
   try {
     const { orderId } = req.params;
-    const orders = global.orders || [];
+    const orders = globalOrders;
     
-    const order = orders.find(o => o.id === orderId);
+    const order = orders.find((o) => o.id === orderId);
     
     if (!order) {
       return res.status(404).json({
@@ -315,8 +315,8 @@ router.patch('/api/orders/:orderId/status', async (req, res) => {
     const { orderId } = req.params;
     const { status, message } = req.body;
     
-    const orders = global.orders || [];
-    const orderIndex = orders.findIndex(o => o.id === orderId);
+    const orders = globalOrders;
+    const orderIndex = orders.findIndex((o) => o.id === orderId);
     
     if (orderIndex === -1) {
       return res.status(404).json({
@@ -363,8 +363,8 @@ router.post('/api/orders/:orderId/messages', async (req, res) => {
     const { orderId } = req.params;
     const { message, senderId } = req.body;
     
-    const orders = global.orders || [];
-    const orderIndex = orders.findIndex(o => o.id === orderId);
+    const orders = (global as typeof globalThis & { orders?: Array<{ id: string; status: string; updatedAt: string; messages?: unknown[] }> }).orders || [];
+    const orderIndex = orders.findIndex((o) => o.id === orderId);
     
     if (orderIndex === -1) {
       return res.status(404).json({
@@ -376,13 +376,14 @@ router.post('/api/orders/:orderId/messages', async (req, res) => {
     const newMessage = {
       id: nanoid(),
       message: message,
-      senderId: senderId || req.user?.id || 'anonymous',
+      senderId: senderId || (req.user as { id?: string } | undefined)?.id || 'anonymous',
       timestamp: new Date().toISOString(),
       type: 'chat'
     };
 
-    orders[orderIndex].messages.push(newMessage);
-    orders[orderIndex].updatedAt = new Date().toISOString();
+    const order = orders[orderIndex];
+    (order.messages ??= []).push(newMessage);
+    order.updatedAt = new Date().toISOString();
 
     res.json({
       success: true,
@@ -405,8 +406,8 @@ router.post('/api/orders/:orderId/deliverables', async (req, res) => {
     const { orderId } = req.params;
     const { title, description, fileUrl, deliveredBy } = req.body;
     
-    const orders = global.orders || [];
-    const orderIndex = orders.findIndex(o => o.id === orderId);
+    const orders = globalOrders;
+    const orderIndex = orders.findIndex((o) => o.id === orderId);
     
     if (orderIndex === -1) {
       return res.status(404).json({
@@ -420,7 +421,7 @@ router.post('/api/orders/:orderId/deliverables', async (req, res) => {
       title: title,
       description: description || '',
       fileUrl: fileUrl || null,
-      deliveredBy: deliveredBy || req.user?.id || 'anonymous',
+      deliveredBy: deliveredBy || (req.user as { id?: string } | undefined)?.id || 'anonymous',
       deliveredAt: new Date().toISOString()
     };
 

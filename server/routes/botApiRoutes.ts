@@ -123,7 +123,7 @@ router.get('/dex/quote', botQuoteLimit, async (req: Request, res: Response) => {
       exchangeRate: quoteResult.quote.exchangeRate,
       estimatedGas: quoteResult.quote.gasEstimate || '0.002 ETH',
       platformFee: quoteResult.quote.platformFee || '0.75%',
-      platformFeeAmount: quoteResult.quote.platformFeeAmount || '0',
+      platformFeeAmount: quoteResult.quote.platformFee || '0',
       slippage: '0.5%',
       chain: chain,
       protocol: 'Coinbase CDP',
@@ -225,7 +225,8 @@ router.post('/dex/prepare', botPrepareLimit, async (req: Request, res: Response)
       amount: amount,
       userAddress: userAddress,
       chainId: chainId,
-      maxSlippage: slippage
+      maxSlippage: slippage,
+      slippage
     });
 
     res.json({
@@ -492,7 +493,6 @@ router.get('/price', botPriceLimit, async (req: Request, res: Response) => {
       success: true,
       token,
       price: priceData.usd,
-      change24h: priceData.usd_24h_change,
       lastUpdate: new Date(priceData.last_updated_at * 1000).toISOString(),
       source: 'CoinGecko API',
       timestamp: Date.now()

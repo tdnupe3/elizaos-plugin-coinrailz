@@ -71,7 +71,7 @@ export class CommissionBatchProcessor {
     } catch (error) {
       console.error('Error in weekly payout processing:', error);
       results.success = false;
-      results.errors.push(`Batch processing failed: ${error.message}`);
+      results.errors.push(`Batch processing failed: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     return results;
@@ -131,7 +131,7 @@ export class CommissionBatchProcessor {
         if (commission.userId && commission.totalAmount >= this.MIN_PAYOUT_THRESHOLD) {
           // Get agent's preferred wallet address
           const [agent] = await db
-            .select({ walletAddress: globalAIAgents.walletAddress })
+            .select({ walletAddress: globalAIAgents.primaryWalletAddress })
             .from(globalAIAgents)
             .where(eq(globalAIAgents.id, commission.userId))
             .limit(1);
@@ -179,7 +179,7 @@ export class CommissionBatchProcessor {
         }
       } catch (error) {
         console.error(`Error processing payout for user ${payout.userId}:`, error);
-        results.errors.push(`User ${payout.userId}: ${error.message}`);
+        results.errors.push(`User ${payout.userId}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 

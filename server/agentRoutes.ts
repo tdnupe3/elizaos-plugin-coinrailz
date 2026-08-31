@@ -135,11 +135,11 @@ export function registerAgentRoutes(app: Express) {
       
       // Create referral record
       const referral = await storage.createReferral({
-        referredBy: referrerAgentId,
-        referredUser: referredUserId,
+        referrerId: referrerAgentId,
+        refereeId: referredUserId,
+        referralCode: `agent_${referrerAgentId}`,
         status: 'completed',
-        bonusAmount: commission,
-        currency: 'USD'
+        bonusAmount: commission.toFixed(2)
       });
 
       res.json({

@@ -96,11 +96,11 @@ export class DatabaseConnectionManager {
           const fallbackData = await fallbackFn();
           return { success: true, data: fallbackData };
         } catch (fallbackError) {
-          return { success: false, error: `Query failed: ${error.message}` };
+          return { success: false, error: `Query failed: ${error instanceof Error ? error.message : String(error)}` };
         }
       }
       
-      return { success: false, error: `Query failed: ${error.message}` };
+      return { success: false, error: `Query failed: ${error instanceof Error ? error.message : String(error)}` };
     }
   }
 
@@ -262,7 +262,15 @@ export class DatabaseConnectionManager {
     queryStats: typeof DatabaseConnectionManager.connectionStats;
     recommendations: string[];
   } {
-    const health = this.getConnectionHealth();
+    const health: ConnectionHealth = {
+      totalConnections: 0,
+      activeConnections: 0,
+      idleConnections: 0,
+      waitingClients: 0,
+      poolUtilization: 0,
+      isHealthy: !this.circuitBreaker.isOpen,
+      warnings: [],
+    };
     const recommendations: string[] = [];
     
     // Generate recommendations based on current state

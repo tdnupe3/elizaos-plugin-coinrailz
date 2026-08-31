@@ -36,7 +36,7 @@ export default function SecurityDashboard() {
   const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
 
-  const { data: securityEvents, isLoading: eventsLoading } = useQuery({
+  const { data: securityEvents, isLoading: eventsLoading } = useQuery<SecurityEvent[]>({
     queryKey: ['/api/security/events'],
     enabled: isAuthenticated,
   });

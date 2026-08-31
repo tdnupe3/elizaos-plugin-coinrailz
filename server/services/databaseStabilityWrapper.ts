@@ -4,13 +4,13 @@
  */
 
 import { db, pool } from '../db';
-import { stabilityManager } from './stabilityManager';
 
 export class DatabaseStabilityWrapper {
   private static instance: DatabaseStabilityWrapper;
   private connectionHealthy = true;
   private lastHealthCheck = 0;
   private healthCheckInterval = 30000; // 30 seconds
+  private operationQueue: Promise<void> = Promise.resolve();
 
   static getInstance(): DatabaseStabilityWrapper {
     if (!DatabaseStabilityWrapper.instance) {
@@ -34,7 +34,7 @@ export class DatabaseStabilityWrapper {
       return null;
     }
 
-    return stabilityManager.queueDatabaseOperation(async () => {
+    return this.queueDatabaseOperation(async () => {
       try {
         return await queryFn();
       } catch (error: any) {
@@ -49,6 +49,25 @@ export class DatabaseStabilityWrapper {
         throw error;
       }
     });
+  }
+
+  /**
+   * Serialize database work so transient connection failures cannot cause a
+   * burst of competing retries against the same pool.
+   */
+  private async queueDatabaseOperation<T>(operation: () => Promise<T>): Promise<T> {
+    const previous = this.operationQueue;
+    let release!: () => void;
+    this.operationQueue = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    await previous;
+    try {
+      return await operation();
+    } finally {
+      release();
+    }
   }
 
   /**

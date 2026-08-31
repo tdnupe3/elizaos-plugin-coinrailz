@@ -2125,9 +2125,10 @@ router.post('/chat/send', isAuthenticated, async (req: any, res) => {
     // Create and store chat message in database
     const chatMessage = await storage.createMessage({
       chatId: orderId, // Use orderId as chatId
+      messageId: `msg_${nanoid()}`,
       senderId: userId,
       content: message,
-      senderRole: senderType || 'user'
+      messageType: senderType || 'user'
     });
 
     res.json({
@@ -2782,7 +2783,9 @@ router.post('/orders', async (req, res) => {
     }
 
     const service = serviceResult.rows[0];
-    const pricing = typeof service.pricing === 'object' ? service.pricing.base || 75 : 75;
+    const pricingData = service.pricing;
+    const pricing = pricingData && typeof pricingData === 'object' && 'base' in pricingData &&
+      typeof pricingData.base === 'number' ? pricingData.base : 75;
 
     const orderData = {
       customerId,
@@ -3264,12 +3267,12 @@ router.post('/crypto/verify-payment', async (req, res) => {
     // Log the successful crypto payment to x402_payments table
     try {
       await db.insert(x402Payments).values({
-        id: `crypto_${nanoid(12)}`,
-        serviceId: metadata.serviceId || 'marketplace',
-        payerAddress: receipt.from,
+        id: `x402_${nanoid()}`,
+        agentId: metadata.agentId || 'coin-railz-platform',
         amount: transferAmount.toString(),
-        transactionHash,
-        chain: 'base',
+        paymentProof: transactionHash,
+        walletAddress: receipt.from,
+        network: 'base',
         status: 'completed',
         createdAt: new Date()
       });

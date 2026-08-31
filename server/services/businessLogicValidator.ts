@@ -141,7 +141,7 @@ export class BusinessLogicValidator {
           break;
           
         case 'marketplace':
-          const marketplaceFees = FeeCalculator.calculateMarketplaceFees(amount);
+          const marketplaceFees = FeeCalculator.calculateMarketplaceFees(amount, paymentMethod ?? 'standard');
           platformFee = marketplaceFees.platformFee;
           adjustmentsMade = true; // Always using tiered structure instead of flat 15%
           adjustments = { type: 'marketplace_tiered', structure: 'dynamic_rates' };

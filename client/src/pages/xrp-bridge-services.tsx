@@ -10,6 +10,7 @@ import { NavigationHeader } from "@/components/navigation-header";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { 
   ArrowRightLeft, 
+  Network,
  
   Globe, 
   TrendingUp, 
@@ -24,7 +25,8 @@ import {
   Eye,
   Activity,
   DollarSign,
-  BarChart3
+  BarChart3,
+  Network as Bridge
 } from "@/lib/icons";
 
 interface SupportedChain {

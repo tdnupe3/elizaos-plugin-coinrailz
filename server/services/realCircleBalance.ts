@@ -5,6 +5,11 @@
 
 import fetch from 'node-fetch';
 
+interface CircleApiResponse {
+  data?: { balances?: unknown[] } | unknown[];
+  [key: string]: unknown;
+}
+
 export class RealCircleBalanceChecker {
   private apiKey: string;
   private baseUrl: string;
@@ -32,7 +37,7 @@ export class RealCircleBalanceChecker {
         }
       });
 
-      const data = await response.json();
+      const data = await response.json() as CircleApiResponse;
       
       if (!response.ok) {
         console.error('Circle API Error:', data);
@@ -41,12 +46,12 @@ export class RealCircleBalanceChecker {
 
       return {
         success: true,
-        balances: data.data?.balances || [],
+        balances: Array.isArray(data.data) ? data.data : data.data?.balances ?? [],
         raw: data
       };
     } catch (error) {
       console.error('Circle API request failed:', error);
-      return { error: error.message };
+        return { error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -64,7 +69,7 @@ export class RealCircleBalanceChecker {
         }
       });
 
-      const data = await response.json();
+      const data = await response.json() as CircleApiResponse;
       
       if (!response.ok) {
         console.error('Circle Transactions API Error:', data);
@@ -73,12 +78,12 @@ export class RealCircleBalanceChecker {
 
       return {
         success: true,
-        transactions: data.data || [],
+        transactions: Array.isArray(data.data) ? data.data : [],
         raw: data
       };
     } catch (error) {
       console.error('Circle transactions request failed:', error);
-      return { error: error.message };
+        return { error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -102,9 +107,9 @@ export class RealCircleBalanceChecker {
     
     // Look for $50 transactions
     if (transactionsResult.success && transactionsResult.transactions) {
-      const fiftyDollarTxs = transactionsResult.transactions.filter(tx => 
-        tx.amount && (
-          parseFloat(tx.amount) === 50.0 || 
+      const fiftyDollarTxs = transactionsResult.transactions.filter((tx): tx is { amount: string } =>
+        typeof tx === 'object' && tx !== null && 'amount' in tx && typeof tx.amount === 'string' && (
+          parseFloat(tx.amount) === 50.0 ||
           tx.amount.includes('50') ||
           parseFloat(tx.amount) === 50
         )

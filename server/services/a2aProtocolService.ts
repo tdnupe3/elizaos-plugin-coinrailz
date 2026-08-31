@@ -123,6 +123,7 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
           const messageRequest = {
             targetAddress: address,
             messageType: 'emergency_funding' as const,
+            campaignType: 'payment_request' as const,
             content: emergencyMessage,
             priority: 'urgent' as const
           };
@@ -344,7 +345,7 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
         clearTimeout(timeoutId);
 
         if (response.ok) {
-          const result = await response.json();
+          const result = await response.json() as { result?: unknown; error?: { code?: unknown } };
           
           // Check for A2A-shaped response (from ChatGPT guide)
           if (result.result || (result.error && result.error.code)) {
@@ -534,7 +535,7 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
       // 🚀 SOFT DISCOVERY - Try agent.json but don't fail if unavailable  
       let agentCard = this.connectedAgents.get(agentUrl);
       if (!agentCard) {
-        agentCard = await this.discoverAgent(agentUrl);
+        agentCard = await this.discoverAgent(agentUrl) ?? undefined;
       }
       
       // Continue even without agent.json - use basic agent info for logging
@@ -669,15 +670,17 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
               this.recordAgentFailure(agentUrl, endpoint, errorType, { status: response.status, statusText: response.statusText });
             }
           } catch (error) {
-            console.log(`⚠️ A2A: ${endpoint} (${protocol.name}) failed:`, error.message);
-            lastError = error;
+            const errorInfo = error instanceof Error ? error : new Error(String(error));
+            console.log(`⚠️ A2A: ${endpoint} (${protocol.name}) failed:`, errorInfo.message);
+            lastError = errorInfo;
             
             // 📊 RECORD FAILURE - Network/connection errors  
-            const errorType = error.name === 'AbortError' ? 'timeout' :
-                             error.code === 'ETIMEDOUT' ? 'connection_timeout' :
-                             error.code === 'ECONNREFUSED' ? 'connection_refused' :
-                             error.code === 'ENOTFOUND' ? 'dns_error' : 'network_error';
-            this.recordAgentFailure(agentUrl, endpoint, errorType, error);
+            const errorCode = (errorInfo as Error & { code?: string }).code;
+            const errorType = errorInfo.name === 'AbortError' ? 'timeout' :
+                             errorCode === 'ETIMEDOUT' ? 'connection_timeout' :
+                             errorCode === 'ECONNREFUSED' ? 'connection_refused' :
+                             errorCode === 'ENOTFOUND' ? 'dns_error' : 'network_error';
+            this.recordAgentFailure(agentUrl, endpoint, errorType, errorInfo);
             
             // Continue to next protocol/endpoint
           }
@@ -834,11 +837,13 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
         if (!historyA && !historyB) return 0;
         
         // Prioritize partially responsive agents
-        if (historyA.partiallyResponsive && !historyB.partiallyResponsive) return -1;
-        if (!historyA.partiallyResponsive && historyB.partiallyResponsive) return 1;
+        const firstHistory = historyA!;
+        const secondHistory = historyB!;
+        if (firstHistory.partiallyResponsive && !secondHistory.partiallyResponsive) return -1;
+        if (!firstHistory.partiallyResponsive && secondHistory.partiallyResponsive) return 1;
         
         // Prioritize agents with fewer consecutive failures
-        return historyA.consecutiveFailures - historyB.consecutiveFailures;
+        return firstHistory.consecutiveFailures - secondHistory.consecutiveFailures;
       });
   }
 
@@ -1094,16 +1099,8 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
       console.log(`🔄 A2A: Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(enterpriseAgents.length/batchSize)}`);
 
       const batchPromises = batch.map(async (agent) => {
-        let agentUrl, agentName;
-        
-        // Handle both old string format and new object format
-        if (typeof agent === 'string') {
-          agentUrl = agent;
-          agentName = 'Unknown Agent';
-        } else {
-          agentUrl = agent.url;
-          agentName = agent.name;
-        }
+        const agentUrl = agent;
+        const agentName = 'Unknown Agent';
 
         const agentCard = await this.discoverAgent(agentUrl);
         if (!agentCard && !agentName) return null;
@@ -1224,7 +1221,7 @@ Agent Registration: Include your agent identifier with all donations for proper 
       const rpcRequest = req.body;
       
       if (!rpcRequest || !rpcRequest.jsonrpc || rpcRequest.jsonrpc !== '2.0') {
-        const errorResponse = jsonrpc.error(null, -32700);
+        const errorResponse = jsonrpc.error(null, new jsonrpc.JsonRpcError('Parse error', -32700));
         return res.status(400).json(errorResponse);
       }
 
@@ -1278,12 +1275,12 @@ Agent Registration: Include your agent identifier with all donations for proper 
         return res.json(response);
       }
 
-      const errorResponse = jsonrpc.error(rpcRequest.id, -32601);
+      const errorResponse = jsonrpc.error(rpcRequest.id, new jsonrpc.JsonRpcError('Method not found', -32601));
       res.status(404).json(errorResponse);
       
     } catch (error) {
       console.log('❌ A2A: Task request error:', error);
-      const errorResponse = jsonrpc.error(null, -32603);
+      const errorResponse = jsonrpc.error(null, new jsonrpc.JsonRpcError('Internal error', -32603));
       res.status(500).json(errorResponse);
     }
   }
@@ -1386,20 +1383,20 @@ Agent Registration: Include your agent identifier with all donations for proper 
       const response = await fetch(fullCardUrl, { 
         method: 'GET',
         headers,
-        timeout: parseInt(process.env.A2A_CLIENT_TIMEOUT_MS || '30000')
+        signal: AbortSignal.timeout(parseInt(process.env.A2A_CLIENT_TIMEOUT_MS || '30000'))
       });
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      const agentCard = await response.json();
+      const agentCard = await response.json() as A2AAgentCard;
       console.log(`📋 A2A: Retrieved agent card for ${agentCard.name || 'unknown'}`);
       
       return agentCard;
       
-    } catch (error: any) {
-      console.log(`❌ A2A: Failed to discover agent card from ${cardUrl}: ${error.message}`);
+    } catch (error) {
+      console.log(`❌ A2A: Failed to discover agent card from ${cardUrl}: ${error instanceof Error ? error.message : String(error)}`);
       return null;
     }
   }

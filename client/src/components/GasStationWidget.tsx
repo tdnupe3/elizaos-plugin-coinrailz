@@ -9,19 +9,32 @@ interface GasStationWidgetProps {
   userWalletId?: string;
   blockchain?: string;
 }
+interface GasStatsResponse {
+  success: boolean;
+  stats: {
+    totalTransactions: number;
+    totalGasFeesSponsored: number;
+    totalUSDCCollected: number;
+    totalPlatformFees: number;
+  };
+}
+interface SupportedChainsResponse {
+  success: boolean;
+  chains: string[];
+}
 
 export function GasStationWidget({ userWalletId, blockchain = 'ETH' }: GasStationWidgetProps) {
   const [estimating, setEstimating] = useState(false);
   const [gasEstimate, setGasEstimate] = useState<any>(null);
 
   // Fetch gas station stats
-  const { data: gasStats } = useQuery({
+  const { data: gasStats } = useQuery<GasStatsResponse>({
     queryKey: ['/api/gas-station/stats'],
     refetchInterval: 30000 // Refresh every 30 seconds
   });
 
   // Fetch supported chains
-  const { data: supportedChains } = useQuery({
+  const { data: supportedChains } = useQuery<SupportedChainsResponse>({
     queryKey: ['/api/gas-station/supported-chains']
   });
 

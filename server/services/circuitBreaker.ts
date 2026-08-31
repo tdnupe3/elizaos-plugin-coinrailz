@@ -51,7 +51,7 @@ export class CircuitBreaker {
     } catch (error) {
       this.onFailure();
       
-      if (fallback && this.state === CircuitState.OPEN) {
+      if (fallback) {
         console.log(`Circuit breaker ${this.name} failed, using fallback`);
         return await fallback();
       }

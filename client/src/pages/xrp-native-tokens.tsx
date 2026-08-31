@@ -15,7 +15,6 @@ import {
   DollarSign, 
   ArrowLeft, 
   Star,
-  Star,
   ExternalLink,
   Zap,
   Shield,

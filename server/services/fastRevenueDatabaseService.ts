@@ -44,11 +44,11 @@ export class FastRevenueDatabaseService {
         currency: 'USD',
         service,
         userId,
-        paymentProvider,
-        metadata: { 
+        metadata: {
           timestamp: new Date().toISOString(),
-          source: 'fast_revenue_service'
-        }
+          source: 'fast_revenue_service',
+          paymentProvider,
+        },
       };
 
       await db.insert(fastRevenueRecords).values(revenueRecord);
@@ -78,6 +78,7 @@ export class FastRevenueDatabaseService {
         credits: creditAmount.toString(),
         tier,
         pricePerCredit: pricePerCredit.toString(),
+        remainingCredits: creditAmount.toString(),
         purchaseTransactionId: paymentIntentId,
         expiresAt
       };

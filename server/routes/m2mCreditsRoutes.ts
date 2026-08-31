@@ -931,7 +931,7 @@ router.get('/trial', async (req: Request, res: Response) => {
     await creditsService.addCredits({
       userId,
       amount: TRIAL_CREDITS,
-      paymentMethod: 'trial',
+      paymentMethod: 'usdc',
       referenceId: `trial_${ipHash}_${now}`,
       description: `Free trial — $${TRIAL_CREDITS} credits (~80-100 service calls). IP hash: ${ipHash}`,
     });

@@ -197,7 +197,7 @@ router.get('/search', (req, res) => {
       results = results.filter(service => 
         service.title.toLowerCase().includes(queryLower) ||
         service.description.toLowerCase().includes(queryLower) ||
-        service.tags.some(tag => tag.toLowerCase().includes(queryLower))
+        service.tags.some((tag: string) => tag.toLowerCase().includes(queryLower))
       );
     }
 
@@ -206,15 +206,18 @@ router.get('/search', (req, res) => {
     }
 
     if (params.minPrice !== undefined) {
-      results = results.filter(service => service.price >= params.minPrice);
+      const minPrice = params.minPrice;
+      results = results.filter(service => service.price >= minPrice);
     }
 
     if (params.maxPrice !== undefined) {
-      results = results.filter(service => service.price <= params.maxPrice);
+      const maxPrice = params.maxPrice;
+      results = results.filter(service => service.price <= maxPrice);
     }
 
     if (params.minRating !== undefined) {
-      results = results.filter(service => service.rating >= params.minRating);
+      const minRating = params.minRating;
+      results = results.filter(service => service.rating >= minRating);
     }
 
     if (params.availability && params.availability !== 'All') {
@@ -228,7 +231,8 @@ router.get('/search', (req, res) => {
       results = results.filter(service => {
         const agent = agentProfiles.get(service.agentId);
         if (!agent) return false;
-        return params.skills.some(skill => 
+        const skills = params.skills ?? [];
+        return skills.some((skill: string) =>
           agent.skills.includes(skill) || 
           service.tags.includes(skill)
         );

@@ -176,8 +176,10 @@ router.get('/chat/:chatId/messages', async (req, res) => {
     const userId = (req.user as any)?.id || 'guest_user';
 
     // Check if user is participant in this chat
-    const chatRoom = (global as any).chatRooms.find((chat: any) => 
-      chat.id === chatId && chat.participants.includes(userId)
+    const chatRoom = (await storage.getChatRooms(userId)).find(chat =>
+      chat.chatId === chatId &&
+      Array.isArray(chat.participants) &&
+      chat.participants.includes(userId)
     );
 
     if (!chatRoom) {
@@ -187,16 +189,15 @@ router.get('/chat/:chatId/messages', async (req, res) => {
       });
     }
 
-    const messages = (global as any).messages
-      .filter((msg: any) => msg.chatId === chatId)
-      .sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    const messages = (await storage.getMessages(chatId))
+      .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
       .slice(parseInt(offset as string), parseInt(offset as string) + parseInt(limit as string));
 
     res.json({
       success: true,
       messages: messages,
       chatInfo: {
-        id: chatRoom.id,
+        id: chatRoom.chatId,
         chatName: chatRoom.chatName,
         participants: chatRoom.participants,
         orderId: chatRoom.orderId
@@ -216,19 +217,17 @@ router.get('/chat/:chatId/messages', async (req, res) => {
 router.patch('/api/messaging/chat/:chatId/read', async (req, res) => {
   try {
     const { chatId } = req.params;
-    const userId = req.user?.id || 'guest_user';
+    const userId = (req.user as unknown as { id?: string } | undefined)?.id || 'guest_user';
 
-    const messages = global.messages || [];
     let updatedCount = 0;
 
-    messages.forEach(message => {
-      if (message.chatId === chatId && 
-          message.recipientId === userId && 
-          !message.isRead) {
-        message.isRead = true;
+    const messages = await storage.getMessages(chatId);
+    await Promise.all(messages
+      .filter((message: any) => message.recipientId === userId && !message.isRead)
+      .map(async (message: any) => {
+        await storage.markMessageAsRead(message.messageId);
         updatedCount++;
-      }
-    });
+      }));
 
     res.json({
       success: true,
@@ -247,10 +246,11 @@ router.patch('/api/messaging/chat/:chatId/read', async (req, res) => {
 // Get unread message count
 router.get('/api/messaging/unread-count', async (req, res) => {
   try {
-    const userId = req.user?.id || 'guest_user';
-    const messages = global.messages || [];
+    const userId = (req.user as unknown as { id?: string } | undefined)?.id || 'guest_user';
+    const chats = await storage.getChatRooms(userId);
+    const messages = (await Promise.all(chats.map(chat => storage.getMessages(chat.chatId)))).flat();
 
-    const unreadCount = messages.filter(message => 
+    const unreadCount = messages.filter((message: any) =>
       message.recipientId === userId && !message.isRead
     ).length;
 
@@ -272,7 +272,7 @@ router.get('/api/messaging/unread-count', async (req, res) => {
 router.get('/api/messaging/search', async (req, res) => {
   try {
     const { query, chatId } = req.query;
-    const userId = req.user?.id || 'guest_user';
+    const userId = (req.user as unknown as { id?: string } | undefined)?.id || 'guest_user';
 
     if (!query) {
       return res.status(400).json({
@@ -281,18 +281,17 @@ router.get('/api/messaging/search', async (req, res) => {
       });
     }
 
-    const messages = global.messages || [];
-    const userChats = global.chatRooms
-      .filter(chat => chat.participants.includes(userId))
-      .map(chat => chat.id);
+    const chats = await storage.getChatRooms(userId);
+    const messages = (await Promise.all(chats.map(chat => storage.getMessages(chat.chatId)))).flat();
+    const userChats = chats.map(chat => chat.chatId);
 
-    let filteredMessages = messages.filter(message => 
+    let filteredMessages = messages.filter((message: any) =>
       userChats.includes(message.chatId) &&
       message.content.toLowerCase().includes((query as string).toLowerCase())
     );
 
     if (chatId) {
-      filteredMessages = filteredMessages.filter(message => 
+      filteredMessages = filteredMessages.filter((message: any) =>
         message.chatId === chatId
       );
     }

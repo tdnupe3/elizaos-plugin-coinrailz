@@ -74,7 +74,7 @@ export default function APIKeysPage() {
   const [instantApiKey, setInstantApiKey] = useState('');
   const [starterCredits, setStarterCredits] = useState(0);
 
-  const { data: keysData, isLoading } = useQuery({
+  const { data: keysData, isLoading } = useQuery<{ keys: APIKey[] }>({
     queryKey: ['/api/api-keys'],
   });
 

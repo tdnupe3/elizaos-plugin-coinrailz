@@ -189,8 +189,7 @@ router.get("/prospects", async (req, res) => {
       sortBy = 'holderRank'
     } = req.query;
     
-    let query = db.select().from(prospectWallets);
-    let whereConditions: any[] = [];
+    const whereConditions = [];
     
     if (chain) {
       whereConditions.push(eq(prospectWallets.chain, chain as string));
@@ -206,27 +205,15 @@ router.get("/prospects", async (req, res) => {
       );
     }
     
-    if (whereConditions.length > 0) {
-      query = query.where(and(...whereConditions));
-    }
-    
-    // Apply sorting
-    if (sortBy === 'holderRank') {
-      query = query.orderBy(prospectWallets.holderRank);
-    } else {
-      query = query.orderBy(desc(prospectWallets.discoveredAt));
-    }
-    
-    const prospects = await query
+    const filter = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+    const prospects = await db.select().from(prospectWallets)
+      .where(filter)
+      .orderBy(sortBy === 'holderRank' ? prospectWallets.holderRank : desc(prospectWallets.discoveredAt))
       .limit(parseInt(limit as string))
       .offset(parseInt(offset as string));
     
     // Get total count for pagination
-    let countQuery = db.select({ count: count() }).from(prospectWallets);
-    if (whereConditions.length > 0) {
-      countQuery = countQuery.where(and(...whereConditions));
-    }
-    const [{ count: totalCount }] = await countQuery;
+    const [{ count: totalCount }] = await db.select({ count: count() }).from(prospectWallets).where(filter);
     
     res.json({
       success: true,
@@ -285,13 +272,8 @@ router.get("/campaigns", async (req, res) => {
   try {
     const { status, limit = 20, offset = 0 } = req.query;
     
-    let query = db.select().from(outreachCampaigns);
-    
-    if (status) {
-      query = query.where(eq(outreachCampaigns.status, status as string));
-    }
-    
-    const campaigns = await query
+    const campaigns = await db.select().from(outreachCampaigns)
+      .where(status ? eq(outreachCampaigns.status, status as string) : undefined)
       .orderBy(desc(outreachCampaigns.createdAt))
       .limit(parseInt(limit as string))
       .offset(parseInt(offset as string));
@@ -332,18 +314,12 @@ router.post("/campaigns/:id/execute", async (req, res) => {
     }
     
     // Get target prospects based on campaign ecosystem
-    let targetQuery = db.select().from(prospectWallets);
-    
-    if (campaign.targetEcosystem && campaign.targetEcosystem !== 'all') {
-      targetQuery = targetQuery.where(eq(prospectWallets.tokenLabel, campaign.targetEcosystem));
-    }
-    
-    // Only target messaging-capable wallets
-    targetQuery = targetQuery.where(
-      sql`(${prospectWallets.canReceiveXMTP} = true OR ${prospectWallets.canReceiveDialect} = true OR ${prospectWallets.chain} = 'xrpl')`
-    );
-    
-    const targets = await targetQuery
+    const ecosystemFilter = campaign.targetEcosystem && campaign.targetEcosystem !== 'all'
+      ? eq(prospectWallets.tokenLabel, campaign.targetEcosystem)
+      : undefined;
+    const messageCapableFilter = sql`(${prospectWallets.canReceiveXMTP} = true OR ${prospectWallets.canReceiveDialect} = true OR ${prospectWallets.chain} = 'xrpl')`;
+    const targets = await db.select().from(prospectWallets)
+      .where(ecosystemFilter ? and(ecosystemFilter, messageCapableFilter) : messageCapableFilter)
       .orderBy(prospectWallets.holderRank)
       .limit(maxTargets);
     
@@ -393,7 +369,7 @@ router.post("/campaigns/:id/execute", async (req, res) => {
         const result = await messagingService.sendMessage({
           to: target.address,
           content: personalizedMessage,
-          type: protocol === 'on_chain' ? 'on_chain' : protocol === 'dialect' ? 'solana_sms' : 'sms',
+          type: protocol === 'on_chain' ? 'walletconnect' : protocol === 'dialect' ? 'solana_sms' : 'sms',
           metadata: {
             walletAddress: target.address,
             chainId: target.chain,
@@ -403,7 +379,7 @@ router.post("/campaigns/:id/execute", async (req, res) => {
         
         // Record message in database
         await db.insert(outreachMessages).values({
-          campaignId,
+          campaignId: Number(campaignId),
           prospectWalletId: target.id,
           protocol,
           messageContent: personalizedMessage,
@@ -411,7 +387,7 @@ router.post("/campaigns/:id/execute", async (req, res) => {
           sentAt: result.success ? new Date() : undefined,
           messageId: result.messageId,
           error: result.error,
-          cost: result.cost || 0
+          cost: (result.cost || 0).toString()
         });
         
         if (result.success) {

@@ -15,11 +15,9 @@
  *  - If neither env var is set: fee is still deducted from deposit amount but NOT swept on-chain.
  */
 
-import { PublicKey, Transaction } from '@solana/web3.js';
+import { PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
+import * as splTokenModule from '@solana/spl-token';
 import {
-  createTransferInstruction,
-  createAssociatedTokenAccountIdempotentInstruction,
-  getAssociatedTokenAddressSync,
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
@@ -31,6 +29,36 @@ import {
   getPlatformSolanaWallet,
   SOLANA_YIELD_CONFIG,
 } from './kaminoClient.js';
+
+const {
+  createTransferInstruction,
+  createAssociatedTokenAccountIdempotentInstruction,
+  getAssociatedTokenAddressSync,
+} = splTokenModule as unknown as {
+  createTransferInstruction: (
+    source: PublicKey,
+    destination: PublicKey,
+    owner: PublicKey,
+    amount: number | bigint,
+    multiSigners?: PublicKey[],
+    programId?: PublicKey,
+  ) => TransactionInstruction;
+  createAssociatedTokenAccountIdempotentInstruction: (
+    payer: PublicKey,
+    associatedToken: PublicKey,
+    owner: PublicKey,
+    mint: PublicKey,
+    programId?: PublicKey,
+    associatedTokenProgramId?: PublicKey,
+  ) => TransactionInstruction;
+  getAssociatedTokenAddressSync: (
+    mint: PublicKey,
+    owner: PublicKey,
+    allowOwnerOffCurve?: boolean,
+    programId?: PublicKey,
+    associatedTokenProgramId?: PublicKey,
+  ) => PublicKey;
+};
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -212,6 +240,9 @@ export async function buildDepositTxBundle(
     transactions:   collected,
     requestedRaw:   amountUsdcRaw.toString(),
     feeRaw:         feeRaw.toString(),
+    flatFeeRaw:     feeRaw.toString(),
+    perfFeeRaw:     '0',
+    yieldEarnedRaw: '0',
     netAmountRaw:   netRaw.toString(),
     feePct:         (SOLANA_YIELD_CONFIG.DEPOSIT_FEE_BPS / 100).toFixed(2),
     quoteExpiresAt: Date.now() + 60_000,
@@ -305,8 +336,12 @@ export async function buildWithdrawTxBundle(
     SOLANA_YIELD_CONFIG.USDC_MINT,
     owner,
     existingObligation,
-    slot,
     300_000,
+    true,
+    false,
+    true,
+    undefined,
+    slot,
   );
 
   const txns      = await action.getTransactions();

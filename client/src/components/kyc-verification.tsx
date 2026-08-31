@@ -110,7 +110,7 @@ export function KYCVerification() {
       if (key === 'address') {
         formDataToSend.append(key, JSON.stringify(value));
       } else {
-        formDataToSend.append(key, value);
+        formDataToSend.append(key, String(value));
       }
     });
     

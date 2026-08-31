@@ -35,7 +35,7 @@ interface Product {
 interface PurchaseRequest {
   productId: number;
   agentId: string;
-  paymentMethod: 'stripe' | 'crypto' | 'circle' | 'paypal';
+  paymentMethod: 'stripe' | 'crypto' | 'circle' | 'paypal' | 'usdc' | 'xrp';
   email?: string;
   walletAddress?: string;
 }
@@ -48,7 +48,7 @@ export default function AIAgentStore() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: productsData, isLoading } = useQuery({
+  const { data: productsData, isLoading } = useQuery<{ products: Product[] }>({
     queryKey: ['/api/ai-agent-products/products'],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -91,7 +91,7 @@ export default function AIAgentStore() {
     setPurchaseMode('purchase');
   };
 
-  const confirmPurchase = async (paymentMethod: 'stripe' | 'crypto' | 'circle' | 'paypal') => {
+  const confirmPurchase = async (paymentMethod: PurchaseRequest['paymentMethod']) => {
     if (!selectedProduct) return;
 
     const purchaseData: PurchaseRequest = {

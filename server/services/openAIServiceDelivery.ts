@@ -891,7 +891,6 @@ Return ONLY valid JSON with this exact structure:
       totalCost: calculateCost(
         response.usage?.prompt_tokens || 0,
         response.usage?.completion_tokens || 0,
-        'gpt-4o'
       ),
       model: 'gpt-4o'
     };

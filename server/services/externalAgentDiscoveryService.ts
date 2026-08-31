@@ -8,7 +8,7 @@ import fetch from 'node-fetch';
 export interface ExternalAgent {
   id: string;
   name: string;
-  platform: 'virtuals' | 'x402' | 'based_agent' | 'spectral';
+  platform: 'virtuals' | 'x402' | 'based_agent' | 'spectral' | 'ai16z' | 'solana' | 'bittensor' | 'fetch' | 'snet' | 'rndr' | 'ocean' | 'google_ap2' | 'agentkit';
   walletAddress: string;
   tokenAddress?: string;
   capabilities: string[];
@@ -330,7 +330,7 @@ export class ExternalAgentDiscoveryService {
     console.log('🔍 Discovering ALL Virtuals Protocol agents ($4.5B ecosystem)...');
     
     // Known major Virtuals agents with verified addresses
-    const majorVirtualsAgents = [
+    const majorVirtualsAgents: ExternalAgent[] = [
       {
         id: 'virtuals_aixbt',
         name: 'AIXBT (AI Trading Agent)',
@@ -469,7 +469,7 @@ export class ExternalAgentDiscoveryService {
       const x402Agents = await this.discoverX402Agents();
       
       // Add known x402 high-value agents
-      const knownX402Agents = [
+      const knownX402Agents: ExternalAgent[] = [
         {
           id: 'x402_render_agent',
           name: 'Render Network Agent',

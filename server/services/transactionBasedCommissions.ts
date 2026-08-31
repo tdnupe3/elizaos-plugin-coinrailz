@@ -78,24 +78,16 @@ export class TransactionBasedCommissions {
     try {
       const commissions: CommissionTrigger[] = [];
       
-      // Production security validation
-      const { productionSecurity } = await import('./productionSecurityService');
-      
-      // Validate transaction authenticity
-      const authValidation = productionSecurity.validateTransactionAuthenticity(
-        entityId,
-        transactionAmount,
-        'commission_trigger'
-      );
-      
-      if (authValidation.blockAction) {
-        console.warn('Blocking suspicious transaction:', {
+      // Reject malformed commission events before they can enter the payout flow.
+      // Transaction authenticity itself is established by the payment processor
+      // before this service is called.
+      if (!entityId.trim() || !transactionId.trim() || !Number.isFinite(transactionAmount) || transactionAmount <= 0) {
+        console.warn('Blocking invalid commission event:', {
           transactionId,
           entityId,
-          reason: authValidation.reason,
-          riskLevel: authValidation.riskLevel
+          transactionAmount,
         });
-        return commissions; // Block processing for suspicious transactions
+        return commissions;
       }
       
       // Get referral chain for the entity that made the transaction

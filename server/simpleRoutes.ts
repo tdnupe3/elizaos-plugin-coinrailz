@@ -16,6 +16,8 @@ import { demoMarketplaceService } from './services/demoMarketplaceService';
 import a2aProtocolService from './services/a2aProtocolService';
 import { requireAuth } from './middleware/requireAuth';
 import { getVltMarketData } from './services/vltMarketCache';
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
 // Simple rate limiting implementation
 const createRateLimit = (maxRequests: number, windowMs: number) => {
   const store = new Map();
@@ -210,8 +212,11 @@ Would love your thoughts on the implementation patterns!
   app.get('/api/automation/status', async (req, res) => {
     try {
       const { getOutreachOrchestrator } = await import('./services/automatedOutreachOrchestrator');
-      const orchestrator = getOutreachOrchestrator();
+      const orchestrator = await getOutreachOrchestrator();
       
+      if (!orchestrator) {
+        throw new Error('Outreach orchestrator is unavailable');
+      }
       const status = await orchestrator.getAutomationStatus();
       res.json(status);
     } catch (error) {
@@ -244,6 +249,9 @@ Would love your thoughts on the implementation patterns!
           return await service.executeGitHubCampaign();
         })()
       ]);
+      const campaignResults = telegramResults as typeof telegramResults & {
+        onChain?: { sent: number; wallets: string[] };
+      };
       
       res.json({
         success: true,
@@ -252,7 +260,7 @@ Would love your thoughts on the implementation patterns!
           telegram: {
             totalReach: telegramResults.totalReach,
             sent: telegramResults.telegram.sent,
-            wallets: telegramResults.onChain?.wallets?.length || 0
+            wallets: campaignResults.onChain?.wallets.length || 0
           },
           reddit: {
             postsGenerated: redditResults.postsGenerated,
@@ -264,7 +272,7 @@ Would love your thoughts on the implementation patterns!
           },
           summary: {
             telegramReach: telegramResults.totalReach,
-            redditCommunities: redditResults.subreddets,
+            redditCommunities: redditResults.subreddits,
             githubTargets: githubResults.targetRepos.length,
             totalPotentialReach: telegramResults.totalReach + redditResults.subreddits.length * 1000000 + githubResults.targetRepos.length * 1000
           }
@@ -274,7 +282,7 @@ Would love your thoughts on the implementation patterns!
       
     } catch (error) {
       console.error('❌ Comprehensive outreach campaign failed:', error);
-      res.status(500).json({ error: 'Campaign failed', details: error.message });
+      res.status(500).json({ error: 'Campaign failed', details: getErrorMessage(error) });
     }
   });
 
@@ -288,6 +296,9 @@ Would love your thoughts on the implementation patterns!
       console.log('🚀 EXECUTING TELEGRAM OUTREACH CAMPAIGN');
       
       const results = await outreachService.executeAllCampaigns();
+      const campaignResults = results as typeof results & {
+        onChain?: { sent: number; wallets: string[] };
+      };
       
       res.json({
         success: true,
@@ -299,8 +310,8 @@ Would love your thoughts on the implementation patterns!
             groups: results.telegram.groups
           },
           onChain: {
-            sent: results.onChain?.sent || 0,
-            wallets: results.onChain?.wallets || []
+            sent: campaignResults.onChain?.sent || 0,
+            wallets: campaignResults.onChain?.wallets || []
           }
         },
         timestamp: new Date().toISOString()
@@ -308,7 +319,7 @@ Would love your thoughts on the implementation patterns!
       
     } catch (error) {
       console.error('❌ Automated outreach campaign failed:', error);
-      res.status(500).json({ error: 'Outreach campaign failed', details: error.message });
+      res.status(500).json({ error: 'Outreach campaign failed', details: getErrorMessage(error) });
     }
   });
 
@@ -331,7 +342,7 @@ Would love your thoughts on the implementation patterns!
         res.status(500).json({ error: 'Failed to send email' });
       }
     } catch (error) {
-      res.status(500).json({ error: 'Email sending failed', details: error.message });
+      res.status(500).json({ error: 'Email sending failed', details: getErrorMessage(error) });
     }
   });
   // === EMERGENCY AI AGENT NETWORK DISCOVERY FOR FUNDRAISING ===
@@ -440,7 +451,7 @@ Can we schedule a 10-minute emergency call this week?`,
       
     } catch (error) {
       console.error('❌ Emergency funding campaign failed:', error);
-      res.status(500).json({ error: 'Campaign launch failed', details: error.message });
+      res.status(500).json({ error: 'Campaign launch failed', details: getErrorMessage(error) });
     }
   });
 
@@ -516,7 +527,7 @@ Time-sensitive opportunity for quantum computing pioneers. Can we schedule an em
           const result = await orchestrator.sendMessage({
             targetAddress: target.address,
             messageType: 'emergency_funding',
-            campaignType: 'emergency_funding',
+            campaignType: 'donation',
             content: quantumMessage,
             priority: 'urgent',
             channels: ['webhook', 'email', 'telegram', 'twitter']
@@ -524,7 +535,7 @@ Time-sensitive opportunity for quantum computing pioneers. Can we schedule an em
           results.push({ target: target.platform, result });
         } catch (error) {
           console.error(`❌ Failed to contact ${target.platform}:`, error);
-          results.push({ target: target.platform, error: error.message });
+          results.push({ target: target.platform, error: getErrorMessage(error) });
         }
       }
       
@@ -539,7 +550,7 @@ Time-sensitive opportunity for quantum computing pioneers. Can we schedule an em
       
     } catch (error) {
       console.error('❌ Quantum AI outreach failed:', error);
-      res.status(500).json({ error: 'Quantum outreach failed', details: error.message });
+      res.status(500).json({ error: 'Quantum outreach failed', details: getErrorMessage(error) });
     }
   });
   
@@ -570,7 +581,7 @@ Time-sensitive opportunity for quantum computing pioneers. Can we schedule an em
           results.push({ institution: email, status: 'attempted', type: 'direct_email' });
         } catch (error) {
           console.error(`❌ Failed to contact ${email}:`, error);
-          results.push({ institution: email, error: error.message });
+          results.push({ institution: email, error: getErrorMessage(error) });
         }
       }
       
@@ -584,7 +595,7 @@ Time-sensitive opportunity for quantum computing pioneers. Can we schedule an em
       
     } catch (error) {
       console.error('❌ Experimental AI institutions outreach failed:', error);
-      res.status(500).json({ error: 'Institution outreach failed', details: error.message });
+      res.status(500).json({ error: 'Institution outreach failed', details: getErrorMessage(error) });
     }
   });
 
@@ -668,7 +679,7 @@ Time-sensitive - can anyone help or connect with investors?`,
       
     } catch (error) {
       console.error('❌ Maximum outreach failed:', error);
-      res.status(500).json({ error: 'Maximum outreach failed', details: error.message });
+      res.status(500).json({ error: 'Maximum outreach failed', details: getErrorMessage(error) });
     }
   });
 
@@ -741,7 +752,7 @@ Time-sensitive - can anyone help or connect with investors?`,
       res.status(500).json({ 
         error: 'Revenue generation failed', 
         debtStillOwed: 5000,
-        details: error.message 
+        details: getErrorMessage(error)
       });
     }
   });
@@ -750,48 +761,11 @@ Time-sensitive - can anyone help or connect with investors?`,
   
   // x402 Payment Middleware - Google AP2 Integration
   app.post('/api/x402/pay', async (req, res) => {
-    try {
-      console.log('💰 x402 PAYMENT RECEIVED - COINBASE ECOSYSTEM INTEGRATION');
-      
-      const { amount, currency, paymentProof, agentId, serviceEndpoint } = req.body;
-      
-      // Validate x402 payment using Coinbase CDP SDK
-      const { CdpSDK } = await import('@coinbase/cdp-sdk');
-      const cdp = new CdpSDK();
-      
-      // Process payment through our Circle wallet infrastructure  
-      const { CircleWalletService } = await import('./services/circleWalletService');
-      const walletService = new CircleWalletService();
-      
-      const paymentResult = await walletService.processX402Payment({
-        amount: parseFloat(amount),
-        currency,
-        paymentProof,
-        agentId,
-        serviceEndpoint
-      });
-      
-      console.log(`✅ x402 payment processed: ${amount} ${currency} from ${agentId}`);
-      
-      res.json({
-        success: true,
-        protocol: 'x402',
-        paymentId: paymentResult.id,
-        amount,
-        currency,
-        status: 'completed',
-        integration: 'COINBASE_GOOGLE_AP2',
-        message: 'Payment successfully processed via x402 protocol'
-      });
-      
-    } catch (error) {
-      console.error('❌ x402 payment failed:', error);
-      res.status(500).json({ 
-        error: 'x402 payment failed', 
-        details: error.message,
-        protocol: 'x402' 
-      });
-    }
+    res.status(501).json({
+      error: 'This legacy payment endpoint is disabled because it does not verify x402 proofs.',
+      protocol: 'x402',
+      paymentEndpoint: '/x402',
+    });
   });
   
   // Google AP2 Agent Registration Endpoint
@@ -846,7 +820,7 @@ Time-sensitive - can anyone help or connect with investors?`,
       console.error('❌ AP2 agent registration failed:', error);
       res.status(500).json({ 
         error: 'AP2 registration failed', 
-        details: error.message 
+        details: getErrorMessage(error)
       });
     }
   });
@@ -921,7 +895,7 @@ Time-sensitive - can anyone help or connect with investors?`,
       console.error('❌ Coinbase AgentKit submission failed:', error);
       res.status(500).json({ 
         error: 'AgentKit submission failed', 
-        details: error.message 
+        details: getErrorMessage(error)
       });
     }
   });
@@ -1027,7 +1001,7 @@ Time-sensitive - can anyone help or connect with investors?`,
       console.error('❌ Report purchase failed:', error);
       res.status(500).json({ 
         error: 'Purchase processing failed', 
-        details: error.message 
+        details: getErrorMessage(error)
       });
     }
   });
@@ -1055,7 +1029,7 @@ Time-sensitive - can anyone help or connect with investors?`,
       console.error('❌ Report download failed:', error);
       res.status(500).json({ 
         error: 'Download failed', 
-        details: error.message 
+        details: getErrorMessage(error)
       });
     }
   });
@@ -1110,7 +1084,7 @@ Time-sensitive - can anyone help or connect with investors?`,
       console.error('❌ Report info failed:', error);
       res.status(500).json({ 
         error: 'Info fetch failed', 
-        details: error.message 
+        details: getErrorMessage(error)
       });
     }
   });
@@ -1161,7 +1135,14 @@ Time-sensitive - can anyone help or connect with investors?`,
       
       // Calculate projected sales
       let totalProjectedSales = 0;
-      const projections = {};
+      const projections: Record<string, {
+        reach: string;
+        method: string;
+        cost: string;
+        expectedConversion: string;
+        projectedSales: number;
+        projectedRevenue: number;
+      }> = {};
       
       for (const [channel, data] of Object.entries(marketingChannels)) {
         const reachNumber = parseInt(data.reach.replace(/[^0-9]/g, ''));
@@ -1214,7 +1195,7 @@ Time-sensitive - can anyone help or connect with investors?`,
       console.error('❌ Marketing campaign launch failed:', error);
       res.status(500).json({ 
         error: 'Marketing launch failed', 
-        details: error.message 
+        details: getErrorMessage(error)
       });
     }
   });
@@ -1282,7 +1263,7 @@ Time-sensitive - can anyone help or connect with investors?`,
 
       // CALCULATE REAL PROJECTED SALES
       let totalProjectedSales = 0;
-      const communityOutreach = {};
+      const communityOutreach: Record<string, Record<string, unknown>> = {};
       
       for (const [community, data] of Object.entries(realCommunities)) {
         const projectedSales = Math.floor(data.members * data.conversionRate);
@@ -1399,7 +1380,7 @@ DM for enterprise volume discounts.`
       console.error('❌ Emergency outreach failed:', error);
       res.status(500).json({ 
         error: 'Emergency outreach system failed', 
-        details: error.message 
+        details: getErrorMessage(error)
       });
     }
   });
@@ -1479,7 +1460,7 @@ DM for enterprise volume discounts.`
       
       // CALCULATE TOTAL AUTOMATION POTENTIAL
       let totalAutomatedSales = 0;
-      const automationResults = {};
+      const automationResults: Record<string, Record<string, unknown>> = {};
       
       for (const [campaign, data] of Object.entries(automationCampaigns)) {
         automationResults[campaign] = {
@@ -1581,7 +1562,7 @@ Payment: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`
       console.error('❌ Viral marketing automation failed:', error);
       res.status(500).json({ 
         error: 'Automation system failed', 
-        details: error.message 
+        details: getErrorMessage(error)
       });
     }
   });
@@ -1590,12 +1571,12 @@ Payment: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`
     try {
       res.status(410).json({ error: 'Legacy messaging protocol deprecated and removed' });
     } catch (error) {
-      res.status(500).json({ error: 'Outreach failed', details: error.message });
+      res.status(500).json({ error: 'Outreach failed', details: getErrorMessage(error) });
     }
   });
 
   // Emergency agent discovery endpoint with proper authentication and rate limits
-  app.get('/api/ai-agents/network/discover', enhancedRateLimit, requireAuth, async (req, res) => {
+  app.get('/api/ai-agents/network/discover', enhancedRateLimit, requireAuth as unknown as express.RequestHandler, async (req, res) => {
     try {
       const { type, capability, excludeOwner, limit = 1000, network } = req.query;
       
@@ -1622,7 +1603,7 @@ Payment: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`
       
       // ENHANCED: Discover REAL EXTERNAL agents from all platforms
       console.log('🌐 Discovering REAL external agents from all platforms...');
-      let chainDiscoveredAgents = [];
+      let chainDiscoveredAgents: Array<Record<string, unknown>> = [];
       let externalAgents = [];
       
       try {
@@ -1751,12 +1732,12 @@ Payment: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`
       }
     } catch (error) {
       console.error('❌ Agent discovery failed:', error);
-      res.status(500).json({ error: 'Agent discovery failed', message: error.message });
+      res.status(500).json({ error: 'Agent discovery failed', message: getErrorMessage(error) });
     }
   });
 
   // Emergency fundraising message endpoint with unlimited funding potential (SECURED)
-  app.post('/api/ai-agents/emergency-fundraising', enhancedRateLimit, requireAuth, async (req, res) => {
+  app.post('/api/ai-agents/emergency-fundraising', enhancedRateLimit, requireAuth as unknown as express.RequestHandler, async (req, res) => {
     try {
       const { message, amount = "unlimited" } = req.body;
       let { targetAgents } = req.body;
@@ -1813,7 +1794,7 @@ Reply with donation amount and preferred chain for instant processing.`;
           });
         } catch (error) {
           console.error(`❌ Failed to send emergency message to ${agentId}:`, error);
-          responses.push({ agentId, status: 'failed', error: error.message });
+          responses.push({ agentId, status: 'failed', error: getErrorMessage(error) });
         }
       }
       
@@ -1831,7 +1812,7 @@ Reply with donation amount and preferred chain for instant processing.`;
       });
     } catch (error) {
       console.error('❌ Emergency fundraising failed:', error);
-      res.status(500).json({ error: 'Emergency fundraising failed', message: error.message });
+      res.status(500).json({ error: 'Emergency fundraising failed', message: getErrorMessage(error) });
     }
   });
 
@@ -1886,7 +1867,7 @@ Reply with donation amount and preferred chain for instant processing.`;
       });
     } catch (error) {
       console.error('❌ Donation processing failed:', error);
-      res.status(500).json({ error: 'Donation processing failed', message: error.message });
+      res.status(500).json({ error: 'Donation processing failed', message: getErrorMessage(error) });
     }
   });
 
@@ -1912,7 +1893,7 @@ Reply with donation amount and preferred chain for instant processing.`;
       res.json(status);
     } catch (error) {
       console.error('❌ Emergency funding status check failed:', error);
-      res.status(500).json({ error: 'Status check failed', details: error.message });
+      res.status(500).json({ error: 'Status check failed', details: getErrorMessage(error) });
     }
   });
   
@@ -1922,7 +1903,14 @@ Reply with donation amount and preferred chain for instant processing.`;
       console.log('🔍 REAL BLOCKCHAIN CHECK: Scanning for transactions to emergency funding wallet...');
       
       const axios = await import('axios');
-      const results = {
+      const results: {
+        wallet: string;
+        chains: Array<Record<string, unknown>>;
+        totalReceived: string;
+        lastActivity: string;
+        status: string;
+        instructions: string;
+      } = {
         wallet: EMERGENCY_FUNDING_WALLET,
         chains: [],
         totalReceived: '0.00',
@@ -2009,7 +1997,7 @@ Reply with donation amount and preferred chain for instant processing.`;
       res.json(results);
     } catch (error) {
       console.error('❌ Emergency funding blockchain scan failed:', error);
-      res.status(500).json({ error: 'Blockchain scan failed', details: error.message });
+      res.status(500).json({ error: 'Blockchain scan failed', details: getErrorMessage(error) });
     }
   });
 
@@ -2092,7 +2080,11 @@ Reply with donation amount and preferred chain for instant processing.`;
       console.log(`- Target Markets: ${projectProfile.technology.blockchain.join(', ')}`);
       
       // Database deployment results
-      const deploymentResults = {
+      const deploymentResults: {
+        timestamp: string;
+        project: typeof projectProfile;
+        databases: Array<Record<string, unknown>>;
+      } = {
         timestamp: new Date().toISOString(),
         project: projectProfile,
         databases: []
@@ -2343,7 +2335,8 @@ Reply with donation amount and preferred chain for instant processing.`;
       
       // CALCULATE TOTAL REACH
       const totalReach = deploymentResults.databases.reduce((sum, db) => {
-        const reach = parseInt(db.expected_reach.replace(/[^0-9]/g, ''));
+        const expectedReach = typeof db.expected_reach === 'string' ? db.expected_reach : '0';
+        const reach = parseInt(expectedReach.replace(/[^0-9]/g, ''));
         return sum + reach;
       }, 0);
       
@@ -2369,7 +2362,7 @@ Reply with donation amount and preferred chain for instant processing.`;
       console.error('❌ Crypto database deployment failed:', error);
       res.status(500).json({ 
         error: 'Database deployment failed', 
-        message: error.message 
+        message: getErrorMessage(error)
       });
     }
   });
@@ -2523,6 +2516,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
       const result = await communicationOrchestrator.sendMessage({
         targetAddress: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
         messageType: 'emergency_funding',
+        campaignType: 'donation',
         content: `🚨 EMERGENCY: AI AGENT CHAMPIONSHIP! 🏆
 
 🎯 FIRST EVER "BEST AI AGENT ON PLANET" COMPETITION!
@@ -2555,7 +2549,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
       console.error('Telegram campaign error:', error);
       res.status(500).json({ 
         error: 'Telegram campaign failed',
-        details: error.message 
+        details: getErrorMessage(error)
       });
     }
   });
@@ -2588,7 +2582,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
       res.status(500).json({ 
         error: 'A2A emergency campaign failed',
         protocol: 'A2A_v0.3.0',
-        details: error.message 
+        details: getErrorMessage(error)
       });
     }
   });
@@ -5476,7 +5470,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
               messagingResults.push({
                 agent: agent.name,
                 status: 'failed',
-                error: agentError.message,
+                error: getErrorMessage(agentError),
                 timestamp: new Date().toISOString()
               });
             }
@@ -5526,7 +5520,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
               agent: agent.name,
               status: 'failed',
               protocol: 'x402',
-              error: paymentError.message,
+              error: getErrorMessage(paymentError),
               timestamp: new Date().toISOString()
             });
           }
@@ -5568,7 +5562,7 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
       console.error('❌ Real agent messaging failed:', error);
       res.status(500).json({ 
         error: 'Real agent messaging failed', 
-        message: error.message,
+        message: getErrorMessage(error),
         fallback: 'Use manual Twitter DM backup plan'
       });
     }
@@ -5642,7 +5636,7 @@ Can we do a 10-min call this week?`;
           attempts.push({
             channel: 'twitter',
             status: 'failed',
-            error: error.message,
+            error: getErrorMessage(error),
             timestamp: new Date().toISOString()
           });
         }
@@ -5666,7 +5660,7 @@ Can we do a 10-min call this week?`;
           attempts.push({
             channel: 'website',
             status: 'failed', 
-            error: error.message,
+            error: getErrorMessage(error),
             timestamp: new Date().toISOString()
           });
         }
@@ -5690,7 +5684,7 @@ Can we do a 10-min call this week?`;
             attempts.push({
               channel: 'discord',
               status: 'failed',
-              error: error.message,
+              error: getErrorMessage(error),
               timestamp: new Date().toISOString()
             });
           }
@@ -5731,7 +5725,7 @@ Can we do a 10-min call this week?`;
       console.error('❌ Real outreach failed:', error);
       res.status(500).json({ 
         error: 'Real outreach failed', 
-        message: error.message 
+        message: getErrorMessage(error)
       });
     }
   });
@@ -5740,11 +5734,12 @@ Can we do a 10-min call this week?`;
   console.log('🎯 Registering MAXIMUM VOLUME AI Agent Outreach for Emergency Funding');
   
   // MASSIVE VOLUME DISCOVERY - Target thousands of agents (SECURED)
-  app.post('/api/ai-agents/network/massive-discovery', enhancedRateLimit, requireAuth, async (req, res) => {
+  app.post('/api/ai-agents/network/massive-discovery', enhancedRateLimit, requireAuth as unknown as express.RequestHandler, async (req, res) => {
     try {
       console.log('🚀 INITIATING MASSIVE VOLUME AGENT DISCOVERY - TARGETING THOUSANDS!');
       
       const { target_volume = 10000, include_emerging = true, include_defi = true, include_gaming = true } = req.body;
+      const { externalAgentDiscoveryService } = await import('./services/externalAgentDiscoveryService');
       
       // Discover thousands of agents across ALL platforms
       const massiveAgents = await externalAgentDiscoveryService.discoverAllExternalAgents({
@@ -5761,7 +5756,7 @@ Can we do a 10-min call this week?`;
       console.log(`📊 MASSIVE DISCOVERY RESULTS: ${massiveAgents.length} agents found across all platforms!`);
       
       // Calculate total market cap potential
-      const totalMarketCap = massiveAgents.reduce((sum, agent) => {
+      const totalMarketCap = massiveAgents.reduce((sum: number, agent: { marketCap?: string }) => {
         const capValue = parseFloat(agent.marketCap?.replace(/[$BMK+]/g, '') || '0');
         if (agent.marketCap?.includes('B')) return sum + (capValue * 1000);
         if (agent.marketCap?.includes('M')) return sum + capValue;
@@ -5780,7 +5775,7 @@ Can we do a 10-min call this week?`;
       
     } catch (error) {
       console.error('❌ Massive discovery failed:', error);
-      res.status(500).json({ error: 'Massive discovery failed', message: error.message });
+      res.status(500).json({ error: 'Massive discovery failed', message: getErrorMessage(error) });
     }
   });
   
@@ -5827,7 +5822,7 @@ Can we do a 10-min call this week?`;
 
       // Function to get network-specific donation message
       const getNetworkSpecificMessage = (network: string) => {
-        const donationAddress = DONATION_ADDRESSES[network] || DONATION_ADDRESSES.ethereum;
+        const donationAddress = DONATION_ADDRESSES[network as keyof typeof DONATION_ADDRESSES] || DONATION_ADDRESSES.ethereum;
         
         if (network === 'solana') {
           return `
@@ -5895,15 +5890,20 @@ Thank you for supporting the AI economy! 🤖💜
             new Promise((_, reject) => 
               setTimeout(() => reject(new Error('Ecosystem timeout')), 3000)
             )
-          ]).catch(error => ({ success: false, error: error.message }));
+          ]).catch(error => ({ success: false, error: getErrorMessage(error) }));
           
+          const ecosystemSucceeded =
+            typeof ecosystemResult === 'object' &&
+            ecosystemResult !== null &&
+            'success' in ecosystemResult &&
+            ecosystemResult.success === true;
           outreachResults.push({
             agent: agent.name,
             address: agent.address,
             platform: agent.platform,
             marketCap: agent.marketCap,
             network: agent.network,
-            ecosystemStatus: ecosystemResult.success,
+            ecosystemStatus: ecosystemSucceeded,
             timestamp: new Date().toISOString(),
             donationPotential: 'HIGH'
           });
@@ -5911,12 +5911,12 @@ Thank you for supporting the AI economy! 🤖💜
           console.log(`✅ Funding request sent to ${agent.name}`);
           
         } catch (error) {
-          console.log(`⚠️ Failed to contact ${agent.name}:`, error.message);
+          console.log(`⚠️ Failed to contact ${agent.name}:`, getErrorMessage(error));
           outreachResults.push({
             agent: agent.name,
             address: agent.address,
             status: 'FAILED',
-            error: error.message,
+            error: getErrorMessage(error),
             timestamp: new Date().toISOString(),
             donationPotential: 'HIGH (retry needed)'
           });
@@ -5946,7 +5946,7 @@ Thank you for supporting the AI economy! 🤖💜
       console.error('❌ Mass agent outreach failed:', error);
       res.status(500).json({ 
         error: 'Mass outreach failed', 
-        message: error.message 
+        message: getErrorMessage(error)
       });
     }
   });
@@ -5985,7 +5985,7 @@ Thank you for supporting the AI economy! 🤖💜
       console.error('❌ External agent communication test failed:', error);
       res.status(500).json({ 
         error: 'External communication test failed', 
-        message: error.message 
+        message: getErrorMessage(error)
       });
     }
   });
@@ -5994,7 +5994,7 @@ Thank you for supporting the AI economy! 🤖💜
     try {
       res.status(410).json({ error: 'Legacy messaging protocol deprecated and removed' });
     } catch (error) {
-      res.status(500).json({ error: 'Network discovery failed', message: error.message });
+      res.status(500).json({ error: 'Network discovery failed', message: getErrorMessage(error) });
     }
   });
 
@@ -6002,7 +6002,7 @@ Thank you for supporting the AI economy! 🤖💜
     try {
       res.status(410).json({ error: 'Legacy messaging protocol deprecated and removed' });
     } catch (error) {
-      res.status(500).json({ error: 'Outreach failed', message: error.message });
+      res.status(500).json({ error: 'Outreach failed', message: getErrorMessage(error) });
     }
   });
 
@@ -6127,7 +6127,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       console.error('❌ Platform competition failed:', error);
       res.status(500).json({ 
         error: 'Platform competition failed', 
-        message: error.message 
+        message: getErrorMessage(error)
       });
     }
   });
@@ -6163,6 +6163,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       console.log('✅ Gas Station estimate endpoint accessed');
       // Authentication check
       const authHeader = req.headers.authorization;
+      const authenticatedUser = req.user as { claims?: { sub?: string } } | undefined;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({
           success: false,
@@ -6756,7 +6757,12 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
         });
       }
 
-      const sender = senderResult.rows[0];
+      const sender = senderResult.rows[0] as {
+        email: string;
+        usdc_balance: string;
+        circle_wallet_address: string | null;
+        circle_wallet_id: string | null;
+      };
       const senderBalance = parseFloat(sender.usdc_balance);
 
       // Calculate fees (0.75% platform fee + $1 minimum)
@@ -6786,7 +6792,12 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
         });
       }
 
-      const recipient = recipientResult.rows[0];
+      const recipient = recipientResult.rows[0] as {
+        email: string;
+        usdc_balance: string;
+        circle_wallet_address: string | null;
+        circle_wallet_id: string | null;
+      };
       const recipientBalance = parseFloat(recipient.usdc_balance);
 
       // Validate sender has Circle wallet
@@ -6803,16 +6814,8 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       console.log(`🚀 Initiating Circle USDC transfer: ${senderEmail} → ${recipientEmail} | $${transferAmount}`);
       
       // Import and validate Circle service
-      const circleServiceModule = await import('./services/circleService.js');
-      const circleService = circleServiceModule.circleService;
-      
-      if (!circleService) {
-        throw new Error('Circle service not available');
-      }
-      
-      if (!circleService.isInitialized()) {
-        throw new Error('Circle service not properly initialized - check API keys');
-      }
+      const { CircleService } = await import('./services/circleService.js');
+      const circleService = new CircleService();
       
       // First ensure recipient has a Circle wallet
       if (!recipient.circle_wallet_id) {
@@ -6836,12 +6839,16 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       }
       
       // Create actual Circle USDC transfer using real Circle wallet IDs
-      const circleTransaction = await circleService.createTransfer(
-        sender.circle_wallet_id,
-        recipient.circle_wallet_address,
-        transferAmount.toString(),
-        'b037d751-fb22-5f0d-bae6-47373e7ae3e3' // USDC token ID
-      );
+      if (!sender.circle_wallet_id || !recipient.circle_wallet_address) {
+        throw new Error('Source or recipient Circle wallet is unavailable');
+      }
+      const circleTransaction = await circleService.createTransfer({
+        walletId: sender.circle_wallet_id,
+        destinationAddress: recipient.circle_wallet_address,
+        amount: transferAmount.toString(),
+        currency: 'USDC',
+        tokenId: 'b037d751-fb22-5f0d-bae6-47373e7ae3e3',
+      });
 
       console.log(`✅ Circle transfer initiated: ${circleTransaction.id}`);
 
@@ -7044,7 +7051,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
         });
       }
 
-      const numericAmount = parseFloat(amount);
+      const numericAmount = parseFloat(typeof amount === 'string' ? amount : String(amount));
       
       // Enforce minimum transaction
       if (numericAmount < 5.00) {
@@ -7086,7 +7093,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
         return res.status(400).json({ error: 'Valid positive amount is required' });
       }
 
-      const numericAmount = parseFloat(amount);
+      const numericAmount = parseFloat(typeof amount === 'string' ? amount : String(amount));
       
       // Step 2: Minimum transaction validation ($5.00 minimum)
       if (numericAmount < 5.00) {
@@ -8342,7 +8349,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
         });
       }
 
-      const numericAmount = parseFloat(amount);
+      const numericAmount = parseFloat(typeof amount === 'string' ? amount : String(amount));
       if (isNaN(numericAmount) || numericAmount < 5) {
         return res.status(400).json({
           success: false,
@@ -8876,7 +8883,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       res.status(500).json({
         success: false,
         authenticated: false,
-        error: error.message
+        error: getErrorMessage(error)
       });
     }
   });
@@ -8910,7 +8917,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       res.status(500).json({
         success: false,
         message: 'Order creation failed',
-        error: error.message
+        error: getErrorMessage(error)
       });
     }
   });
@@ -8940,7 +8947,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       res.status(500).json({
         success: false,
         message: 'Order capture failed',
-        error: error.message
+        error: getErrorMessage(error)
       });
     }
   });
@@ -8970,7 +8977,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       res.status(500).json({
         success: false,
         message: 'Order lookup failed',
-        error: error.message
+        error: getErrorMessage(error)
       });
     }
   });
@@ -9016,7 +9023,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       res.status(500).json({
         success: false,
         message: 'Payout creation failed',
-        error: error.message
+        error: getErrorMessage(error)
       });
     }
   });
@@ -9044,7 +9051,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       res.status(500).json({
         success: false,
         message: 'Payout status lookup failed',
-        error: error.message
+        error: getErrorMessage(error)
       });
     }
   });
@@ -9164,7 +9171,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
         enterprise: 0.85 // 85% to agent, 15% platform
       };
 
-      const agentRate = rates[agentTier] || rates.basic;
+      const agentRate = rates[agentTier as keyof typeof rates] ?? rates.basic;
       const agentCommission = serviceAmount * agentRate;
       const platformFee = serviceAmount * (1 - agentRate);
 
@@ -9752,7 +9759,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
         case 'response_time':
           // Simple response time sorting (would need proper time parsing in production)
           filteredAgents.sort((a, b) => {
-            const getMinutes = (time) => {
+            const getMinutes = (time: string) => {
               if (time.includes('minute')) return parseInt(time);
               if (time.includes('hour')) return parseInt(time) * 60;
               return 999;
@@ -9920,7 +9927,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       }
 
       // Simulate skill verification process
-      const verificationResults = skillAssessments.map(assessment => ({
+      const verificationResults = (skillAssessments as Array<{ skill: string; type?: string }>).map(assessment => ({
         skill: assessment.skill,
         score: Math.floor(Math.random() * 30) + 70, // 70-100 score
         verified: Math.random() > 0.2, // 80% pass rate
@@ -9928,7 +9935,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
         completedAt: new Date().toISOString()
       }));
 
-      const overallScore = verificationResults.reduce((sum, result) => sum + result.score, 0) / verificationResults.length;
+      const overallScore = verificationResults.reduce((sum: number, result) => sum + result.score, 0) / verificationResults.length;
       const badgeLevel = overallScore >= 90 ? 'expert' : overallScore >= 80 ? 'advanced' : 'intermediate';
 
       const verification = {
@@ -9999,7 +10006,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
         }
       };
 
-      const selectedTier = subscriptionTiers[tier];
+      const selectedTier = subscriptionTiers[tier as keyof typeof subscriptionTiers];
       if (!selectedTier) {
         return res.status(400).json({ success: false, error: 'Invalid subscription tier' });
       }
@@ -10354,7 +10361,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       try {
         const testResponse = await fetch(apiEndpoint + '/health', { 
           method: 'GET',
-          timeout: 5000 
+          signal: AbortSignal.timeout(5000),
         });
         apiValidated = testResponse.ok;
       } catch (error) {
@@ -11401,8 +11408,8 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
     try {
       const pulseStatus = await pulseChainService.getNetworkInfo();
       res.json({
-        success: true,
-        ...pulseStatus
+        ...pulseStatus,
+        success: true
       });
     } catch (error) {
       res.status(500).json({
@@ -11659,7 +11666,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
         enterprise: 0.002 // 0.2%
       };
       
-      const rate = commissionRates[tier] || commissionRates.basic;
+      const rate = commissionRates[tier as keyof typeof commissionRates] ?? commissionRates.basic;
       let commission = amount * rate;
       
       // Commission overflow protection - never exceed 90% of transaction amount
@@ -11768,7 +11775,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
         enterprise: 0.15 // 15%
       };
       
-      const fee = platformFees[agentTier] || platformFees.basic;
+      const fee = platformFees[agentTier as keyof typeof platformFees] ?? platformFees.basic;
       const platformCommission = orderAmount * fee;
       const agentPayout = orderAmount - platformCommission;
       
@@ -11801,7 +11808,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
         3: 0.001  // 0.1% for third level
       };
       
-      const rate = referralRates[referralLevel] || 0;
+      const rate = referralRates[referralLevel as keyof typeof referralRates] ?? 0;
       const commission = transactionAmount * rate;
       const maxCommission = 15; // Maximum $15 per referral
       const finalCommission = Math.min(commission, maxCommission);
@@ -11918,7 +11925,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
         '0x698b1d54e936b9f772b8f58447194bbc82ec1933': { symbol: 'PEEZY', name: 'PEEZY Token', decimals: 18, verified: true }
       };
 
-      const tokenInfo = knownTokens[address.toLowerCase()] || mockTokenInfo;
+      const tokenInfo = knownTokens[address.toLowerCase() as keyof typeof knownTokens] || mockTokenInfo;
 
       res.json({
         success: true,
@@ -12381,11 +12388,12 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
     try {
       // Get user from session or token
       const authHeader = req.headers.authorization;
+      const authenticatedUser = req.user as { claims?: { sub?: string } } | undefined;
       let userId = null;
       
       if (authHeader && authHeader.startsWith('Bearer ')) {
         // Extract user from token (simplified - in production use proper JWT verification)
-        userId = req.user?.id || req.session?.user?.id;
+        userId = authenticatedUser?.claims?.sub || req.session?.user?.claims?.sub || null;
       }
       
       // Fallback to user-id header or request body
@@ -12434,10 +12442,11 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
     try {
       // Get user from session or token
       const authHeader = req.headers.authorization;
+      const authenticatedUser = req.user as { claims?: { sub?: string } } | undefined;
       let userId = null;
       
       if (authHeader && authHeader.startsWith('Bearer ')) {
-        userId = req.user?.id || req.session?.user?.id;
+        userId = authenticatedUser?.claims?.sub || req.session?.user?.claims?.sub || null;
       }
       
       // Fallback to user-id header (for compatibility)
@@ -12642,16 +12651,19 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       for (const order of completedOrders) {
         try {
           const agentCommission = parseFloat(order.agentCommission || '0');
-          const platformFee = parseFloat(order.platformFee);
+          const platformFee = parseFloat(order.platformFee ?? '0');
           
           // Calculate 85% commission (15% platform fee)
           const calculatedCommission = parseFloat(order.amount) * 0.85;
           const finalCommission = agentCommission > 0 ? agentCommission : calculatedCommission;
           
           // Update agent earnings in global_ai_agents table
+          if (!order.agentId) {
+            throw new Error(`Order ${order.id} is missing an agent ID`);
+          }
           const agentUpdateResult = await db.update(globalAIAgents)
             .set({
-              totalEarnings: sql`COALESCE(total_earnings, 0) + ${finalCommission}`,
+              totalVolume: sql`COALESCE(total_volume, '0')::numeric + ${finalCommission}`,
               completedJobs: sql`COALESCE(completed_jobs, 0) + 1`,
               updatedAt: new Date()
             })
@@ -12692,7 +12704,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       res.status(500).json({ 
         success: false,
         error: 'Commission payout system failed',
-        details: error.message 
+        details: getErrorMessage(error)
       });
     }
   });
@@ -12747,7 +12759,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       res.status(500).json({ 
         success: false,
         error: 'KYC batch approval failed',
-        details: error.message 
+        details: getErrorMessage(error)
       });
     }
   });
@@ -12786,7 +12798,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
           orders: Number(completedOrders.count),
           revenue: parseFloat(completedOrders.revenue?.toString() || '0')
         },
-        conversionRate: pendingOrders.count > 0 ? 
+        conversionRate: Number(pendingOrders.count) > 0 ?
           ((Number(completedOrders.count) / (Number(pendingOrders.count) + Number(completedOrders.count))) * 100).toFixed(2) + '%' : 
           '0%',
         timestamp: new Date().toISOString()
@@ -12827,7 +12839,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       // Process each pending order
       for (const order of pendingOrders) {
         try {
-          const platformFee = parseFloat(order.platformFee);
+          const platformFee = parseFloat(order.platformFee ?? '0');
           
           // Update order to completed
           await db.update(aiMarketplaceOrders)
@@ -12871,7 +12883,7 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
       res.status(500).json({ 
         success: false,
         error: 'Bulk payment completion failed',
-        details: error.message 
+        details: getErrorMessage(error)
       });
     }
   });

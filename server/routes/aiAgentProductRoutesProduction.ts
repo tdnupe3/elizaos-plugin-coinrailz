@@ -5,6 +5,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { stripe } from '../services/stripeClient';
+import type Stripe from 'stripe';
 import crypto from 'crypto';
 import { storage } from '../storage';
 import { insertAIAgentProductSchema, insertAIAgentSubscriptionSchema } from '@shared/schema';
@@ -290,7 +291,7 @@ aiAgentProductRoutesProduction.post('/stripe-webhook', async (req, res) => {
         productId: parseInt(productId),
         status: 'active',
         paymentMethod: 'stripe',
-        monthlyRevenue: paymentIntent.amount_received / 100,
+        monthlyRevenue: (paymentIntent.amount_received / 100).toString(),
         apiKeyHash,
         stripeSubscriptionId: paymentIntent.id,
         email,

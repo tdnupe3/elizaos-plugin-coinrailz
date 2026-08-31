@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { subscriptions, subscriptionPlans, paymentMethods, type Subscription, type SubscriptionPlan } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
-import { stripe } from './stripeClient';
+import Stripe, { stripe } from './stripeClient';
 import { nowPaymentsService } from "./nowPaymentsService";
 import { XRPPaymentService } from "./xrpPaymentService";
 

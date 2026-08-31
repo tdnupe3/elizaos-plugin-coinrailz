@@ -1,6 +1,9 @@
 import { ethers } from 'ethers';
 import { ERC8004_CONTRACTS, IDENTITY_REGISTRY_ABI } from '../config/blockchain';
 import { persistDiscoveredAgent } from './persistence/discoveredAgentPersistence';
+import { db } from '../db';
+import { discoveredAgents } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 interface AgentRegistration {
   tokenId: number;
@@ -117,7 +120,7 @@ export class ERC8004AgentDiscovery {
         return null;
       }
       
-      const data = await response.json();
+      const data = await response.json() as AgentCardData;
       return data;
       
     } catch (error) {
@@ -169,7 +172,7 @@ export class ERC8004AgentDiscovery {
               lastSeenAt: new Date(),
               score,
               metadata,
-              capabilities,
+          capabilities: capabilities ?? undefined,
               status: registration.isActive ? 'verified' : 'unreachable'
             })
             .where(eq(discoveredAgents.wallet, registration.walletAddress.toLowerCase()));
@@ -182,16 +185,13 @@ export class ERC8004AgentDiscovery {
             wallet: registration.walletAddress.toLowerCase(),
             status: registration.isActive ? 'verified' : 'new',
             score,
-            capabilities,
+            capabilities: capabilities ?? undefined,
             metadata,
             channels: agentCard?.endpoints ? {
               a2a: !!agentCard.endpoints.a2a,
               mcp: !!agentCard.endpoints.mcp
-            } : null,
-            lastSeenAt: new Date(),
-            verifiedAt: registration.isActive ? new Date() : null,
-            attempts: 0,
-            successCount: 0
+            } : undefined,
+            verifiedAt: registration.isActive ? new Date() : undefined,
           });
           
           console.log(`✅ Saved agent #${registration.tokenId}: ${agentCard?.name || 'Unknown'} (${registration.walletAddress.slice(0, 10)}...)`);
@@ -217,7 +217,7 @@ export class ERC8004AgentDiscovery {
       .from(discoveredAgents)
       .where(eq(discoveredAgents.source, 'erc8004'));
     
-    const avgScore = agents.reduce((sum, a) => sum + (a.score || 0), 0) / agents.length || 0;
+    const avgScore = agents.reduce((sum: number, a) => sum + (a.score || 0), 0) / agents.length || 0;
     const active = agents.filter(a => a.status === 'verified');
     
     let totalOnChain = 0;

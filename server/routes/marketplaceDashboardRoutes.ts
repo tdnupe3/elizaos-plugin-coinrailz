@@ -20,17 +20,19 @@ router.get('/marketplace/dashboard/stats', async (req, res) => {
       FROM marketplace_orders
     `);
 
-    const stats = orderStats.rows[0];
+    const stats = orderStats.rows[0] as Record<string, unknown> | undefined;
+    const stringValue = (value: unknown): string =>
+      typeof value === 'string' || typeof value === 'number' ? String(value) : '0';
     
     res.json({
       success: true,
       data: {
-        totalOrders: parseInt(stats.total_orders) || 0,
-        activeOrders: parseInt(stats.active_orders) || 0,
-        completedOrders: parseInt(stats.completed_orders) || 0,
-        pendingOrders: parseInt(stats.pending_orders) || 0,
-        totalRevenue: parseFloat(stats.total_revenue) || 0,
-        avgOrderValue: parseFloat(stats.avg_order_value) || 0,
+        totalOrders: parseInt(stringValue(stats?.total_orders)) || 0,
+        activeOrders: parseInt(stringValue(stats?.active_orders)) || 0,
+        completedOrders: parseInt(stringValue(stats?.completed_orders)) || 0,
+        pendingOrders: parseInt(stringValue(stats?.pending_orders)) || 0,
+        totalRevenue: parseFloat(stringValue(stats?.total_revenue)) || 0,
+        avgOrderValue: parseFloat(stringValue(stats?.avg_order_value)) || 0,
         customerSatisfaction: 4.8 // This would come from a ratings system
       }
     });

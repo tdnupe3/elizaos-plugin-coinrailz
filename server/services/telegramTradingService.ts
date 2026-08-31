@@ -470,7 +470,7 @@ export class TelegramTradingService {
       if (walletRows.length > 0) {
         const w = walletRows[0];
         walletAddress = w.address;
-        if (!isEncrypted(w.privateKey)) {
+        if (w.privateKey && !isEncrypted(w.privateKey)) {
           const encrypted = encryptPrivateKey(w.privateKey);
           await db.update(userWallets).set({ privateKey: encrypted })
             .where(eq(userWallets.telegramUserId, chatId.toString())).catch(() => {});

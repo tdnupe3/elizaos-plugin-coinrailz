@@ -1701,7 +1701,7 @@ export class A2AOutreachService {
             ...a,
             matchScore: 0,
             acceptsTasks: a.status === 'verified',
-            lastVerifiedAt: a.updatedAt
+            lastVerifiedAt: a.verifiedAt
           }))
         };
       }
@@ -1722,7 +1722,7 @@ export class A2AOutreachService {
           ...agent,
           matchScore: score,
           acceptsTasks: agent.status === 'verified',
-          lastVerifiedAt: agent.updatedAt
+          lastVerifiedAt: agent.verifiedAt
         };
       });
 

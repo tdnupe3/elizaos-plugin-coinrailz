@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -56,14 +56,12 @@ export default function SettingsPage() {
   });
 
   // Fetch user preferences
-  const { data: userPrefs, refetch } = useQuery({
+  const { data: userPrefs, refetch } = useQuery<UserPreferences>({
     queryKey: ['/api/user/preferences'],
-    onSuccess: (data) => {
-      if (data) {
-        setPreferences(prev => ({ ...prev, ...data }));
-      }
-    },
   });
+  useEffect(() => {
+    if (userPrefs) setPreferences(prev => ({ ...prev, ...userPrefs }));
+  }, [userPrefs]);
 
   // Save preferences mutation
   const savePreferencesMutation = useMutation({

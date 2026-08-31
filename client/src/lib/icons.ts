@@ -1,6 +1,7 @@
 // Minimal icon set with only the icons actually used in the platform
 export {
   Activity,
+  Camera,
   AlertCircle,
   AlertTriangle,
   ArrowDown,
@@ -34,8 +35,10 @@ export {
   Clock,
   Copy,
   CreditCard,
+  Cpu,
   Database,
   DollarSign,
+  Dot,
   Download,
   Edit,
   Eye,
@@ -92,9 +95,12 @@ export {
   Coins,
   Github,
   Gift,
+  GripVertical,
   Gavel,
   Droplets,
   PieChart,
+  Percent,
+  Receipt,
   ArrowUpRight,
   ArrowDownLeft,
   Upload,
@@ -111,3 +117,13 @@ export {
   Wifi,
   WifiOff
 } from '@/lib/minimal-icons-clean';
+
+import {
+  AlertCircle, ArrowUp, Bitcoin, Clock, CreditCard, DollarSign, Percent,
+  Receipt, Wallet,
+} from "@/lib/minimal-icons-clean";
+
+export const Icons = {
+  AlertCircle, ArrowUp, Bitcoin, Clock, CreditCard, DollarSign, Percent,
+  Receipt, Wallet,
+};

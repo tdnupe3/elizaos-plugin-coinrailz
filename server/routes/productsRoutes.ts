@@ -1,4 +1,5 @@
 import express, { Express, Request, Response } from "express";
+import type Stripe from "stripe";
 import { stripe } from '../services/stripeClient';
 
 export function registerProductsRoutes(app: Express) {
@@ -64,7 +65,7 @@ export function registerProductsRoutes(app: Express) {
         success_url: `${baseUrl}/dashboard?purchase=success&product=${productType}`,
         cancel_url: `${baseUrl}/products/ai-agent-bundle?canceled=true`,
         metadata: {
-          userId: req.user?.id || 'guest',
+          userId: (req.user as { id?: string } | undefined)?.id || 'guest',
           productType,
           priceId,
           tier

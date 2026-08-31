@@ -109,7 +109,8 @@ export const applyRateLimit = (limitType: keyof typeof rateLimitConfigs) => {
 
 // Helper function to check if request is rate limited
 export const isRateLimited = (req: Request): boolean => {
-  return req.rateLimit ? req.rateLimit.remaining === 0 : false;
+  const rateLimitInfo = (req as Request & { rateLimit?: { remaining: number } }).rateLimit;
+  return rateLimitInfo?.remaining === 0;
 };
 
 // Business logic validation middleware

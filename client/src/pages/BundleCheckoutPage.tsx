@@ -40,7 +40,7 @@ export default function BundleCheckoutPage() {
 
   const createCheckoutSession = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest<{ url: string }>('/api/bundles/checkout', {
+      const response = await apiRequest('/api/bundles/checkout', {
         method: 'POST',
         body: JSON.stringify({
           bundleId,

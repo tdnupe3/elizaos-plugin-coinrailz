@@ -8,6 +8,7 @@
 import { ethers } from 'ethers';
 import { CoinbaseCDPService } from './coinbaseCDPService';
 import { db } from '../db';
+import { sql } from 'drizzle-orm';
 
 export interface PilotTarget {
   id: number;

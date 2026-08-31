@@ -236,6 +236,8 @@ export class RWAIntegrationService {
       timeframe: 'medium'
     });
 
+    const recommendations = educationalInfo.tokens;
+    const totalAmount = researchAmount;
     let allocation: Array<{
       token: RWAToken;
       allocatedAmount: string;
@@ -304,9 +306,12 @@ export class RWAIntegrationService {
     const diversificationScore = Math.min(100, assetTypes.size * 25);
 
     return {
-      allocation,
-      expectedAnnualYield: weightedYield.toFixed(2),
-      diversificationScore
+      examples: allocation.map(({ token, allocatedAmount, percentage }) => ({
+        token, exampleAmount: allocatedAmount, percentage
+      })),
+      educationalYieldExample: weightedYield.toFixed(2),
+      diversificationExample: diversificationScore,
+      disclaimer: educationalInfo.disclaimer,
     };
   }
 

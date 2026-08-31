@@ -23,7 +23,7 @@ interface AIAgentOutreachTarget {
 }
 
 export class AIAgentComprehensiveOutreach {
-  private platformWallet: ethers.Wallet;
+  private platformWallet!: ethers.Wallet;
   private messagesSent: number = 0;
   private totalCost: number = 0;
   private productOffersSent: number = 0;
@@ -297,9 +297,16 @@ From: Coin Railz Emergency Partnership Team`;
         id: agent.id,
         agentName: agent.agentName || `Agent ${agent.id}`,
         description: agent.description || 'AI Agent',
-        walletAddress: agent.primaryWalletAddress || agent.ethereumWallet,
-        specialties: Array.isArray(agent.specialties) ? agent.specialties : [],
-        capabilities: Array.isArray(agent.capabilities) ? agent.capabilities : [],
+        walletAddress: agent.primaryWalletAddress || agent.ethereumWallet || undefined,
+        // The persisted agent model exposes capabilities but has no separate
+        // specialties column.  Use its declared capabilities for both the
+        // operational and presentation-oriented classifications.
+        specialties: Array.isArray(agent.capabilities)
+          ? agent.capabilities.filter((capability): capability is string => typeof capability === 'string')
+          : [],
+        capabilities: Array.isArray(agent.capabilities)
+          ? agent.capabilities.filter((capability): capability is string => typeof capability === 'string')
+          : [],
         isHighValue: false, // DB agents are considered standard value
         outreachType: 'BOTH' // Send both product offers and funding requests
       }));

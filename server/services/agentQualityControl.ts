@@ -146,7 +146,7 @@ export class AgentQualityControl {
           )
       `);
 
-      return result.rows.map(row => row.id);
+      return result.rows.map((row: { id: string }) => row.id);
     } catch (error) {
       console.error('Failed to flag underperforming agents:', error);
       return [];

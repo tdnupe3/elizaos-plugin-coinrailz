@@ -190,7 +190,7 @@ export class TokenHolderDiscoveryService {
   /**
    * 🔍 Query token holders directly from Solana blockchain using getProgramAccounts
    */
-  private async queryTokenHoldersDirectly(tokenMint: string, maxHolders: number): Promise<TokenHolderTarget[]> {
+  async queryTokenHoldersDirectly(tokenMint: string, maxHolders: number): Promise<TokenHolderTarget[]> {
     try {
       console.log(`🔍 DIRECT BLOCKCHAIN QUERY: Using getProgramAccounts for token ${tokenMint.slice(0,8)}...`);
       
@@ -224,7 +224,10 @@ export class TokenHolderDiscoveryService {
       // Process token accounts to get holders with balances
       const holders: any[] = [];
       for (const accountInfo of tokenAccounts) {
-        const parsedInfo = accountInfo.account.data.parsed?.info;
+        if (!('parsed' in accountInfo.account.data)) {
+          continue;
+        }
+        const parsedInfo = accountInfo.account.data.parsed.info;
         if (parsedInfo && parsedInfo.tokenAmount && parseFloat(parsedInfo.tokenAmount.uiAmount) > 0) {
           holders.push({
             owner: parsedInfo.owner,
@@ -463,7 +466,7 @@ export class TokenHolderDiscoveryService {
   /**
    * 🔍 Check actual wallet balance via Solana RPC
    */
-  private async checkWalletBalance(walletAddress: string): Promise<number> {
+  async checkWalletBalance(walletAddress: string): Promise<number> {
     try {
       const { Connection, PublicKey, LAMPORTS_PER_SOL } = await import('@solana/web3.js');
       

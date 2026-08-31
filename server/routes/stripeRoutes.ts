@@ -197,7 +197,7 @@ router.post('/confirm-report-purchase', async (req, res) => {
         price: 10,
         currency: 'USD',
         paymentMethod: 'STRIPE',
-        customerEmail: session.customer_details?.email || session.customer_email,
+        customerEmail: session.customer_details?.email || session.customer_email || undefined,
         stripeSessionId: sessionId,
         purchaseDate: new Date().toISOString(),
         status: 'confirmed',
@@ -210,12 +210,11 @@ router.post('/confirm-report-purchase', async (req, res) => {
       
       // Send email with download link using SendGrid
       try {
-        const { MailService } = await import('@sendgrid/mail');
+        const { default: MailService } = await import('@sendgrid/mail');
         if (process.env.SENDGRID_API_KEY) {
-          const mailService = new MailService();
-          mailService.setApiKey(process.env.SENDGRID_API_KEY);
+          MailService.setApiKey(process.env.SENDGRID_API_KEY);
           
-          await mailService.send({
+          await MailService.send({
             to: purchase.customerEmail,
             from: 'support@coinrailz.com',
             subject: 'Your AI Agent Revenue Revolution Report - Download Ready!',

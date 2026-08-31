@@ -20,6 +20,18 @@ import {
   Star
 } from "@/lib/icons";
 
+interface CryptoSignalsService {
+  agentName: string;
+  description: string;
+  stats: {
+    accuracy: number;
+    totalSignals: number;
+    avgReturn: number;
+    followers: number;
+  };
+  services: AgentService[];
+}
+
 interface CryptoSignal {
   symbol: string;
   action: 'STRONG_BUY' | 'BUY' | 'HOLD' | 'SELL' | 'STRONG_SELL';
@@ -51,7 +63,7 @@ export default function CryptoSignalsAgent() {
   const { toast } = useToast();
 
   // Fetch agent services
-  const { data: agentData, isLoading: servicesLoading } = useQuery({
+  const { data: agentData, isLoading: servicesLoading } = useQuery<{ services: CryptoSignalsService }>({
     queryKey: ['/api/crypto-signals/services'],
   });
 

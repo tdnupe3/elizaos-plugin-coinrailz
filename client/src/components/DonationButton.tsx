@@ -23,6 +23,9 @@ interface DonationForm {
   donorMessage: string;
   targetWallet: 'ethereum' | 'solana';
 }
+interface CurrenciesResponse {
+  currencies: string[];
+}
 
 export default function DonationButton({ agentId, agentName }: DonationButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -36,7 +39,7 @@ export default function DonationButton({ agentId, agentName }: DonationButtonPro
   const { toast } = useToast();
 
   // Fetch available cryptocurrencies
-  const { data: currenciesData } = useQuery({
+  const { data: currenciesData } = useQuery<CurrenciesResponse>({
     queryKey: ['/api/nowpayments/currencies'],
     enabled: isOpen,
   });
@@ -44,8 +47,7 @@ export default function DonationButton({ agentId, agentName }: DonationButtonPro
   // Create donation mutation
   const createDonationMutation = useMutation({
     mutationFn: async (formData: DonationForm) => {
-      const response = await apiRequest('POST', `/api/agents/${agentId}/donate`, formData);
-      return response.json();
+      return apiRequest('POST', `/api/agents/${agentId}/donate`, formData);
     },
     onSuccess: (data) => {
       if (data.success) {

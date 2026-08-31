@@ -84,6 +84,36 @@ export class ConnectionManager extends EventEmitter {
   }
 
   /**
+   * Execute a parameterized query.  This keeps older callers on the same
+   * pooled connection implementation rather than maintaining a second query
+   * path with different retry/health behaviour.
+   */
+  async executeQuery(text: string, params?: unknown[]) {
+    return this.query(text, params);
+  }
+
+  /**
+   * Run related statements atomically on a single pooled client.
+   */
+  async executeTransaction(queries: Array<{ query: string; params?: unknown[] }>) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const results = [];
+      for (const statement of queries) {
+        results.push(await client.query(statement.query, statement.params));
+      }
+      await client.query('COMMIT');
+      return results;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
    * Get the main database pool
    */
   getPool() {

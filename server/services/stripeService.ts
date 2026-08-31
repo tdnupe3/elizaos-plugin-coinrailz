@@ -102,7 +102,11 @@ class StripeService {
 
   async getAccountInfo(): Promise<Stripe.Account> {
     try {
-      const account = await this.stripe.accounts.retrieve();
+      const accountId = process.env.STRIPE_ACCOUNT_ID;
+      if (!accountId) {
+        throw new Error('STRIPE_ACCOUNT_ID is required to retrieve a connected account');
+      }
+      const account = await this.stripe.accounts.retrieve(accountId);
       return account;
     } catch (error) {
       console.error('Failed to retrieve account info:', error);

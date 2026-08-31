@@ -11,11 +11,9 @@
 
 import { coinbaseAgentEcosystemService } from './coinbaseAgentEcosystemService.js';
 import { MassiveBaseEcosystemThousandsService } from './massiveBaseEcosystemThousands.js';
-import { a2aProtocolService } from './a2aProtocolService.js';
 import { db } from '../db';
-import { globalAIAgents, outreachLogs } from '../../shared/schema';
-import { eq, sql, and, gt } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
+import { discoveredAgents } from '../../shared/schema';
+import { sql } from 'drizzle-orm';
 
 interface ExpansionTarget {
   name: string;
@@ -51,10 +49,10 @@ export class MultiChainOutreachExpansionService {
     
     const results = {
       success: true,
-      ecosystemsTargeted: [],
+      ecosystemsTargeted: [] as string[],
       totalNewContacts: 0,
       highValueTargets: 0,
-      campaignResults: {}
+      campaignResults: {} as Record<string, unknown>
     };
 
     try {
@@ -315,7 +313,10 @@ export class MultiChainOutreachExpansionService {
       }
       
       // Parse verified partners from environment (JSON format expected)
-      const circleTargets = JSON.parse(verifiedCirclePartners);
+      const circleTargets: Array<Pick<ExpansionTarget, 'name' | 'walletAddress' | 'priority' | 'dealSize'>> =
+        JSON.parse(verifiedCirclePartners).map((target: { name: string; wallet: string; priority: ExpansionTarget['priority']; dealSize: string }) => ({
+          name: target.name, walletAddress: target.wallet, priority: target.priority, dealSize: target.dealSize
+        }));
 
       console.log(`🎯 Targeting ${circleTargets.length} major Circle/USDC ecosystem players...`);
 
@@ -323,7 +324,7 @@ export class MultiChainOutreachExpansionService {
       for (const target of circleTargets) {
         await this.storeDiscoveredAgent({
           name: target.name,
-          walletAddress: target.wallet,
+          walletAddress: target.walletAddress,
           ecosystem: 'circle',
           protocol: 'circle_apis',
           priority: target.priority,
@@ -390,7 +391,7 @@ export class MultiChainOutreachExpansionService {
           name: target.name,
           walletAddress: target.endpoint, // Using endpoint as identifier for protocol agents
           ecosystem: target.protocol.includes('mcp') ? 'mcp' : 'acp',
-          protocol: target.protocol,
+          protocol: target.protocol === 'api_direct' ? 'acp_rest' : target.protocol,
           priority: target.priority,
           dealSize: target.dealSize,
           contactMethod: 'api_direct'
@@ -439,32 +440,22 @@ export class MultiChainOutreachExpansionService {
    */
   private async storeDiscoveredAgent(agent: ExpansionTarget): Promise<void> {
     try {
-      const agentId = nanoid();
-      
-      await db.insert(globalAIAgents).values({
-        id: agentId,
-        name: agent.name,
-        description: `${agent.ecosystem.toUpperCase()} ecosystem agent - ${agent.dealSize} opportunity`,
-        walletAddress: agent.walletAddress,
-        contactInfo: agent.walletAddress,
-        specialties: [agent.ecosystem, agent.protocol],
-        isActive: true,
-        lastContacted: new Date(),
-        platformSource: `${agent.ecosystem}_expansion`,
-        commissionRate: 15, // Standard platform rate
-        registrationDate: new Date()
-      });
-
-      // Log outreach attempt
-      await db.insert(outreachLogs).values({
-        id: nanoid(),
-        agentId: agentId,
-        outreachType: 'multi_chain_expansion',
-        contactMethod: agent.contactMethod,
-        message: `${agent.ecosystem.toUpperCase()} ecosystem outreach - ${agent.dealSize} partnership opportunity`,
-        status: 'sent',
-        createdAt: new Date()
-      });
+      await db.insert(discoveredAgents).values({
+        url: agent.walletAddress,
+        canonicalUrl: agent.walletAddress,
+        source: `${agent.ecosystem}_expansion`,
+        channels: { webhook: agent.contactMethod === 'webhook' ? agent.walletAddress : undefined },
+        wallet: agent.walletAddress,
+        capabilities: [agent.protocol],
+        metadata: {
+          name: agent.name,
+          dealSize: agent.dealSize,
+          priority: agent.priority,
+          contactMethod: agent.contactMethod,
+        },
+        status: 'new',
+        score: agent.priority === 'critical' ? 90 : agent.priority === 'high' ? 70 : 50,
+      }).onConflictDoNothing();
 
       console.log(`💾 Stored ${agent.name} (${agent.ecosystem}) in database`);
     } catch (error) {
@@ -484,22 +475,20 @@ export class MultiChainOutreachExpansionService {
     try {
       // Get all agents discovered via expansion
       const expansionAgents = await db.select()
-        .from(globalAIAgents)
-        .where(sql`platform_source LIKE '%expansion%'`);
+        .from(discoveredAgents)
+        .where(sql`${discoveredAgents.source} LIKE '%_expansion'`);
 
       const ecosystemBreakdown: Record<string, number> = {};
       
       for (const agent of expansionAgents) {
-        const ecosystem = agent.platformSource?.split('_')[0] || 'unknown';
+        const ecosystem = agent.source?.split('_')[0] || 'unknown';
         ecosystemBreakdown[ecosystem] = (ecosystemBreakdown[ecosystem] || 0) + 1;
       }
 
       return {
         totalAgentsReached: expansionAgents.length,
         ecosystemBreakdown,
-        highValueTargets: expansionAgents.filter(a => 
-          a.description?.includes('$1M') || a.description?.includes('$2M') || a.description?.includes('$3M')
-        ).length,
+        highValueTargets: expansionAgents.filter(agent => (agent.score ?? 0) >= 90).length,
         potentialRevenue: '$15M+' // Conservative estimate based on target deal sizes
       };
 

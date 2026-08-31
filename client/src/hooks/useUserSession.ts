@@ -4,6 +4,7 @@ interface UserSession {
   email: string;
   id: string;
   isAuthenticated: boolean;
+  name?: string;
 }
 
 export function useUserSession() {

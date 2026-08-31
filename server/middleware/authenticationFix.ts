@@ -1,20 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import { getSessionSync } from '../services/sessionManager';
 
-export interface AuthenticatedRequest extends Request {
+export type AuthenticatedRequest = Omit<Request, 'user'> & {
   user?: {
     id: string;
     email: string;
     username?: string;
   };
-  isAuthenticated?: boolean;
-}
+  authenticationVerified?: boolean;
+};
 
 export function enhancedAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     if (req.session && (req.session as any).user) {
       req.user = (req.session as any).user;
-      req.isAuthenticated = true;
+      req.authenticationVerified = true;
       return next();
     }
 
@@ -28,17 +28,17 @@ export function enhancedAuth(req: AuthenticatedRequest, res: Response, next: Nex
             id: session.userId,
             email: session.userEmail,
           };
-          req.isAuthenticated = true;
+          req.authenticationVerified = true;
           return next();
         }
       }
     }
 
-    req.isAuthenticated = false;
+    req.authenticationVerified = false;
     next();
   } catch (error) {
     console.error('Authentication middleware error:', error);
-    req.isAuthenticated = false;
+    req.authenticationVerified = false;
     next();
   }
 }
@@ -46,7 +46,7 @@ export function enhancedAuth(req: AuthenticatedRequest, res: Response, next: Nex
 export function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     enhancedAuth(req, res, () => {
-      if (!req.isAuthenticated || !req.user) {
+      if (!req.authenticationVerified || !req.user) {
         return res.status(401).json({
           success: false,
           error: 'Authentication required',
@@ -70,14 +70,14 @@ export function optionalAuth(req: AuthenticatedRequest, res: Response, next: Nex
     enhancedAuth(req, res, next);
   } catch (error) {
     console.error('Optional auth error:', error);
-    req.isAuthenticated = false;
+    req.authenticationVerified = false;
     next();
   }
 }
 
 export function resolveUser(req: AuthenticatedRequest): { id: string; email: string; username?: string } | null {
   try {
-    if (req.user && req.isAuthenticated) {
+    if (req.user && req.authenticationVerified) {
       return req.user;
     }
     return null;

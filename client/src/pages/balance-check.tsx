@@ -184,7 +184,7 @@ export default function BalanceCheck() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm text-gray-600">
-            <p>• Your USDC balance is read from your connected or provisioned wallet</p>
+            <p>• Your USDC balance is stored in a secure Circle programmable wallet</p>
             <p>• Balances are automatically synced every 30 seconds from blockchain data</p>
             <p>• Use USDC for instant P2P transfers with ultra-low fees (1.25% vs 4.5% traditional)</p>
             <p>• Your wallet supports Ethereum, Polygon, Base, Arbitrum, and BNB Chain networks</p>

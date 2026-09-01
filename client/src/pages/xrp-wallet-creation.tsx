@@ -28,7 +28,7 @@ export default function XRPWalletCreation() {
     {
       icon: Shield,
       title: "Enterprise Security",
-      description: "Cryptographic security controls protect wallet operations and private keys"
+      description: "Bank-grade encryption and security protocols protect your wallet and private keys"
     },
     {
       icon: Globe,

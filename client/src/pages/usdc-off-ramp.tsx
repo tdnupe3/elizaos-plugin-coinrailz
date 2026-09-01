@@ -477,7 +477,7 @@ export default function USDCOffRamp() {
                   <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium">Secure & Compliant</p>
-                    <p className="text-xs text-gray-500">Encrypted transaction workflows</p>
+                    <p className="text-xs text-gray-500">Bank-grade security standards</p>
                   </div>
                 </div>
               </CardContent>

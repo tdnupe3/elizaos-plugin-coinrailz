@@ -21,9 +21,9 @@ export default function XRPInstantSettlements() {
       icon: TrendingUp
     },
     {
-      id: "institutional-settlement",
-      title: "Institutional Settlement",
-      description: "On-chain settlement workflows between participating wallets",
+      id: "interbank-settlement",
+      title: "Interbank Settlement",
+      description: "Real-time gross settlement between financial institutions",
       timeTraditional: "1-3 hours",
       timeXRP: "3-5 seconds",
       volume: "$890M daily",

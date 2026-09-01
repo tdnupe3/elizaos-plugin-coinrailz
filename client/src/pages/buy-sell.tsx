@@ -76,7 +76,7 @@ export default function BuySellPage() {
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Buy & Sell Crypto</h1>
-                <p className="text-gray-600">Convert between fiat and cryptocurrency through secure transaction flows</p>
+                <p className="text-gray-600">Convert between fiat and cryptocurrency with bank-grade security</p>
               </div>
             </div>
           </div>

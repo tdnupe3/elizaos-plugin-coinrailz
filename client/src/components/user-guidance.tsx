@@ -84,7 +84,7 @@ const guidanceSteps: GuidanceStep[] = [
     videoUrl: '/videos/security.mp4',
     benefits: [
       'End-to-end encryption',
-      'Supported agent wallets',
+      'Circle programmable wallets',
       'Multi-factor authentication',
       'Insurance protection'
     ]

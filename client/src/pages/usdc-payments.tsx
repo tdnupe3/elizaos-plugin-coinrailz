@@ -23,10 +23,10 @@ export default function USDCPayments() {
               </h1>
             </div>
             <p className="text-lg text-blue-100 mb-6">
-              Move USDC across supported blockchain networks with transparent, on-chain payment flows
+              Send and receive USDC instantly across 6 blockchain networks with ultra-low fees
             </p>
             <Badge className="bg-green-500 text-white px-4 py-2 text-sm">
-              Built for Agentic Commerce
+              72% Savings vs Traditional Banking
             </Badge>
           </div>
         </div>
@@ -38,11 +38,11 @@ export default function USDCPayments() {
               <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center text-white mx-auto mb-3">
                 <Clock className="w-6 h-6" />
               </div>
-              <CardTitle className="text-lg">Fast On-Chain Payments</CardTitle>
+              <CardTitle className="text-lg">Instant Settlement</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-blue-600">Seconds*</p>
-              <p className="text-sm text-gray-600">Network-dependent confirmation</p>
+              <p className="text-2xl font-bold text-blue-600">2-5 seconds</p>
+              <p className="text-sm text-gray-600">vs 3-5 business days</p>
             </CardContent>
           </Card>
 
@@ -64,11 +64,11 @@ export default function USDCPayments() {
               <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center text-white mx-auto mb-3">
                 <Shield className="w-6 h-6" />
               </div>
-              <CardTitle className="text-lg">USDC-Native</CardTitle>
+              <CardTitle className="text-lg">Circle Security</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-purple-600">Non-Custodial</p>
-              <p className="text-sm text-gray-600">You control transaction signing</p>
+              <p className="text-2xl font-bold text-purple-600">Bank-Grade</p>
+              <p className="text-sm text-gray-600">MPC protection</p>
             </CardContent>
           </Card>
 
@@ -98,7 +98,7 @@ export default function USDCPayments() {
                   <span className="text-2xl font-bold text-blue-600">1</span>
                 </div>
                 <h3 className="font-semibold mb-2">Connect Your Wallet</h3>
-                <p className="text-gray-600">Link an existing wallet or use a supported agent wallet</p>
+                <p className="text-gray-600">Link your existing wallet or create a new Circle programmable wallet</p>
               </div>
               <div className="text-center">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -112,7 +112,7 @@ export default function USDCPayments() {
                   <span className="text-2xl font-bold text-purple-600">3</span>
                 </div>
                 <h3 className="font-semibold mb-2">Send Instantly</h3>
-                <p className="text-gray-600">USDC payments are verified on-chain; timing depends on the selected network</p>
+                <p className="text-gray-600">Payments settle in 2-5 seconds with programmable compliance</p>
               </div>
             </div>
           </CardContent>

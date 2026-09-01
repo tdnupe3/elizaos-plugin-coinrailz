@@ -26,7 +26,7 @@ export default function USDCWallets() {
               Enterprise-grade wallet infrastructure powered by Circle's MPC technology
             </p>
             <Badge className="bg-green-500 text-white px-4 py-2 text-sm">
-              USDC-Native Security • Agent-Ready Technology
+              Bank-Grade Security • Advanced Technology
             </Badge>
           </div>
         </div>

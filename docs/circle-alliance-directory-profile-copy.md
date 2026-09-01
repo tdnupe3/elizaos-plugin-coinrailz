@@ -8,20 +8,20 @@ Subject: Re: Coin Railz: quick question on your recent directory listing updates
 
 Hi Austin,
 
-Thank you for flagging this. The update overstated Circle’s current role in the Coin Railz product and mixed planned or legacy integration work with what is live today.
+Thank you for flagging this. The update was intended to communicate how important USDC and the broader Circle ecosystem are to Coin Railz, but it blurred the distinction between our current production wallet tooling and integrations we are interested in building toward.
 
 To clarify the current production setup:
 
-- Coin Railz uses USDC as the payment asset for its x402 pay-per-call services.
+- Coin Railz uses USDC as its preferred payment asset for x402 pay-per-call services and is building around USDC as the programmable dollar for agentic commerce.
 - The current wallet and agent tooling is based on Coinbase CDP and AgentKit, not Circle Developer-Controlled Wallets.
-- Coin Railz implements the open x402 standard. Circle is not being represented as Coin Railz’s core wallet or x402 infrastructure provider.
-- Coin Railz does not use a money transmitter license or bank-settlement infrastructure for this product, and it does not offer regulated money-transmission or bank-settlement services.
+- Coin Railz implements the open x402 standard and wants to expand its compatibility with the Circle ecosystem as the product and partnership develop.
+- Coin Railz does not use the owner’s unrelated money transmitter license or bank-settlement infrastructure for this product.
 
-Please treat the prior references to Circle Developer-Controlled Wallets, money-transmitter licensing, and bank settlement as withdrawn. The directory profile should describe the product that is live today, not a future roadmap.
+The current wallet wording should be updated for accuracy, but the strategic direction is strongly aligned with Circle: USDC is central to Coin Railz’s payment architecture, and we are interested in using additional Circle products where they fit the production roadmap.
 
-I would like to revise the listing so that it identifies USDC as the only Circle product currently used and removes the Wallets, CCTP, EURC, direct on/off-ramp, money-transmitter, and bank-settlement claims. The revised description is:
+I would like to revise the listing so that it accurately identifies USDC as the current Circle product in use, while making clear that Coin Railz is actively interested in deeper Circle ecosystem integrations. The revised description is:
 
-“Coin Railz provides x402 pay-per-call APIs and MCP-compatible tools for autonomous AI agents. Agents can discover a service, receive a machine-readable price, pay for an API request with USDC on supported networks, and receive the result. Coin Railz also supports prepaid API-key credits and non-custodial agent workflows. Its current wallet tooling uses Coinbase CDP and AgentKit. Circle’s role in the current offering is limited to USDC as a supported payment asset; Coin Railz does not currently use Circle Developer-Controlled Wallets, CCTP, EURC, money-transmitter licensing, or bank-settlement infrastructure.”
+“Coin Railz is building the financial layer for autonomous AI agents, with Circle’s USDC at the center of its payment architecture. Coin Railz provides x402 pay-per-call APIs and MCP-compatible tools that let agents discover services, receive machine-readable pricing, pay with USDC, and receive results automatically. The platform supports a growing catalog of APIs across crypto intelligence, DeFi analytics, satellite and IoT data, prediction markets, and AI inference. Coin Railz also supports prepaid API-key credits and non-custodial agent workflows. USDC is the programmable dollar that connects these services into an internet-native payment rail for agentic commerce. Coin Railz’s current wallet tooling uses Coinbase CDP and AgentKit, and the company is interested in expanding compatibility with Circle’s wallet and broader ecosystem products as the production roadmap develops.”
 
 I apologize for the confusion, and I appreciate the opportunity to correct the listing.
 
@@ -37,15 +37,15 @@ Coin Railz
 
 ### Heading
 
-USDC Pay-Per-Call APIs for Autonomous AI Agents
+USDC Infrastructure for Autonomous AI Commerce
 
 ### Description
 
-Coin Railz provides x402 pay-per-call APIs and MCP-compatible tools for autonomous AI agents. Agents can discover a service, receive a machine-readable price, pay for an API request with USDC on supported networks, and receive the result.
+Coin Railz is building the financial layer for autonomous AI agents, with Circle’s USDC at the center of its payment architecture. Coin Railz provides x402 pay-per-call APIs and MCP-compatible tools that let agents discover services, receive machine-readable pricing, pay with USDC, and receive results automatically.
 
-Available services include crypto intelligence, DeFi analytics, satellite and IoT data, prediction-market data, and AI inference. Coin Railz also supports prepaid API-key credits and non-custodial agent workflows.
+The platform supports a growing catalog of APIs across crypto intelligence, DeFi analytics, satellite and IoT data, prediction markets, and AI inference. It also supports prepaid API-key credits and non-custodial agent workflows.
 
-The current wallet and agent tooling uses Coinbase CDP and AgentKit. Circle’s role in the current offering is limited to USDC as a supported payment asset. Coin Railz does not currently use Circle Developer-Controlled Wallets, CCTP, EURC, money-transmitter licensing, or bank-settlement infrastructure.
+USDC is the programmable dollar that connects these services into an internet-native payment rail for agentic commerce. Coin Railz’s current wallet tooling uses Coinbase CDP and AgentKit, and the company is interested in expanding compatibility with Circle’s wallet and broader ecosystem products as the production roadmap develops.
 
 ### Company website
 
@@ -72,7 +72,7 @@ Select:
 - Payments
 - Infrastructure Providers
 
-Do not select Digital Wallets based on the current product. The active wallet layer is Coinbase CDP and AgentKit, not Circle Wallets.
+Select Digital Wallets only if Circle confirms the category can represent planned or ecosystem-compatible wallet infrastructure; otherwise leave it unchecked because the current wallet layer is Coinbase CDP and AgentKit.
 
 ### Use Case
 
@@ -88,7 +88,7 @@ Select:
 
 - USDC
 
-Do not select Wallets, CCTP, or EURC.
+Select USDC. Do not select Wallets, CCTP, or EURC as currently live integrations unless Circle wants the listing to include clearly labeled roadmap items.
 
 ### Blockchains Supported
 
@@ -127,4 +127,4 @@ Leave blank or select the directory’s “not applicable” option.
 
 ## Claims to remove unless separately verified
 
-Do not describe Coin Railz as a licensed money transmitter, bank-settlement provider, Circle Wallets provider, CCTP provider, EURC provider, direct USDC on/off-ramp, or named Circle partner. Do not use the owner’s unrelated money transmitter license in any Coin Railz description or application.
+Do not describe Coin Railz as a licensed money transmitter, bank-settlement provider, Circle Wallets provider, CCTP provider, EURC provider, direct USDC on/off-ramp, or named Circle partner unless that claim is separately verified. Do not use the owner’s unrelated money transmitter license in any Coin Railz description or application. It is appropriate to state that Coin Railz is USDC-first and interested in deeper Circle ecosystem integrations.

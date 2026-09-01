@@ -99,7 +99,7 @@ export default function USDCEcosystemDashboard() {
       description: 'Send and receive USDC instantly across 6 blockchain networks',
       benefits: [
         'Multi-chain support (ETH, MATIC, AVAX, ARB, BASE)',
-        'Circle programmable wallets',
+        'Supported agent wallets',
         'Instant settlement',
         'Low fees (0.1-0.5%)'
       ],

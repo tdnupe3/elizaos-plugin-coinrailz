@@ -651,7 +651,7 @@ export default function P2PTransfer() {
                   {(transferData.senderMethod === 'usdc' || transferData.recipientMethod === 'usdc') ? (
                     <>
                       <p>• USDC transfers complete in 3-5 seconds</p>
-                      <p>• Ultra-low fees with Circle security</p>
+                      <p>• USDC transfers verified on-chain</p>
                       <p>• Instant settlement globally</p>
                     </>
                   ) : (

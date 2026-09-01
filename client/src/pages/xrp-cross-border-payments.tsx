@@ -36,7 +36,7 @@ export default function XRPCrossBorderPayments() {
   const benefits = [
     { icon: Clock, title: "3-5 Second Settlement", description: "Fastest international transfers" },
     { icon: DollarSign, title: "Ultra-Low Fees", description: "95% cheaper than traditional banks" },
-    { icon: Shield, title: "Bank-Grade Security", description: "Cryptographic transaction validation" },
+    { icon: Shield, title: "On-Chain Security", description: "Cryptographic transaction validation" },
     { icon: Globe, title: "Global Coverage", description: "200+ countries and territories" }
   ];
 

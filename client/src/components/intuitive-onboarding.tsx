@@ -67,7 +67,7 @@ export function IntuitiveOnboarding() {
     {
       id: 'wallet',
       title: 'Create Your Digital Wallet',
-      description: 'Get a secure wallet in seconds - bank-grade security included',
+      description: 'Connect or provision a supported wallet for agent-ready payments',
       icon: <Wallet className="w-6 h-6" />,
       completed: !!(walletStatus && (walletStatus as any)?.success && (walletStatus as any)?.wallet?.address)
     },
@@ -136,7 +136,7 @@ export function IntuitiveOnboarding() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm text-gray-700">
                     <Shield className="w-4 h-4" />
-                    Bank-grade security with Circle's MPC technology
+                    Secure wallet workflows with controlled transaction signing
                   </div>
                   <Button 
                     onClick={() => createWalletMutation.mutate()}

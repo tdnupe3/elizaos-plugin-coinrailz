@@ -76,7 +76,7 @@ export default function USDCDepositWidget() {
                 <li>• Ultra-low fees (0.1-0.5% vs 2.9% traditional)</li>
                 <li>• Instant 2-5 second settlements</li>
                 <li>• Multi-chain support (6 networks)</li>
-                <li>• Bank-grade Circle security</li>
+                <li>• Non-custodial transaction signing</li>
               </ul>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 justify-center">

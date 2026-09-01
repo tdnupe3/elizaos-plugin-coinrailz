@@ -3775,9 +3775,6 @@ app.get('/api/dex/status', (req, res) => {
   });
 });
 
-// Add error handling middleware BEFORE server creation
-app.use(errorHandlerMiddleware());
-
 // URGENT: Register direct order test BEFORE setupSimpleRoutes interference
 app.post('/api/orders/create-bypass', (req, res) => {
   console.log('🚀 BYPASS ORDER ENDPOINT HIT - BEFORE setupSimpleRoutes!');
@@ -4219,12 +4216,6 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
 
   _lap('pre-serveStatic — all pre-static routes registered');
 
-  // All x402 payment routes, MCP routes, and API routes are now registered.
-  // Signal the readiness gate in index.ts to start serving API traffic.
-  // Paying cron agents (earthdata, DeFi, IoT) will receive 503+Retry-After
-  // until this fires; after this they get proper 402 challenges.
-  markAppReady();
-
   if (isProduction) {
     // Production: use serveStatic from vite.ts (handles paths correctly)
     console.log('🚀 PRODUCTION MODE');
@@ -4645,15 +4636,14 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
 
   // MOVED: Campaign routes moved to beginning to avoid global /api route conflicts
 
-  // Basic error handling (registered after routes)
-  app.use((err: any, req: any, res: any, next: any) => {
-    // Body-parse errors (malformed JSON, strict-mode rejections like null/primitives) → 400
-    if (err instanceof SyntaxError && (err as any).status === 400 && 'body' in err) {
-      return res.status(400).json({ success: false, error: 'Invalid JSON body — expected a JSON object' });
-    }
-    console.error('Server error:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  });
+  // One terminal error handler, registered after every route and frontend
+  // fallback so late route failures cannot escape to Express's text handler.
+  app.use(errorHandlerMiddleware());
+
+  // Open the readiness gate only after every route, frontend fallback, and the
+  // terminal error handler are installed. Until this point API clients receive
+  // 503 + Retry-After rather than partial routing or Express default errors.
+  markAppReady();
   
   // Initialize provider capabilities - Skip in DEV_LITE_MODE to prevent Vite HMR drops
   if (!DEV_LITE_MODE) {

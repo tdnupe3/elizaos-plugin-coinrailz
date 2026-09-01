@@ -5370,7 +5370,7 @@ router.head('/.well-known/x402', (req: Request, res: Response) => {
  *
  * Spec: https://mpp.dev
  */
-router.get('/.well-known/mpp.json', (req: Request, res: Response) => {
+router.get(['/.well-known/mpp', '/.well-known/mpp.json'], (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');

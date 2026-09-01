@@ -42,6 +42,19 @@ export class GlobalErrorHandler {
     return (error: any, req: Request, res: Response, next: NextFunction) => {
       console.error('Express Error Handler:', error);
 
+      if (res.headersSent) {
+        return next(error);
+      }
+
+      // Body parser errors must remain client errors after consolidating the
+      // app onto this single terminal handler.
+      if (error instanceof SyntaxError && (error as any).status === 400 && 'body' in error) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid JSON body — expected a JSON object'
+        });
+      }
+
       // Authentication errors
       if (error.name === 'UnauthorizedError' || error.status === 401) {
         return res.status(401).json({

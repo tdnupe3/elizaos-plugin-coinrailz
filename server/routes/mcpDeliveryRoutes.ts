@@ -24,7 +24,7 @@
  * create duplicate rows since mcpDeliveryRoutes calls the tracker directly.
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { nanoid } from 'nanoid';
 import { getCanonicalServices, getCanonicalServiceCount, CanonicalService } from '../utils/serviceCount';
 import {
@@ -662,8 +662,16 @@ function rejectNonPostMcpTransport(_req: Request, res: Response) {
 
 // Keep unsupported root methods inside the MCP router so they cannot fall
 // through to Vite's frontend fallback and look like successful HTML responses.
-router.get('/', rejectNonPostMcpTransport);
-router.delete('/', rejectNonPostMcpTransport);
+router.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.path === '/' && req.method !== 'POST') {
+    return rejectNonPostMcpTransport(req, res);
+  }
+  next();
+});
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 router.post('/', async (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'application/json');
@@ -675,30 +683,40 @@ router.post('/', async (req: Request, res: Response) => {
 
   const { jsonrpc, id, method, params } = req.body ?? {};
 
-  const mcpToolName = method === 'tools/call' ? ((params as any)?.name ?? 'unknown') : undefined;
+  const hasValidId = id === undefined
+    || id === null
+    || typeof id === 'string'
+    || (typeof id === 'number' && Number.isFinite(id));
+  const hasValidMethod = typeof method === 'string' && method.trim().length > 0;
+  const hasValidParams = params === undefined || isJsonObject(params);
+
+  // Validate untrusted values before logging or invoking string/object methods.
+  if (jsonrpc !== '2.0' || !hasValidId || !hasValidMethod || !hasValidParams) {
+    const latencyMs = Date.now() - startTime;
+    const safeMethod = typeof method === 'string' ? method : 'invalid';
+    trackMcpEvent({
+      req, requestId, authMode, latencyMs,
+      serviceId:      'mcp-server',
+      mcpMethod:      safeMethod,
+      responseStatus: 400,
+      eventType:      'mcp-invalid-request',
+      errorMessage:   'Invalid JSON-RPC envelope or parameter types',
+    });
+    return res.status(400).json({
+      jsonrpc: '2.0',
+      id: hasValidId ? (id ?? null) : null,
+      error: { code: -32600, message: 'Invalid Request' },
+    });
+  }
+
+  const mcpToolName = method === 'tools/call'
+    ? (isJsonObject(params) && typeof params.name === 'string' ? params.name : 'invalid')
+    : undefined;
   console.log(
     `[MCP] POST /mcp | method=${method ?? 'none'} | ip=${mcpIp}` +
     ` | ua=${(req.get('user-agent') ?? 'none').slice(0, 60)}` +
     ` | auth=${authMode}${mcpToolName ? ` | tool=${mcpToolName}` : ''}`,
   );
-
-  // --- Validate JSON-RPC envelope ---
-  if (jsonrpc !== '2.0' || !method) {
-    const latencyMs = Date.now() - startTime;
-    trackMcpEvent({
-      req, requestId, authMode, latencyMs,
-      serviceId:      'mcp-server',
-      mcpMethod:      method ?? 'none',
-      responseStatus: 400,
-      eventType:      'mcp-invalid-request',
-      errorMessage:   'Missing jsonrpc or method field',
-    });
-    return res.status(400).json({
-      jsonrpc: '2.0',
-      id: id ?? null,
-      error: { code: -32600, message: 'Invalid Request' },
-    });
-  }
 
   if (!validateAndSetProtocolVersion(req, res, id, method, params)) {
     const latencyMs = Date.now() - startTime;
@@ -793,7 +811,7 @@ router.post('/', async (req: Request, res: Response) => {
   if (method === 'tools/call') {
     const { name, arguments: args = {} } = params ?? {};
 
-    if (!name) {
+    if (typeof name !== 'string' || name.trim().length === 0 || !isJsonObject(args)) {
       const latencyMs = Date.now() - startTime;
       trackMcpEvent({
         req, requestId, authMode, latencyMs,
@@ -801,11 +819,11 @@ router.post('/', async (req: Request, res: Response) => {
         mcpMethod:      'tools/call',
         responseStatus: 400,
         eventType:      'mcp-invalid-request',
-        errorMessage:   'Missing tool name in params',
+        errorMessage:   'Missing or invalid tool name/arguments in params',
       });
       return res.status(400).json({
         jsonrpc: '2.0', id,
-        error: { code: -32602, message: 'Missing tool name' },
+        error: { code: -32602, message: 'Invalid tools/call params' },
       });
     }
 
@@ -1314,7 +1332,7 @@ router.post('/tools/call', async (req: Request, res: Response) => {
 
   const { name, arguments: args = {} } = req.body ?? {};
 
-  if (!name || typeof name !== 'string') {
+  if (typeof name !== 'string' || name.trim().length === 0 || !isJsonObject(args)) {
     const latencyMs = Date.now() - startTime;
     trackMcpEvent({
       req, requestId, authMode, latencyMs,
@@ -1322,12 +1340,12 @@ router.post('/tools/call', async (req: Request, res: Response) => {
       mcpMethod:      'POST /mcp/tools/call',
       responseStatus: 400,
       eventType:      'mcp-invalid-request',
-      errorMessage:   'Missing or invalid tool name',
+      errorMessage:   'Missing or invalid tool name/arguments',
     });
     return res.status(400).json({
       jsonrpc: '2.0',
       id:      req.body?.id ?? 1,
-      error:   { code: -32602, message: 'Missing or invalid tool name' },
+      error:   { code: -32602, message: 'Missing or invalid tool name/arguments' },
     });
   }
 

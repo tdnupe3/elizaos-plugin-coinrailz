@@ -1,5 +1,7 @@
 import { describe, test, expect, beforeAll } from '@jest/globals';
 import axios from 'axios';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const BASE_URL = process.env.API_URL || 'http://localhost:5000';
 const MCP_URL = `${BASE_URL}/mcp`;
@@ -22,13 +24,14 @@ beforeAll(async () => {
 }, 30_000);
 
 describe('MCP 2026-07-28 discovery and negotiation', () => {
-  test.each(['get', 'delete'] as const)(
+  test.each(['get', 'delete', 'put', 'patch', 'options'] as const)(
     '%s /mcp is rejected as a non-transport method instead of returning frontend HTML',
     async method => {
-      const res = await axios[method](
-        MCP_URL,
-        { validateStatus: () => true },
-      );
+      const res = await axios.request({
+        method,
+        url: MCP_URL,
+        validateStatus: () => true,
+      });
 
       expect(res.status).toBe(405);
       expect(res.headers.allow).toBe('POST');
@@ -43,6 +46,60 @@ describe('MCP 2026-07-28 discovery and negotiation', () => {
       });
     },
   );
+
+  test('HEAD /mcp is rejected without returning frontend metadata', async () => {
+    const res = await axios.head(MCP_URL, { validateStatus: () => true });
+    expect(res.status).toBe(405);
+    expect(res.headers.allow).toBe('POST');
+    expect(res.headers['content-type']).toMatch(/^application\/json/);
+  });
+
+  test('supported MCP subpaths are not intercepted by the root verb guard', async () => {
+    const res = await axios.get(`${MCP_URL}/tools/list`, { validateStatus: () => true });
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/^application\/json/);
+    expect(res.data).toMatchObject({
+      jsonrpc: '2.0',
+      result: { tools: expect.any(Array) },
+    });
+  });
+
+  test.each([
+    {
+      name: 'numeric method',
+      body: { jsonrpc: '2.0', id: 20, method: 42, params: {} },
+      code: -32600,
+    },
+    {
+      name: 'array params',
+      body: { jsonrpc: '2.0', id: 21, method: 'tools/list', params: [] },
+      code: -32600,
+    },
+    {
+      name: 'object tool name',
+      body: { jsonrpc: '2.0', id: 22, method: 'tools/call', params: { name: { bad: true }, arguments: {} } },
+      code: -32602,
+    },
+    {
+      name: 'omitted tools/call params',
+      body: { jsonrpc: '2.0', id: 24, method: 'tools/call' },
+      code: -32602,
+    },
+    {
+      name: 'array tool arguments',
+      body: { jsonrpc: '2.0', id: 23, method: 'tools/call', params: { name: 'coinrailz_ping', arguments: [] } },
+      code: -32602,
+    },
+  ])('rejects malformed $name with a structured JSON-RPC error', async ({ body, code }) => {
+    const res = await axios.post(MCP_URL, body, { validateStatus: () => true });
+    expect(res.status).toBe(400);
+    expect(res.headers['content-type']).toMatch(/^application\/json/);
+    expect(res.data).toMatchObject({
+      jsonrpc: '2.0',
+      id: body.id,
+      error: { code },
+    });
+  });
 
   test('server/discover returns versions, capabilities, identity, and cache hints', async () => {
     const res = await axios.post(
@@ -223,6 +280,38 @@ describe('MCP 2026-07-28 discovery and negotiation', () => {
       id: 3,
       error: { code: -32020 },
     });
+  });
+});
+
+describe('Canonical discovery manifests', () => {
+  test.each([
+    ['/.well-known/mpp', '/.well-known/mpp.json', 'updatedAt'],
+    ['/.well-known/payment-manifest', '/.well-known/payment-manifest.json', 'generated'],
+  ])('%s and %s return the same canonical JSON document', async (alias, canonical, volatileTimestamp) => {
+    const [aliasRes, canonicalRes] = await Promise.all([
+      axios.get(`${BASE_URL}${alias}`, { validateStatus: () => true }),
+      axios.get(`${BASE_URL}${canonical}`, { validateStatus: () => true }),
+    ]);
+    for (const res of [aliasRes, canonicalRes]) {
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toMatch(/^application\/json/);
+      expect(res.data).toEqual(expect.any(Object));
+    }
+    const withoutVolatileTimestamp = (document: Record<string, unknown>) => {
+      const { [volatileTimestamp]: _ignored, ...stableDocument } = document;
+      return stableDocument;
+    };
+    expect(withoutVolatileTimestamp(aliasRes.data)).toEqual(withoutVolatileTimestamp(canonicalRes.data));
+  });
+});
+
+describe('Application readiness ordering', () => {
+  test('opens readiness only after the single terminal error handler is registered', () => {
+    const source = fs.readFileSync(path.resolve(process.cwd(), 'server/appMain.ts'), 'utf8');
+    const terminalHandler = 'app.use(errorHandlerMiddleware());';
+    const readinessSignal = 'markAppReady();';
+    expect(source.split(terminalHandler)).toHaveLength(2);
+    expect(source.lastIndexOf(readinessSignal)).toBeGreaterThan(source.indexOf(terminalHandler));
   });
 });
 

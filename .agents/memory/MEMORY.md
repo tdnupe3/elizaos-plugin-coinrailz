@@ -93,3 +93,4 @@
 - [Trial credit provenance](trial-credit-provenance.md) — credit rows labeled purchase can be free-trial grants; reconcile payment provenance before counting revenue or conversion.
 - [Grok Bot commerce boundary](grok-bot-commerce-boundary.md) — Cursor plugins are the concrete Grok distribution path; payments stay human-approved, with no verified native x402 buyer path.
 - [MCP 2026 server discovery](mcp-2026-server-discovery.md) — server/discover became mandatory in the 2026-07-28 spec; older assumptions that it is not an MCP method are stale.
+- [Publish revision verification](publish-revision-verification.md) — a successful deployment status may still describe the prior build; confirm the publish commit and a live behavior sentinel before judging rollout state.

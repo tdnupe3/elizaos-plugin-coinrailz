@@ -12,7 +12,7 @@ Coin Railz provides a catalog of 77 paid API services accessible via a single HT
 4. Agent resends the request with a payment receipt header (`X-PAYMENT`)
 5. Server verifies payment on-chain and returns the data
 
-No API keys required. No rate limits. No accounts. Pay only for what you use.
+For the x402 flow, no API keys, accounts, or OAuth flows are required. Pay only for what you use.
 
 Coin Railz also supports traditional API-key access for agents that prefer a credit-based model, and enterprise contract access for high-volume use cases.
 
@@ -73,8 +73,8 @@ Coin Railz also supports traditional API-key access for agents that prefer a cre
 
 ### Agent Identity & Wallets
 - `POST /x402/verified-agent-identity` — On-chain verifiable agent identity ($0.10)
-- `POST /x402/instant-agent-wallet` — Provision a new agent wallet instantly ($0.25)
-- `POST /x402/agent-create-wallet` — CDP-powered agent wallet creation ($0.50)
+- `POST /x402/instant-agent-wallet` — Agent-wallet workflow output ($0.25)
+- `POST /x402/agent-create-wallet` — Agent wallet workflow output using configured providers ($0.50)
 - `POST /x402/instant-api-key` — Generate a Coin Railz API key on-chain ($0.10)
 
 ### Market Intelligence
@@ -100,13 +100,13 @@ Coin Railz also supports traditional API-key access for agents that prefer a cre
 - `POST /x402/tokenized-yield-compare` — Tokenized treasury yield comparison ($0.15)
 - `POST /x402/vlt-usdc-deposit` — vltUSDC Vault deposit calldata builder ($0.25)
 
-### Enterprise & Compliance
+### Enterprise & Compliance Information
 - `POST /x402/smart-contract-audit` — Full smart contract security audit ($1,000)
 - `POST /x402/payment-processing` — Enterprise payment processing ($50)
-- `POST /x402/compliance-consultation` — Regulatory compliance consultation ($500)
-- `POST /x402/compliance-check` — Automated compliance check ($0.25)
-- `POST /x402/credit-risk-score` — Credit risk scoring ($0.25)
-- `POST /x402/fraud-detection` — Transaction fraud detection ($0.20)
+- `POST /x402/compliance-consultation` — Informational technical compliance-analysis output; not legal advice ($500)
+- `POST /x402/compliance-check` — Informational technical risk output; not a regulated compliance service ($0.25)
+- `POST /x402/credit-risk-score` — Informational risk-scoring output; not lending advice ($0.25)
+- `POST /x402/fraud-detection` — Informational transaction-risk output ($0.20)
 
 ### Real Estate (RWA)
 - `POST /x402/property-valuation` — AI property valuation ($0.50)

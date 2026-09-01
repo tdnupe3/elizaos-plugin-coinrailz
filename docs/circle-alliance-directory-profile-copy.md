@@ -14,8 +14,8 @@ To clarify the current production setup:
 
 - Coin Railz uses USDC as its preferred payment asset for x402 pay-per-call services and is building around USDC as the programmable dollar for agentic commerce.
 - The current wallet and agent tooling is based on Coinbase CDP and AgentKit, not Circle Developer-Controlled Wallets.
-- Coin Railz implements the open x402 standard and wants to expand its compatibility with the Circle ecosystem as the product and partnership develop.
-- Coin Railz does not use the owner’s unrelated money transmitter license or bank-settlement infrastructure for this product.
+- Coin Railz implements the open x402 standard and is enthusiastic about expanding compatibility with the Circle ecosystem as the product and partnership develop.
+- Coin Railz does not use the owner’s unrelated money transmitter license, and that license is not associated with this product; Coin Railz also does not provide bank-settlement infrastructure.
 
 The current wallet wording should be updated for accuracy, but the strategic direction is strongly aligned with Circle: USDC is central to Coin Railz’s payment architecture, and we are interested in using additional Circle products where they fit the production roadmap.
 

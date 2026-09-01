@@ -12,7 +12,7 @@ export default function SDKLanding() {
       fixed: '$0.05',
       maxTPV: '$500k',
       description: 'Perfect for getting started',
-      features: ['Circle USDC integration', 'TypeScript SDK', 'Basic support', 'Webhook notifications'],
+      features: ['USDC-native payments', 'TypeScript SDK', 'Basic support', 'Webhook notifications'],
       color: 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800'
     },
     {
@@ -58,8 +58,8 @@ export default function SDKLanding() {
             <span className="block text-blue-600 dark:text-blue-400">In 5 Minutes</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Production-ready payment infrastructure built on Circle USDC and Coinbase CDP. 
-            Used by live platforms processing $10,000+ in real transactions.
+            USDC-first payment tooling with current Coinbase CDP support.
+            Build machine-payable workflows for autonomous agents.
           </p>
           
           <div className="flex gap-4 justify-center mb-8">
@@ -96,7 +96,6 @@ export default function SDKLanding() {
 
 // ⚠️ SERVER-SIDE ONLY - DO NOT USE IN CLIENT/BROWSER CODE
 const payments = createAgentPayments({
-  circleApiKey: 'your_circle_api_key_here',      // Replace with your Circle API key
   cdpApiKey: 'your_cdp_api_key_here',           // Replace with your CDP API key
   cdpPrivateKey: 'your_cdp_private_key_here'    // Replace with your CDP private key - CRITICAL!
 });
@@ -159,17 +158,17 @@ console.log(\`Payment created! Send USDC to: \${payment.walletAddress}\`);`}
 
         {/* Features Section */}
         <div className="grid md:grid-cols-3 gap-8 mb-16">
-          <Card data-testid="card-feature-circle-usdc">
+          <Card data-testid="card-feature-usdc-native-payments">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <DollarSign className="mr-2 h-5 w-5 text-green-500" />
-                Circle USDC Integration
+                USDC-Native Payments
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Built on Circle's enterprise-grade USDC infrastructure. Instant settlements, 
-                multi-chain support, and institutional security.
+                USDC-first payment flows for x402. Network availability, fees, and confirmation
+                timing depend on the selected network and provider.
               </p>
             </CardContent>
           </Card>

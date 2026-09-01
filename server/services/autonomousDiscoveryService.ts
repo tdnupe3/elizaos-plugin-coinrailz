@@ -217,11 +217,9 @@ class AutonomousDiscoveryService {
         { path: '/solana-showcase', priority: '0.7' },
 
         // Additional info
-        { path: '/circle-evidence', priority: '0.5' },
         { path: '/pilots/success', priority: '0.5' },
 
         // Solutions / Compliance Landing Pages
-        { path: '/solutions/mica-compliant-payments', priority: '0.9' },
 
         // Legal & Company Info
         { path: '/privacy-policy', priority: '0.5' },

@@ -66,17 +66,17 @@ export default function USDCDepositWidget() {
         <CardContent>
           <div className="text-center space-y-4">
             <div className="text-gray-600">
-              You're just one step away from instant USDC payments!
+              Set up a wallet for supported on-chain USDC payment workflows.
             </div>
             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
               <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                ✨ Create Your Wallet & Start Saving
+                ✨ Set Up Your Wallet
               </h3>
               <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                <li>• Ultra-low fees (0.1-0.5% vs 2.9% traditional)</li>
-                <li>• Instant 2-5 second settlements</li>
-                <li>• Multi-chain support (6 networks)</li>
-                <li>• Bank-grade Circle security</li>
+                <li>• Use a wallet you control</li>
+                <li>• Network fees and confirmation times vary</li>
+                <li>• Check the payment challenge for supported networks</li>
+                <li>• Follow wallet-security best practices</li>
               </ul>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 justify-center">
@@ -174,9 +174,9 @@ export default function USDCDepositWidget() {
           <TabsContent value="buy" className="space-y-4">
             <div className="text-center py-8">
               <CreditCard className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="font-semibold mb-2">Buy USDC with Credit/Debit Card</h3>
+              <h3 className="font-semibold mb-2">Buy USDC</h3>
               <p className="text-sm text-gray-600 mb-4">
-                Purchase USDC directly with your credit or debit card
+                Fiat USDC purchase is not currently available through Coin Railz.
               </p>
               <Button className="w-full" disabled>
                 <CreditCard className="w-4 h-4 mr-2" />

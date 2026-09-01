@@ -99,7 +99,7 @@ const SSR_ROUTES: Record<string, RouteSSRConfig> = {
   '/': {
     title: 'Coin Railz | The Financial Layer for AI Agents',
     description:
-      '78 pay-per-call APIs across DeFi, IoT, satellite data, and prediction markets — built for autonomous agents. x402 native on-chain payments, USDC settlement, and ERC-4626 yield vault on Base. From $0.05/call.',
+      '78 pay-per-call APIs across DeFi, IoT, satellite data, and prediction markets — built for autonomous agents. x402 native on-chain USDC payments and an ERC-4626 yield vault on Base. From $0.05/call.',
     keywords:
       'AI agent payments, pay per call API, x402 protocol, USDC yield vault, ERC-4626 yield, Base blockchain yield, coinrailz-agentkit, micropayments, USDC payments, agentic commerce, MCP payments, IoT payments, satellite data API, prediction markets API, DeFi API',
     canonical: BASE_URL,
@@ -176,13 +176,13 @@ const SSR_ROUTES: Record<string, RouteSSRConfig> = {
       <p>A revolutionary agentic commerce platform where autonomous AI agents transact directly with each other using programmable money, intent mandates, and atomic settlement.</p>
       <ul>
         <li>85% commission rates for service providers</li>
-        <li>Atomic settlement — instant finality with no counterparty risk</li>
+        <li>On-chain payment workflows for agent-to-agent commerce</li>
         <li>Agent-to-agent (A2A) payment rails — direct agent commerce without human intermediaries</li>
         <li>Intent mandates — agents negotiate and execute transactions autonomously</li>
         <li>Multi-agent orchestration for complex trading workflows</li>
       </ul>
       <h2>How It Works</h2>
-      <p>Register your AI agent, set your service pricing, and start earning immediately. Coin Railz handles payment processing, settlement, and compliance — so you can focus on building great agents.</p>
+      <p>Register your AI agent, set your service pricing, and build machine-payable workflows with on-chain payment instructions.</p>
     `,
   },
 
@@ -202,7 +202,7 @@ const SSR_ROUTES: Record<string, RouteSSRConfig> = {
       'Autonomous financial services with DLT settlement systems, agentic AI infrastructure, and cross-chain atomic swaps for institutional clients.',
     structuredData: {
       '@context': 'https://schema.org',
-      '@type': 'FinancialService',
+      '@type': 'SoftwareApplication',
       name: 'Coin Railz Enterprise',
       url: `${BASE_URL}/enterprise`,
       description:
@@ -214,13 +214,13 @@ const SSR_ROUTES: Record<string, RouteSSRConfig> = {
       <h2>Powering the Future of Institutional Digital Assets</h2>
       <p>Production-ready blockchain infrastructure and compliance tools for banks, institutions, and enterprise fintech teams. Built on DLT settlement systems with agentic AI-native architecture.</p>
       <ul>
-        <li>DLT Settlement Systems — distributed ledger settlement with instant finality</li>
+        <li>DLT transaction workflows — network-dependent confirmation and fees</li>
         <li>Cross-chain atomic swaps — trustless exchange across EVM chains and Solana</li>
         <li>Token-versus-token (TvT) arrangements for institutional trades</li>
-        <li>Interoperable payment infrastructure — connect to existing banking rails</li>
-        <li>Enterprise security — SOC 2 aligned, KYC/AML compliance built-in</li>
+        <li>Interoperable on-chain payment infrastructure for supported networks</li>
+        <li>Technical security and risk-analysis tools for developer workflows</li>
         <li>99.9% uptime SLA with dedicated support</li>
-        <li>Global compliance — MiCA, FinCEN, and FATF compatible</li>
+        <li>Compliance-related outputs are informational technical data, not legal or regulated services</li>
       </ul>
       <h2>Agentic AI Infrastructure</h2>
       <p>Deploy autonomous financial agents that execute complex multi-step transactions, manage treasury positions, and settle cross-chain trades — all without manual intervention.</p>
@@ -252,7 +252,7 @@ const SSR_ROUTES: Record<string, RouteSSRConfig> = {
     },
     bodyHtml: `
       <h1>Monetize Your Device Data</h1>
-      <p>Payment infrastructure for IoT devices and sensor networks. Enable machine-to-machine (M2M) transactions with usage-based billing and instant settlement — EU Data Act compliant.</p>
+      <p>Payment infrastructure for IoT devices and sensor networks. Enable machine-to-machine (M2M) transactions with usage-based billing and on-chain USDC payment workflows.</p>
       <ul>
         <li>85% revenue share for data providers</li>
         <li>Fleet telematics — $19-49/vehicle/month, usage-based pricing</li>
@@ -383,7 +383,7 @@ const SSR_ROUTES: Record<string, RouteSSRConfig> = {
         <li>Flood Detection — Sentinel-1 SAR flood mapping from ESA Copernicus</li>
       </ul>
       <h2>Designed for Autonomous Agents</h2>
-      <p>AI agents request satellite data on-demand and pay per call via USDC on Base. No API keys, no subscriptions — just x402 micropayments with instant settlement.</p>
+      <p>AI agents request satellite data on-demand and pay per call via USDC on Base. No API keys or subscriptions are required for the x402 flow; confirmation timing depends on the network.</p>
     `,
   },
 
@@ -601,7 +601,7 @@ const SSR_ROUTES: Record<string, RouteSSRConfig> = {
       <ul>
         <li>Live on AWS CloudFront, Solana, and Base mainnet</li>
         <li>78 x402-gated APIs across DeFi, IoT, satellite data, and prediction markets</li>
-        <li>USDC settlement — instant finality on Base (2-3 seconds)</li>
+        <li>On-chain USDC payments — confirmation timing depends on the network</li>
         <li>Open standard — build your own x402-compatible APIs</li>
       </ul>
     `,

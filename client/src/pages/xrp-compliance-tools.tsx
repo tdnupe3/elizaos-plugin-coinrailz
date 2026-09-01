@@ -34,7 +34,7 @@ export default function XRPComplianceTools() {
             XRP Compliance Tools
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Comprehensive AML monitoring, KYC verification, and regulatory reporting for XRP transactions
+            Informational XRP wallet and transaction risk signals for technical review
           </p>
         </div>
 
@@ -67,10 +67,10 @@ export default function XRPComplianceTools() {
                   onChange={(e) => setReportType(e.target.value)}
                   className="w-full p-3 border border-gray-300 rounded-md"
                 >
-                  <option value="aml">AML Risk Assessment</option>
-                  <option value="kyc">KYC Verification</option>
-                  <option value="sanctions">Sanctions Screening</option>
-                  <option value="full">Comprehensive Report</option>
+                  <option value="aml">Transaction Risk Signals</option>
+                  <option value="kyc">Identity-Related Data Signals</option>
+                  <option value="sanctions">Sanctions-Related Data Signals</option>
+                  <option value="full">Technical Risk Summary</option>
                 </select>
               </div>
 
@@ -188,7 +188,7 @@ export default function XRPComplianceTools() {
               <FileText className="w-12 h-12 text-orange-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">Regulatory Reporting</h3>
               <p className="text-gray-600">
-                Automated compliance reports for FATF, FinCEN, and other regulatory bodies
+                Informational risk and compliance signals for technical review; not legal advice or regulatory reporting
               </p>
             </CardContent>
           </Card>

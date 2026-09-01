@@ -107,9 +107,9 @@ export default function LegalDisclaimers() {
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-2">3. Transaction Monitoring</h3>
                     <p className="text-gray-700">
-                      All transactions are monitored for suspicious activity, including large or unusual 
-                      transactions, rapid fund movements, and transactions involving high-risk jurisdictions. 
-                      Suspicious activities may result in Suspicious Activity Reports (SAR) filed with FinCEN.
+                       Customers are responsible for complying with laws and regulations applicable to their use
+                       of the platform. Coin Railz may restrict or suspend use under its policies when activity
+                       appears to violate those policies or applicable requirements.
                     </p>
                   </div>
 

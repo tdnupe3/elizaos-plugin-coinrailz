@@ -134,9 +134,9 @@ export default function BalanceCheck() {
                 </div>
                 <div className="text-right">
                   <Badge variant="outline" className="bg-blue-100 text-blue-800">
-                    Instant Settlement
+                    On-Chain USDC
                   </Badge>
-                  <p className="text-xs text-blue-600 mt-1">Circle Wallet</p>
+                  <p className="text-xs text-blue-600 mt-1">Wallet address</p>
                 </div>
               </div>
             </div>
@@ -184,7 +184,7 @@ export default function BalanceCheck() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm text-gray-600">
-            <p>• Your USDC balance is stored in a secure Circle programmable wallet</p>
+            <p>• Your displayed USDC balance is associated with the wallet address shown above</p>
             <p>• Balances are automatically synced every 30 seconds from blockchain data</p>
             <p>• Use USDC for instant P2P transfers with ultra-low fees (1.25% vs 4.5% traditional)</p>
             <p>• Your wallet supports Ethereum, Polygon, Base, Arbitrum, and BNB Chain networks</p>

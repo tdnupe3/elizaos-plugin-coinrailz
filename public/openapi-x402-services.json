@@ -47,8 +47,8 @@
       "description": "Property and construction analytics"
     },
     {
-      "name": "Banking",
-      "description": "Credit, fraud, and compliance services"
+      "name": "Risk & Compliance APIs",
+      "description": "Informational technical risk and compliance-analysis outputs; not banking, legal, or regulated advice"
     },
     {
       "name": "Investment",
@@ -1266,7 +1266,7 @@
           "Premium"
         ],
         "summary": "Compliance Consultation",
-        "description": "AI regulatory analysis for DeFi protocols, token launches, and on-chain operations. Returns jurisdiction-specific risk assessment, applicable regulations, and concrete remediation steps.",
+        "description": "Informational technical regulatory-analysis output for DeFi protocols, token launches, and on-chain operations. It is not legal advice or a regulated compliance service.",
         "x-price-usd": 5,
         "operationId": "complianceConsultation",
         "requestBody": {
@@ -1296,7 +1296,7 @@
         },
         "responses": {
           "200": {
-            "description": "Compliance analysis"
+            "description": "Informational technical compliance-analysis output; not legal or regulated advice"
           },
           "402": {
             "description": "Payment Required"
@@ -1480,10 +1480,10 @@
     "/x402/fraud-detection": {
       "post": {
         "tags": [
-          "Banking"
+          "Risk & Compliance APIs"
         ],
         "summary": "Fraud Detection",
-        "description": "AI fraud risk score for an on-chain transaction or wallet: phishing wallet proximity, mixer involvement, rug-pull exposure, and behavioral anomaly detection. Returns risk tier with evidence.",
+        "description": "Informational technical fraud-risk output for an on-chain transaction or wallet. It is not banking, legal, or regulated advice.",
         "x-price-usd": 0.75,
         "operationId": "fraudDetection",
         "requestBody": {
@@ -1509,7 +1509,7 @@
         },
         "responses": {
           "200": {
-            "description": "Fraud risk assessment"
+            "description": "Informational technical fraud-risk output"
           },
           "402": {
             "description": "Payment Required"
@@ -1521,10 +1521,10 @@
     "/x402/credit-risk-score": {
       "post": {
         "tags": [
-          "Banking"
+          "Risk & Compliance APIs"
         ],
         "summary": "Credit Risk Score",
-        "description": "On-chain credit risk score (0-1000) for an EVM wallet: DeFi liquidation history, loan repayment behavior, protocol interactions, and net position health.",
+        "description": "Informational technical on-chain risk score for an EVM wallet. It is not credit underwriting, lending, banking, or regulated advice.",
         "x-price-usd": 1.25,
         "operationId": "creditRiskScore",
         "requestBody": {
@@ -1550,7 +1550,7 @@
         },
         "responses": {
           "200": {
-            "description": "Credit risk assessment"
+            "description": "Informational technical risk-score output"
           },
           "402": {
             "description": "Payment Required"
@@ -1562,10 +1562,10 @@
     "/x402/compliance-check": {
       "post": {
         "tags": [
-          "Banking"
+          "Risk & Compliance APIs"
         ],
         "summary": "Compliance Check",
-        "description": "AML/KYC risk assessment for any EVM wallet: OFAC/EU/UN sanctions screening, mixer exposure, darknet market links, and a structured compliance verdict with supporting evidence.",
+        "description": "Informational technical wallet-risk output based on configured data sources. It is not legal advice, a banking service, or a regulated compliance determination.",
         "x-price-usd": 1.75,
         "operationId": "complianceCheck",
         "requestBody": {

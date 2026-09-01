@@ -201,7 +201,7 @@ export default function AIAgentStore() {
                       className="w-full bg-green-600 hover:bg-green-700 text-white"
                       data-testid="button-pay-usdc"
                     >
-                      💰 Pay with USDC (Circle) - Instant
+                      💰 Pay with USDC On-Chain
                     </Button>
 
                     <Button
@@ -224,7 +224,7 @@ export default function AIAgentStore() {
                   </div>
                   
                   <p className="text-xs text-green-600 dark:text-green-400 mt-2 text-center">
-                    Lower fees • Instant settlement • No KYC required
+                    On-chain USDC payments • Network confirmation required
                   </p>
                 </div>
 
@@ -281,7 +281,7 @@ export default function AIAgentStore() {
               💳 Multiple Crypto Payment Options Available
             </h3>
             <div className="flex flex-wrap justify-center gap-4 text-sm">
-              <span className="bg-green-200 dark:bg-green-800 px-3 py-1 rounded-full">USDC (Circle)</span>
+              <span className="bg-green-200 dark:bg-green-800 px-3 py-1 rounded-full">USDC On-Chain</span>
               <span className="bg-blue-200 dark:bg-blue-800 px-3 py-1 rounded-full">XRP</span>
               <span className="bg-orange-200 dark:bg-orange-800 px-3 py-1 rounded-full">Bitcoin</span>
               <span className="bg-purple-200 dark:bg-purple-800 px-3 py-1 rounded-full">Ethereum</span>

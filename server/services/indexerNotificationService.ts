@@ -33,7 +33,6 @@ const INDEXER_TARGETS = [
       key: 'cr402coinrailzplatform20260308',
       urlList: [
         `${BASE_URL}/`,
-        `${BASE_URL}/solutions/mica-compliant-payments`,
         `${BASE_URL}/x402/catalog`,
         `${BASE_URL}/.well-known/agent.json`,
         `${BASE_URL}/.well-known/agent-card.json`,

@@ -40,20 +40,20 @@ const guidanceSteps: GuidanceStep[] = [
   {
     id: 'usdc-wallet',
     title: 'Your USDC Wallet',
-    description: 'Secure, instant, and ultra-low cost payments with USDC',
+    description: 'On-chain USDC payment guidance for supported workflows',
     icon: Wallet,
     videoUrl: '/videos/usdc-setup.mp4',
     benefits: [
-      '72% cheaper than traditional methods',
-      '2-5 second settlement time',
-      'No hidden fees or surprises',
+      'Use a wallet you control',
+      'Network-dependent confirmation time',
+      'Review network fees before submitting',
       'Works globally, 24/7'
     ]
   },
   {
     id: 'p2p-transfers',
-    title: 'Send Money Instantly',
-    description: 'Fast P2P transfers to anyone, anywhere',
+    title: 'Send USDC On-Chain',
+    description: 'USDC transfer workflows using a user-controlled wallet',
     icon: Send,
     videoUrl: '/videos/p2p-transfer.mp4',
     benefits: [
@@ -79,14 +79,14 @@ const guidanceSteps: GuidanceStep[] = [
   {
     id: 'security',
     title: 'Security & Safety',
-    description: 'Bank-level security for your peace of mind',
+    description: 'Security guidance for on-chain wallet use',
     icon: Shield,
     videoUrl: '/videos/security.mp4',
     benefits: [
       'End-to-end encryption',
-      'Circle programmable wallets',
+      'User-controlled wallet workflows',
       'Multi-factor authentication',
-      'Insurance protection'
+      'Wallet-security best practices'
     ]
   }
 ];
@@ -94,11 +94,11 @@ const guidanceSteps: GuidanceStep[] = [
 const faqs = [
   {
     question: "How do I get USDC?",
-    answer: "You can buy USDC directly through our platform using your bank account or credit card. We support multiple purchase methods with competitive rates."
+    answer: "Coin Railz does not currently offer fiat USDC purchases. You can obtain USDC through a wallet or provider of your choice for supported on-chain payment flows."
   },
   {
     question: "Is my money safe?",
-    answer: "Yes! We use Circle's programmable wallets with bank-level security. Your funds are protected by encryption and stored in secure, regulated infrastructure."
+    answer: "Use a wallet you control and follow wallet-security best practices. On-chain transactions and wallet security involve risk, and Coin Railz does not provide custody or deposit insurance."
   },
   {
     question: "What are the fees?",
@@ -106,15 +106,15 @@ const faqs = [
   },
   {
     question: "How fast are transfers?",
-    answer: "USDC transfers settle in 2-5 seconds. Other methods typically take 1-3 minutes. All transfers are processed instantly with real-time confirmations."
+    answer: "Confirmation time and transaction fees depend on the selected blockchain network and its current conditions."
   },
   {
     question: "Can I use this internationally?",
-    answer: "Yes! Our platform works globally. USDC enables instant cross-border payments without the high fees and delays of traditional banking."
+    answer: "Coin Railz supports on-chain USDC payment workflows. It does not currently provide cross-border remittance, bank delivery, or foreign-exchange services."
   },
   {
     question: "How do I withdraw money?",
-    answer: "You can withdraw USDC to your bank account or exchange it for other cryptocurrencies. Multiple withdrawal methods are available."
+    answer: "Coin Railz does not currently offer bank withdrawals or fiat off-ramp services. Use a wallet or provider of your choice for conversion outside Coin Railz."
   }
 ];
 

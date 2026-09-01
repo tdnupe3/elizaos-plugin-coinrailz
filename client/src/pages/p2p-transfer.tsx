@@ -115,8 +115,8 @@ export default function P2PTransfer() {
       icon: DollarSign, 
       available: true, 
       highlight: true,
-      savings: 'Instant settlement',
-      estimatedTime: '2-5 seconds'
+      savings: 'On-chain USDC payment',
+      estimatedTime: 'Network-dependent'
     },
     { 
       id: 'credit-card', 
@@ -410,7 +410,7 @@ export default function P2PTransfer() {
                               <div className="text-xs text-green-600 dark:text-green-400">
                                 <FeatureTooltip 
                                   title="USDC Benefits" 
-                                  description="Circle's USDC provides instant settlement, regulatory compliance, and global accessibility with ultra-low fees."
+                                  description="USDC payments are submitted on-chain; confirmation time and network fees depend on the selected network."
                                 >
                                   <span className="cursor-help">
                                     Instant • 3-5 seconds • 1.25% total fees
@@ -650,9 +650,9 @@ export default function P2PTransfer() {
                   <div className="text-xs text-gray-500 pt-4">
                   {(transferData.senderMethod === 'usdc' || transferData.recipientMethod === 'usdc') ? (
                     <>
-                      <p>• USDC transfers complete in 3-5 seconds</p>
-                      <p>• Ultra-low fees with Circle security</p>
-                      <p>• Instant settlement globally</p>
+                      <p>• USDC payments use blockchain network confirmation</p>
+                      <p>• Network fees vary by chain and conditions</p>
+                      <p>• Use a wallet you control for on-chain transfers</p>
                     </>
                   ) : (
                     <>

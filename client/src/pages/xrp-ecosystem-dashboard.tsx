@@ -136,7 +136,7 @@ export default function XRPEcosystemDashboard() {
       id: 'cross-border',
       title: 'Cross-Border Payments',
       description: 'Send money globally in 3-5 seconds with ultra-low fees',
-      benefits: ['Instant settlements', '99.9% cost reduction vs traditional banking', 'Real-time tracking'],
+      benefits: ['On-chain transfer workflows', 'Network-dependent fees', 'Transaction tracking'],
       icon: Globe,
       status: 'active',
       route: '/xrp-cross-border-payments',
@@ -144,7 +144,7 @@ export default function XRPEcosystemDashboard() {
     },
     {
       id: 'instant-settlement',
-      title: 'Instant Settlements',
+      title: 'On-Chain Transfers',
       description: 'Real-time payment processing with immediate finality',
       benefits: ['3-5 second confirmation', 'No chargebacks', 'Immediate liquidity'],
       icon: Zap,
@@ -175,7 +175,7 @@ export default function XRPEcosystemDashboard() {
     {
       id: 'compliance',
       title: 'Compliance Tools',
-      description: 'AML/KYC integration for regulatory compliance',
+      description: 'Informational risk and compliance signals for technical review',
       benefits: ['Regulatory compliance', 'Transaction monitoring', 'Risk assessment'],
       icon: Lock,
       status: 'beta',

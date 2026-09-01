@@ -42,10 +42,10 @@ export default function SolanaPayPage() {
 
   useSEO({
     title: "Solana Payment Processor | Coin Railz",
-    description: "Payment processing as a service for Solana-native AI agents. 0.5% fees, instant webhook settlement. Built for Truth Terminal, pump.fun traders, and Jito MEV bots.",
+    description: "Payment tooling for Solana-native AI agents. Network confirmation and applicable fees vary by transaction. Built for agentic USDC workflows.",
     keywords: "Solana payments, AI agents, Truth Terminal, pump.fun, Jito MEV, USDC, crypto payments",
     ogTitle: "Solana Payment Processor - Coin Railz",
-    ogDescription: "Payment processing as a service for Solana-native AI agents. 0.5% fees, instant webhook settlement."
+    ogDescription: "Payment tooling for Solana-native AI agents with on-chain USDC workflows."
   });
 
   const platformWallet = "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k";
@@ -152,7 +152,7 @@ export default function SolanaPayPage() {
             </h1>
             <p className="text-lg text-purple-100 mb-6 max-w-2xl mx-auto">
               Payment processing as a service for Solana-native AI agents. 
-              0.5% fees, instant webhook settlement, SOL/USDC/USDT support.
+              On-chain payment workflows with confirmation timing determined by the network.
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

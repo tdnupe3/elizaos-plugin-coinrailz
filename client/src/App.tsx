@@ -276,18 +276,6 @@ function Router() {
         {() => <X402DocsPage />}
       </Route>
 
-      {/* MiCA Compliance Landing Page — EU stablecoin regulation, USDC-first positioning */}
-      <Route path="/solutions/mica-compliant-payments">
-        {() => {
-          const MicaCompliancePage = lazy(() => import("@/pages/MicaCompliancePage"));
-          return (
-            <Suspense fallback={<PageLoadingFallback />}>
-              <MicaCompliancePage />
-            </Suspense>
-          );
-        }}
-      </Route>
-      
       {/* Service Bundles Marketplace */}
       <Route path="/bundles">
         {() => <BundlesPage />}
@@ -460,16 +448,6 @@ function Router() {
           return (
             <Suspense fallback={<PageLoadingFallback />}>
               <PilotTrackingPage />
-            </Suspense>
-          );
-        }}
-      </Route>
-      <Route path="/circle-evidence">
-        {() => {
-          const CircleEvidencePage = lazy(() => import("@/pages/CircleEvidencePage"));
-          return (
-            <Suspense fallback={<PageLoadingFallback />}>
-              <CircleEvidencePage />
             </Suspense>
           );
         }}

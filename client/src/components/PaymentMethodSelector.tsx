@@ -278,7 +278,7 @@ function USDCPaymentForm({ amount, onSuccess, onError }: PaymentMethodSelectorPr
         <div className="space-y-2">
           <div className="flex items-center text-sm text-green-600">
             <CheckCircle className="h-4 w-4 mr-2" />
-            <span>Instant settlement (3-5 seconds)</span>
+            <span>On-chain confirmation timing varies by network</span>
           </div>
           <div className="flex items-center text-sm text-green-600">
             <CheckCircle className="h-4 w-4 mr-2" />

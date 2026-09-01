@@ -111,7 +111,7 @@ export default function AuthOptions() {
                 <Key className="h-5 w-5 text-orange-600" />
                 <div>
                   <div className="font-medium">Sign in with Coinbase</div>
-                  <div className="text-sm text-gray-500">Use your Coinbase account (instant KYC)</div>
+                  <div className="text-sm text-gray-500">Use your Coinbase account to sign in</div>
                 </div>
               </Button>
 

@@ -323,20 +323,20 @@ export function EnhancedWalletManager() {
                   {/* Features */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-4 bg-green-50 rounded-lg">
-                      <h4 className="font-semibold text-green-800 mb-2">✓ Instant Settlements</h4>
-                      <p className="text-sm text-green-700">USDC transfers settle in 2-5 seconds</p>
+                      <h4 className="font-semibold text-green-800 mb-2">✓ On-Chain USDC</h4>
+                      <p className="text-sm text-green-700">Confirmation time depends on the selected network</p>
                     </div>
                     <div className="p-4 bg-blue-50 rounded-lg">
                       <h4 className="font-semibold text-blue-800 mb-2">✓ Low Fees</h4>
                       <p className="text-sm text-blue-700">Ultra-competitive rates for P2P transfers</p>
                     </div>
                     <div className="p-4 bg-purple-50 rounded-lg">
-                      <h4 className="font-semibold text-purple-800 mb-2">✓ Fiat Ready</h4>
-                      <p className="text-sm text-purple-700">Easy bank deposits and withdrawals</p>
+                      <h4 className="font-semibold text-purple-800 mb-2">✓ Fiat Features Unavailable</h4>
+                      <p className="text-sm text-purple-700">Coin Railz does not currently offer bank deposits or withdrawals</p>
                     </div>
                     <div className="p-4 bg-orange-50 rounded-lg">
                       <h4 className="font-semibold text-orange-800 mb-2">✓ Secure</h4>
-                      <p className="text-sm text-orange-700">Circle's enterprise-grade security</p>
+                      <p className="text-sm text-orange-700">Use wallet-security best practices and verify transaction details</p>
                     </div>
                   </div>
 

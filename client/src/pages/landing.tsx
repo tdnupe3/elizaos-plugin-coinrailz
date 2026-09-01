@@ -268,7 +268,7 @@ export default function Landing() {
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs font-semibold text-gray-800">Enterprise Pilot Credits — From $500</div>
-                      <div className="text-[10px] text-gray-500">Multi-chain USDC/USDT settlement</div>
+                      <div className="text-[10px] text-gray-500">Multi-chain on-chain payment options</div>
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />
@@ -715,7 +715,7 @@ export default function Landing() {
                 { name: "Batch Quote", price: "$0.40", description: "Multi-DEX prices", icon: <Repeat className="w-4 h-4" /> },
                 { name: "Multi-Balance", price: "$0.50", description: "7+ chains", icon: <Network className="w-4 h-4" /> },
                 { name: "Trending", price: "$0.50", description: "Gainers/losers", icon: <TrendingUp className="w-4 h-4" /> },
-                { name: "Risk Score", price: "$0.50", description: "Compliance", icon: <Shield className="w-4 h-4" /> },
+                { name: "Risk Score", price: "$0.50", description: "Risk data", icon: <Shield className="w-4 h-4" /> },
                 { name: "Portfolio", price: "$0.50", description: "Valuation", icon: <Activity className="w-4 h-4" /> },
                 { name: "Signals", price: "$0.75", description: "AI trading", icon: <TrendingUp className="w-4 h-4" /> },
                 { name: "Security Scan", price: "$1.00", description: "Vulnerabilities", icon: <Shield className="w-4 h-4" /> },
@@ -849,7 +849,7 @@ export default function Landing() {
             <Card className="text-center">
               <CardContent className="pt-6">
                 <div className="text-2xl font-bold text-purple-600">USDC</div>
-                <p className="text-sm text-gray-600">Primary Settlement</p>
+                <p className="text-sm text-gray-600">Primary Payment Asset</p>
               </CardContent>
             </Card>
 
@@ -909,7 +909,7 @@ export default function Landing() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="w-5 h-5" />
-                  Security & Compliance
+                  Security & Technical Risk Data
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -920,11 +920,11 @@ export default function Landing() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm">FATF Travel Rule</span>
+                    <span className="text-sm">User-controlled payment workflows</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm">Bank-Grade Security</span>
+                    <span className="text-sm">On-chain transaction visibility</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -1000,7 +1000,7 @@ export default function Landing() {
                       <h4 className="font-medium text-green-900 mb-2">Earn Money</h4>
                       <div className="text-sm text-green-600 space-y-1">
                         <div>• Keep 75-85% of earnings</div>
-                        <div>• Instant payment processing</div>
+                        <div>• On-chain USDC payment support</div>
                         <div>• Multiple payout options</div>
                       </div>
                     </div>
@@ -1054,7 +1054,7 @@ export default function Landing() {
                 Native Coinbase Agentic Wallet support — the first wallet infrastructure built for AI agents
               </p>
               <p className="text-sm text-gray-500">
-                AgentKit v0.10.4 • x402 Protocol • search-for-service • pay-for-service • instant onboarding
+                AgentKit v0.10.4 • x402 Protocol • search-for-service • pay-for-service • developer onboarding
               </p>
             </div>
             <CoinbaseWalletIntegration />
@@ -1064,7 +1064,7 @@ export default function Landing() {
           <div className="text-center bg-gradient-to-r from-cyan-100 to-blue-100 rounded-lg p-8 mb-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Integrate IoT Payments?</h2>
             <p className="text-lg text-gray-600 mb-6">
-              Start with prepaid credits for your pilot program. Multi-chain USDC settlement.
+              Start with prepaid credits for your pilot program. Multi-chain on-chain USDC payments.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
               <Link href="/pilots/buy">
@@ -1199,7 +1199,7 @@ export default function Landing() {
             <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500">
               <span className="flex items-center gap-1">
                 <Shield className="w-3 h-3" />
-                AML/KYC Compliant
+                Technical risk and compliance data tools
               </span>
             </div>
           </div>

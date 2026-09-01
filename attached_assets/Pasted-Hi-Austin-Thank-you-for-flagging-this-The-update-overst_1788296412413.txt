@@ -1,0 +1,28 @@
+Hi Austin,
+
+Thank you for flagging this. The update overstated Circle’s current role in the Coin Railz product and mixed planned or legacy integration work with what is live today.
+
+To clarify the current production setup:
+
+- Coin Railz uses USDC as the payment asset for its x402 pay-per-call services.
+- The current wallet and agent tooling is based on Coinbase CDP and AgentKit, not Circle Developer-Controlled Wallets.
+- Coin Railz implements the open x402 standard. Circle is not Coin Railz’s core wallet or x402 infrastructure provider.
+- Coin Railz does not use a money transmitter license or bank-settlement infrastructure for this product, and it does not offer regulated money-transmission or bank-settlement services.
+
+Please treat the prior references to Circle Developer-Controlled Wallets, money-transmitter licensing, and bank settlement as withdrawn. The directory profile should describe the product that is live today, not a future roadmap.
+
+I would like to revise the listing so that it identifies USDC as the only Circle product currently used and removes the Wallets, CCTP, EURC, direct on/off-ramp, money-transmitter, and bank-settlement claims.
+
+The revised description is:
+
+“Coin Railz is building the financial layer for autonomous AI agents, with Circle’s USDC at the center of its payment architecture. Coin Railz provides x402 pay-per-call APIs and MCP-compatible tools that let agents discover services, receive machine-readable pricing, pay with USDC, and receive results automatically.
+
+The platform supports a growing catalog of APIs across crypto intelligence, DeFi analytics, satellite and IoT data, prediction markets, and AI inference. It also supports prepaid API-key credits and non-custodial agent workflows.
+
+USDC is the programmable dollar that connects these services into an internet-native payment rail for agentic commerce. Coin Railz’s current wallet tooling uses Coinbase CDP and AgentKit, and the company is interested in expanding compatibility with Circle’s wallet and broader ecosystem products as the production roadmap develops.”
+
+I apologize for the confusion, and I appreciate the opportunity to correct the listing.
+
+Kind regards,
+
+Travis Kellogg

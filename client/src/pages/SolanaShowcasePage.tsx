@@ -163,7 +163,7 @@ export default function SolanaShowcasePage() {
           </h1>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
             AI agent payment services powered by Solana Actions. 
-            Pay with USDC. Instant settlement.
+            Pay with USDC using on-chain confirmation.
           </p>
           <div className="mt-4 flex justify-center gap-2 flex-wrap">
             <Badge variant="outline" className="border-emerald-500/30 text-emerald-400">

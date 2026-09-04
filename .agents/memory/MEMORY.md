@@ -96,3 +96,4 @@
 - [MCP 2026 server discovery](mcp-2026-server-discovery.md) — server/discover became mandatory in the 2026-07-28 spec; older assumptions that it is not an MCP method are stale.
 - [Publish revision verification](publish-revision-verification.md) — a successful deployment status may still describe the prior build; confirm the publish commit and a live behavior sentinel before judging rollout state.
 - [Coin Railz regulatory positioning](coinrailz-regulatory-positioning.md) — never associate the owner’s unrelated MTL with Coin Railz or claim bank settlement or regulated money transmission.
+- [Robinhood Chain service boundary](robinhood-chain-service-boundary.md) — chain-wide liquidity and production stock-token claims require canonical indexing plus official oracle-safety controls.

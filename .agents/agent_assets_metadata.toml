@@ -6,12 +6,14 @@ id = "rBbQQloFCNhm9gcsQCz85"
 uri = "file://contracts/basescan-standard-input.json"
 type = "unspecified"
 title = "Basescan Standard JSON Input"
+logical_id = "82e3f9b1-93a8-419e-b727-5496db42d4ae"
 
 [[outputs]]
 id = "6HDPXOinaxawlFlGKbXsH"
 uri = "file://public/coin-railz-x402-endpoints.csv"
 type = "table"
 title = "Coin Railz — 66 x402 Endpoints (Circle Agent Directory Upload)"
+logical_id = "1df0e304-715b-4478-8e87-ea8e02bfbe45"
 
 [[outputs]]
 id = "BEODN7_y0dw-sSPabRP2I"
@@ -19,6 +21,7 @@ uri = "file://research/notes.md"
 type = "text"
 title = "Grok Bot Discovery Research Notes"
 description = "Running research plan and findings spine for making Coin Railz discoverable and usable by Grok Bot agents."
+logical_id = "568f0c9b-cbbd-4aa5-aa01-802efc3baa9a"
 
 [[outputs]]
 id = "_DSKn9iPglyexVYIhKAZP"
@@ -26,6 +29,7 @@ uri = "file://research/grok-bot-agentic-commerce.md"
 type = "text"
 title = "Grok Bot and Agentic Commerce"
 description = "Founder decision brief on Grok Bot shopping, payment approvals, MCP/x402 compatibility, security, Coin Railz telemetry, and go/no-go recommendation."
+logical_id = "54a14c7f-e466-4c8f-a922-a8fab5ad73c7"
 
 [[outputs]]
 id = "eD8EGUbqW-VdOcj-zd5vx"
@@ -33,3 +37,32 @@ uri = "file://research/coinrailz-grok-bot-readiness-2026-08-29.md"
 type = "text"
 title = "Coin Railz Readiness for Grok Bot Agents"
 description = "Deep, source-linked founder brief covering Grok Bot discovery paths, Coin Railz MCP gaps, a prioritized no-code checklist, a safe compatibility experiment, and go/no-go gates."
+logical_id = "5c9ae3c5-eaf8-43ba-a03b-e1e8bbfa3257"
+
+[[outputs]]
+id = "SqWgLa-FtJzVlJdtjLqKM"
+uri = "file://research/robinhood-chain-notes.md"
+type = "text"
+title = "Research Notes: Coin Railz and Robinhood Chain"
+description = "Research plan and running evidence log for the 72-hour activity and Robinhood Chain assessment."
+logical_id = "9d7ee01e-b014-4b72-be7c-78443399acda"
+content_hash = "sha256:10cd372db03a1f4dd391d972be86bca6a9b7824d6d8d3371db0bfccdec2e47d2"
+size = 2281
+mtime_ms = 1788546440848
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd/9d7ee01e-b014-4b72-be7c-78443399acda/45f6b3d9-d934-466a-8d6b-af51eef95b96"
+storage_version_token = "1788546450727521"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "9GiKrqr5Sa2S20dsEd9B8"
+uri = "file://research/coinrailz-robinhood-chain-assessment-2026-09-04.md"
+type = "text"
+title = "Coin Railz: Robinhood Chain Assessment"
+description = "72-hour production activity analysis, current Robinhood Chain research, architect review, and prioritized business-development opportunities."
+logical_id = "56b037b4-18ab-4e2c-a27c-6a872e7375a2"
+content_hash = "sha256:b10987b801cac6be001c16a3cb917044d4a4290296726820d806d49322e31cb9"
+size = 19022
+mtime_ms = 1788546822560
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd/56b037b4-18ab-4e2c-a27c-6a872e7375a2/1f8c8bd2-1b95-4fd1-bb62-e98bfd09f593"
+storage_version_token = "1788546853294800"
+content_type = "text/markdown"

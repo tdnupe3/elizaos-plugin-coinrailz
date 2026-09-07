@@ -97,3 +97,5 @@
 - [Publish revision verification](publish-revision-verification.md) — a successful deployment status may still describe the prior build; confirm the publish commit and a live behavior sentinel before judging rollout state.
 - [Coin Railz regulatory positioning](coinrailz-regulatory-positioning.md) — never associate the owner’s unrelated MTL with Coin Railz or claim bank settlement or regulated money transmission.
 - [Robinhood Chain service boundary](robinhood-chain-service-boundary.md) — chain-wide liquidity and production stock-token claims require canonical indexing plus official oracle-safety controls.
+- [Trial identity and grants](trial-identity-grants.md) — never trust caller-supplied forwarded IP as trial identity; reserve claims atomically before issuing keys or credits.
+- [Keeper nonce ownership](keeper-nonce-ownership.md) — a shared EVM sender causes keeper nonce races; use a dedicated account or one serialized nonce owner.

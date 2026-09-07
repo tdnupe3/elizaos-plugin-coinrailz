@@ -98,5 +98,6 @@
 - [Coin Railz regulatory positioning](coinrailz-regulatory-positioning.md) — never associate the owner’s unrelated MTL with Coin Railz or claim bank settlement or regulated money transmission.
 - [Robinhood Chain service boundary](robinhood-chain-service-boundary.md) — chain-wide liquidity and production stock-token claims require canonical indexing plus official oracle-safety controls.
 - [Trial identity and grants](trial-identity-grants.md) — never trust caller-supplied forwarded IP as trial identity; reserve claims atomically before issuing keys or credits.
+- [Mass trial incident purge](mass-trial-incident-purge.md) — Sep 2026 abuse rows were exactly purged after guarded production dry run; preserve retained ambiguous telemetry.
 - [Keeper nonce ownership](keeper-nonce-ownership.md) — a shared EVM sender causes keeper nonce races; use a dedicated account or one serialized nonce owner.
 - [Production bootstrap isolation](production-bootstrap-isolation.md) — keep health probes responsive in a tiny parent process while the large app bundle initializes behind an internal proxy.

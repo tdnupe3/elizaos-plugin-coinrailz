@@ -4796,6 +4796,11 @@ export const creditTransactions = pgTable("credit_transactions", {
   index("IDX_credit_transactions_user_id").on(table.userId),
   index("IDX_credit_transactions_type").on(table.type),
   index("IDX_credit_transactions_reference_id").on(table.referenceId),
+  // Trial issuance uses a claim-HMAC reference. This prevents a second grant
+  // even if application retry logic is changed or bypassed.
+  uniqueIndex("IDX_credit_transactions_trial_grant_once")
+    .on(table.referenceId)
+    .where(sql`${table.type} = 'purchase' AND ${table.referenceId} LIKE 'trial:%'`),
   index("IDX_credit_transactions_created_at").on(table.createdAt),
 ]);
 

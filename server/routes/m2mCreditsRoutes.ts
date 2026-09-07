@@ -30,6 +30,9 @@ import { eq, gt, and, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 import { emitFirstContactAsync, emitFunnelEventAsync } from '../services/funnelHelper.js';
 import { provisionCreditsAndKey } from '../services/m2mProvisioningService.js';
+import bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
+import { trialGrantReference, retryTrialSerialization, withTrialTransaction } from '../services/trialIssuancePrimitives.js';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is required for M2M credits endpoint');
@@ -734,67 +737,19 @@ function normalizeClientIp(ip: string): string {
 }
 
 function getTrialClaimKey(ip: string): string {
-  const secret = process.env.TRIAL_IDENTITY_SECRET
-    || process.env.SESSION_SECRET
-    || process.env.ENCRYPTION_KEY;
+  // This identity namespace must never silently change when an unrelated
+  // application secret rotates. A missing dedicated secret fails closed.
+  const secret = process.env.TRIAL_IDENTITY_SECRET;
   if (!secret) {
     throw new Error('Trial identity secret is not configured');
   }
   return crypto.createHmac('sha256', secret).update(normalizeClientIp(ip)).digest('hex');
 }
 
-async function reserveTrialClaim(ip: string): Promise<
-  | { reserved: true; claimKey: string; reservationId: string; claimedAt: Date }
-  | { reserved: false; claimedAt: Date }
-> {
-  const claimKey = getTrialClaimKey(ip);
-  const reservationId = crypto.randomUUID();
-  const result = await pool.query(
-    `INSERT INTO m2m_trial_reservations
-       (claim_key, reservation_id, ip_hash, status, claimed_at, updated_at)
-     VALUES ($1, $2, $3, 'reserved', NOW(), NOW())
-     ON CONFLICT (claim_key) DO UPDATE
-       SET reservation_id = EXCLUDED.reservation_id,
-           ip_hash = EXCLUDED.ip_hash,
-           user_id = NULL,
-           status = 'reserved',
-           claimed_at = NOW(),
-           updated_at = NOW()
-       WHERE m2m_trial_reservations.claimed_at < NOW() - INTERVAL '7 days'
-     RETURNING claim_key, reservation_id, claimed_at`,
-    [claimKey, reservationId, hashIp(ip)],
-  );
-
-  if (result.rows.length > 0) {
-    return {
-      reserved: true,
-      claimKey,
-      reservationId,
-      claimedAt: result.rows[0].claimed_at,
-    };
-  }
-
-  const existing = await pool.query(
-    `SELECT claimed_at FROM m2m_trial_reservations WHERE claim_key = $1`,
-    [claimKey],
-  );
-  return {
-    reserved: false,
-    claimedAt: existing.rows[0]?.claimed_at ?? new Date(),
-  };
-}
-
-// Write privacy-safe success telemetry. The reservation table, not this log, is authoritative.
-function recordTrialClaimAsync(claimKey: string, userId: string, userAgent?: string): void {
-  void db.insert(freeCreditsClaimLog).values({
-    ipAddress: `hmac:${claimKey}`,
-    fingerprint: claimKey,
-    userId,
-    sessionId: `trial_${claimKey.substring(0, 16)}`,
-    userAgent: userAgent || null,
-  }).catch((err: Error) => {
-    console.error('⚠️ trial claim log write failed (non-blocking):', err.message);
-  });
+function trialUserId(claimKey: string): string {
+  // HMAC output is both stable for retries and has 256 bits of collision
+  // resistance; retaining 48 hex chars is more than sufficient for this ID.
+  return `m2m_trial_${claimKey.substring(0, 48)}`;
 }
 
 // Log every trial hit to endpoint_hits — fire-and-forget
@@ -921,22 +876,115 @@ router.get('/trial', async (req: Request, res: Response) => {
     });
   }
 
-  // ── L2 atomic reservation: authoritative across replicas and restarts ──
-  let reservation: Awaited<ReturnType<typeof reserveTrialClaim>>;
+  // The reservation and every provisioning write share one SERIALIZABLE,
+  // pool-client transaction. In particular, never use creditsService here:
+  // its independent queries could leave an issued key or balance after a
+  // reservation failure.
+  type TrialResult =
+    | { issued: false; claimedAt: Date }
+    | { issued: true; apiKey: string; keyPrefix: string; userId: string };
+  let trial: TrialResult;
   try {
-    reservation = await reserveTrialClaim(ip);
+    const claimKey = getTrialClaimKey(ip);
+    const reservationId = crypto.randomUUID();
+    const userId = trialUserId(claimKey);
+    const rawKey = `cr_live_${randomBytes(32).toString('hex')}`;
+    const keyPrefix = rawKey.substring(0, 12);
+    const hashedKey = await bcrypt.hash(rawKey, 10);
+    const client = await pool.connect();
+    try {
+      // A SERIALIZABLE conflict means PostgreSQL rolled back every write.
+      // Retrying the same reservation identity is safe; the winner's committed
+      // reservation is then observed and produces the normal 429 response.
+      trial = await retryTrialSerialization(async () => {
+          trial = await withTrialTransaction(client, async () => {
+      const reservation = await client.query(
+        `INSERT INTO m2m_trial_reservations
+           (claim_key, reservation_id, ip_hash, status, claimed_at, updated_at)
+         VALUES ($1, $2, $3, 'reserved', NOW(), NOW())
+         ON CONFLICT (claim_key) DO UPDATE
+           SET reservation_id = EXCLUDED.reservation_id, ip_hash = EXCLUDED.ip_hash,
+               user_id = NULL, status = 'reserved', claimed_at = NOW(), updated_at = NOW()
+         WHERE m2m_trial_reservations.claimed_at < NOW() - INTERVAL '7 days'
+         RETURNING claimed_at`,
+        [claimKey, reservationId, hashIp(ip)],
+      );
+      if (reservation.rows.length === 0) {
+        const existing = await client.query(
+          'SELECT claimed_at FROM m2m_trial_reservations WHERE claim_key = $1',
+          [claimKey],
+        );
+        return { issued: false, claimedAt: existing.rows[0]?.claimed_at ?? new Date() };
+      } else {
+        await client.query(
+          `INSERT INTO users (id, email, created_at, updated_at)
+           VALUES ($1, $2, NOW(), NOW()) ON CONFLICT (id) DO NOTHING`,
+          [userId, `${userId}@m2m-trial.coinrailz.invalid`],
+        );
+        await client.query(
+          `INSERT INTO credits_accounts (user_id, balance, created_at, updated_at)
+           VALUES ($1, 0.00, NOW(), NOW()) ON CONFLICT (user_id) DO NOTHING`,
+          [userId],
+        );
+        const account = await client.query(
+          'SELECT id, balance FROM credits_accounts WHERE user_id = $1 FOR UPDATE',
+          [userId],
+        );
+        if (account.rows.length !== 1) throw new Error('Trial credits account was not created');
+        const balanceBefore = Number(account.rows[0].balance);
+        const balanceAfter = balanceBefore + 5;
+        await client.query(
+          `INSERT INTO api_keys (user_id, key_prefix, hashed_key, name, status, expires_at)
+           VALUES ($1, $2, $3, 'Free Trial Key', 'active', NOW() + INTERVAL '7 days')`,
+          [userId, keyPrefix, hashedKey],
+        );
+        const grant = await client.query(
+          `INSERT INTO credit_transactions
+             (account_id, user_id, type, amount, balance_before, balance_after, reference_id,
+              payment_method, description, metadata)
+           VALUES ($1, $2, 'purchase', 5.00, $3, $4, $5, 'usdc', $6, $7)
+           ON CONFLICT DO NOTHING RETURNING id`,
+          [account.rows[0].id, userId, balanceBefore.toFixed(2), balanceAfter.toFixed(2),
+            trialGrantReference(claimKey, reservationId), 'Free trial credits', JSON.stringify({ claimKey, reservationId })],
+        );
+        if (grant.rows.length !== 1) throw new Error('Trial grant already exists');
+        const updated = await client.query(
+          `UPDATE credits_accounts SET balance = $1, updated_at = NOW() WHERE id = $2`,
+          [balanceAfter.toFixed(2), account.rows[0].id],
+        );
+        if (updated.rowCount !== 1) throw new Error('Trial balance update failed');
+        await client.query(
+          `INSERT INTO free_credits_claim_log (ip_address, fingerprint, user_id, session_id, user_agent)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [`hmac:${claimKey}`, claimKey, userId, `trial_${claimKey.substring(0, 16)}`, userAgent || null],
+        );
+        const completed = await client.query(
+          `UPDATE m2m_trial_reservations SET status = 'completed', user_id = $1, updated_at = NOW()
+           WHERE claim_key = $2 AND reservation_id = $3 AND status = 'reserved'`,
+          [userId, claimKey, reservationId],
+        );
+        if (completed.rowCount !== 1) throw new Error('Trial reservation completion failed');
+        return { issued: true, apiKey: rawKey, keyPrefix, userId };
+      }
+          });
+          return trial;
+      });
+    } finally {
+      client.release();
+    }
   } catch (err: any) {
-    console.error('❌ Trial reservation failed closed:', err?.message);
+    console.error('❌ Trial provisioning failed closed:', err?.message);
     trackTrialHitAsync(ip, 503, userAgent);
     return res.status(503).json({
-      error: 'TRIAL_RESERVATION_UNAVAILABLE',
-      message: 'Trial eligibility could not be verified. No key or credits were issued.',
+      error: 'TRIAL_PROVISIONING_UNAVAILABLE',
+      message: 'No key or credits were issued. Please retry in a few seconds.',
+      retryable: true,
       paidEndpoint: '/api/m2m/credits/purchase',
     });
   }
 
-  if (!reservation.reserved) {
-    const claimedAtMs = reservation.claimedAt.getTime();
+  if (!trial.issued) {
+    const claimedAtMs = new Date(trial.claimedAt).getTime();
     const retryAfterMs = TRIAL_TTL_MS - (now - claimedAtMs);
     const retryAfterDays = Math.ceil(retryAfterMs / (24 * 60 * 60 * 1000));
     const baseUrl = process.env.PUBLIC_BASE_URL || 'https://coinrailz.com';
@@ -960,41 +1008,12 @@ router.get('/trial', async (req: Request, res: Response) => {
     });
   }
 
-  // Reservation won; L1 is only an optimization from this point onward.
+  // The transaction committed; it is now safe to cache and disclose the key.
   trialClaimedByIp.set(ip, now);
-
-  const ipHash = crypto.createHash('sha256').update(ip).digest('hex').substring(0, 12);
-  const userId = `m2m_trial_${ipHash}`;
   const TRIAL_CREDITS = 5.00;
+  const { apiKey, keyPrefix, userId } = trial;
+  console.log(`🎁 Trial key provisioned: ${keyPrefix}... ($${TRIAL_CREDITS} credits)`);
 
-  try {
-    // generateApiKey auto-creates the m2m_ user — must run BEFORE addCredits (FK: creditsAccounts.userId → users.id)
-    const { apiKey, keyPrefix, keyId } = await creditsService.generateApiKey(userId, 'Free Trial Key');
-
-    // Set expiry on the key
-    await db.update(apiKeys)
-      .set({ expiresAt: new Date(now + TRIAL_TTL_MS) })
-      .where(eq(apiKeys.id, keyId));
-
-    // Now add credits (user exists, creditsAccounts FK is satisfied)
-    await creditsService.addCredits({
-      userId,
-      amount: TRIAL_CREDITS,
-      paymentMethod: 'usdc',
-      referenceId: `trial_${ipHash}_${now}`,
-      description: `Free trial — $${TRIAL_CREDITS} credits (~80-100 service calls). IP hash: ${ipHash}`,
-    });
-
-    console.log(`🎁 Trial key provisioned: ${keyPrefix}... for IP hash ${ipHash} ($${TRIAL_CREDITS} credits)`);
-
-    await pool.query(
-      `UPDATE m2m_trial_reservations
-       SET status = 'completed', user_id = $1, updated_at = NOW()
-       WHERE claim_key = $2 AND reservation_id = $3`,
-      [userId, reservation.claimKey, reservation.reservationId],
-    );
-
-    recordTrialClaimAsync(reservation.claimKey, userId, userAgent);
     trackTrialHitAsync(ip, 200, userAgent);
     recordSdkInstallAsync(ip, userAgent);
 
@@ -1017,24 +1036,6 @@ router.get('/trial', async (req: Request, res: Response) => {
       upgradeAt: "/api/m2m/credits/purchase",
       note: "SAVE this key — it is returned once only and cannot be retrieved again.",
     });
-  } catch (err: any) {
-    // Release only this request's reservation so a legitimate caller can retry.
-    trialClaimedByIp.delete(ip);
-    await pool.query(
-      `DELETE FROM m2m_trial_reservations
-       WHERE claim_key = $1 AND reservation_id = $2 AND status = 'reserved'`,
-      [reservation.claimKey, reservation.reservationId],
-    ).catch((cleanupErr: Error) => {
-      console.error('⚠️ Failed to release trial reservation:', cleanupErr.message);
-    });
-    console.error(`❌ Trial key provisioning failed for IP hash ${ipHash}:`, err?.message);
-    trackTrialHitAsync(ip, 500, userAgent);
-    return res.status(500).json({
-      error: 'PROVISIONING_FAILED',
-      message: 'Trial key provisioning failed. Please retry in a few seconds.',
-      retryable: true,
-    });
-  }
 });
 
 const INCIDENT_START = '2026-09-06 12:09:00';
@@ -1095,6 +1096,15 @@ router.post('/admin/purge-sep6-trial-incident', async (req: Request, res: Respon
       [INCIDENT_START, INCIDENT_END, INCIDENT_UA],
     );
     await client.query('ALTER TABLE incident_users ADD PRIMARY KEY (user_id)');
+    // Stage immutable primary keys before deleting. Do not infer an incident
+    // from an ambiguous timestamp + user-agent telemetry match.
+    await client.query(
+      `CREATE TEMP TABLE incident_claims ON COMMIT DROP AS
+       SELECT f.id FROM free_credits_claim_log f JOIN incident_users i ON i.user_id = f.user_id
+       WHERE f.claimed_at >= $1::timestamp AND f.claimed_at <= $2::timestamp AND f.user_agent = $3`,
+      [INCIDENT_START, INCIDENT_END, INCIDENT_UA],
+    );
+    await client.query('ALTER TABLE incident_claims ADD PRIMARY KEY (id)');
 
     await client.query(
       `CREATE TEMP TABLE incident_new_users ON COMMIT DROP AS
@@ -1127,21 +1137,46 @@ router.post('/admin/purge-sep6-trial-incident', async (req: Request, res: Respon
       [INCIDENT_START, INCIDENT_END],
     );
     await client.query('ALTER TABLE incident_keys ADD PRIMARY KEY (id)');
+    await client.query(
+      `CREATE TEMP TABLE incident_grants ON COMMIT DROP AS
+       SELECT t.id FROM credit_transactions t JOIN incident_users i ON i.user_id = t.user_id
+       WHERE t.type = 'purchase' AND t.reference_id LIKE 'trial_%'
+         AND t.created_at >= $1::timestamp AND t.created_at <= $2::timestamp`,
+      [INCIDENT_START, INCIDENT_END],
+    );
+    await client.query('ALTER TABLE incident_grants ADD PRIMARY KEY (id)');
+    await client.query(
+      `CREATE TEMP TABLE incident_debits ON COMMIT DROP AS
+       SELECT t.id FROM credit_transactions t JOIN incident_users i ON i.user_id = t.user_id
+       WHERE t.type = 'debit' AND t.created_at >= $1::timestamp AND t.created_at <= $2::timestamp`,
+      [INCIDENT_START, INCIDENT_END],
+    );
+    await client.query('ALTER TABLE incident_debits ADD PRIMARY KEY (id)');
+    await client.query(
+      `CREATE TEMP TABLE incident_usage ON COMMIT DROP AS
+       SELECT a.id FROM api_usage_tracking a JOIN incident_users i ON i.user_id = a.client_id
+       WHERE a.request_timestamp >= $1::timestamp AND a.request_timestamp <= $2::timestamp`,
+      [INCIDENT_START, INCIDENT_END],
+    );
+    await client.query('ALTER TABLE incident_usage ADD PRIMARY KEY (id)');
+    await client.query(
+      `CREATE TEMP TABLE incident_funnel_events ON COMMIT DROP AS
+       SELECT f.id FROM conversion_funnel_events f
+       WHERE f.api_key_prefix IN (SELECT key_prefix FROM incident_keys)
+         AND f.created_at >= $1::timestamp AND f.created_at <= $2::timestamp`,
+      [INCIDENT_START, INCIDENT_END],
+    );
+    await client.query('ALTER TABLE incident_funnel_events ADD PRIMARY KEY (id)');
 
     const manifestResult = await client.query(
       `SELECT
-         (SELECT COUNT(*)::int FROM free_credits_claim_log f JOIN incident_users i USING (user_id)
-          WHERE f.claimed_at >= $1::timestamp AND f.claimed_at <= $2::timestamp AND f.user_agent = $3) AS claims,
+         (SELECT COUNT(*)::int FROM incident_claims) AS claims,
          (SELECT COUNT(*)::int FROM incident_users) AS users,
          (SELECT COUNT(*)::int FROM incident_new_users) AS new_users,
          (SELECT COUNT(*)::int FROM incident_existing_users) AS existing_users,
          (SELECT COUNT(*)::int FROM incident_keys) AS keys,
-         (SELECT COUNT(*)::int FROM credit_transactions t JOIN incident_users i USING (user_id)
-          WHERE t.type = 'purchase' AND t.reference_id LIKE 'trial_%'
-            AND t.created_at >= $1::timestamp AND t.created_at <= $2::timestamp) AS grants,
-         (SELECT COUNT(*)::int FROM credit_transactions t JOIN incident_users i USING (user_id)
-          WHERE t.type = 'debit' AND t.created_at >= $1::timestamp AND t.created_at <= $2::timestamp) AS debits`,
-      [INCIDENT_START, INCIDENT_END, INCIDENT_UA],
+         (SELECT COUNT(*)::int FROM incident_grants) AS grants,
+         (SELECT COUNT(*)::int FROM incident_debits) AS debits`,
     );
     const manifest = manifestResult.rows[0];
     const expectedManifest = {
@@ -1182,50 +1217,18 @@ router.post('/admin/purge-sep6-trial-incident', async (req: Request, res: Respon
       deleted[name] = result.rowCount ?? 0;
     };
 
-    await runDelete(
-      'conversion_funnel_events',
-      `DELETE FROM conversion_funnel_events
-       WHERE api_key_prefix IN (SELECT key_prefix FROM incident_keys)
-          OR (created_at >= $1::timestamp AND created_at <= $2::timestamp
-              AND (stage = 'trial_claimed' OR channel = 'direct_trial'))`,
-      [INCIDENT_START, INCIDENT_END],
-    );
-    await runDelete(
-      'x402_interactions',
-      `DELETE FROM x402_interactions
-       WHERE created_at >= $1::timestamp AND created_at <= $2::timestamp
-         AND user_agent = $3`,
-      [INCIDENT_START, INCIDENT_END, INCIDENT_UA],
-    );
-    await runDelete(
-      'endpoint_hits',
-      `DELETE FROM endpoint_hits
-       WHERE created_at >= $1::timestamp AND created_at <= $2::timestamp
-         AND user_agent = $3`,
-      [INCIDENT_START, INCIDENT_END, INCIDENT_UA],
-    );
-    await runDelete(
-      'sdk_installs',
-      `DELETE FROM sdk_installs
-       WHERE first_seen_at >= $1::timestamp AND first_seen_at <= $2::timestamp
-         AND user_agent = $3`,
-      [INCIDENT_START, INCIDENT_END, INCIDENT_UA],
-    );
+    // UA-only telemetry is intentionally retained: it cannot be proven to
+    // belong to this cohort. The remaining telemetry IDs were staged first.
+    await runDelete('conversion_funnel_events',
+      `DELETE FROM conversion_funnel_events WHERE id IN (SELECT id FROM incident_funnel_events)`);
     await runDelete(
       'api_usage_tracking',
-      `DELETE FROM api_usage_tracking a
-       USING incident_users i
-       WHERE a.client_id = i.user_id
-         AND a.request_timestamp >= $1::timestamp AND a.request_timestamp <= $2::timestamp`,
-      [INCIDENT_START, INCIDENT_END],
+      `DELETE FROM api_usage_tracking WHERE id IN (SELECT id FROM incident_usage)`,
     );
     await runDelete(
       'credit_transactions',
-      `DELETE FROM credit_transactions t
-       USING incident_users i
-       WHERE t.user_id = i.user_id
-         AND t.created_at >= $1::timestamp AND t.created_at <= $2::timestamp`,
-      [INCIDENT_START, INCIDENT_END],
+      `DELETE FROM credit_transactions WHERE id IN
+         (SELECT id FROM incident_grants UNION ALL SELECT id FROM incident_debits)`,
     );
     await runDelete(
       'api_keys',
@@ -1233,12 +1236,7 @@ router.post('/admin/purge-sep6-trial-incident', async (req: Request, res: Respon
     );
     await runDelete(
       'free_credits_claim_log',
-      `DELETE FROM free_credits_claim_log f
-       USING incident_users i
-       WHERE f.user_id = i.user_id
-         AND f.claimed_at >= $1::timestamp AND f.claimed_at <= $2::timestamp
-         AND f.user_agent = $3`,
-      [INCIDENT_START, INCIDENT_END, INCIDENT_UA],
+      `DELETE FROM free_credits_claim_log WHERE id IN (SELECT id FROM incident_claims)`,
     );
 
     // Reconstruct the two pre-existing balances solely from their retained ledger.
@@ -1265,6 +1263,34 @@ router.post('/admin/purge-sep6-trial-incident', async (req: Request, res: Respon
        USING incident_new_users i
        WHERE u.id = i.user_id`,
     );
+
+    // These are the destructive rows whose expected cardinality is part of
+    // the incident manifest. Refuse to commit a partial or broadened purge.
+    const expectedDeleted: Record<string, number> = {
+      api_keys: INCIDENT_EXPECTED.keys,
+      free_credits_claim_log: INCIDENT_EXPECTED.claims,
+      credit_transactions: INCIDENT_EXPECTED.grants + INCIDENT_EXPECTED.debits,
+      credits_accounts: INCIDENT_EXPECTED.newUsers,
+      users: INCIDENT_EXPECTED.newUsers,
+      restored_existing_accounts: INCIDENT_EXPECTED.existingUsers,
+    };
+    const stagedTelemetry = await client.query(
+      `SELECT
+         (SELECT COUNT(*)::int FROM incident_funnel_events) AS conversion_funnel_events,
+         (SELECT COUNT(*)::int FROM incident_usage) AS api_usage_tracking`,
+    );
+    Object.assign(expectedDeleted, stagedTelemetry.rows[0]);
+    const deleteCountsMatch = Object.entries(expectedDeleted)
+      .every(([name, count]) => deleted[name] === count);
+    if (!deleteCountsMatch) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        error: 'PURGE_DELETE_COUNT_MISMATCH',
+        expected: expectedDeleted,
+        actual: deleted,
+        deleted: false,
+      });
+    }
 
     const residualResult = await client.query(
       `SELECT

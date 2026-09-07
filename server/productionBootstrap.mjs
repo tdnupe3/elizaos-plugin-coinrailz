@@ -5,10 +5,27 @@ import { spawn } from 'node:child_process';
 const publicPort = Number.parseInt(process.env.PORT || '5000', 10);
 const internalPort = Number.parseInt(process.env.INTERNAL_APP_PORT || String(publicPort + 1), 10);
 const internalHost = '127.0.0.1';
+const childReadyTimeoutMs = Number.parseInt(process.env.CHILD_READY_TIMEOUT_MS || '120000', 10);
 let childReady = false;
 let shuttingDown = false;
 
-const child = spawn(process.execPath, ['dist/index.js'], {
+// Replit ingress appends the address it observed to X-Forwarded-For. Selecting
+// its final valid value discards any caller-supplied chain before the request
+// crosses the trusted loopback hop to the child.
+export function canonicalIngressAddress(forwardedFor, remoteAddress) {
+  const candidates = typeof forwardedFor === 'string' ? forwardedFor.split(',').reverse() : [];
+  for (const candidate of candidates) {
+    let address = candidate.trim();
+    if (address.startsWith('[') && address.endsWith(']')) address = address.slice(1, -1);
+    if (address.toLowerCase().startsWith('::ffff:')) address = address.slice(7);
+    if (net.isIP(address)) return address;
+  }
+  let address = (remoteAddress || '').trim();
+  if (address.toLowerCase().startsWith('::ffff:')) address = address.slice(7);
+  return net.isIP(address) ? address : '0.0.0.0';
+}
+
+const child = spawn(process.execPath, [process.env.PRODUCTION_CHILD_ENTRYPOINT || 'dist/index.js'], {
   env: {
     ...process.env,
     NODE_ENV: 'production',
@@ -31,6 +48,7 @@ function sendStarting(res, statusCode = 503) {
 }
 
 function proxyHttp(req, res) {
+  const clientAddress = canonicalIngressAddress(req.headers['x-forwarded-for'], req.socket.remoteAddress);
   const upstream = http.request({
     hostname: internalHost,
     port: internalPort,
@@ -38,8 +56,10 @@ function proxyHttp(req, res) {
     path: req.url,
     headers: {
       ...req.headers,
+      // Replace, never append, so the child sees one sanitized address.
+      'x-forwarded-for': clientAddress,
       'x-forwarded-host': req.headers.host || '',
-      'x-forwarded-proto': req.headers['x-forwarded-proto'] || 'https',
+      'x-forwarded-proto': 'https',
     },
   }, (upstreamRes) => {
     res.writeHead(upstreamRes.statusCode || 502, upstreamRes.headers);
@@ -75,10 +95,16 @@ server.on('upgrade', (req, socket, head) => {
   }
 
   const upstream = net.connect(internalPort, internalHost, () => {
+    const clientAddress = canonicalIngressAddress(req.headers['x-forwarded-for'], req.socket.remoteAddress);
     let request = `${req.method} ${req.url} HTTP/${req.httpVersion}\r\n`;
     for (let i = 0; i < req.rawHeaders.length; i += 2) {
-      request += `${req.rawHeaders[i]}: ${req.rawHeaders[i + 1]}\r\n`;
+      const headerName = req.rawHeaders[i];
+      if (/^x-forwarded-(for|host|proto)$/i.test(headerName)) continue;
+      request += `${headerName}: ${req.rawHeaders[i + 1]}\r\n`;
     }
+    request += `X-Forwarded-For: ${clientAddress}\r\n`;
+    request += `X-Forwarded-Host: ${req.headers.host || ''}\r\n`;
+    request += 'X-Forwarded-Proto: https\r\n';
     request += '\r\n';
     upstream.write(request);
     if (head.length) upstream.write(head);
@@ -106,6 +132,7 @@ const readinessTimer = setInterval(() => {
     response.resume();
     if (response.statusCode === 200 && !childReady) {
       childReady = true;
+      clearTimeout(childReadinessDeadline);
       console.log('✅ Production child is ready; bootstrap proxy enabled');
     }
   });
@@ -113,6 +140,20 @@ const readinessTimer = setInterval(() => {
   probe.on('error', () => undefined);
 }, 1000);
 readinessTimer.unref();
+
+// A child that binds but stalls during initialization used to leave a healthy
+// bootstrap serving 503 forever. Bound that state so deployment supervision can
+// replace the revision. Set CHILD_READY_TIMEOUT_MS to tune it (default 120s).
+const childReadinessDeadline = setTimeout(() => {
+  if (childReady || shuttingDown) return;
+  shuttingDown = true;
+  clearInterval(readinessTimer);
+  console.error(`❌ Production child did not become ready within ${childReadyTimeoutMs}ms; exiting bootstrap`);
+  child.kill('SIGTERM');
+  server.close(() => process.exit(1));
+  setTimeout(() => process.exit(1), 2000).unref();
+}, Number.isFinite(childReadyTimeoutMs) && childReadyTimeoutMs > 0 ? childReadyTimeoutMs : 120000);
+childReadinessDeadline.unref();
 
 child.on('exit', (code, signal) => {
   childReady = false;
@@ -126,6 +167,7 @@ function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
   clearInterval(readinessTimer);
+  clearTimeout(childReadinessDeadline);
   child.kill(signal);
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(0), 5000).unref();

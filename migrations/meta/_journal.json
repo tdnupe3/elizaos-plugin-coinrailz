@@ -15,6 +15,13 @@
       "when": 1788143693248,
       "tag": "0001_global_ai_agent_security_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788143693249,
+      "tag": "0002_trial_grant_idempotency",
+      "breakpoints": true
     }
   ]
 }

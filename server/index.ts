@@ -76,6 +76,9 @@ import {
 
 // Create Express app and HTTP server IMMEDIATELY
 const app = express();
+// The public bootstrap is the only proxy hop we trust. It replaces
+// X-Forwarded-For with one canonical address before forwarding locally.
+app.set('trust proxy', 'loopback');
 const port = parseInt(process.env.PORT || '5000', 10);
 const httpServer = http.createServer(app);
 
@@ -269,7 +272,8 @@ app.get('/api/monitoring/health', (req, res, next) => {
 // and return an HTML page — silently breaking paying agents that retry.
 //
 // This gate returns HTTP 503 + Retry-After: 5 for all such requests until
-// markAppReady() is called (right after x402 routes register in appMain.ts).
+// markAppReady() is called after the core x402/MCP/M2M/payment routes and
+// their error boundary register in appMain.ts.
 //
 // Exempt from the gate (registered above this point and handled directly):
 //   /healthz, /, /.well-known/*, /api/monitoring/health, /readyz

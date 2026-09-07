@@ -25,6 +25,37 @@ const _withStartupTimeout = <T>(label: string, ms: number, fn: () => Promise<T>)
 const express = (await import('express')).default;
 const { Router } = await import('express');
 
+// Begin independent route loads together. Later imports of these same
+// specifiers coalesce with the in-flight load, preserving registration order
+// and local error handling while removing the serial cold-start waterfall.
+const _preReadyImportBatch = [
+  './vite', './simpleRoutes', './buildModeDetection', './routes/enhancedBusinessLogicRoutes',
+  './referralRoutes', './apiRoutes', './routes/dataMonetizationRoutes',
+  './routes/enterpriseDataRoutes', './db', '../shared/schema', 'drizzle-orm',
+  './routes/p2pRoutes', './routes/aiMarketplaceSimple', './routes/aiAgentProductRoutesProduction',
+  './routes/smartContractAuditRoutes', './authRoutes', './routes', './routes/gasStationRoutes',
+  './routes/plaidRoutes', './routes/agentPaymentsRoutes', './routes/sdkPaymentsRoutes',
+  './routes/sdkSolanaRoutes', './routes/x402Routes', './routes/x402MicroserviceRoutesV2',
+  './routes/x402scanScraperRoutes', './routes/x402AnalyticsRoutes', './routes/automatedCampaignRoutes',
+  './routes/revenueAttributionRoutes', './routes/automatedFollowUpRoutes', './routes/contactExtractionRoutes',
+  './routes/sdkLicensingRoutes', './routes/realSDKLicensingRoutes', './routes/customerPortalRoutes',
+  './routes/stripeWebhookRoutes', './routes/immediateRevenueRoutes', './routes/walletBalanceRoutes',
+  './routes/redditAuth', './routes/coinflipRoutes', './routes/realWalletDiscoveryRoutes',
+  './routes/autoJoinerFixed', './routes/subscriptionPayments', './routes/aiAgentServices',
+  './routes/agentServiceRoutes', './routes/microservices', './services/bnbChainService',
+  './services/pulseChainService', './services/peezyIntegrationService', './routes/telegramMiniAppRoutes',
+  './routes/a2aWrapperRoutes',
+  './routes/a2aBridgeRoutes.js', './routes/a2aCoinRailzRoutes', './routes/ap2MerchantRoutes',
+  './routes/agentCardRoutes', './routes/wellKnownRoutes', './routes/discoveryRoutes',
+  './routes/buyerAnalysisRoutes', './routes/erc8004DiscoveryRoutes', './routes/a2aMassDiscoveryRoutes',
+  './routes/mcpServiceDiscovery', './routes/iotPaymentsRoutes', './routes/esportsPartnerRoutes',
+  './routes/a2dPaymentsRoutes', './routes/unifiedCreditsRoutes', './routes/satelliteDataRoutes',
+  './routes/earthdataRoutes', './discovery/bazaarRegistrar', './routes/fastRevenueRoutes.js',
+  './routes/stripePaymentRoutes.js', './routes/campaignConversionRoutes.js',
+  './routes/a2aProviderRoutes.js', 'express-rate-limit',
+].map((modulePath) => import(modulePath).catch(() => undefined));
+void _preReadyImportBatch;
+
 // ============================================================================
 
 console.log('🚀 SERVER STARTUP - VERSION v3-fast-health-check');
@@ -49,8 +80,6 @@ const { setupEnhancedBusinessLogicRoutes } = await import("./routes/enhancedBusi
 // - initializeAffiliateSystem -> dynamically imported
 // - realA2AFailoverPipeline -> dynamically imported
 // - sdkLeadGenerationService -> dynamically imported
-const emergencyRevenueRoutes = (await import('./routes/emergencyRevenueRoutes')).default;
-const competitionRoutes = (await import('./routes/competitionRoutes.js')).default;
 const { setupReferralRoutes } = await import("./referralRoutes");
 const { setupCriticalAPIRoutes } = await import("./apiRoutes");
 const { dataMonetizationRoutes } = await import("./routes/dataMonetizationRoutes");
@@ -106,15 +135,11 @@ const aiAgentServices = (await import('./routes/aiAgentServices')).default;
 const agentServiceRoutes = (await import('./routes/agentServiceRoutes')).default;
 const microservicesRoutes = (await import('./routes/microservices')).default;
 _lap('pre-heavy-services-import');
-const { telegramOutreachService } = await import('./services/telegramOutreachService.js');
-_lap('telegramOutreachService imported');
 const telegramMiniAppRoutes = (await import('./routes/telegramMiniAppRoutes')).default;
 const { bnbChainService } = await import("./services/bnbChainService");
 _lap('bnbChainService imported');
 const { pulseChainService } = await import("./services/pulseChainService");
 _lap('pulseChainService imported');
-const { connectionManager } = await import("./services/connectionManager");
-_lap('connectionManager imported');
 const { peezyService } = await import('./services/peezyIntegrationService');
 _lap('peezyService imported');
 const a2aWrapperRoutes = (await import('./routes/a2aWrapperRoutes')).default;
@@ -138,7 +163,6 @@ const { createBazaarDiscoveryRouter, initializeBazaarDiscovery, isBazaarDiscover
 const fastRevenueRoutes = (await import('./routes/fastRevenueRoutes.js')).default;
 const stripePaymentRoutes = (await import('./routes/stripePaymentRoutes.js')).default;
 const campaignConversionRoutes = (await import('./routes/campaignConversionRoutes.js')).default;
-const { ProviderCapabilityService } = await import('./services/providerCapabilityService.js');
 const { createAllProviderRouters } = await import('./routes/a2aProviderRoutes.js');
 let createPaypalOrder: any, capturePaypalOrder: any, loadPaypalDefault: any;
 try {
@@ -634,8 +658,9 @@ app.use((_req, res, next) => {
   next();
 });
 
-// Fix trust proxy for rate limiting
-app.set('trust proxy', 1);
+// Only the production bootstrap's loopback connection is trusted. It has
+// already replaced X-Forwarded-For with a single canonical client address.
+app.set('trust proxy', 'loopback');
 
 // Apply general API rate limiting to all /api routes EXCEPT order creation
 // DISABLED RATE LIMITING MIDDLEWARE - CAUSING INFINITE LOOPS
@@ -660,9 +685,12 @@ app.set('trust proxy', 1);
 // CRITICAL: Register ALL marketplace routes BEFORE Vite middleware
 // Each import is individually guarded so a single module failure cannot
 // silently abort the entire initialization chain.
-const _safeImportRoute = async (modPath: string, label: string): Promise<any> => {
+const _safeImportRoute = async (load: () => Promise<any>, label: string): Promise<any> => {
   try {
-    const mod = await import(modPath);
+    // Keep every route import statically visible to esbuild. A variable
+    // import is left extensionless in split ESM output and Node cannot resolve
+    // it after deployment.
+    const mod = await load();
     console.log(`✅ Loaded route module: ${label}`);
     return mod.default;
   } catch (err: any) {
@@ -671,8 +699,8 @@ const _safeImportRoute = async (modPath: string, label: string): Promise<any> =>
   }
 };
 
-const agentRegistration = await _safeImportRoute('./routes/agentRegistration', 'agentRegistration');
-const agentSelfRegistration = await _safeImportRoute('./routes/agentSelfRegistration', 'agentSelfRegistration');
+const agentRegistration = await _safeImportRoute(() => import('./routes/agentRegistration'), 'agentRegistration');
+const agentSelfRegistration = await _safeImportRoute(() => import('./routes/agentSelfRegistration'), 'agentSelfRegistration');
 const paymentIntegration = await (async () => {
   try {
     const mod = await import('./routes/paymentIntegration');
@@ -683,20 +711,20 @@ const paymentIntegration = await (async () => {
     return Router();
   }
 })();
-const messagingSystem = await _safeImportRoute('./routes/messagingSystem', 'messagingSystem');
-const disputeResolution = await _safeImportRoute('./routes/disputeResolution', 'disputeResolution');
-const agentPayouts = await _safeImportRoute('./routes/agentPayouts', 'agentPayouts');
-const orderProcessing = await _safeImportRoute('./routes/orderProcessing', 'orderProcessing');
-const escrowIntegration = await _safeImportRoute('./routes/escrowIntegration', 'escrowIntegration');
-const serviceDelivery = await _safeImportRoute('./routes/serviceDelivery', 'serviceDelivery');
-const reviewSystem = await _safeImportRoute('./routes/reviewSystem', 'reviewSystem');
-const referralRoutes = await _safeImportRoute('./routes/referralRoutes', 'referralRoutes');
-const blockchainRoutes = await _safeImportRoute('./routes/blockchainRoutes', 'blockchainRoutes');
-const aiMarketplaceRoutes = await _safeImportRoute('./routes/aiMarketplaceRoutes', 'aiMarketplaceRoutes');
-const marketplaceRoutes = await _safeImportRoute('./routes/marketplaceRoutes', 'marketplaceRoutes');
-const dashboardRoutes = await _safeImportRoute('./routes/dashboardRoutes', 'dashboardRoutes');
-const circleRoutes = await _safeImportRoute('./routes/circleRoutes', 'circleRoutes');
-const userCircleRoutes = await _safeImportRoute('./routes/userCircleRoutes', 'userCircleRoutes');
+const messagingSystem = await _safeImportRoute(() => import('./routes/messagingSystem'), 'messagingSystem');
+const disputeResolution = await _safeImportRoute(() => import('./routes/disputeResolution'), 'disputeResolution');
+const agentPayouts = await _safeImportRoute(() => import('./routes/agentPayouts'), 'agentPayouts');
+const orderProcessing = await _safeImportRoute(() => import('./routes/orderProcessing'), 'orderProcessing');
+const escrowIntegration = await _safeImportRoute(() => import('./routes/escrowIntegration'), 'escrowIntegration');
+const serviceDelivery = await _safeImportRoute(() => import('./routes/serviceDelivery'), 'serviceDelivery');
+const reviewSystem = await _safeImportRoute(() => import('./routes/reviewSystem'), 'reviewSystem');
+const referralRoutes = await _safeImportRoute(() => import('./routes/referralRoutes'), 'referralRoutes');
+const blockchainRoutes = await _safeImportRoute(() => import('./routes/blockchainRoutes'), 'blockchainRoutes');
+const aiMarketplaceRoutes = await _safeImportRoute(() => import('./routes/aiMarketplaceRoutes'), 'aiMarketplaceRoutes');
+const marketplaceRoutes = await _safeImportRoute(() => import('./routes/marketplaceRoutes'), 'marketplaceRoutes');
+const dashboardRoutes = await _safeImportRoute(() => import('./routes/dashboardRoutes'), 'dashboardRoutes');
+const circleRoutes = await _safeImportRoute(() => import('./routes/circleRoutes'), 'circleRoutes');
+const userCircleRoutes = await _safeImportRoute(() => import('./routes/userCircleRoutes'), 'userCircleRoutes');
 
 // Enhanced authentication
 let enhancedAuth: any, requireAuth: any, optionalAuth: any;
@@ -4402,11 +4430,28 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       markFrontendReady();
     }
   }
+
+  // The payment-critical surface is complete above: x402, MCP, M2M and the
+  // payment routes have all been mounted, as has the frontend fallback. Install
+  // its error boundary and open readiness before optional jobs, WebSocket setup,
+  // business integrations, and additional convenience routes below. Those
+  // later routes retain the final error boundary installed at the end of their
+  // registration block.
+  app.use(errorHandlerMiddleware());
+  markAppReady();
   
   // ALL ROUTE REGISTRATION AND INITIALIZATION HAPPENS AFTER PORT IS OPEN
   // Use setImmediate to defer and not block the event loop
   setImmediate(async () => {
     console.log('🔄 Starting post-listen background initialization...');
+
+    // These integrations have no route dependency and were formerly loaded in
+    // the critical serial import chain solely for their optional service setup.
+    // Keep that setup, but never make readiness wait for it.
+    void Promise.all([
+      import('./services/telegramOutreachService.js'),
+      import('./services/connectionManager'),
+    ]).catch((error) => console.warn('⚠️ Optional post-ready service import failed:', error?.message || error));
     
     // INITIALIZE SERVICE DELIVERY FRAMEWORK - deferred to post-listen for faster health checks
     // Skip in DEV_LITE_MODE to prevent Vite HMR drops
@@ -4592,11 +4637,13 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   
   // 🚨 EMERGENCY REVENUE GENERATION ROUTES - IMMEDIATE ACTION
   console.log('🚨 Registering EMERGENCY REVENUE GENERATION routes...');
+  const emergencyRevenueRoutes = (await import('./routes/emergencyRevenueRoutes')).default;
   app.use('/api/emergency-revenue', emergencyRevenueRoutes);
   console.log('✅ Emergency revenue routes registered successfully');
 
   // 🏆 COMPETITION OUTREACH ROUTES - IMMEDIATE AGENT RECRUITMENT
   console.log('🏆 Registering BEST AGENT COMPETITION routes...');
+  const competitionRoutes = (await import('./routes/competitionRoutes.js')).default;
   app.use('/api/competition', competitionRoutes);
   console.log('✅ Competition routes registered successfully');
   
@@ -4636,19 +4683,15 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
 
   // MOVED: Campaign routes moved to beginning to avoid global /api route conflicts
 
-  // One terminal error handler, registered after every route and frontend
-  // fallback so late route failures cannot escape to Express's text handler.
+  // Final error handler for optional routes registered after the readiness
+  // boundary. Core routes were already protected before readiness opened.
   app.use(errorHandlerMiddleware());
-
-  // Open the readiness gate only after every route, frontend fallback, and the
-  // terminal error handler are installed. Until this point API clients receive
-  // 503 + Retry-After rather than partial routing or Express default errors.
-  markAppReady();
   
   // Initialize provider capabilities - Skip in DEV_LITE_MODE to prevent Vite HMR drops
   if (!DEV_LITE_MODE) {
     console.log('🔥 Warming up provider capabilities for model validation...');
     try {
+      const { ProviderCapabilityService } = await import('./services/providerCapabilityService.js');
       const capabilityService = ProviderCapabilityService.getInstance();
       await capabilityService.warmupAllProviders();
       console.log('✅ Provider capabilities initialized successfully');

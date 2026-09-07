@@ -4578,6 +4578,25 @@ export const freeCreditsClaimLogSelectSchema = createSelectSchema(freeCreditsCla
 export type FreeCreditsClaimLog = typeof freeCreditsClaimLog.$inferSelect;
 export type InsertFreeCreditsClaimLog = z.infer<typeof freeCreditsClaimLogInsertSchema>;
 
+// Durable atomic gate for M2M free trials.
+// One row per trusted client identity; ON CONFLICT conditionally renews it after the TTL.
+export const m2mTrialReservations = pgTable(
+  "m2m_trial_reservations",
+  {
+    claimKey: varchar("claim_key", { length: 64 }).primaryKey(),
+    reservationId: varchar("reservation_id", { length: 36 }).notNull(),
+    ipHash: varchar("ip_hash", { length: 64 }).notNull(),
+    userId: varchar("user_id"),
+    status: varchar("status", { length: 20 }).notNull().default("reserved"),
+    claimedAt: timestamp("claimed_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("IDX_m2m_trial_reservations_claimed").on(table.claimedAt),
+    index("IDX_m2m_trial_reservations_status").on(table.status),
+  ],
+);
+
 // Guest Credits - Track credits for unauthenticated users (IP-based)
 export const guestCredits = pgTable(
   "guest_credits",

@@ -24,7 +24,7 @@ import { Router, Request, Response } from 'express';
 import { getCanonicalServiceCount } from '../utils/serviceCount';
 import { stripe } from '../services/stripeClient';
 import { creditsService } from '../services/creditsService.js';
-import { db } from '../db.js';
+import { db, pool } from '../db.js';
 import { paymentIntentTracking, apiKeys, freeCreditsClaimLog, endpointHits, sdkInstalls } from '../../shared/schema.js';
 import { eq, gt, and, sql } from 'drizzle-orm';
 import crypto from 'crypto';
@@ -699,9 +699,9 @@ router.get('/capabilities', (req: Request, res: Response) => {
 // ──────────────────────────────────────────────────────────────────────────────
 // GET /api/m2m/trial
 // Free $5 trial API key — no payment, no crypto wallet required.
-// Rate limited: 1 per IP per 7 days.
+// Rate limited: 1 per trusted proxy-derived client IP per 7 days.
 //   L1: in-memory Map (fast path, clears on restart)
-//   L2: free_credits_claim_log DB table (authoritative, survives restarts)
+//   L2: m2m_trial_reservations atomic DB gate (authoritative)
 // Every hit (success, blocked, error) is logged to endpoint_hits for full
 // traffic visibility including blocked retry attempts.
 // Excludes internal/RFC-1918 IPs. Creates an m2m_ user and provisions a
@@ -729,39 +729,68 @@ function hashIp(ip: string): string {
   return crypto.createHash('sha256').update(ip).digest('hex').substring(0, 16);
 }
 
-// L2: check DB for an active trial claim — used when L1 cache is cold (post-restart)
-async function checkTrialClaimedInDb(ip: string): Promise<{ claimed: boolean; claimedAt?: Date }> {
-  try {
-    const cutoff = new Date(Date.now() - TRIAL_TTL_MS);
-    const rows = await db
-      .select({ claimedAt: freeCreditsClaimLog.claimedAt })
-      .from(freeCreditsClaimLog)
-      .where(
-        and(
-          eq(freeCreditsClaimLog.ipAddress, ip),
-          gt(freeCreditsClaimLog.claimedAt, cutoff)
-        )
-      )
-      .limit(1);
-    if (rows.length > 0 && rows[0].claimedAt) {
-      return { claimed: true, claimedAt: rows[0].claimedAt };
-    }
-    return { claimed: false };
-  } catch {
-    // DB check failure is non-fatal — fall through to allow provisioning
-    // (fail-open is safer than denying legitimate agents on DB hiccup)
-    return { claimed: false };
-  }
+function normalizeClientIp(ip: string): string {
+  return ip.startsWith('::ffff:') ? ip.substring(7) : ip;
 }
 
-// Write a claim record to DB — fire-and-forget, non-blocking
-function recordTrialClaimAsync(ip: string, userId: string, userAgent?: string): void {
-  const fingerprint = hashIp(ip); // M2M calls have no browser fingerprint; use IP hash
+function getTrialClaimKey(ip: string): string {
+  const secret = process.env.TRIAL_IDENTITY_SECRET
+    || process.env.SESSION_SECRET
+    || process.env.ENCRYPTION_KEY;
+  if (!secret) {
+    throw new Error('Trial identity secret is not configured');
+  }
+  return crypto.createHmac('sha256', secret).update(normalizeClientIp(ip)).digest('hex');
+}
+
+async function reserveTrialClaim(ip: string): Promise<
+  | { reserved: true; claimKey: string; reservationId: string; claimedAt: Date }
+  | { reserved: false; claimedAt: Date }
+> {
+  const claimKey = getTrialClaimKey(ip);
+  const reservationId = crypto.randomUUID();
+  const result = await pool.query(
+    `INSERT INTO m2m_trial_reservations
+       (claim_key, reservation_id, ip_hash, status, claimed_at, updated_at)
+     VALUES ($1, $2, $3, 'reserved', NOW(), NOW())
+     ON CONFLICT (claim_key) DO UPDATE
+       SET reservation_id = EXCLUDED.reservation_id,
+           ip_hash = EXCLUDED.ip_hash,
+           user_id = NULL,
+           status = 'reserved',
+           claimed_at = NOW(),
+           updated_at = NOW()
+       WHERE m2m_trial_reservations.claimed_at < NOW() - INTERVAL '7 days'
+     RETURNING claim_key, reservation_id, claimed_at`,
+    [claimKey, reservationId, hashIp(ip)],
+  );
+
+  if (result.rows.length > 0) {
+    return {
+      reserved: true,
+      claimKey,
+      reservationId,
+      claimedAt: result.rows[0].claimed_at,
+    };
+  }
+
+  const existing = await pool.query(
+    `SELECT claimed_at FROM m2m_trial_reservations WHERE claim_key = $1`,
+    [claimKey],
+  );
+  return {
+    reserved: false,
+    claimedAt: existing.rows[0]?.claimed_at ?? new Date(),
+  };
+}
+
+// Write privacy-safe success telemetry. The reservation table, not this log, is authoritative.
+function recordTrialClaimAsync(claimKey: string, userId: string, userAgent?: string): void {
   void db.insert(freeCreditsClaimLog).values({
-    ipAddress: ip,
-    fingerprint,
+    ipAddress: `hmac:${claimKey}`,
+    fingerprint: claimKey,
     userId,
-    sessionId: `trial_${fingerprint}`,
+    sessionId: `trial_${claimKey.substring(0, 16)}`,
     userAgent: userAgent || null,
   }).catch((err: Error) => {
     console.error('⚠️ trial claim log write failed (non-blocking):', err.message);
@@ -826,10 +855,19 @@ function recordSdkInstallAsync(ip: string, userAgent?: string): void {
 }
 
 router.get('/trial', async (req: Request, res: Response) => {
-  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
-    || req.socket?.remoteAddress
-    || 'unknown';
+  // Express derives req.ip from the configured trusted proxy hop. Never parse
+  // caller-controlled X-Forwarded-For directly here.
+  const ip = normalizeClientIp(req.ip || req.socket?.remoteAddress || 'unknown');
   const userAgent = req.headers['user-agent'] as string | undefined;
+
+  if (process.env.TRIALS_ENABLED === 'false') {
+    trackTrialHitAsync(ip, 503, userAgent);
+    return res.status(503).json({
+      error: 'TRIALS_TEMPORARILY_DISABLED',
+      message: 'Free trials are temporarily unavailable. Paid credit purchase remains available.',
+      paidEndpoint: '/api/m2m/credits/purchase',
+    });
+  }
 
   if (isInternalIp(ip)) {
     trackTrialHitAsync(ip, 403, userAgent);
@@ -883,14 +921,25 @@ router.get('/trial', async (req: Request, res: Response) => {
     });
   }
 
-  // ── L2 check: DB (authoritative — survives restarts) ──
-  const dbCheck = await checkTrialClaimedInDb(ip);
-  if (dbCheck.claimed && dbCheck.claimedAt) {
-    const claimedAtMs = dbCheck.claimedAt.getTime();
+  // ── L2 atomic reservation: authoritative across replicas and restarts ──
+  let reservation: Awaited<ReturnType<typeof reserveTrialClaim>>;
+  try {
+    reservation = await reserveTrialClaim(ip);
+  } catch (err: any) {
+    console.error('❌ Trial reservation failed closed:', err?.message);
+    trackTrialHitAsync(ip, 503, userAgent);
+    return res.status(503).json({
+      error: 'TRIAL_RESERVATION_UNAVAILABLE',
+      message: 'Trial eligibility could not be verified. No key or credits were issued.',
+      paidEndpoint: '/api/m2m/credits/purchase',
+    });
+  }
+
+  if (!reservation.reserved) {
+    const claimedAtMs = reservation.claimedAt.getTime();
     const retryAfterMs = TRIAL_TTL_MS - (now - claimedAtMs);
     const retryAfterDays = Math.ceil(retryAfterMs / (24 * 60 * 60 * 1000));
     const baseUrl = process.env.PUBLIC_BASE_URL || 'https://coinrailz.com';
-    // Repopulate L1 so subsequent requests from same IP skip the DB query
     trialClaimedByIp.set(ip, claimedAtMs);
     trackTrialHitAsync(ip, 429, userAgent);
     return res.status(429).json({
@@ -911,7 +960,7 @@ router.get('/trial', async (req: Request, res: Response) => {
     });
   }
 
-  // ── Mark claimed in L1 immediately (prevents duplicate provisioning on concurrent requests) ──
+  // Reservation won; L1 is only an optimization from this point onward.
   trialClaimedByIp.set(ip, now);
 
   const ipHash = crypto.createHash('sha256').update(ip).digest('hex').substring(0, 12);
@@ -938,8 +987,14 @@ router.get('/trial', async (req: Request, res: Response) => {
 
     console.log(`🎁 Trial key provisioned: ${keyPrefix}... for IP hash ${ipHash} ($${TRIAL_CREDITS} credits)`);
 
-    // ── Persist claim to DB (L2) and track hit ──
-    recordTrialClaimAsync(ip, userId, userAgent);
+    await pool.query(
+      `UPDATE m2m_trial_reservations
+       SET status = 'completed', user_id = $1, updated_at = NOW()
+       WHERE claim_key = $2 AND reservation_id = $3`,
+      [userId, reservation.claimKey, reservation.reservationId],
+    );
+
+    recordTrialClaimAsync(reservation.claimKey, userId, userAgent);
     trackTrialHitAsync(ip, 200, userAgent);
     recordSdkInstallAsync(ip, userAgent);
 
@@ -963,8 +1018,15 @@ router.get('/trial', async (req: Request, res: Response) => {
       note: "SAVE this key — it is returned once only and cannot be retrieved again.",
     });
   } catch (err: any) {
-    // Undo the L1 rate-limit claim so the agent can retry
+    // Release only this request's reservation so a legitimate caller can retry.
     trialClaimedByIp.delete(ip);
+    await pool.query(
+      `DELETE FROM m2m_trial_reservations
+       WHERE claim_key = $1 AND reservation_id = $2 AND status = 'reserved'`,
+      [reservation.claimKey, reservation.reservationId],
+    ).catch((cleanupErr: Error) => {
+      console.error('⚠️ Failed to release trial reservation:', cleanupErr.message);
+    });
     console.error(`❌ Trial key provisioning failed for IP hash ${ipHash}:`, err?.message);
     trackTrialHitAsync(ip, 500, userAgent);
     return res.status(500).json({

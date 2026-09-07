@@ -9,7 +9,7 @@ packages = ["jq", "solc", "docker"]
 [deployment]
 deploymentTarget = "autoscale"
 build = ["bash", "-c", "rm -rf node_modules/bun node_modules/.bin/bun node_modules/.bin/bunx && npm run build"]
-run = ["node", "dist/index.js"]
+run = ["node", "server/productionBootstrap.mjs"]
 
 [workflows]
 runButton = "Project"

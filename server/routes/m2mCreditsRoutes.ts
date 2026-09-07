@@ -1037,4 +1037,280 @@ router.get('/trial', async (req: Request, res: Response) => {
   }
 });
 
+const INCIDENT_START = '2026-09-06 12:09:00';
+const INCIDENT_END = '2026-09-06 14:34:12';
+const INCIDENT_UA = 'python-requests/2.33.0';
+const INCIDENT_EXPECTED = {
+  claims: 17516,
+  users: 17516,
+  newUsers: 17514,
+  existingUsers: 2,
+  keys: 17516,
+  grants: 17516,
+  debits: 82,
+};
+
+function hasValidAdminKey(req: Request): boolean {
+  const supplied = req.headers['x-admin-key'];
+  const configured = process.env.ADMIN_KEY;
+  if (typeof supplied !== 'string' || !configured) return false;
+  const suppliedBuffer = Buffer.from(supplied);
+  const configuredBuffer = Buffer.from(configured);
+  return suppliedBuffer.length === configuredBuffer.length
+    && crypto.timingSafeEqual(suppliedBuffer, configuredBuffer);
+}
+
+/**
+ * One-purpose, idempotent cleanup for the September 6 trial-abuse cohort.
+ * Defaults to dry-run. Execute requires the exact confirmation phrase and all
+ * manifest counts must match, otherwise the transaction is rolled back.
+ */
+router.post('/admin/purge-sep6-trial-incident', async (req: Request, res: Response) => {
+  if (!hasValidAdminKey(req)) {
+    return res.status(401).json({ error: 'ADMIN_AUTH_REQUIRED' });
+  }
+
+  const execute = req.body?.execute === true;
+  if (execute && req.body?.confirmation !== 'PURGE_SEP6_TRIAL_INCIDENT_17516') {
+    return res.status(400).json({
+      error: 'CONFIRMATION_REQUIRED',
+      message: 'Exact incident confirmation phrase is required.',
+    });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');
+    await client.query(`SET LOCAL lock_timeout = '5s'`);
+    await client.query(`SET LOCAL statement_timeout = '180s'`);
+
+    await client.query(
+      `CREATE TEMP TABLE incident_users ON COMMIT DROP AS
+       SELECT DISTINCT user_id
+       FROM free_credits_claim_log
+       WHERE claimed_at >= $1::timestamp
+         AND claimed_at <= $2::timestamp
+         AND user_agent = $3
+         AND user_id LIKE 'm2m_trial_%'`,
+      [INCIDENT_START, INCIDENT_END, INCIDENT_UA],
+    );
+    await client.query('ALTER TABLE incident_users ADD PRIMARY KEY (user_id)');
+
+    await client.query(
+      `CREATE TEMP TABLE incident_new_users ON COMMIT DROP AS
+       SELECT i.user_id
+       FROM incident_users i
+       JOIN users u ON u.id = i.user_id
+       WHERE u.created_at >= $1::timestamp AND u.created_at <= $2::timestamp`,
+      [INCIDENT_START, INCIDENT_END],
+    );
+    await client.query('ALTER TABLE incident_new_users ADD PRIMARY KEY (user_id)');
+
+    await client.query(
+      `CREATE TEMP TABLE incident_existing_users ON COMMIT DROP AS
+       SELECT i.user_id
+       FROM incident_users i
+       JOIN users u ON u.id = i.user_id
+       WHERE u.created_at < $1::timestamp`,
+      [INCIDENT_START],
+    );
+    await client.query('ALTER TABLE incident_existing_users ADD PRIMARY KEY (user_id)');
+
+    await client.query(
+      `CREATE TEMP TABLE incident_keys ON COMMIT DROP AS
+       SELECT k.id, k.key_prefix
+       FROM api_keys k
+       JOIN incident_users i ON i.user_id = k.user_id
+       WHERE k.name = 'Free Trial Key'
+         AND k.created_at >= $1::timestamp
+         AND k.created_at <= $2::timestamp`,
+      [INCIDENT_START, INCIDENT_END],
+    );
+    await client.query('ALTER TABLE incident_keys ADD PRIMARY KEY (id)');
+
+    const manifestResult = await client.query(
+      `SELECT
+         (SELECT COUNT(*)::int FROM free_credits_claim_log f JOIN incident_users i USING (user_id)
+          WHERE f.claimed_at >= $1::timestamp AND f.claimed_at <= $2::timestamp AND f.user_agent = $3) AS claims,
+         (SELECT COUNT(*)::int FROM incident_users) AS users,
+         (SELECT COUNT(*)::int FROM incident_new_users) AS new_users,
+         (SELECT COUNT(*)::int FROM incident_existing_users) AS existing_users,
+         (SELECT COUNT(*)::int FROM incident_keys) AS keys,
+         (SELECT COUNT(*)::int FROM credit_transactions t JOIN incident_users i USING (user_id)
+          WHERE t.type = 'purchase' AND t.reference_id LIKE 'trial_%'
+            AND t.created_at >= $1::timestamp AND t.created_at <= $2::timestamp) AS grants,
+         (SELECT COUNT(*)::int FROM credit_transactions t JOIN incident_users i USING (user_id)
+          WHERE t.type = 'debit' AND t.created_at >= $1::timestamp AND t.created_at <= $2::timestamp) AS debits`,
+      [INCIDENT_START, INCIDENT_END, INCIDENT_UA],
+    );
+    const manifest = manifestResult.rows[0];
+    const expectedManifest = {
+      claims: INCIDENT_EXPECTED.claims,
+      users: INCIDENT_EXPECTED.users,
+      new_users: INCIDENT_EXPECTED.newUsers,
+      existing_users: INCIDENT_EXPECTED.existingUsers,
+      keys: INCIDENT_EXPECTED.keys,
+      grants: INCIDENT_EXPECTED.grants,
+      debits: INCIDENT_EXPECTED.debits,
+    };
+    const manifestMatches = Object.entries(expectedManifest)
+      .every(([key, value]) => Number(manifest[key]) === value);
+
+    if (!manifestMatches) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        error: 'INCIDENT_MANIFEST_MISMATCH',
+        expected: expectedManifest,
+        actual: manifest,
+        deleted: false,
+      });
+    }
+
+    if (!execute) {
+      await client.query('ROLLBACK');
+      return res.json({
+        success: true,
+        dryRun: true,
+        manifest,
+        message: 'Manifest matches. No rows were changed.',
+      });
+    }
+
+    const deleted: Record<string, number> = {};
+    const runDelete = async (name: string, query: string, params: unknown[] = []) => {
+      const result = await client.query(query, params);
+      deleted[name] = result.rowCount ?? 0;
+    };
+
+    await runDelete(
+      'conversion_funnel_events',
+      `DELETE FROM conversion_funnel_events
+       WHERE api_key_prefix IN (SELECT key_prefix FROM incident_keys)
+          OR (created_at >= $1::timestamp AND created_at <= $2::timestamp
+              AND (stage = 'trial_claimed' OR channel = 'direct_trial'))`,
+      [INCIDENT_START, INCIDENT_END],
+    );
+    await runDelete(
+      'x402_interactions',
+      `DELETE FROM x402_interactions
+       WHERE created_at >= $1::timestamp AND created_at <= $2::timestamp
+         AND user_agent = $3`,
+      [INCIDENT_START, INCIDENT_END, INCIDENT_UA],
+    );
+    await runDelete(
+      'endpoint_hits',
+      `DELETE FROM endpoint_hits
+       WHERE created_at >= $1::timestamp AND created_at <= $2::timestamp
+         AND user_agent = $3`,
+      [INCIDENT_START, INCIDENT_END, INCIDENT_UA],
+    );
+    await runDelete(
+      'sdk_installs',
+      `DELETE FROM sdk_installs
+       WHERE first_seen_at >= $1::timestamp AND first_seen_at <= $2::timestamp
+         AND user_agent = $3`,
+      [INCIDENT_START, INCIDENT_END, INCIDENT_UA],
+    );
+    await runDelete(
+      'api_usage_tracking',
+      `DELETE FROM api_usage_tracking a
+       USING incident_users i
+       WHERE a.client_id = i.user_id
+         AND a.request_timestamp >= $1::timestamp AND a.request_timestamp <= $2::timestamp`,
+      [INCIDENT_START, INCIDENT_END],
+    );
+    await runDelete(
+      'credit_transactions',
+      `DELETE FROM credit_transactions t
+       USING incident_users i
+       WHERE t.user_id = i.user_id
+         AND t.created_at >= $1::timestamp AND t.created_at <= $2::timestamp`,
+      [INCIDENT_START, INCIDENT_END],
+    );
+    await runDelete(
+      'api_keys',
+      `DELETE FROM api_keys k USING incident_keys i WHERE k.id = i.id`,
+    );
+    await runDelete(
+      'free_credits_claim_log',
+      `DELETE FROM free_credits_claim_log f
+       USING incident_users i
+       WHERE f.user_id = i.user_id
+         AND f.claimed_at >= $1::timestamp AND f.claimed_at <= $2::timestamp
+         AND f.user_agent = $3`,
+      [INCIDENT_START, INCIDENT_END, INCIDENT_UA],
+    );
+
+    // Reconstruct the two pre-existing balances solely from their retained ledger.
+    const restored = await client.query(
+      `UPDATE credits_accounts a
+       SET balance = COALESCE((
+         SELECT SUM(t.amount) FROM credit_transactions t WHERE t.account_id = a.id
+       ), 0), updated_at = NOW()
+       FROM incident_existing_users i
+       WHERE a.user_id = i.user_id
+       RETURNING a.user_id, a.balance`,
+    );
+    deleted.restored_existing_accounts = restored.rowCount ?? 0;
+
+    await runDelete(
+      'credits_accounts',
+      `DELETE FROM credits_accounts a
+       USING incident_new_users i
+       WHERE a.user_id = i.user_id`,
+    );
+    await runDelete(
+      'users',
+      `DELETE FROM users u
+       USING incident_new_users i
+       WHERE u.id = i.user_id`,
+    );
+
+    const residualResult = await client.query(
+      `SELECT
+         (SELECT COUNT(*)::int FROM api_keys k JOIN incident_users i ON i.user_id = k.user_id
+          WHERE k.created_at >= $1::timestamp AND k.created_at <= $2::timestamp) AS keys,
+         (SELECT COUNT(*)::int FROM credit_transactions t JOIN incident_users i USING (user_id)
+          WHERE t.created_at >= $1::timestamp AND t.created_at <= $2::timestamp) AS ledger,
+         (SELECT COUNT(*)::int FROM free_credits_claim_log f JOIN incident_users i USING (user_id)
+          WHERE f.claimed_at >= $1::timestamp AND f.claimed_at <= $2::timestamp) AS claims,
+         (SELECT COUNT(*)::int FROM api_usage_tracking a JOIN incident_users i ON i.user_id = a.client_id
+          WHERE a.request_timestamp >= $1::timestamp AND a.request_timestamp <= $2::timestamp) AS usage,
+         (SELECT COUNT(*)::int FROM users u JOIN incident_new_users i ON i.user_id = u.id) AS new_users`,
+      [INCIDENT_START, INCIDENT_END],
+    );
+    const residual = residualResult.rows[0];
+    const clean = Object.values(residual).every((value) => Number(value) === 0);
+    if (!clean) {
+      await client.query('ROLLBACK');
+      return res.status(500).json({
+        error: 'PURGE_RESIDUAL_CHECK_FAILED',
+        residual,
+        deleted: false,
+      });
+    }
+
+    await client.query('COMMIT');
+    console.warn('🧹 Sep 6 trial incident purged', { manifest, deleted, residual });
+    return res.json({
+      success: true,
+      dryRun: false,
+      manifest,
+      deleted,
+      restoredExistingAccounts: restored.rows.map((row) => ({ balance: row.balance })),
+      residual,
+    });
+  } catch (err: any) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    console.error('❌ Trial incident purge rolled back:', err?.message);
+    return res.status(500).json({
+      error: 'PURGE_ROLLED_BACK',
+      message: err?.message || 'Unknown purge failure',
+      deleted: false,
+    });
+  } finally {
+    client.release();
+  }
+});
+
 export default router;

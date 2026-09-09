@@ -7,7 +7,7 @@ import { ArrowRight, Globe, Zap, Shield, BarChart3, Mail } from "lucide-react";
 export default function X402PartnerPage() {
   useSEO({
     title: "x402 Ecosystem Partner | Coin Railz",
-    description: "Join the x402 ecosystem. 78 services, 14 categories, 6 NASA/ESA satellite data products. Cross-promote, integrate, and grow together.",
+    description: "Join the x402 ecosystem with a broad catalog spanning 14 categories and NASA/ESA satellite data products. Cross-promote, integrate, and grow together.",
     keywords: "x402, partner, ecosystem, AI agent payments, Coinbase Bazaar, USDC micropayments",
     ogTitle: "x402 Ecosystem Partner — Coin Railz",
     ogDescription: "78 pay-per-call APIs across 14 categories. Let's cross-promote and grow the agent economy together.",

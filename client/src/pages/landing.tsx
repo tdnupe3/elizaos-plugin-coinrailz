@@ -158,7 +158,7 @@ export default function Landing() {
             </h1>
             
             <p className="text-base sm:text-2xl text-gray-600 mb-4 sm:mb-8 px-4 max-w-3xl mx-auto">
-              78 pay-per-call APIs for crypto/trading intelligence, satellite & IoT data, RWA tokenization, and prediction markets — built for autonomous agents. API key in ~60 seconds via card — or x402 on-chain USDC for advanced flows.
+              Pay-per-call APIs for crypto/trading intelligence, satellite & IoT data, RWA tokenization, and prediction markets — built for autonomous agents. API key in ~60 seconds via card — or x402 on-chain USDC for advanced flows.
             </p>
             
             {/* Trust Badges - Card first, x402 secondary */}
@@ -167,7 +167,7 @@ export default function Landing() {
                 <Badge className="bg-green-100 text-green-800">✓ API Key in ~60 Seconds</Badge>
               </div>
               <div className="flex items-center space-x-2">
-                <Badge className="bg-blue-100 text-blue-800">✓ 78 Pay-Per-Call APIs</Badge>
+                <Badge className="bg-blue-100 text-blue-800">✓ Live Service Catalog</Badge>
               </div>
               <div className="flex items-center space-x-2">
                 <Badge className="bg-orange-100 text-orange-800">✓ Coinbase Agentic Wallets</Badge>
@@ -185,7 +185,7 @@ export default function Landing() {
               <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 flex items-start space-x-3">
                 <Check className="w-4 h-4 text-slate-500 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  <span className="font-semibold text-slate-800">x402 Protocol — Open Internet Standard</span> governed by the Linux Foundation. Members include AWS, Google, Microsoft, Mastercard, Cloudflare, Stripe, Adyen, Circle, and Shopify. Coin Railz operates 78 discoverable x402 services for autonomous AI agent data purchasing.
+                  <span className="font-semibold text-slate-800">x402 Protocol — Open Internet Standard</span> governed by the Linux Foundation. Members include AWS, Google, Microsoft, Mastercard, Cloudflare, Stripe, Adyen, Circle, and Shopify. Coin Railz operates a discoverable x402 service catalog for autonomous AI agent data purchasing.
                 </p>
               </div>
             </div>
@@ -203,7 +203,7 @@ export default function Landing() {
                   <div className="space-y-2 text-left max-w-xl mx-auto mb-4">
                     <div className="flex items-start space-x-3">
                       <Check className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-gray-700">78 pay-per-call services: DeFi analytics, satellite data, IoT, AI inference</span>
+                      <span className="text-sm text-gray-700">Pay-per-call services: DeFi analytics, satellite data, IoT, AI inference</span>
                     </div>
                     <div className="flex items-start space-x-3">
                       <Check className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
@@ -240,7 +240,7 @@ export default function Landing() {
                     </div>
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-green-900">Get API Key via Card — ~60 Seconds</div>
-                      <div className="text-xs text-green-700">Pay by card • Instant API key • All 78 APIs unlocked</div>
+                      <div className="text-xs text-green-700">Pay by card • Instant API key • Full catalog access</div>
                     </div>
                   </div>
                   <Button 
@@ -279,8 +279,8 @@ export default function Landing() {
             {/* Key Stats - Verified counts only */}
             <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-6 sm:mb-8">
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600">78</div>
-                <div className="text-xs sm:text-sm text-gray-600">APIs Available</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600">Live</div>
+                <div className="text-xs sm:text-sm text-gray-600">Service Catalog</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl sm:text-3xl font-bold text-green-600">2</div>
@@ -431,7 +431,7 @@ export default function Landing() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                   <a href="/mcp/services" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center space-x-2 bg-white border border-gray-300 rounded px-3 py-2 hover:bg-gray-100 transition-colors">
                     <span className="font-mono text-gray-700">MCP Protocol</span>
-                    <Badge className="bg-blue-100 text-blue-700 text-xs">78 services</Badge>
+                    <Badge className="bg-blue-100 text-blue-700 text-xs">Live service catalog</Badge>
                   </a>
                   <a href="https://coinrailz-x402-gateway.coinrailz.workers.dev/catalog" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center space-x-2 bg-white border border-gray-300 rounded px-3 py-2 hover:bg-gray-100 transition-colors">
                     <span className="font-mono text-gray-700">Cloudflare Gateway</span>

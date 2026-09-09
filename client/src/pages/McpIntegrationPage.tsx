@@ -137,7 +137,7 @@ export default function McpIntegrationPage() {
           </div>
           <p className="text-zinc-600 dark:text-zinc-400 mb-6">
             No crypto wallet. No on-chain transaction. No account creation. A free $5 trial key
-            works on all 78 services and is available immediately.
+            works across the canonical service catalog and is available immediately.
           </p>
 
           <div className="space-y-6">
@@ -514,7 +514,7 @@ export default function McpIntegrationPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Free $5 trial key — instant access to all 78 services. No account, no crypto.
+                  Free $5 trial key — instant access to the service catalog. No account, no crypto.
                 </p>
                 <a
                   href="/api/m2m/credits/trial"

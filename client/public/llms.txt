@@ -4,13 +4,13 @@
 
 ## What is Coin Railz?
 
-Coin Railz is agentic commerce infrastructure — 76 pay-per-call APIs built for autonomous AI agents.
+Coin Railz is agentic commerce infrastructure — pay-per-call APIs built for autonomous AI agents.
 Agents pay per call using x402 (HTTP-native USDC micropayments) or card-funded API keys.
 No subscriptions. No OAuth. No human in the loop.
 
 ## Core Capabilities
 
-- **76 microservices** spanning DeFi, IoT, satellite data, prediction markets, RWA tokenization, and compliance
+- **Canonical service catalog** spanning DeFi, IoT, satellite data, prediction markets, RWA tokenization, and compliance
 - **x402 protocol** — agents attach a signed USDC payment header to each HTTP request; the server settles on-chain
 - **API key access** — card-funded credits, instant provisioning (~60 seconds)
 - **USDC Yield Vault** — ERC-4626 on Base, auto-routes across Aave v3, Compound v3, and Morpho Blue
@@ -26,7 +26,7 @@ No subscriptions. No OAuth. No human in the loop.
 
 ## Machine-Readable Endpoints
 
-- **Service catalog (x402):** https://coinrailz.com/x402 (GET — returns all 76 services with pricing)
+- **Service catalog (x402):** https://coinrailz.com/x402 (GET — canonical service list and pricing)
 - **A2A agent card:** https://coinrailz.com/.well-known/agent.json
 - **MCP manifest:** https://coinrailz.com/mcp
 - **OpenAPI spec:** https://coinrailz.com/api/openapi.json
@@ -41,7 +41,7 @@ Coin Railz is also accessible via a native Cloudflare Worker gateway — the pre
 - **Gateway root:** https://coinrailz-x402-gateway.coinrailz.workers.dev
 - **Service catalog:** https://coinrailz-x402-gateway.coinrailz.workers.dev/catalog
 - **Payment:** CF Wallet agents pay via the Coinbase CDP facilitator (same as the main platform)
-- **Coverage:** All 76 services, dynamically sourced from the main catalog
+- **Coverage:** Dynamically sourced from the canonical service catalog
 
 ## SDK / Integration
 

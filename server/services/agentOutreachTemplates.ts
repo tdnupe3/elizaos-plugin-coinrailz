@@ -121,7 +121,7 @@ We're Coin Railz - 69 micropayment services for AI agents on x402 protocol.
 ✅ Pay-per-call, no subscriptions
 
 Browse: ${this.baseUrls.services}`,
-      callToAction: `View all 69 services: ${this.baseUrls.services}`,
+      callToAction: `View the canonical service catalog: ${this.baseUrls.services}`,
     };
   }
 
@@ -130,7 +130,7 @@ Browse: ${this.baseUrls.services}`,
     const hasHighScore = (agent.metadata?.score || 0) > 20;
     
     if (hasHighScore) {
-      return `@${agentName} - Built 69 x402 services specifically for AI agents like yours. Premium infrastructure: instant Circle MPC wallets ($1), ERC-8004 on-chain identity ($5), CCTP chain bridge ($2). All on Base with CDP facilitator.
+      return `@${agentName} - Built an x402 service catalog specifically for AI agents like yours. Premium infrastructure: instant Circle MPC wallets ($1), ERC-8004 on-chain identity ($5), CCTP chain bridge ($2). All on Base with CDP facilitator.
 
 Try: https://coinrailz.com/x402/service/instant-agent-wallet`;
     }
@@ -221,7 +221,7 @@ Worth a look?`,
 
 This is my last follow-up about Coin Railz x402 services.
 
-We're live on x402scan with 69 services. Search: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
+We're live on x402scan. Search: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 
 If you need infrastructure (wallets, identity, pricing, gas, DeFi tools) - we're here.
 

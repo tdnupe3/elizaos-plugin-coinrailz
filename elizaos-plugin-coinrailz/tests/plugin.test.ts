@@ -1,7 +1,9 @@
+import axios from 'axios';
 import { coinrailzPlugin } from '../src/index';
 import { payForServiceAction } from '../src/actions/payForService';
 import { solanaYieldAction } from '../src/actions/solanaYield';
 import { COIN_RAILZ_SERVICES } from '../src/types';
+import { X402Client } from '../src/utils/x402Client';
 
 // ── x402 plugin tests ──────────────────────────────────────────────────────
 
@@ -55,6 +57,64 @@ describe('CoinRailz Plugin', () => {
       content: {},
     } as any);
     expect(isValid).toBe(false);
+  });
+});
+
+describe('X402Client service resolution', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('rejects a missing service ID without making a request', async () => {
+    const post = jest.spyOn(axios, 'post');
+    const client = new X402Client({ apiKey: 'test-key' });
+
+    const result = await client.callService({ payload: {}, amount: '' } as any);
+
+    expect(result).toEqual({
+      success: false,
+      error: 'A valid Coin Railz serviceId is required.',
+    });
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unknown service ID without making a request', async () => {
+    const post = jest.spyOn(axios, 'post');
+    const client = new X402Client({ apiKey: 'test-key' });
+
+    const result = await client.callService({
+      serviceId: 'not-a-real-service',
+      payload: {},
+      amount: '',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Unknown Coin Railz service: not-a-real-service');
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('uses the catalog endpoint for a valid service', async () => {
+    const post = jest.spyOn(axios, 'post').mockResolvedValue({ data: { ok: true } });
+    const client = new X402Client({
+      apiKey: 'test-key',
+      baseUrl: 'https://example.test/',
+    });
+
+    const result = await client.callService({
+      serviceId: 'multi-chain-balance',
+      payload: { wallet: '0xabc' },
+      amount: '',
+    });
+
+    const service = COIN_RAILZ_SERVICES.find(
+      candidate => candidate.id === 'multi-chain-balance'
+    );
+    expect(result.success).toBe(true);
+    expect(post).toHaveBeenCalledWith(
+      `https://example.test${service!.endpoint}`,
+      { wallet: '0xabc' },
+      expect.any(Object)
+    );
   });
 });
 

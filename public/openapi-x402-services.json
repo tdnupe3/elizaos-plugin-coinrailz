@@ -3136,7 +3136,7 @@
           "Developer Tools"
         ],
         "summary": "Instant API Key",
-        "description": "Frictionless API key provisioning via USDC payment. Pay once, receive a prepaid credits key instantly \u2014 no sign-up, no OAuth, no waitlist. Works across all 80 x402 services.",
+        "description": "Frictionless API key provisioning via USDC payment. Pay once, receive a prepaid credits key instantly \u2014 no sign-up, no OAuth, no waitlist. Works across the canonical x402 service catalog.",
         "x-price-usd": 1.0,
         "x-featured": false,
         "operationId": "instantApiKey",

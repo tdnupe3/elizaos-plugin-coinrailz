@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import type { PaymentRequest, PaymentResponse } from '../types';
+import { COIN_RAILZ_SERVICES } from '../types';
 
 const COIN_RAILZ_BASE_URL = process.env.COIN_RAILZ_URL || 'https://coinrailz.com';
 
@@ -31,9 +32,31 @@ export class X402Client {
   private privateKey?: string;
 
   constructor(config?: X402ClientConfig) {
-    this.baseUrl = config?.baseUrl || COIN_RAILZ_BASE_URL;
+    this.baseUrl = (config?.baseUrl || COIN_RAILZ_BASE_URL).replace(/\/+$/, '');
     this.apiKey = config?.apiKey || process.env.COINRAILZ_API_KEY;
     this.privateKey = config?.privateKey || process.env.EVM_PRIVATE_KEY;
+  }
+
+  private resolveService(request: PaymentRequest): {
+    serviceId: string;
+    endpoint: string;
+    payload: PaymentRequest['payload'];
+  } | null {
+    const serviceId = request?.serviceId;
+    if (typeof serviceId !== 'string' || serviceId.trim() === '') {
+      return null;
+    }
+
+    const service = COIN_RAILZ_SERVICES.find(candidate => candidate.id === serviceId);
+    if (!service) {
+      return null;
+    }
+
+    return {
+      serviceId,
+      endpoint: `${this.baseUrl}${service.endpoint}`,
+      payload: request.payload
+    };
   }
 
   /**
@@ -41,11 +64,22 @@ export class X402Client {
    * Automatically selects the appropriate payment path based on available credentials.
    */
   async callService(request: PaymentRequest): Promise<PaymentResponse> {
+    const resolved = this.resolveService(request);
+    if (!resolved) {
+      const suppliedId = (request as Partial<PaymentRequest> | undefined)?.serviceId;
+      return {
+        success: false,
+        error: typeof suppliedId === 'string' && suppliedId.trim()
+          ? `Unknown Coin Railz service: ${suppliedId}`
+          : 'A valid Coin Railz serviceId is required.'
+      };
+    }
+
     if (this.apiKey) {
-      return this._callWithApiKey(request);
+      return this._callWithApiKey(resolved);
     }
     if (this.privateKey) {
-      return this._callWithX402(request);
+      return this._callWithX402(resolved);
     }
     return {
       success: false,
@@ -62,16 +96,17 @@ export class X402Client {
    * Platform accepts both "Authorization: Bearer <key>" and "x-api-key: <key>".
    * Bearer is used here for maximum compatibility.
    */
-  private async _callWithApiKey(request: PaymentRequest): Promise<PaymentResponse> {
-    const { serviceId, payload } = request;
-    const endpoint = `${this.baseUrl}/x402/${serviceId}`;
+  private async _callWithApiKey(
+    request: { serviceId: string; endpoint: string; payload: PaymentRequest['payload'] }
+  ): Promise<PaymentResponse> {
+    const { serviceId, endpoint, payload } = request;
 
     try {
       const response = await axios.post(endpoint, payload ?? {}, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`,
-          'User-Agent': 'elizaos-plugin-coinrailz/2.5.0'
+          'User-Agent': 'elizaos-plugin-coinrailz/2.6.1'
         }
       });
       return { success: true, serviceResponse: response.data };
@@ -99,9 +134,10 @@ export class X402Client {
    * Requires a funded Base mainnet wallet (EVM_PRIVATE_KEY).
    * Uses x402-fetch's wrapFetchWithPayment for automatic 402 handling.
    */
-  private async _callWithX402(request: PaymentRequest): Promise<PaymentResponse> {
-    const { serviceId, payload } = request;
-    const endpoint = `${this.baseUrl}/x402/${serviceId}`;
+  private async _callWithX402(
+    request: { serviceId: string; endpoint: string; payload: PaymentRequest['payload'] }
+  ): Promise<PaymentResponse> {
+    const { serviceId, endpoint, payload } = request;
 
     try {
       const { wrapFetchWithPayment } = await import('x402-fetch');
@@ -125,7 +161,7 @@ export class X402Client {
 
       const response = await x402Fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'User-Agent': 'elizaos-plugin-coinrailz/2.5.0' },
+        headers: { 'Content-Type': 'application/json', 'User-Agent': 'elizaos-plugin-coinrailz/2.6.1' },
         body: JSON.stringify(payload ?? {})
       });
 

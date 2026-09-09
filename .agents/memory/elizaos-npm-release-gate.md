@@ -8,3 +8,9 @@ Never approve an ElizaOS plugin release from source tests alone. The gate must p
 **Why:** A published package retained stale compiled behavior even though source was fixed; later auditing also found a same-version collision, catalog omissions, broken native ESM default unwrapping, and package configuration hidden by a broad JSON ignore rule.
 
 **How to apply:** Use an explicit single-package release target. Before publishing, clean-build, test, pack, inspect contents, run the external-consumer gate, and use a publication dry run. After publishing, reinstall the exact registry version and repeat the smoke test before monitoring production behavior.
+
+The ElizaOS registry entry is a separate, exact version pin and does not advance when npm publishes a new plugin version. A release is not fully distributed until that registry entry is updated and production telemetry shows the new User-Agent on valid paths with older versions analyzed separately.
+
+**Why:** Publishing the fixed npm artifact did not move registry consumers; the registry still advertised an older release, and production continued to show `/undefined` only from older User-Agents.
+
+**How to apply:** Every plugin npm release must include a registry-version update, then a production query grouped by exact User-Agent and request path. Do not combine old and new runtime traffic when validating a fix.

@@ -102,3 +102,4 @@
 - [Keeper nonce ownership](keeper-nonce-ownership.md) — a shared EVM sender causes keeper nonce races; use a dedicated account or one serialized nonce owner.
 - [Production bootstrap isolation](production-bootstrap-isolation.md) — keep health probes responsive in a tiny parent process while the large app bundle initializes behind an internal proxy.
 - [ElizaOS npm release gate](elizaos-npm-release-gate.md) — release only from a packed external-consumer test covering registry version, catalog parity, CJS/ESM exports, and tracked config.
+- [ElizaOS registry generation](elizaos-registry-generation.md) — registry source-entry changes must regenerate and commit the runtime registry artifact or CI and consumer visibility diverge.

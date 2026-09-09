@@ -1,7 +1,7 @@
 import axios from 'axios';
+import { PLUGIN_USER_AGENT } from '../version';
 
 const BASE_URL = process.env.COIN_RAILZ_URL || 'https://coinrailz.com';
-const USER_AGENT = 'elizaos-plugin-coinrailz/2.1.0';
 
 export interface SolanaYieldRates {
   success: boolean;
@@ -55,7 +55,7 @@ export class SolanaYieldClient {
 
   async getRates(): Promise<SolanaYieldRates> {
     const resp = await axios.get(`${this.baseUrl}/api/solana-yield/rates`, {
-      headers: { 'User-Agent': USER_AGENT },
+      headers: { 'User-Agent': PLUGIN_USER_AGENT },
       timeout: 10_000,
     });
     return resp.data;
@@ -63,7 +63,7 @@ export class SolanaYieldClient {
 
   async getManifest(): Promise<any> {
     const resp = await axios.get(`${this.baseUrl}/api/solana-yield/manifest`, {
-      headers: { 'User-Agent': USER_AGENT },
+      headers: { 'User-Agent': PLUGIN_USER_AGENT },
       timeout: 10_000,
     });
     return resp.data;
@@ -71,7 +71,7 @@ export class SolanaYieldClient {
 
   async getStats(): Promise<any> {
     const resp = await axios.get(`${this.baseUrl}/api/solana-yield/stats`, {
-      headers: { 'User-Agent': USER_AGENT },
+      headers: { 'User-Agent': PLUGIN_USER_AGENT },
       timeout: 10_000,
     });
     return resp.data;
@@ -79,7 +79,7 @@ export class SolanaYieldClient {
 
   async getPosition(wallet: string): Promise<SolanaYieldPosition> {
     const resp = await axios.get(`${this.baseUrl}/api/solana-yield/position/${wallet}`, {
-      headers: { 'User-Agent': USER_AGENT },
+      headers: { 'User-Agent': PLUGIN_USER_AGENT },
       timeout: 10_000,
     });
     return resp.data;
@@ -93,7 +93,7 @@ export class SolanaYieldClient {
     const resp = await axios.post(
       `${this.baseUrl}/api/solana-yield/deposit-tx`,
       params,
-      { headers: { 'Content-Type': 'application/json', 'User-Agent': USER_AGENT }, timeout: 15_000 }
+      { headers: { 'Content-Type': 'application/json', 'User-Agent': PLUGIN_USER_AGENT }, timeout: 15_000 }
     );
     return resp.data;
   }
@@ -106,7 +106,7 @@ export class SolanaYieldClient {
     const resp = await axios.post(
       `${this.baseUrl}/api/solana-yield/confirm`,
       params,
-      { headers: { 'Content-Type': 'application/json', 'User-Agent': USER_AGENT }, timeout: 20_000 }
+      { headers: { 'Content-Type': 'application/json', 'User-Agent': PLUGIN_USER_AGENT }, timeout: 20_000 }
     );
     return resp.data;
   }

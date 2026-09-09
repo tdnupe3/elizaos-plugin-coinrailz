@@ -1,4 +1,4 @@
-import type { Plugin } from '@elizaos/core';
+import type { Plugin } from './types/elizaos';
 import { payForServiceAction } from './actions/payForService';
 import { solanaYieldAction } from './actions/solanaYield';
 import { baseYieldAction } from './actions/baseYield';
@@ -6,7 +6,7 @@ import { serviceRegistryProvider } from './providers/serviceRegistry';
 
 export const coinrailzPlugin: Plugin = {
   name: 'coinrailz',
-  description: 'Coin Railz (ElizaOS PR #8382 merged) — Agent Treasury + Payments. Enable Yield-While-Trading on Base (ERC-4626, Aave/Compound/Morpho) + Solana (non-custodial Kamino). Plus 76 x402 pay-per-call services: NASA satellite, Robinhood Chain, B20 compliance, prediction markets, AI inference, IoT/DePIN, and execution. AgentKit & Coinbase Agentic Wallet compatible.',
+  description: 'Coin Railz (ElizaOS PR #8382 merged) — Agent Treasury + Payments. Enable Yield-While-Trading on Base (ERC-4626, Aave/Compound/Morpho) + Solana (non-custodial Kamino). Includes a live x402 pay-per-call service catalog spanning NASA satellite data, Robinhood Chain, B20 compliance, prediction markets, AI inference, IoT/DePIN, and execution. AgentKit & Coinbase Agentic Wallet compatible.',
   actions:    [payForServiceAction, baseYieldAction, solanaYieldAction],
   evaluators: [],
   providers:  [serviceRegistryProvider],

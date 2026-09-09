@@ -1,4 +1,4 @@
-import type { Provider, IAgentRuntime, Memory, State } from '@elizaos/core';
+import type { Provider, IAgentRuntime, Memory, State } from '../types/elizaos';
 import { COIN_RAILZ_SERVICES } from '../types';
 
 export const serviceRegistryProvider: Provider = {

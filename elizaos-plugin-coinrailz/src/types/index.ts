@@ -184,7 +184,7 @@ export const COIN_RAILZ_SERVICES: CoinRailzService[] = [
     name: 'Payment Processing',
     description: 'Cross-chain payment processing and settlement',
     price: '0.50',
-    endpoint: '/x402/service/payment-processing',
+    endpoint: '/x402/payment-processing',
     network: 'base',
     category: 'infrastructure'
   },
@@ -249,7 +249,7 @@ export const COIN_RAILZ_SERVICES: CoinRailzService[] = [
     name: 'Compliance Consultation',
     description: 'Expert compliance consultation for crypto operations and regulatory requirements',
     price: '5.00',
-    endpoint: '/x402/service/compliance-consultation',
+    endpoint: '/x402/compliance-consultation',
     network: 'base',
     category: 'premium'
   },
@@ -258,7 +258,7 @@ export const COIN_RAILZ_SERVICES: CoinRailzService[] = [
     name: 'Smart Contract Audit',
     description: 'Comprehensive AI-powered smart contract security audit',
     price: '10.00',
-    endpoint: '/x402/service/smart-contract-audit',
+    endpoint: '/x402/smart-contract-audit',
     network: 'base',
     category: 'premium'
   },
@@ -532,6 +532,33 @@ export const COIN_RAILZ_SERVICES: CoinRailzService[] = [
   },
 
   // ─── NASA Earthdata Intelligence ────────────────────────────────────────────
+  {
+    id: 'satellite-earthdata',
+    name: 'NASA Earthdata Gateway',
+    description: 'NASA Earthdata gateway for precipitation, granule search, SST, soil moisture, and ocean color',
+    price: '0.25',
+    endpoint: '/x402/satellite-earthdata',
+    network: 'base',
+    category: 'nasa-earthdata'
+  },
+  {
+    id: 'earthdata-granules',
+    name: 'NASA Earthdata Granule Search',
+    description: 'Search NASA satellite granules by bounding box, date range, and collection',
+    price: '0.25',
+    endpoint: '/x402/earthdata-granules',
+    network: 'base',
+    category: 'nasa-earthdata'
+  },
+  {
+    id: 'earthdata-precipitation',
+    name: 'NASA Precipitation Data',
+    description: 'Observed rain rate at global coordinates from NASA IMERG',
+    price: '0.25',
+    endpoint: '/x402/earthdata-precipitation',
+    network: 'base',
+    category: 'nasa-earthdata'
+  },
   {
     id: 'earthdata-sst',
     name: 'Earthdata Sea Surface Temperature',

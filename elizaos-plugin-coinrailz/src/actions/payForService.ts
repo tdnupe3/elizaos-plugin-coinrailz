@@ -1,4 +1,4 @@
-import type { Action, IAgentRuntime, Memory, State } from '@elizaos/core';
+import type { Action, IAgentRuntime, Memory, State } from '../types/elizaos';
 import { X402Client } from '../utils/x402Client';
 import { COIN_RAILZ_SERVICES } from '../types';
 

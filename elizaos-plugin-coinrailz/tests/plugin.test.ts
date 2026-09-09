@@ -4,6 +4,9 @@ import { payForServiceAction } from '../src/actions/payForService';
 import { solanaYieldAction } from '../src/actions/solanaYield';
 import { COIN_RAILZ_SERVICES } from '../src/types';
 import { X402Client } from '../src/utils/x402Client';
+import { PLUGIN_VERSION } from '../src/version';
+import packageJson from '../package.json';
+import openApiSpec from '../../public/openapi-x402-services.json';
 
 // ── x402 plugin tests ──────────────────────────────────────────────────────
 
@@ -20,8 +23,17 @@ describe('CoinRailz Plugin', () => {
     expect(coinrailzPlugin.actions).toContain(solanaYieldAction);
   });
 
-  it('should have at least 65 x402 services defined', () => {
-    expect(COIN_RAILZ_SERVICES.length).toBeGreaterThanOrEqual(65);
+  it('keeps the runtime version synchronized with package metadata', () => {
+    expect(PLUGIN_VERSION).toBe(packageJson.version);
+  });
+
+  it('matches the canonical OpenAPI service catalog exactly', () => {
+    const canonicalEndpoints = Object.keys(openApiSpec.paths)
+      .filter(path => path.startsWith('/x402/') && !path.includes('{'))
+      .sort();
+    const pluginEndpoints = COIN_RAILZ_SERVICES.map(service => service.endpoint).sort();
+
+    expect(pluginEndpoints).toEqual(canonicalEndpoints);
   });
 
   it('should have valid service configurations', () => {

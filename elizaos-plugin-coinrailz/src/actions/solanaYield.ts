@@ -1,4 +1,4 @@
-import type { Action, IAgentRuntime, Memory, State } from '@elizaos/core';
+import type { Action, IAgentRuntime, Memory, State } from '../types/elizaos';
 import { SolanaYieldClient, SolanaDepositTxBundle } from '../utils/solanaYieldClient';
 
 export type SolanaYieldOperation =

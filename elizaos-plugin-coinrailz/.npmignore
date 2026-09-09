@@ -9,3 +9,5 @@ PULL_REQUEST_TEMPLATE.md
 QUICK_START.md
 jest.config.js
 tsconfig.json
+tsconfig.test.json
+scripts/

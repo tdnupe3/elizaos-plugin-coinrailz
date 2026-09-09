@@ -38,6 +38,10 @@ attached_assets/cdp_api_key_*.json
 !/package.json
 !/package-lock.json
 !/tsconfig.json
+# Publishable ElizaOS plugin metadata and compiler settings are release inputs.
+!/elizaos-plugin-coinrailz/package.json
+!/elizaos-plugin-coinrailz/tsconfig.json
+!/elizaos-plugin-coinrailz/tsconfig.test.json
 # Canonical OpenAPI spec — must be versioned (not a credential)
 !public/openapi-x402-services.json
 # Drizzle migration history is reproducible build metadata, not secret data.

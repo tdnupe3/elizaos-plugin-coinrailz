@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import type { PaymentRequest, PaymentResponse } from '../types';
 import { COIN_RAILZ_SERVICES } from '../types';
+import { PLUGIN_USER_AGENT } from '../version';
 
 const COIN_RAILZ_BASE_URL = process.env.COIN_RAILZ_URL || 'https://coinrailz.com';
 
@@ -106,7 +107,7 @@ export class X402Client {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`,
-          'User-Agent': 'elizaos-plugin-coinrailz/2.6.1'
+          'User-Agent': PLUGIN_USER_AGENT
         }
       });
       return { success: true, serviceResponse: response.data };
@@ -161,7 +162,7 @@ export class X402Client {
 
       const response = await x402Fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'User-Agent': 'elizaos-plugin-coinrailz/2.6.1' },
+        headers: { 'Content-Type': 'application/json', 'User-Agent': PLUGIN_USER_AGENT },
         body: JSON.stringify(payload ?? {})
       });
 

@@ -1,0 +1,84 @@
+[9/12/2026 5:38 PM] Tdnupe3: Final Read-Only Eligibility & Technical Compliance Check
+1. Official Marketplace Eligibility Criteria for Externally Hosted SaaS
+ * Exact Requirement: Google Cloud Marketplace requires third-party SaaS offerings to integrate with the Google Cloud Marketplace Procurement API (for account creation, subscription lifecycle, and entitlement management) and pass technical/security verification.
+ * Distinction (Mandatory vs. Optional Gateway):
+   * Mandatory Google Hosting: False. Google does not require the core application workload to be hosted on GCP infrastructure.
+   * Optional Google-Hosted Gateway: True / Option. A lightweight proxy or gateway hosted on Google Cloud is a documented architectural pattern for partners who need to fulfill enterprise zero-trust egress, IAM token translation, or API metering requirements without migrating their backend off external hosts.
+ * Gateway Sufficiency: A forwarding gateway on GCP is sufficient for Marketplace listing approval, provided the partner implements the mandatory Procurement API webhooks for billing and entitlement fulfillment.
+ * Classification: Documented requirement (Procurement API requirement) and documented option (GCP proxy/gateway pattern).
+2. Official A2A Agent Card Schemas (Exact Spec Definitions)
+Under the open-source Agent2Agent (A2A) protocol specification, field declarations must follow exact schema definitions without conceptual placeholders:
+A2A v0.3 Schema Specification
+{
+  "a2a_version": "0.3",
+  "name": "Coin Railz Financial Agent",
+  "description": "Agent offering financial telemetry, fraud scoring, and x402 payment execution.",
+  "url": "https://api.coinrailz.com/a2a/v1",
+  "skills": [
+    {
+      "id": "fraud_detection",
+      "name": "Fraud Detection",
+      "description": "Evaluates risk scores for onchain wallet addresses."
+    }
+  ],
+  "capabilities": {
+    "streaming": false,
+    "push_notifications": false
+  }
+}
+
+A2A v1.0 Schema Specification
+{
+  "protocol_version": "1.0",
+  "agent_id": "com.coinrailz.financial-agent",
+  "identity": {
+    "name": "Coin Railz Financial Agent",
+    "description": "Agent offering financial telemetry, fraud scoring, and x402 payment execution."
+  },
+  "endpoints": [
+    {
+      "protocol": "https",
+      "uri": "https://api.coinrailz.com/a2a/v1"
+    }
+  ],
+  "skills": [
+    {
+      "id": "fraud_detection",
+      "name": "Fraud Detection",
+      "description": "Evaluates risk scores for onchain wallet addresses."
+    }
+  ],
+  "security": {
+    "schemes": []
+  }
+}
+
+ * Classification: Documented requirement (per A2A protocol specifications).
+3. Representation of x402 (Payment Protocol vs. Auth Scheme)
+ * Technical Distinction: HTTP 402 Payment Required is an HTTP status code and payment challenge protocol (RFC 9110 / x402 draft), not a standard OIDC or IETF OAuth2 authentication scheme.
+ * Representation: In an A2A Agent Card, standard auth objects (security.schemes or authentication.schemes) must strictly declare transport/identity authentication (e.g., OAuth2, Bearer, APIKey). Payment capabilities such as x402 must be declared within custom metadata extension blocks or skill-level requirements:
+{
+  "extensions": {
+    "payment_protocols": [
+      {
+        "type": "x402",
+        "currency": "USDC",
+        "networks": ["base", "solana"]
+      }
+    ]
+  }
+}
+
+ * Classification: Recommended design choice.
+4. Discovery Placement & Multi-Skill Catalog Rules
+ * Rejection Rule Verification: There is no official rule stating that an agent card with 80+ skills will be rejected by Google Cloud Agent Registry or Marketplace.
+ * Discovery Impact: Agent Registries prioritize high term-frequency and precise field matching for query intent. Overloading a single card with 80 distinct domain tools reduces keyword density and contextual match confidence for specific user prompts.
+[9/12/2026 5:38 PM] Tdnupe3: * Classification: Hypothesis (for discovery ranking degradation) and Recommended design choice (for structural domain decomposition).
+5. Third-Party A2A Marketplace Comparable Product
+ * Reference Product: Apigee API Management / Google Cloud API Gateway (SaaS / Managed Gateway integration model).
+ * Comparison: Apigee operates as an externally managed or hybrid runtime where traffic routes to external API backends, while Google Cloud Marketplace handles the billing entitlement and procurement metering.
+ * Classification: Documented option.
+Read-Only Assessment Summary
+ * Marketplace Technical Eligibility: Eligible via SaaS model. Replit hosting does not disqualify the service, provided a Google Cloud Procurement API integration exists for tenant provisioning.
+ * Immediate Need for GCP Gateway: Not required for pilot testing. An external HTTP endpoint supporting standard A2A cards can be consumed directly by client orchestrators via direct URL bindings.
+ * Recommended Next Milestone: Maintain the single-agent endpoint on Replit for initial direct client integrations before initiating formal Google Cloud Marketplace Partner onboarding.

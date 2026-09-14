@@ -20,6 +20,9 @@ const openApi = JSON.parse(await readFile(join(root, 'public/openapi-x402-servic
 const workDir = await mkdtemp(join(tmpdir(), 'coinrailz-plugin-e2e-'));
 const packDir = join(workDir, 'pack');
 const consumerDir = join(workDir, 'consumer');
+const bunConsumerDir = join(workDir, 'bun-consumer');
+const supportedElizaCoreVersion = '2.0.3-beta.7';
+const pinnedBunVersion = '1.3.14';
 
 const run = (command, args, options = {}) =>
   execFileSync(command, args, {
@@ -194,6 +197,11 @@ try {
   assert.equal(installedManifest.version, packageJson.version);
   assert.equal(installedManifest.exports['.'].import, './esm/index.mjs');
   assert.equal(installedManifest.exports['.'].require, './dist/index.js');
+  assert.match(
+    installedManifest.peerDependencies['@elizaos/core'],
+    /\^2\.0\.3-beta\.7/,
+    'ElizaOS v2 registry claim is not reflected in the package peer range'
+  );
 
   await writeFile(
     join(consumerDir, 'native-esm-check.mjs'),
@@ -206,6 +214,45 @@ try {
     ].join('\n')
   );
   await import(new URL(`file://${join(consumerDir, 'native-esm-check.mjs')}`));
+
+  await mkdir(bunConsumerDir, { recursive: true });
+  await writeFile(
+    join(bunConsumerDir, 'package.json'),
+    JSON.stringify({
+      name: 'coinrailz-plugin-bun-loader-consumer',
+      private: true,
+      type: 'module',
+      dependencies: {
+        '@elizaos/core': supportedElizaCoreVersion,
+        [packageJson.name]: `file:${tarball}`,
+      },
+    }, null, 2)
+  );
+  run(
+    'npx',
+    ['-y', `bun@${pinnedBunVersion}`, 'install', '--no-save'],
+    { cwd: bunConsumerDir }
+  );
+  await writeFile(
+    join(bunConsumerDir, 'loader-check.ts'),
+    [
+      `import * as pluginModule from '${packageJson.name}';`,
+      "import { loadPlugin } from '@elizaos/core';",
+      'if (Bun.version !== "1.3.14") throw new Error(`Unexpected Bun version: ${Bun.version}`);',
+      'if (!pluginModule.default) throw new Error("Published ESM default export is undefined");',
+      'if (pluginModule.default !== pluginModule.coinrailzPlugin) throw new Error("Default and named exports differ");',
+      'const loaded = await loadPlugin(pluginModule.default);',
+      'if (!loaded) throw new Error("ElizaOS loadPlugin rejected the plugin");',
+      'if (loaded.name !== "coinrailz") throw new Error(`Unexpected loaded plugin: ${loaded.name}`);',
+      'if (!Array.isArray(loaded.actions) || loaded.actions.length === 0) throw new Error("Loaded plugin actions missing");',
+      'console.log(`Bun ${Bun.version} ElizaOS loader accepted ${loaded.name}`);',
+    ].join('\n')
+  );
+  run(
+    'npx',
+    ['-y', `bun@${pinnedBunVersion}`, 'run', 'loader-check.ts'],
+    { cwd: bunConsumerDir }
+  );
   console.log(`Packed-package E2E passed for ${canonicalEndpoints.length} canonical services.`);
 } finally {
   await rm(workDir, { recursive: true, force: true });

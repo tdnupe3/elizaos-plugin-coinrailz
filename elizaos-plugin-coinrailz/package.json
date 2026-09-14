@@ -1,6 +1,6 @@
 {
   "name": "elizaos-plugin-coinrailz",
-  "version": "2.6.2",
+  "version": "2.6.3",
   "description": "Official ElizaOS plugin for Coin Railz (PR #8382). Yield-While-Trading on Base (Aave/Compound/Morpho) + Solana (Kamino). x402 services include NASA satellite data, Robinhood Chain, B20 compliance, prediction markets, AI inference, IoT/DePIN, vltUSDC vault operations, and execution. Non-custodial treasury management.",
   "main": "dist/index.js",
   "module": "esm/index.mjs",
@@ -90,6 +90,6 @@
     "typescript": "^5.3.0"
   },
   "peerDependencies": {
-    "@elizaos/core": ">=0.1.7 <1"
+    "@elizaos/core": "^0.25.9 || ^2.0.3-beta.7"
   }
 }

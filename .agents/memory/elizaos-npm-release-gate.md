@@ -14,3 +14,9 @@ The ElizaOS registry entry is a separate, exact version pin and does not advance
 **Why:** Publishing the fixed npm artifact did not move registry consumers; the registry still advertised an older release, and production continued to show `/undefined` only from older User-Agents.
 
 **How to apply:** Every plugin npm release must include a registry-version update, then a production query grouped by exact User-Agent and request path. Do not combine old and new runtime traffic when validating a fix.
+
+For ElizaOS v2 compatibility, a successful direct `require()` or import is not enough. The release gate must install the packed artifact with the upstream-pinned Bun version and pass its ESM default export through the real `@elizaos/core` `loadPlugin`.
+
+**Why:** Bun can unwrap a TypeScript-generated CommonJS `exports.default` value. An ESM shim that default-imports that bundle may then read named exports from the plugin object and silently export `undefined`, even while direct CommonJS loading succeeds.
+
+**How to apply:** Import the generated CommonJS namespace in the ESM shim, verify default equals named plugin export, and test the registry’s exact v2 core version. Keep the package peer range aligned with every runtime generation claimed by the registry.

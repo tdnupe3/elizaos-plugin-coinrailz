@@ -28,11 +28,15 @@ try {
 console.log('.npmrc auth configured');
 
 // Run publish (prepublishOnly runs build+test automatically)
-const result = spawnSync(npmBin, ['publish', '--access', 'public'], {
+const result = spawnSync(
+  npmBin,
+  ['publish', '--access', 'public', '--registry', 'https://registry.npmjs.org'],
+  {
   encoding: 'utf8',
   stdio: 'pipe',
   env: { ...process.env }
-});
+  }
+);
 
 if (result.stdout) console.log(result.stdout);
 if (result.stderr) console.error(result.stderr);
